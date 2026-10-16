@@ -1,42 +1,103 @@
-# El Templo de los Ecos — Prototipo 0.3
+# El Templo de los Ecos
 
-**Godot 4.3+ · Knowledge Temple (mapa) + GothicVania Church Pack (enemigos)**
+**Un lugar sagrado. Un sistema oculto. Un ciclo del que quizás no exista escapatoria.**
 
-Proyecto editable y jugable de un piso, cinco habitaciones y tres encuentros prototipo, basado en los documentos GDD 0.1, Lore 0.2 y Reglas 0.1.
+[![Estado: Alpha](https://img.shields.io/badge/estado-alpha-orange)](https://github.com/je7remy/el-templo-de-los-ecos/releases)
+[![Godot 4.3](https://img.shields.io/badge/Godot-4.3%2B-478cbf?logo=godot-engine&logoColor=white)](https://godotengine.org/)
+[![Validación Godot](https://github.com/je7remy/el-templo-de-los-ecos/actions/workflows/validar-godot.yml/badge.svg)](https://github.com/je7remy/el-templo-de-los-ecos/actions/workflows/validar-godot.yml)
+[![Último lanzamiento](https://img.shields.io/github/v/release/je7remy/el-templo-de-los-ecos?include_prereleases&label=versi%C3%B3n)](https://github.com/je7remy/el-templo-de-los-ecos/releases)
 
-## Abrir en Fedora
+**El Templo de los Ecos** es un proyecto independiente de terror psicológico y cósmico, supervivencia y elementos roguelite, desarrollado en **Godot Engine 4** con **GDScript**. El jugador explora un templo cuyo funcionamiento desconoce: las entidades responden a reglas específicas y el conocimiento adquirido es tan valioso como las habilidades.
 
-1. Extraer el ZIP en `~/Juegos`.
-2. Abrir el editor: `godot --editor --path ~/Juegos/El_Templo_de_los_Ecos_v0_3`.
-3. Presionar **F5** para importar recursos e iniciar. En Flatpak: `flatpak run org.godotengine.Godot --editor --path ...`.
-4. Para jugar sin editor, una vez importado: `godot --path ~/Juegos/El_Templo_de_los_Ecos_v0_3`.
+> **Estado:** prototipo de un solo piso (cinco habitaciones). Las misiones, entidades y estadísticas del prototipo no constituyen canon definitivo del universo. No es un juego terminado.
 
-Hay un script opcional `herramientas/abrir_fedora.sh` que abre el editor detectando Godot o Flatpak.
+## Vista del escenario
+
+![Composición de una habitación de Knowledge Temple utilizada en el prototipo](assets/knowledge/rooms/room_2.png)
+
+*Fondo de habitación elaborado con recursos de Knowledge Temple; no es una captura de una partida en ejecución.*
+
+## ¿Qué incluye el prototipo?
+
+- Un primer piso de **cinco habitaciones**, una misión y encuentros experimentales.
+- Entidades representadas con los sprites originales **Angel, Burning Ghoul y Skeleton Wizard** de GothicVania Church Pack.
+- Escenarios, altares y decoración procedentes de **Knowledge Temple**.
+- Exploración, interacción con objetos, recolección de almas y habilidades experimentales.
+- **Muerte 50/50:** reencarnación de la misma persona o absorción definitiva del alma, con aparición posterior de un nuevo humano.
+- Persistencia del conocimiento y de las habilidades adquiridas después de una reencarnación; el nivel de habilidad se restablece a cero.
+- Pruebas automatizadas con Godot 4.3 para importar sprites, abrir escenas y recorrer el flujo básico.
+
+La idea narrativa central es que el templo no es una prisión convencional: forma parte de un sistema de explotación de almas. El antagonista permanece fuera de escena mientras el sistema continúa funcionando.
+
+## Descargar y ejecutar en Fedora / Linux
+
+La [sección Releases](https://github.com/je7remy/el-templo-de-los-ecos/releases) ofrece **el proyecto fuente**, no un ejecutable listo para instalar. Descarga el archivo ZIP de código fuente, descomprímelo y abre `project.godot` con Godot 4.3 o superior.
+
+También puedes clonar el repositorio:
+
+```bash
+git clone https://github.com/je7remy/el-templo-de-los-ecos.git
+cd el-templo-de-los-ecos
+
+# Importación inicial de texturas
+godot --headless --path . --import
+
+# Jugar
+godot --path .
+```
+
+Para abrir el editor:
+
+```bash
+godot --editor --path .
+```
+
+Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.godotengine.Godot`. También está disponible `bash herramientas/abrir_fedora.sh`.
 
 ## Controles
 
-- **ENTER:** empezar o reiniciar
-- **WASD / flechas:** caminar
-- **E:** recoger fragmentos, abrir puerta, interactuar con altar y carta
-- **F:** linterna (puede cambiar el comportamiento de ciertas criaturas)
-- **ESPACIO:** esquivar
-- **Q:** habilidad Resonancia, al adquirirla en el altar
-- **ESC:** menú o cerrar panel de altar
+| Tecla | Acción |
+| --- | --- |
+| Enter | Iniciar o reiniciar |
+| W / A / S / D o flechas | Moverse |
+| E | Interactuar, recoger, abrir puertas |
+| F | Encender o apagar la linterna |
+| Espacio | Esquivar |
+| Q | Resonancia (después de adquirirla) |
+| Esc | Volver al menú o cerrar un panel |
 
-## Recorrido
+**Recorrido de prueba:** Umbral del despertar → Claustro de las ofrendas → Sala del Testigo → Archivo de los ausentes → Pórtico del siguiente piso. Algunas reglas de los enemigos todavía son provisionales.
 
-1. Umbral: avanza hasta la puerta este y pulsa E.
-2. Claustro: experimenta con la linterna para evitar al Burning Ghoul; hay un altar.
-3. Sala del Testigo: no te muevas cuando el ojo esté abierto; recupera el sello cerca del fondo y sal.
-4. Archivo: el Wizard reacciona a tu luz. Interactúa con el libro en el centro.
-5. Pórtico: ve a la salida para completar la prueba vertical.
+## Estructura del proyecto
 
-El personaje puede morir. Resultado aleatorio de dos vías: reencarnación (50 %) o absorción definitiva (50 %). Los recursos reunidos en esta prueba no persisten en una nueva vida.
+```text
+assets/                 Arte del escenario, sprites de enemigos y protagonista provisional
+audio/                  Audio del prototipo
+scenes/                 Escena principal
+scripts/                Lógica de juego en GDScript
+tests/                  Pruebas de humo para Godot sin interfaz
+herramientas/           Scripts de validación y apertura en Fedora
+docs/                   Decisiones de diseño, licencias y notas de versión
+.github/workflows/      Integración continua y publicación de alpha
+project.godot           Configuración del motor
+```
 
-## Integración de recursos
+## Progreso, pruebas y limitaciones
 
-Las texturas originales seleccionadas están **incluidas en el proyecto**, no requieren descargas adicionales. Fondos derivados se encuentran en `assets/knowledge/rooms/`, fotogramas enemigos en `assets/gothic_enemies/`. Ver `docs/ASSETS_Y_LICENCIAS.md` antes de publicar o distribuir comercialmente.
+- **Versiones:** [registro de cambios](CHANGELOG.md) · [lanzamientos](https://github.com/je7remy/el-templo-de-los-ecos/releases).
+- **CI:** [verificación automática](https://github.com/je7remy/el-templo-de-los-ecos/actions/workflows/validar-godot.yml).
+- Los fondos son composiciones 2D, **todavía no** mapas editables en TileMapLayer.
+- Los enemigos son sprites originalmente dibujados de perfil y su integración top-down es provisional.
+- El protagonista utiliza un sprite provisional; no se ha integrado Mark.
+- Las pruebas automatizadas no sustituyen una partida manual: Godot 4.3 todavía puede avisar de recursos retenidos al cerrar en modo headless.
 
-## Alcance y prueba
+## Créditos y uso de los assets
 
-No se dispone de Godot ejecutable en el entorno donde se preparó este ZIP, así que no se ha completado una prueba de arranque real. Hay verificaciones estáticas del proyecto, sus rutas y archivos. Cualquier error de importación o parser que aparezca al ejecutar en Fedora debe corregirse tras observar el mensaje exacto del editor.
+- **Knowledge Temple — pingupollas:** escenario y decoraciones. [Página original](https://pingupollas.itch.io/knowledge-temple). El autor **exige crédito** y permite usar/modificar el material en proyectos personales y comerciales, pero **prohíbe redistribuir el pack como un paquete de recursos independiente**. Los recursos integrados aquí no se ofrecen como paquete de sprites.
+- **GothicVania Church Pack — Luis Zuno (Ansimuz):** Angel, Burning Ghoul, Skeleton Wizard y proyectiles. [Página original](https://ansimuz.itch.io/gothicvania-church-pack) · [Publicación CC0](https://opengameart.org/content/gothicvania-church-pack). Atribución voluntaria y apreciada.
+
+**Importante:** las licencias de terceros no significan que todo el código y el universo narrativo del juego estén licenciados bajo CC0. Consulta [assets y licencias](docs/ASSETS_Y_LICENCIAS.md) antes de reutilizar el contenido.
+
+---
+
+Desarrollado por [@je7remy](https://github.com/je7remy). **Versión de trabajo: v0.3.1-alpha** (correcciones y documentación de la v0.3).

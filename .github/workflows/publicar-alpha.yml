@@ -1,0 +1,91 @@
+name: Publicar alpha v0.3.1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publicar-alpha.yml
+  workflow_dispatch:
+
+jobs:
+  verificar-y-publicar:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Obtener fuente
+        uses: actions/checkout@v4
+
+      - name: Instalar Godot 4.3
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip" \
+            --output "$RUNNER_TEMP/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/Godot_v4.3-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+          chmod +x "$RUNNER_TEMP/godot"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Importar y validar archivos
+        shell: bash
+        run: |
+          python3 herramientas/comprobar_archivos.py
+          godot --headless --path . --import 2>&1 | tee "$RUNNER_TEMP/godot-import.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/godot-import.log"; then
+            echo "Error al importar Godot"
+            exit 1
+          fi
+
+      - name: Probar escenas, reglas y texturas
+        shell: bash
+        run: |
+          godot --headless --path . --script res://tests/smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/godot-test.log"
+          grep -Fq 'OK: texturas de Knowledge Temple y enemigos GothicVania cargadas.' "$RUNNER_TEMP/godot-test.log"
+          grep -Fq 'OK: carga, inicio, 5 salas, sello y desenlace de muerte.' "$RUNNER_TEMP/godot-test.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/godot-test.log" \
+             | grep -Fv 'ERROR: 2 resources still in use at exit'; then
+            echo "La prueba detecto un error"
+            exit 1
+          fi
+          if grep -Fq 'ERROR: 2 resources still in use at exit' "$RUNNER_TEMP/godot-test.log"; then
+            echo "::warning::Godot 4.3 reporta recursos retenidos al finalizar la prueba headless."
+          fi
+
+      - name: Crear prerelease del codigo fuente
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: v0.3.1-alpha
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "El release $RELEASE_TAG ya existe. No se modificara su etiqueta."
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" \
+            --title "El Templo de los Ecos — v0.3.1 Alpha" \
+            --notes-file docs/releases/v0.3.1-alpha.md \
+            --target "$GITHUB_SHA" \
+            --prerelease
+
+      - name: Actualizar About y Topics si los permisos lo permiten
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh api --method PATCH "repos/$GH_REPO" \
+            --field description="Videojuego 2D de terror psicológico y cósmico en Godot 4: exploración, supervivencia, entidades con reglas y reencarnación." >/dev/null 2>&1; then
+            echo "Descripcion del repositorio actualizada."
+          else
+            echo "::warning::La cuenta de GitHub Actions no tiene permiso administrativo para editar About."
+          fi
+          if printf '%s\n' '{"names":["godot","godot4","gdscript","indie-game","pixel-art","survival-horror","psychological-horror","cosmic-horror","roguelite","game-development"]}' \
+            | gh api --method PUT "repos/$GH_REPO/topics" --input - >/dev/null 2>&1; then
+            echo "Topics del repositorio actualizados."
+          else
+            echo "::warning::No se pueden editar Topics con el GITHUB_TOKEN predeterminado. Valores: godot, godot4, gdscript, indie-game, pixel-art, survival-horror, psychological-horror, cosmic-horror, roguelite, game-development"
+          fi

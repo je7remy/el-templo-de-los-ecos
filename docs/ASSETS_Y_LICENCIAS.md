@@ -1,19 +1,33 @@
-# Procedencia, atribución y derechos de los recursos — v0.3
+# Procedencia, créditos y condiciones de uso — v0.3.1
 
-## Knowledge Temple (escenario)
+Esta nota distingue los recursos gráficos de terceros, el código del juego y el universo narrativo.
 
-El usuario aportó `KNOWLEDGE TEMPLE.zip`. Los suelos, muros, columnas, estatuas, altares y elementos de decorado proceden de ese archivo y se usan en cinco fondos derivados dentro de `assets/knowledge/rooms/`. Las fuentes PNG se conservan en `assets/knowledge/`.
+## Knowledge Temple — pingupollas
 
-**Licencia:** en el ZIP proporcionado no hay archivo de licencia identificable. No se debe asumir CC0 ni autorización para redistribución comercial; verificar las condiciones actuales con el creador antes de publicar o distribuir el videojuego.
+- **Uso en el proyecto:** escenarios, altares, muros, suelos, estatuas, columnas y composiciones de habitaciones dentro de `assets/knowledge/`.
+- **Autor:** **pingupollas**.
+- **Enlace oficial:** https://pingupollas.itch.io/knowledge-temple
+- **Condiciones publicadas por el creador (verificadas el 16 de octubre de 2026):** permite usar el pack para proyectos personales, comerciales y de otros tipos, así como modificarlo. Requiere acreditar al creador con su nombre y el enlace a su página de itch.io. No permite revender ni redistribuir el **pack como paquete independiente de recursos**, gratuitamente o mediante pago.
 
-## GothicVania Church Pack (enemigos)
+**Crédito obligatorio:** Gráficos de escenario: **Knowledge Temple, por pingupollas** — https://pingupollas.itch.io/knowledge-temple
 
-El usuario aportó `gothicvania church files.zip`. El proyecto integra animaciones originales de Angel, Burning Ghoul y Wizard y los proyectiles del pack. Las secuencias están en `assets/gothic_enemies/`. Se conserva `LICENSE-GOTHICVANIA.txt`, que declara los gráficos de Luis Zuno (@ansimuz) de uso libre (dominio público), con atribución apreciada pero no obligatoria. Se agradece citar al artista.
+Los recursos integrados forman parte del proyecto jugable; no deben extraerse y publicarse como un pack gráfico independiente. El proyecto utiliza imágenes aportadas por el titular del repositorio y modificadas para componer las habitaciones.
 
-## Protagonista
+## GothicVania Church Pack — Luis Zuno (Ansimuz)
 
-El jugador conserva un sprite provisional de la versión 0.2: **no es el pack Mark**, que no ha sido adjuntado. Tampoco se usa el personaje lateral de GothicVania como protagonista.
+- **Uso:** sprites y fotogramas originales de **Angel, Burning Ghoul, Skeleton Wizard** y proyectiles en `assets/gothic_enemies/`.
+- **Autor:** Luis Zuno (**Ansimuz**).
+- **Páginas oficiales:** https://ansimuz.itch.io/gothicvania-church-pack y https://opengameart.org/content/gothicvania-church-pack
+- OpenGameArt identifica la publicación de este pack bajo **CC0**, con atribución voluntaria. El paquete aportado también incluía `assets/gothic_enemies/LICENSE-GOTHICVANIA.txt`.
 
-## Alcance
+**Crédito voluntario:** Sprites de enemigos: **Luis Zuno (@ansimuz)**.
 
-Knowledge Temple es un tileset de perspectiva superior, mientras que los enemigos GothicVania se dibujaron en perfil para un plataformas; las entidades se proyectan provisionalmente sobre el mapa, sin atribuirles sprites top-down inexistentes.
+## Protagonista y otros contenidos
+
+- El sprite del jugador sigue siendo un marcador **provisional**. Mark todavía no está integrado.
+- Los archivos `audio/` y el código se suministran como parte del prototipo; no debe presumirse que comparten una misma licencia con el arte.
+- No se declara que el proyecto completo sea CC0, MIT u otra licencia general: el titular decidirá más adelante la licencia de su código y contenido propio.
+
+## Publicación
+
+La release alpha presenta el **código fuente de un prototipo de videojuego**, no una biblioteca de recursos gráficos ni una redistribución comercial independiente de los packs. Antes de publicar un juego comercial conviene volver a revisar las condiciones originales y los créditos en el propio juego.
