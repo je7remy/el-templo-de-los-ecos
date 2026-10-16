@@ -31,6 +31,45 @@ const CREAM := Color("#d9d2ba")
 const SOUL := Color("#8fc7d7")
 const RED := Color("#d06470")
 
+## Precarga estatica: Godot detecta estas rutas al importar el proyecto y al exportarlo.
+## No cargar PNG mediante rutas construidas dinamicamente: pueden omitirse del import/export.
+const ART_PRELOADED := {
+    "room_0": preload("res://assets/knowledge/rooms/room_0.png"),
+    "room_1": preload("res://assets/knowledge/rooms/room_1.png"),
+    "room_2": preload("res://assets/knowledge/rooms/room_2.png"),
+    "room_3": preload("res://assets/knowledge/rooms/room_3.png"),
+    "room_4": preload("res://assets/knowledge/rooms/room_4.png"),
+    "player": preload("res://assets/fallback/player.png"),
+    "knowledge_door": preload("res://assets/knowledge/door_closed.png"),
+    "knowledge_altar": preload("res://assets/knowledge/altar.png"),
+    "knowledge_book": preload("res://assets/knowledge/magic_book.png"),
+    "knowledge_torch": preload("res://assets/knowledge/torch_1.png"),
+    "angel_1": preload("res://assets/gothic_enemies/angel_1.png"),
+    "angel_2": preload("res://assets/gothic_enemies/angel_2.png"),
+    "angel_3": preload("res://assets/gothic_enemies/angel_3.png"),
+    "angel_4": preload("res://assets/gothic_enemies/angel_4.png"),
+    "angel_5": preload("res://assets/gothic_enemies/angel_5.png"),
+    "angel_6": preload("res://assets/gothic_enemies/angel_6.png"),
+    "angel_7": preload("res://assets/gothic_enemies/angel_7.png"),
+    "angel_8": preload("res://assets/gothic_enemies/angel_8.png"),
+    "ghoul_1": preload("res://assets/gothic_enemies/ghoul_1.png"),
+    "ghoul_2": preload("res://assets/gothic_enemies/ghoul_2.png"),
+    "ghoul_3": preload("res://assets/gothic_enemies/ghoul_3.png"),
+    "ghoul_4": preload("res://assets/gothic_enemies/ghoul_4.png"),
+    "ghoul_5": preload("res://assets/gothic_enemies/ghoul_5.png"),
+    "ghoul_6": preload("res://assets/gothic_enemies/ghoul_6.png"),
+    "ghoul_7": preload("res://assets/gothic_enemies/ghoul_7.png"),
+    "ghoul_8": preload("res://assets/gothic_enemies/ghoul_8.png"),
+    "wizard_1": preload("res://assets/gothic_enemies/wizard_1.png"),
+    "wizard_2": preload("res://assets/gothic_enemies/wizard_2.png"),
+    "wizard_3": preload("res://assets/gothic_enemies/wizard_3.png"),
+    "wizard_4": preload("res://assets/gothic_enemies/wizard_4.png"),
+    "wizard_5": preload("res://assets/gothic_enemies/wizard_5.png"),
+    "fireball_1": preload("res://assets/gothic_enemies/fireball_1.png"),
+    "fireball_2": preload("res://assets/gothic_enemies/fireball_2.png"),
+    "fireball_3": preload("res://assets/gothic_enemies/fireball_3.png"),
+}
+
 var font: Font
 var game_mode: String = "title" # title, play, altar, dead, victory
 var current_room: int = 0
@@ -98,23 +137,8 @@ func _ready() -> void:
     queue_redraw()
 
 func _load_art() -> void:
-    # Scene art is assembled exclusively from the original Knowledge Temple ZIP.
-    for i in range(5):
-        art["room_%d" % i] = load("res://assets/knowledge/rooms/room_%d.png" % i)
-    var paths := {
-        "player": "res://assets/fallback/player.png",
-        "knowledge_door": "res://assets/knowledge/door_closed.png",
-        "knowledge_altar": "res://assets/knowledge/altar.png",
-        "knowledge_book": "res://assets/knowledge/magic_book.png",
-        "knowledge_torch": "res://assets/knowledge/torch_1.png"
-    }
-    for key in paths:
-        art[key] = load(paths[key])
-    # All three authentic GothicVania enemy animations, plus fireballs.
-    for kind in ["angel", "ghoul", "wizard", "fireball"]:
-        var total: int = 8 if kind in ["angel", "ghoul"] else (5 if kind == "wizard" else 3)
-        for i in range(1, total + 1):
-            art["%s_%d" % [kind, i]] = load("res://assets/gothic_enemies/%s_%d.png" % [kind, i])
+    # Preload hace que la ausencia de un asset sea un error comprobable y no invisible.
+    art = ART_PRELOADED.duplicate()
 
 
 func _repeat_ambience() -> void:

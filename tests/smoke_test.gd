@@ -13,6 +13,22 @@ func _run_checks() -> void:
     root.add_child(game)
     # _ready() se ejecuta al añadir la escena al arbol, no requiere espera.
 
+    # Una prueba de jugabilidad sin verificar sprites podia pasar con escenas invisibles.
+    var loaded_art = game.get("art")
+    if not (loaded_art is Dictionary):
+        _fail("El diccionario de texturas no se inicializo.")
+        return
+    var required_textures := ["room_0","room_1","room_2","room_3","room_4","player","knowledge_door","knowledge_altar","knowledge_book","knowledge_torch","angel_1","angel_8","ghoul_1","ghoul_8","wizard_1","wizard_5","fireball_1"]
+    for texture_name in required_textures:
+        if not loaded_art.has(texture_name):
+            _fail("Falta el sprite %s." % texture_name)
+            return
+        var texture = loaded_art[texture_name]
+        if not (texture is Texture2D) or texture.get_width() <= 0 or texture.get_height() <= 0:
+            _fail("No se pudo importar o cargar %s." % texture_name)
+            return
+    print("OK: texturas de Knowledge Temple y enemigos GothicVania cargadas.")
+
     if game.get("game_mode") != "title":
         _fail("El juego no inicia en el menu.")
         return
