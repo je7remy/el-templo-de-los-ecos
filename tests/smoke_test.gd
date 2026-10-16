@@ -11,7 +11,7 @@ func _run_checks() -> void:
         return
     var game: Node = packed.instantiate()
     root.add_child(game)
-    await process_frame
+    # _ready() se ejecuta al añadir la escena al arbol, no requiere espera.
 
     if game.get("game_mode") != "title":
         _fail("El juego no inicia en el menu.")
@@ -49,7 +49,6 @@ func _run_checks() -> void:
     game.free()
     game = null
     packed = null
-    await process_frame
     quit(0)
 
 func _fail(message: String) -> void:
