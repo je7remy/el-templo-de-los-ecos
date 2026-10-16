@@ -1,0 +1,51 @@
+name: Validar Godot 4.3
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  godot-validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+
+      - name: Instalar Godot 4.3 oficial
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip" \
+            --output "$RUNNER_TEMP/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP/Godot_v4.3-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+          chmod +x "$RUNNER_TEMP/godot"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/godot" --version
+
+      - name: Verificar archivos esenciales
+        run: python3 herramientas/comprobar_archivos.py
+
+      - name: Importar recursos y analizar scripts de Godot
+        shell: bash
+        run: |
+          godot --headless --path . --import 2>&1 | tee "$RUNNER_TEMP/import.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/import.log"; then
+            echo "Se detectaron errores al importar el proyecto"
+            exit 1
+          fi
+
+      - name: Ejecutar prueba de escenas y muerte
+        shell: bash
+        run: |
+          godot --headless --path . --script res://tests/smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/smoke.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/smoke.log"; then
+            echo "Se detectaron errores de ejecucion"
+            exit 1
+          fi

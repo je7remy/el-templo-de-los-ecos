@@ -1,0 +1,20 @@
+# Godot 4 - archivos generados automaticamente
+.godot/
+.import/
+*.import
+
+# Exportaciones y compilaciones locales
+build/
+dist/
+exports/
+*.pck
+
+# Configuracion privada de exportacion
+export_credentials.cfg
+
+# Temporales de editores y sistemas operativos
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
