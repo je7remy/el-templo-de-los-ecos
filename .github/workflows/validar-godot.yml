@@ -52,8 +52,7 @@ jobs:
           # Godot 4.3 puede informar dos recursos aun vivos durante el cierre del
           # ejecutable headless. Mantener la incidencia visible, sin ocultar otros errores.
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/smoke.log" \
-            | grep -Ev '^ERROR: 2 resources still in use at exit \(run with --verbose for details\)\.
-; then
+            | grep -Fv 'ERROR: 2 resources still in use at exit'; then
             echo "Se detectaron errores en la ejecucion"
             exit 1
           fi
