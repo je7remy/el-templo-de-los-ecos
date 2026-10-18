@@ -1,3 +1,4 @@
+## [VISUAL UPGRADE]
 extends Node2D
 ## Primer piso. Adaptación de los tres documentos GDD, Lore v0.2 y Reglas v0.1.
 ## Knowledge Temple + GothicVania reales incorporados desde los ZIP aportados.
@@ -34,6 +35,13 @@ const RED := Color("#d06470")
 ## Precarga estatica: Godot detecta estas rutas al importar el proyecto y al exportarlo.
 ## No cargar PNG mediante rutas construidas dinamicamente: pueden omitirse del import/export.
 const ART_PRELOADED := {
+    "visual_room_0": preload("res://assets/visual/rooms/room_0.png"),
+    "visual_room_1": preload("res://assets/visual/rooms/room_1.png"),
+    "visual_room_2": preload("res://assets/visual/rooms/room_2.png"),
+    "visual_room_3": preload("res://assets/visual/rooms/room_3.png"),
+    "visual_room_4": preload("res://assets/visual/rooms/room_4.png"),
+    "visual_hero": preload("res://assets/visual/protagonist_sheet.png"),
+
     "room_0": preload("res://assets/knowledge/rooms/room_0.png"),
     "room_1": preload("res://assets/knowledge/rooms/room_1.png"),
     "room_2": preload("res://assets/knowledge/rooms/room_2.png"),
@@ -111,6 +119,7 @@ var identity_number: int = 1
 var new_humans: int = 0
 var reincarnations: int = 0
 var art: Dictionary = {}
+var visual_interaction_left: float = 0.0
 var toast: String = ""
 var toast_left: float = 0.0
 var deaths: int = 0
@@ -120,6 +129,7 @@ var effects: AudioStreamPlayer
 
 
 func _ready() -> void:
+    texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     font = ThemeDB.fallback_font
     randomize()
     _load_progress()
@@ -310,6 +320,7 @@ func _use_pulse() -> void:
 
 
 func _interact() -> void:
+    visual_interaction_left = 0.24 # solo dibujo; no cambia la interacción
     if current_room == 2 and not seal_acquired and player_pos.distance_to(Vector2(704, 343)) < 60.0:
         seal_acquired = true
         remembered_rule = true
@@ -425,6 +436,7 @@ func _is_blocked(at: Vector2) -> bool:
 func _process(delta: float) -> void:
     elapsed += delta
     toast_left = maxf(0.0, toast_left - delta)
+    visual_interaction_left = maxf(0.0, visual_interaction_left - delta)
     if game_mode == "play":
         _update_play(delta)
     queue_redraw()
@@ -559,8 +571,10 @@ func _draw_background() -> void:
 
 
 func _draw_room() -> void:
-    var room_bg: Texture2D = art["room_%d" % current_room]
+    var room_bg: Texture2D = art["visual_room_%d" % current_room]
     draw_texture_rect(room_bg, Rect2(0.0, 0.0, W, H), false)
+    # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
+    _draw_visual_atmosphere()
     # Environmental props are authentic textures baked into the backgrounds.
     _draw_door()
     if current_room == 2:
@@ -577,11 +591,13 @@ func _draw_room() -> void:
     for i in range(RELICS.size()):
         if not collected[i]:
             _draw_relic(RELICS[i], i)
-    if current_room in [1, 2, 3]:
-        _draw_enemy()
     if current_room == 3:
         _draw_fireballs()
+    if current_room in [1, 2, 3] and enemy_pos.y < player_pos.y:
+        _draw_enemy()
     _draw_player()
+    if current_room in [1, 2, 3] and enemy_pos.y >= player_pos.y:
+        _draw_enemy()
     # Small lighting cue; room architecture remains legible even unlit.
     if torch_on:
         for r in range(4, 0, -1):
@@ -591,6 +607,22 @@ func _draw_room() -> void:
     if damage_cd > 0.0:
         draw_rect(ARENA, Color(0.8, 0.1, 0.18, 0.05))
 
+
+
+## [VISUAL UPGRADE] Puntos luminosos ligeros: no modifican colisiones ni reglas.
+func _draw_visual_atmosphere() -> void:
+    var amount: int = 13
+    for i in range(amount):
+        var seed_value: float = float(i * 71 + current_room * 109)
+        var x_pos: float = 92.0 + fmod(seed_value * 3.7, 775.0)
+        var y_pos: float = 182.0 + fmod(seed_value * 1.9 + sin(elapsed * 0.4 + seed_value) * 8.0, 349.0)
+        var intensity: float = 0.11 + 0.06 * sin(elapsed * 1.3 + seed_value)
+        draw_circle(Vector2(x_pos, y_pos), 1.0, Color(0.85, 0.78, 0.60, intensity))
+
+## [VISUAL UPGRADE] Sombra leve de contacto, anclada a los pies del protagonista.
+func draw_ellipse_fake_shadow(at: Vector2) -> void:
+    for i in range(3, 0, -1):
+        draw_circle(at + Vector2(0.0, 3.0), float(i * 4), Color(0.0, 0.0, 0.0, 0.036))
 
 func _draw_watcher_eye(at: Vector2) -> void:
     var tint: Color = RED if watcher_open else Color("#72858d")
@@ -641,13 +673,16 @@ func _draw_enemy() -> void:
     var max_frames: int = 5 if kind == "wizard" else 8
     var frame: int = 1 + (int(elapsed * 8.0) % max_frames)
     var texture: Texture2D = art["%s_%d" % [kind, frame]]
-    var dims := Vector2(82.0, 87.0)
+    ## [VISUAL UPGRADE] Sin escalado fraccionario de sprites góticos.
+    var dims := Vector2(57.0, 60.0)
     if kind == "angel":
-        dims = Vector2(135, 123)
+        dims = Vector2(122.0, 117.0)
     elif kind == "wizard":
-        dims = Vector2(115, 95)
-    var dest := Rect2(enemy_pos.x - dims.x * 0.5, enemy_pos.y - dims.y + 13.0, dims.x, dims.y)
-    draw_circle(enemy_pos + Vector2(0, 9), 24.0, Color(0, 0, 0, 0.35))
+        dims = Vector2(81.0, 66.0)
+    var dest := Rect2(roundf(enemy_pos.x - dims.x * 0.5), roundf(enemy_pos.y - dims.y + 8.0), dims.x, dims.y)
+    draw_circle(enemy_pos + Vector2(0.0, 2.0), 22.0, Color(0.0, 0.0, 0.0, 0.32))
+    if enemy_alert:
+        draw_arc(enemy_pos, 34.0, 0.0, TAU, 40, Color(0.83, 0.35, 0.35, 0.54), 1.0)
     draw_texture_rect(texture, dest, false)
     if enemy_alert:
         draw_arc(enemy_pos, 41.0, 0.0, TAU, 36, RED, 1.6)
@@ -664,6 +699,31 @@ func _draw_fireballs() -> void:
 
 
 func _draw_player() -> void:
+    ## [VISUAL UPGRADE] Spritesheet top-down, arte original y cuatro orientaciones.
+    if art.has("visual_hero"):
+        var direction_index: int = 0 # frente/abajo
+        if absf(player_dir.x) > absf(player_dir.y):
+            direction_index = 2 if player_dir.x > 0.0 else 3
+        elif player_dir.y < 0.0:
+            direction_index = 1 # espalda/arriba
+        var frame_index: int = int(elapsed * 2.0) % 2 # Idle A/B
+        if game_mode == "dead":
+            frame_index = 8
+        elif damage_cd > 0.0:
+            frame_index = 7
+        elif visual_interaction_left > 0.0:
+            frame_index = 6
+        elif player_moving:
+            frame_index = 2 + (int(elapsed * 8.0) % 4)
+        var atlas := Rect2(float(frame_index * 40), float(direction_index * 56), 40.0, 56.0)
+        var location := Vector2(roundf(player_pos.x) - 20.0, roundf(player_pos.y) - 50.0)
+        draw_ellipse_fake_shadow(player_pos)
+        draw_texture_rect_region(art["visual_hero"], Rect2(location, Vector2(40.0, 56.0)), atlas)
+        if ward_left > 0.0:
+            draw_arc(player_pos, 27.0, 0.0, TAU, 40, SOUL, 2.0)
+        if damage_cd > 0.0:
+            draw_arc(player_pos, 29.0, 0.0, TAU, 40, RED, 2.0)
+        return
     if art.has("mark"):
         var t: Texture2D = art["mark"]
         var frame: int = 0
@@ -696,16 +756,24 @@ func _draw_player() -> void:
 
 
 func _draw_topbar() -> void:
-    _text("EL TEMPLO DE LOS ECOS · PISO 1", Vector2(40, 35), 19, CREAM)
-    _text(ROOM_NAMES[current_room], Vector2(40, 66), 14, SOUL)
-    _text("SALA %d/5" % (current_room + 1), Vector2(826, 36), 15, CREAM)
-    _text("ALMAS: %d" % souls, Vector2(826, 66), 15, SOUL)
-    _bar(Rect2(363, 24, 170, 13), hp / max_hp, RED)
-    _bar(Rect2(363, 48, 170, 11), stamina / 100.0, Color("#8bbfaf"))
-    _bar(Rect2(363, 68, 170, 10), fear / 100.0, Color("#c7a368"))
-    _text("VIDA", Vector2(300, 36), 12, CREAM)
-    _text("ENERGÍA", Vector2(287, 59), 12, CREAM)
-    _text("MIEDO", Vector2(296, 79), 12, CREAM)
+    ## [VISUAL UPGRADE] HUD gótico: zonas despejadas y jerarquía legible.
+    draw_rect(Rect2(0, 0, W, 103), Color("#0d1219"))
+    draw_rect(Rect2(0, 100, W, 2), Color("#6f6552"))
+    draw_rect(Rect2(25, 14, 3, 69), Color("#bb9e6d"))
+    _text("EL TEMPLO DE LOS ECOS", Vector2(40, 34), 18, CREAM)
+    _text(ROOM_NAMES[current_room], Vector2(40, 66), 13, Color("#a0b6b2"))
+    _text("PISO I  /  TEMPLO CONSERVADO", Vector2(40, 85), 10, Color("#978d77"))
+    _text("VIDA", Vector2(317, 27), 11, CREAM)
+    _text("VIGOR", Vector2(309, 54), 11, CREAM)
+    _text("MIEDO", Vector2(310, 82), 11, CREAM)
+    _bar(Rect2(361, 15, 169, 13), hp / max_hp, Color("#bd6b70"))
+    _bar(Rect2(361, 42, 169, 11), stamina / 100.0, Color("#84b3a0"))
+    _bar(Rect2(361, 70, 169, 10), fear / 100.0, Color("#c5a06e"))
+    draw_rect(Rect2(566, 20, 1, 66), Color("#444a4d"))
+    _text("SALA %02d / 05" % (current_room + 1), Vector2(590, 43), 16, CREAM)
+    _text("ALMAS  %03d" % souls, Vector2(590, 70), 17, SOUL)
+    _text("IDENTIDAD %03d" % identity_number, Vector2(781, 43), 13, CREAM)
+    _text("LINTERNA: ON" if torch_on else "LINTERNA: OFF", Vector2(781, 69), 12, SOUL if torch_on else RED)
 
 
 func _bar(rect: Rect2, fraction: float, color: Color) -> void:
@@ -715,8 +783,11 @@ func _bar(rect: Rect2, fraction: float, color: Color) -> void:
 
 
 func _draw_footer() -> void:
-    _text("WASD: moverte    E: interactuar    F: linterna    ESPACIO: esquivar", Vector2(44, 598), 14, CREAM)
-    _text("Q: Resonancia%s    ESC: menú    Identidad: %03d" % [" (nivel %d)" % ability_level if has_pulse else " (sin adquirir)", identity_number], Vector2(44, 620), 14, SOUL)
+    ## [VISUAL UPGRADE] Conserva indicaciones, controles y misión originales.
+    draw_rect(Rect2(0, 575, W, 65), Color("#101720"))
+    draw_rect(Rect2(0, 575, W, 2), Color("#8b795c"))
+    _text("WASD / FLECHAS  MOVER     E  INTERACTUAR     F  LINTERNA     ESPACIO  ESQUIVAR", Vector2(26, 602), 13, CREAM)
+    _text("Q  RESONANCIA%s     ESC  MENÚ" % (" NIVEL %d" % ability_level if has_pulse else " (NO ADQUIRIDA)"), Vector2(26, 624), 13, SOUL)
     var task: String = "MISIÓN: Recuperar el sello del Testigo"
     if current_room == 1:
         task = "BRASAS: tu luz puede atraer algo"
@@ -726,23 +797,32 @@ func _draw_footer() -> void:
         task = "OJO ABIERTO: INMÓVIL" if watcher_open else "OJO CERRADO: AVANZA"
         if seal_acquired:
             task = "SELLO RECUPERADO · VE A LA PUERTA"
-    _text(task, Vector2(486, 118), 14, SOUL if _room_ready() else CREAM)
+    draw_rect(Rect2(505, 103, 430, 24), Color(0.05, 0.08, 0.10, 0.91))
+    draw_rect(Rect2(505, 125, 430, 1), Color("#75644b"))
+    _text(task, Vector2(521, 120), 12, SOUL if _room_ready() else CREAM)
 
 
 func _draw_title() -> void:
-    draw_texture_rect(art["room_0"], Rect2(0, 0, W, H), false)
-    draw_rect(Rect2(0, 0, W, H), Color(0.015, 0.025, 0.030, 0.78))
-    draw_rect(Rect2(100, 201, 760, 391), Color(0.04, 0.08, 0.09, 0.83))
-    draw_rect(Rect2(100, 201, 760, 391), Color("#6b7463"), false, 2.0)
-    _center("EL TEMPLO", 280, 42, CREAM)
-    _center("DE LOS ECOS", 328, 42, SOUL)
-    _center("UN DOMINIO QUE SE ALIMENTA DE SUS CAUTIVOS", 375, 18, CREAM)
-    _center("No conoces las reglas. Aún.", 422, 18, CREAM)
-    _center("[ ENTER ] DESPERTAR", 484, 24, Color("#d6b997"))
-    _center("PISO 1 · 5 salas · reglas por descubrir", 525, 15, SOUL)
-    _center("Humano %03d  ·  Retornos: %d  ·  Absorciones: %d" % [identity_number, reincarnations, new_humans], 565, 13, CREAM)
+    ## [VISUAL UPGRADE] Panel ceremonial: temple still visible behind the title.
+    draw_texture_rect(art["visual_room_0"], Rect2(0, 0, W, H), false)
+    draw_rect(Rect2(0, 0, W, H), Color(0.018, 0.027, 0.032, 0.60))
+    draw_rect(Rect2(149, 166, 662, 386), Color(0.055, 0.076, 0.086, 0.94))
+    draw_rect(Rect2(149, 166, 662, 386), Color("#8d7957"), false, 2.0)
+    draw_rect(Rect2(160, 178, 640, 362), Color("#455452"), false, 1.0)
+    draw_line(Vector2(300, 228), Vector2(660, 228), Color("#8d7957"), 1.0)
+    draw_circle(Vector2(480, 224), 20.0, Color("#252f32"))
+    draw_arc(Vector2(480, 224), 15.0, 0.0, TAU, 32, Color("#ae9572"), 2.0)
+    draw_circle(Vector2(480, 224), 3.0, Color("#d2c0a4"))
+    _center("EL TEMPLO", 289, 40, CREAM)
+    _center("DE LOS ECOS", 339, 43, SOUL)
+    _center("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", 380, 15, CREAM)
+    draw_line(Vector2(318, 408), Vector2(642, 408), Color("#736851"), 1.0)
+    _center("No conoces las reglas. Aún.", 440, 18, CREAM)
+    _center("[ ENTER ]  DESPERTAR", 486, 23, Color("#d8bb87"))
+    _center("PISO I  •  5 SALAS  •  REGLAS POR DESCUBRIR", 521, 13, SOUL)
+    _center("IDENTIDAD %03d   |   RETORNOS %d   |   ABSORCIONES %d" % [identity_number, reincarnations, new_humans], 567, 12, CREAM)
     if toast_left > 0:
-        _center(toast, 168, 14, RED)
+        _center(toast, 145, 14, RED)
 
 
 func _draw_altar_overlay() -> void:
