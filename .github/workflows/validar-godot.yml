@@ -70,3 +70,14 @@ jobs:
             echo "Fallo la prueba del nuevo modo de defensa"
             exit 1
           fi
+
+
+      - name: Probar los botones tactiles
+        shell: bash
+        run: |
+          godot --headless --path . --script res://tests/mobile_input_test.gd 2>&1 | tee "$RUNNER_TEMP/mobile.log"
+          grep -Fq 'OK: toques de inicio, joystick, linterna, refugio y descanso.' "$RUNNER_TEMP/mobile.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/mobile.log" | grep -Fv 'resources still in use at exit'; then
+            echo "Fallo un control tactil del proyecto"
+            exit 1
+          fi
