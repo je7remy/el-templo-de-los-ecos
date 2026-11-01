@@ -59,3 +59,14 @@ jobs:
           if grep -Fq 'ERROR: 2 resources still in use at exit' "$RUNNER_TEMP/smoke.log"; then
             echo "::warning::Godot informa recursos todavia en uso al salir del modo headless; investigar posteriormente."
           fi
+
+
+      - name: Verificar modo Vigilia del Claustro
+        shell: bash
+        run: |
+          godot --headless --path . --script res://tests/defense_test.gd 2>&1 | tee "$RUNNER_TEMP/defense.log"
+          grep -Fq 'OK: defensa tactil, ingreso, mejoras, centinelas, reparacion, victoria y derrota.' "$RUNNER_TEMP/defense.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/defense.log" | grep -Fv 'resources still in use at exit'; then
+            echo "Fallo la prueba del nuevo modo de defensa"
+            exit 1
+          fi
