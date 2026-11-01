@@ -1,5 +1,8 @@
 # El Templo de los Ecos
 
+![Identidad visual de El Templo de los Ecos](assets/branding/logo.svg)
+
+
 **Un lugar sagrado. Un sistema oculto. Un ciclo del que quizás no exista escapatoria.**
 
 [![Estado: Alpha](https://img.shields.io/badge/estado-alpha-orange)](https://github.com/je7remy/el-templo-de-los-ecos/releases)

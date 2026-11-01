@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#061118"/><stop offset=".5" stop-color="#14232a"/><stop offset="1" stop-color="#02060d"/></linearGradient>
+ <linearGradient id="title" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f9efd0"/><stop offset=".45" stop-color="#cfaf77"/><stop offset="1" stop-color="#725737"/></linearGradient>
+ <radialGradient id="light"><stop stop-color="#80feef" stop-opacity=".38"/><stop offset="1" stop-color="#14c2bb" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="440" rx="22" fill="url(#bg)"/>
+<circle cx="235" cy="215" r="210" fill="url(#light)"/>
+<g stroke="#6ac2bd" stroke-width="3" fill="none" opacity=".56"><circle cx="235" cy="220" r="187"/><circle cx="235" cy="220" r="168"/><circle cx="235" cy="220" r="151"/></g>
+<g stroke="#bda173" stroke-width="6" fill="#253036" stroke-linejoin="round">
+ <path d="M82 365V159H111V111H156V78H310V111H355V159H388V365Z"/>
+ <path d="M141 365V215Q141 142 235 142Q329 142 329 215V365Z" fill="#05171d"/>
+</g>
+<g stroke="#44eeec" fill="none"><path d="M178 363V224Q178 176 235 176Q292 176 292 224V363" stroke-width="8"/><path d="M204 362V229Q204 202 235 202Q266 202 266 229V362" stroke-width="5"/><path d="M228 360V233Q235 222 242 233V360" stroke-width="3"/></g>
+<path d="M188 119Q235 84 282 119Q235 162 188 119Z" fill="#0a242c" stroke="#d5aa65" stroke-width="6"/>
+<circle cx="235" cy="119" r="11" fill="#8ff9f2"/>
+<g fill="none" stroke="#b09465" stroke-width="4" opacity=".7"><path d="M105 181H156M312 181H365M105 248H145M326 248H365M110 322H140M332 322H359"/></g>
+<text x="469" y="161" font-family="Georgia,DejaVu Serif,serif" font-weight="bold" font-size="88" letter-spacing="3" fill="url(#title)">EL TEMPLO</text>
+<text x="494" y="219" font-family="Georgia,DejaVu Serif,serif" font-size="43" letter-spacing="12" fill="#bdb7a2">DE LOS</text>
+<text x="464" y="323" font-family="Georgia,DejaVu Serif,serif" font-weight="bold" font-size="126" letter-spacing="12" fill="#9bf1e9">ECOS</text>
+<path d="M483 343H1124M494 364H1090" stroke="#b7955d" stroke-width="3"/>
+<text x="492" y="405" font-family="DejaVu Sans,sans-serif" font-size="20" fill="#a2b7b4" letter-spacing="3">DESCANSA · CONSTRUYE · RESISTE</text>
+</svg>
