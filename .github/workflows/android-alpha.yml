@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - project.godot
       - export_presets.cfg
       - .github/workflows/android-alpha.yml
       - scripts/main.gd
@@ -106,7 +107,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p build
-          godot --headless --path . --export-debug "Android" \
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/debug.keystore" \
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey" \
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android" \
+          godot --headless --verbose --path . --export-debug "Android" \
             build/ElTemploDeLosEcos-Android-Debug.apk 2>&1 | tee "$RUNNER_TEMP/export.log"
           test -s build/ElTemploDeLosEcos-Android-Debug.apk
           ls -lh build/*.apk
