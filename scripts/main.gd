@@ -139,16 +139,20 @@ func _ready() -> void:
     randomize()
     _load_progress()
     _load_art()
+    # No iniciar AudioServer en tests sin pantalla: no hay salida de sonido.
+    # En juego normal mantener audio ambiental y efectos completos.
+    var audio_available: bool = DisplayServer.get_name() != "headless"
     ambience = AudioStreamPlayer.new()
     add_child(ambience)
-    ambience.stream = load("res://audio/ambient.wav")
-    ambience.volume_db = -21.0
-    ambience.finished.connect(_repeat_ambience)
-    ambience.play()
     effects = AudioStreamPlayer.new()
     add_child(effects)
-    effects.stream = load("res://audio/chime.wav")
-    effects.volume_db = -12.0
+    if audio_available:
+        ambience.stream = load("res://audio/ambient.wav")
+        ambience.volume_db = -21.0
+        ambience.finished.connect(_repeat_ambience)
+        ambience.play()
+        effects.stream = load("res://audio/chime.wav")
+        effects.volume_db = -12.0
     queue_redraw()
 
 func _load_art() -> void:
@@ -156,8 +160,23 @@ func _load_art() -> void:
     art = ART_PRELOADED.duplicate()
 
 
+func _exit_tree() -> void:
+    # Evita que el servidor de audio retenga AudioStreamPlaybackWAV al
+    # cambiar escenas, cerrar el juego o terminar una prueba automatizada.
+    if is_instance_valid(ambience):
+        ambience.stop()
+        ambience.stream = null
+    if is_instance_valid(effects):
+        effects.stop()
+        effects.stream = null
+
+func _play_effect() -> void:
+    if is_instance_valid(effects) and effects.stream != null:
+        effects.play()
+
 func _repeat_ambience() -> void:
-    ambience.play()
+    if is_instance_valid(ambience) and ambience.stream != null:
+        ambience.play()
 
 
 func _load_progress() -> void:
@@ -395,7 +414,7 @@ func _buy_upgrade(choice: int) -> void:
     has_pulse = true
     ability_level = 0
     _save_progress()
-    effects.play()
+    _play_effect()
     _say("Adquiriste Resonancia nivel 0. Pulsa Q para utilizarla.", 4.0)
 
 
@@ -413,7 +432,7 @@ func _use_pulse() -> void:
         _say("La resonancia interrumpe brevemente a la criatura.", 2.2)
     else:
         _say("Una vibración recorre la piedra.", 1.6)
-    effects.play()
+    _play_effect()
 
 
 func _interact() -> void:
@@ -426,7 +445,7 @@ func _interact() -> void:
             ability_level = maxi(ability_level, 1)
         _save_progress()
         _say("SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
-        effects.play()
+        _play_effect()
         return
     if current_room == 1 and player_pos.distance_to(Vector2(522, 230)) < 64.0:
         game_mode = "altar"
@@ -434,7 +453,7 @@ func _interact() -> void:
     if current_room == 3 and player_pos.distance_to(Vector2(507, 355)) < 72.0:
         letter_found = true
         _say("Carta: 'He regresado. El cuerpo cambia, pero recuerdo sus ojos.'", 5.0)
-        effects.play()
+        _play_effect()
         return
     for i in range(RELICS.size()):
         if not collected[i] and player_pos.distance_to(RELICS[i]) < 47.0:
@@ -442,7 +461,7 @@ func _interact() -> void:
             souls += 7
             fear = maxf(0.0, fear - 8.0)
             _say("Fragmento reunido: +7 almas. Es la moneda del templo.", 2.5)
-            effects.play()
+            _play_effect()
             return
     if player_pos.distance_to(Vector2(867, 355)) < 74.0:
         if _room_ready():
@@ -480,7 +499,7 @@ func _win_run() -> void:
     cleared += 1
     _save_progress()
     game_mode = "victory"
-    effects.play()
+    _play_effect()
 
 func _lose_run() -> void:
     deaths += 1
