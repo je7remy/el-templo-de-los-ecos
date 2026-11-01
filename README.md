@@ -63,17 +63,39 @@ godot --editor --path .
 
 Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.godotengine.Godot`. También está disponible `bash herramientas/abrir_fedora.sh`.
 
+## Pruebas de integridad y compatibilidad
+
+Requisitos para desarrollo: **Godot 4.3 o superior**; la CI usa Godot 4.3, mientras que el entorno Fedora del proyecto utiliza Godot 4.7.2. La confirmación automática de 4.3 no reemplaza las pruebas visuales manuales en Fedora ni en dispositivos Android.
+
+```bash
+python3 herramientas/comprobar_archivos.py
+godot --headless --path . --import
+godot --headless --path . --script res://tests/visual_asset_test.gd
+godot --headless --path . --script res://tests/smoke_test.gd
+godot --headless --path . --script res://tests/defense_test.gd
+godot --headless --path . --script res://tests/mobile_input_test.gd
+godot --headless --path . --script res://tests/balance_test.gd
+godot --headless --path . --script res://tests/brand_test.gd
+```
+
+`comprobar_archivos.py` también comprueba que los PNG conserven sus metadatos `.import`, que no haya `.gd.uid` huérfanos y que el proyecto declare Godot 4.3 y filtrado nearest-neighbor.
+
+**Publicación:** cada push a `main` valida Godot y puede producir un APK como artefacto de GitHub Actions, pero no reemplaza automáticamente los APK de releases existentes. Para publicar una nueva versión se requiere un proceso de etiquetado específico.
+
 ## Controles
 
 | Tecla | Acción |
 | --- | --- |
-| Enter | Iniciar o reiniciar |
+| Enter | Iniciar Exploración o reiniciar |
+| H | Abrir Vigilia del Claustro desde el menú |
 | W / A / S / D o flechas | Moverse |
 | E | Interactuar, recoger, abrir puertas |
 | F | Encender o apagar la linterna |
 | Espacio | Esquivar |
 | Q | Resonancia (después de adquirirla) |
 | Esc | Volver al menú o cerrar un panel |
+| 1–8 en Vigilia | Descansar, construir, mejorar, reparar y activar tecnología |
+| P en Vigilia | Pausar o reanudar |
 
 **Recorrido de prueba:** Umbral del despertar → Claustro de las ofrendas → Sala del Testigo → Archivo de los ausentes → Pórtico del siguiente piso. Algunas reglas de los enemigos todavía son provisionales.
 
@@ -99,7 +121,7 @@ project.godot           Configuración del motor
 - Los fondos son composiciones 2D, **todavía no** mapas editables en TileMapLayer.
 - Los enemigos son sprites originalmente dibujados de perfil y su integración top-down es provisional.
 - El protagonista utiliza un sprite provisional; no se ha integrado Mark.
-- Las pruebas automatizadas no sustituyen una partida manual: Godot 4.3 todavía puede avisar de recursos retenidos al cerrar en modo headless.
+- Las pruebas automatizadas no sustituyen una partida manual. Las fugas de audio WAV observadas anteriormente en el cierre headless fueron corregidas y CI ya no permite excepciones para errores de recursos.
 
 ## Créditos y uso de los assets
 
@@ -110,4 +132,4 @@ project.godot           Configuración del motor
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Versión de trabajo: v0.4.2-alpha** (modo Vigilia y APK Android experimental).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release publicado: v0.4.2-alpha.** La rama `main` contiene correcciones posteriores aún sin un release propio.

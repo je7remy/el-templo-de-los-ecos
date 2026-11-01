@@ -4,6 +4,7 @@
 |---|---|---|---|
 | Knowledge Temple | **pingupollas** — https://pingupollas.itch.io/knowledge-temple | Cinco fondos derivados, iluminación, mosaicos y detalles | Uso personal/comercial y modificación permitidos. **Crédito obligatorio** con autor y enlace; **prohibida la reventa o redistribución como paquete independiente de recursos**. |
 | GothicVania Church Pack | **Luis Zuno (Ansimuz)** — https://opengameart.org/content/gothicvania-church-pack | Angel, Burning Ghoul, Wizard originales, intactos | Publicado en OpenGameArt con licencia **CC0**; atribución opcional, recomendable. |
+| Identidad visual del templo | SVG de emblema e imagen de cabecera incorporados al proyecto | `assets/branding/icon.svg` y `assets/branding/logo.svg` | No se ha declarado una licencia general de reutilización independiente para el proyecto. |
 | Protagonista de esta mejora | Arte nuevo para este proyecto (trazado original programático) | `assets/visual/protagonist_sheet.png` | No deriva de Mark ni de un sprite comercial. Pendiente de política general de licenciamiento del proyecto. |
 | Mark – 2D Adventure Game Sprite | No está en los recursos adjuntos inspeccionados | **No utilizado** | No se afirma ninguna licencia ni disponibilidad. |
 | Classical Temple Tiles, Ruined Cathedral Tileset, Crawling Depths | No estaban en el paquete del proyecto v0.3 inspeccionado | **No utilizados** | No se presupone disponibilidad ni licencia. |

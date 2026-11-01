@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-01
+
+- Normalizado el marcador de compatibilidad de `project.godot` a Godot 4.3, conservando nearest-neighbor y la configuración móvil.
+- Ampliado el test visual para validar las cinco salas, la hoja de nueve poses por dirección y los fotogramas finales de Angel, Ghoul y Wizard.
+- Añadida auditoría automática de PNG/.import y `.gd.uid` no huérfanos, además de los recursos críticos.
+- Protegida la inmutabilidad del APK de `v0.4.2-alpha`: GitHub Actions puede generar nuevos artefactos, pero no sobrescribe releases anteriores al hacer push.
+- Actualizados el README, el informe visual y el registro de procedencia de la identidad gráfica.
+
+
 ## [0.4.2-alpha] — 2026-11-01
 
 **Correcciones técnicas y compilación Android validada.**
