@@ -120,6 +120,9 @@ var new_humans: int = 0
 var reincarnations: int = 0
 var art: Dictionary = {}
 var visual_interaction_left: float = 0.0
+var mobile_axis: Vector2 = Vector2.ZERO
+var mobile_finger: int = -1
+var touch_enabled: bool = false
 var toast: String = ""
 var toast_left: float = 0.0
 var deaths: int = 0
@@ -130,6 +133,7 @@ var effects: AudioStreamPlayer
 
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    touch_enabled = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
     font = ThemeDB.fallback_font
     randomize()
     _load_progress()
@@ -247,6 +251,17 @@ func _enter_room() -> void:
 
 
 func _input(event: InputEvent) -> void:
+    if event is InputEventScreenTouch:
+        var point: Vector2 = make_input_local(event).position
+        _mobile_touch(event.index, point, event.pressed)
+        return
+    elif event is InputEventScreenDrag and event.index == mobile_finger:
+        _mobile_update_axis(make_input_local(event).position)
+        return
+    elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+        if game_mode == "title":
+            _mobile_tap(make_input_local(event).position)
+            return
     if not (event is InputEventKey):
         return
     if not event.pressed or event.echo:
@@ -255,6 +270,8 @@ func _input(event: InputEvent) -> void:
     if game_mode == "title":
         if k == KEY_ENTER or k == KEY_KP_ENTER:
             _new_run()
+        elif k == KEY_H:
+            _open_defense()
     elif game_mode == "dead" or game_mode == "victory":
         if k == KEY_ENTER or k == KEY_KP_ENTER:
             _new_run()
@@ -281,6 +298,85 @@ func _input(event: InputEvent) -> void:
             game_mode = "title"
             _say("La partida se interrumpió. No ganaste nuevas almas.", 3.0)
     queue_redraw()
+
+
+func _open_defense() -> void:
+    get_tree().change_scene_to_file("res://scenes/defense.tscn")
+
+func _mobile_touch(finger: int, at: Vector2, pressed: bool) -> void:
+    if not pressed:
+        if finger == mobile_finger:
+            mobile_finger = -1
+            mobile_axis = Vector2.ZERO
+        queue_redraw()
+        return
+    if game_mode == "play" and at.x <= 325.0 and at.y >= 367.0:
+        mobile_finger = finger
+        _mobile_update_axis(at)
+    else:
+        _mobile_tap(at)
+    queue_redraw()
+
+func _mobile_update_axis(at: Vector2) -> void:
+    mobile_axis = ((at - Vector2(135.0, 480.0)) / 68.0).limit_length(1.0)
+    queue_redraw()
+
+func _mobile_tap(at: Vector2) -> void:
+    if game_mode == "title":
+        if at.x > 515.0 and at.y > 425.0:
+            _open_defense()
+        else:
+            _new_run()
+        return
+    if game_mode == "dead" or game_mode == "victory":
+        _new_run()
+        return
+    if game_mode == "altar":
+        if at.x < 615.0 and at.y > 264.0 and at.y < 430.0:
+            _buy_upgrade(1)
+        else:
+            game_mode = "play"
+        return
+    if game_mode != "play":
+        return
+    if at.x > 834.0 and at.y < 98.0:
+        game_mode = "title"
+        mobile_axis = Vector2.ZERO
+        mobile_finger = -1
+        return
+    if at.y > 365.0 and at.x > 370.0:
+        if at.x < 510.0:
+            _interact()
+        elif at.x < 660.0:
+            torch_on = not torch_on
+        elif at.x < 790.0:
+            if dash_cd <= 0.0 and stamina >= 28.0:
+                dash_left = 0.19
+                dash_cd = 2.65
+                stamina -= 28.0
+        else:
+            _use_pulse()
+    queue_redraw()
+
+func _draw_mobile_controls() -> void:
+    if not touch_enabled:
+        return
+    if game_mode not in ["play", "altar"]:
+        return
+    # Joystick virtual: el dedo en la izquierda define un vector en vez de
+    # modificar las teclas reales de escritorio o la IA original.
+    draw_circle(Vector2(135, 480), 72.0, Color(0.10, 0.20, 0.28, 0.70))
+    draw_arc(Vector2(135, 480), 72.0, 0.0, TAU, 48, SOUL, 3.0)
+    draw_circle(Vector2(135, 480) + mobile_axis * 48.0, 26.0, Color(0.62, 0.81, 0.83, 0.68))
+    var positions := [Vector2(440, 478), Vector2(585, 478), Vector2(725, 478), Vector2(865, 478)]
+    var labels := ["E", "F", "DASH", "Q"]
+    for i in range(4):
+        var at: Vector2 = positions[i]
+        draw_circle(at, 51.0, Color(0.09, 0.21, 0.27, 0.83))
+        draw_arc(at, 51.0, 0.0, TAU, 36, SOUL, 2.0)
+        draw_string(font, at + Vector2(-47, 8), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 94, 23, CREAM)
+    draw_rect(Rect2(834, 16, 112, 72), Color(0.10, 0.22, 0.28, 0.85))
+    draw_string(font, Vector2(840, 56), "MENÚ", HORIZONTAL_ALIGNMENT_CENTER, 100, 15, CREAM)
 
 
 func _buy_upgrade(choice: int) -> void:
@@ -421,7 +517,7 @@ func _controls_axis() -> Vector2:
         v.x -= 1.0
     if Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
         v.x += 1.0
-    return v.normalized()
+    return (v + mobile_axis).limit_length(1.0)
 
 
 func _is_blocked(at: Vector2) -> bool:
@@ -560,6 +656,7 @@ func _draw() -> void:
         _draw_end_overlay(false)
     elif game_mode == "victory":
         _draw_end_overlay(true)
+    _draw_mobile_controls()
 
 
 func _draw_background() -> void:
@@ -818,7 +915,8 @@ func _draw_title() -> void:
     _center("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", 380, 15, CREAM)
     draw_line(Vector2(318, 408), Vector2(642, 408), Color("#736851"), 1.0)
     _center("No conoces las reglas. Aún.", 440, 18, CREAM)
-    _center("[ ENTER ]  DESPERTAR", 486, 23, Color("#d8bb87"))
+    _center("[ ENTER ] EXPLORAR       [ H ] VIGILIA", 486, 22, Color("#d8bb87"))
+    _center("TOCA IZQUIERDA: EXPLORAR    |    DERECHA: DEFENDER", 458, 13, SOUL)
     _center("PISO I  •  5 SALAS  •  REGLAS POR DESCUBRIR", 521, 13, SOUL)
     _center("IDENTIDAD %03d   |   RETORNOS %d   |   ABSORCIONES %d" % [identity_number, reincarnations, new_humans], 567, 12, CREAM)
     if toast_left > 0:
