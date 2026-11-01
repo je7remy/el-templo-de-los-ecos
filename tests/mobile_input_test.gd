@@ -48,7 +48,8 @@ func _run() -> void:
     guard.free()
     guard = null
     b = null
-    quit(0)
+    # Permite liberar recursos del stack de esta funcion antes de cerrar.
+    call_deferred("quit", 0)
 
 func _fail(reason: String) -> void:
     push_error(reason)

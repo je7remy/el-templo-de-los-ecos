@@ -24,7 +24,8 @@ func _check() -> void:
     game.free()
     game = null
     packed = null
-    quit(0)
+    # Permite liberar recursos del stack de esta funcion antes de cerrar.
+    call_deferred("quit", 0)
 
 func _fail(reason: String) -> void:
     push_error(reason)

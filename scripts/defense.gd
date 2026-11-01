@@ -143,7 +143,7 @@ func _action(choice: int) -> bool:
                 return false
             income -= cost
             bed_level += 1
-            income_rate = 1.0 + float(bed_level)
+            income_rate = 1.0 + float(bed_level) + (1.0 if chamber == 0 else 0.0)
             _say("Lecho mejorado: +%d ecos/s." % int(income_rate))
         2:
             var cost: float = 25.0 * float(gate_level)

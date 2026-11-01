@@ -8,6 +8,7 @@ const W: float = 960.0
 const H: float = 640.0
 const ARENA: Rect2 = Rect2(40.0, 122.0, 880.0, 458.0)
 const SAVE_PATH: String = "user://templo_personaje_v03.json"
+const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 const ROOM_NAMES := [
     "I · UMBRAL DEL DESPERTAR",
     "II · CLAUSTRO DE LAS OFRENDAS",
@@ -323,7 +324,7 @@ func _mobile_update_axis(at: Vector2) -> void:
 
 func _mobile_tap(at: Vector2) -> void:
     if game_mode == "title":
-        if at.x > 515.0 and at.y > 425.0:
+        if at.x >= 480.0 and at.y > 415.0:
             _open_defense()
         else:
             _new_run()
@@ -361,7 +362,7 @@ func _mobile_tap(at: Vector2) -> void:
 func _draw_mobile_controls() -> void:
     if not touch_enabled:
         return
-    if game_mode not in ["play", "altar"]:
+    if game_mode != "play":
         return
     # Joystick virtual: el dedo en la izquierda define un vector en vez de
     # modificar las teclas reales de escritorio o la IA original.
@@ -907,16 +908,19 @@ func _draw_title() -> void:
     draw_rect(Rect2(149, 166, 662, 386), Color("#8d7957"), false, 2.0)
     draw_rect(Rect2(160, 178, 640, 362), Color("#455452"), false, 1.0)
     draw_line(Vector2(300, 228), Vector2(660, 228), Color("#8d7957"), 1.0)
-    draw_circle(Vector2(480, 224), 20.0, Color("#252f32"))
-    draw_arc(Vector2(480, 224), 15.0, 0.0, TAU, 32, Color("#ae9572"), 2.0)
-    draw_circle(Vector2(480, 224), 3.0, Color("#d2c0a4"))
+    draw_texture_rect(BRAND_ICON, Rect2(443, 184, 74, 74), false)
+    draw_rect(Rect2(203, 452, 257, 64), Color(0.06, 0.22, 0.25, 0.90))
+    draw_rect(Rect2(500, 452, 257, 64), Color(0.25, 0.19, 0.10, 0.90))
+    draw_rect(Rect2(203, 452, 257, 64), SOUL, false, 2.0)
+    draw_rect(Rect2(500, 452, 257, 64), Color("#c6aa6e"), false, 2.0)
     _center("EL TEMPLO", 289, 40, CREAM)
     _center("DE LOS ECOS", 339, 43, SOUL)
     _center("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", 380, 15, CREAM)
     draw_line(Vector2(318, 408), Vector2(642, 408), Color("#736851"), 1.0)
     _center("No conoces las reglas. Aún.", 440, 18, CREAM)
-    _center("[ ENTER ] EXPLORAR       [ H ] VIGILIA", 486, 22, Color("#d8bb87"))
-    _center("TOCA IZQUIERDA: EXPLORAR    |    DERECHA: DEFENDER", 458, 13, SOUL)
+    _text("EXPLORAR", Vector2(281, 494), 21, CREAM)
+    _text("VIGILIA", Vector2(584, 494), 21, CREAM)
+    _center("ENTER: EXPLORAR   |   H: VIGILIA", 438, 13, SOUL)
     _center("PISO I  •  5 SALAS  •  REGLAS POR DESCUBRIR", 521, 13, SOUL)
     _center("IDENTIDAD %03d   |   RETORNOS %d   |   ABSORCIONES %d" % [identity_number, reincarnations, new_humans], 567, 12, CREAM)
     if toast_left > 0:
