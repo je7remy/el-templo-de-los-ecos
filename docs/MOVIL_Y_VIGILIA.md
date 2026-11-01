@@ -23,3 +23,12 @@ La configuración contiene orientación **horizontal** y un preset de exportaci�
 
 ## Alcance
 Inspirado en mecánicas generales de defensa de habitación y supervivencia: **no se han copiado** sprites, personajes, interfaz comercial ni marcas de Haunted Dorm. No incluye anuncios, multijugador, mercado ni monetización. La validación automatizada no sustituye probar el rendimiento y los controles en un teléfono físico.
+
+
+## Ampliación de jugabilidad (v0.4.1)
+- **Tres habitaciones** con ventajas mecánicas diferentes: Umbral (+1 eco/s), Claustro (+125 salud inicial de puerta), Archivo (+8 de energía inicial).
+- **Dos recursos:** ecos al descansar y energía mediante generadores. Sin descanso, no produce ninguno.
+- **Construcción y mejora:** cama, puerta, hasta 4 centinelas, nivel de daño de las torres, generadores y escudo temporal.
+- **Pausa**, reinicio, variaciones Ghoul/Wizard/Angel por oleada, récord local y puntuación al terminar.
+- El estado de la Vigilia se guarda en un archivo propio `user://vigilia_claustro_records.json`; no se comparte con el archivo de reencarnación.
+- Los cuatro botones de tecnología están sobre la fila inferior. Teclado: 6 generador, 7 potenciar, 8 escudo, P pausa; 1-5 siguen como antes.

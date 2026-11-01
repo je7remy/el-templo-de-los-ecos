@@ -51,6 +51,55 @@ func _run() -> void:
     if mode.get("phase") != "lost":
         _fail("La caida de la puerta no provoca derrota.")
         return
+
+    # Los tres refugios modifican realmente la partida.
+    mode.call("_start", 0)
+    if float(mode.get("income_rate")) != 3.0:
+        _fail("La ventaja economica del Umbral no se aplica.")
+        return
+    mode.call("_start", 1)
+    if float(mode.get("gate_max")) != 275.0:
+        _fail("La camara Claustro debe tener una puerta mas fuerte.")
+        return
+    mode.call("_start", 2)
+    if float(mode.get("sparks")) != 8.0:
+        _fail("El Archivo debe iniciar con ocho puntos de energia.")
+        return
+    mode.set("income", 1000.0)
+    if not mode.call("_action", 5):
+        _fail("No se puede instalar el generador.")
+        return
+    mode.call("_action", 0)
+    mode.call("_advance", 6.0)
+    if float(mode.get("sparks")) <= 8.0:
+        _fail("El generador no produce energia mientras se descansa.")
+        return
+    if not mode.call("_action", 3):
+        _fail("No se puede crear un centinela.")
+        return
+    if not mode.call("_action", 6):
+        _fail("No se puede potenciar un centinela.")
+        return
+    mode.set("sparks", 100.0)
+    if not mode.call("_action", 7):
+        _fail("No se puede activar el escudo.")
+        return
+    var preserved_hp: float = mode.get("gate_hp")
+    mode.set("hunter_x", 735.0)
+    mode.set("hunter_cooldown", 0.0)
+    mode.call("_advance", 0.1)
+    if float(mode.get("gate_hp")) < preserved_hp:
+        _fail("El escudo no protege la puerta.")
+        return
+    if not mode.call("_action", 8) or not bool(mode.get("paused")):
+        _fail("No se puede pausar la Vigilia.")
+        return
+    if mode.call("_action", 5):
+        _fail("Se permite construir con la partida pausada.")
+        return
+    mode.call("_action", 8)
+    mode.call("_start", 0)
+
     print("OK: defensa tactil, ingreso, mejoras, centinelas, reparacion, victoria y derrota.")
     mode.free()
     mode = null
