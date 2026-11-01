@@ -1,4 +1,4 @@
-name: Compilar APK Android v0.4.2-alpha
+name: Verificar y compilar APK Android (sin publicar)
 
 on:
   push:
@@ -13,6 +13,8 @@ on:
       - docs/releases/v0.4.2-alpha.md
       - assets/branding/**
       - tests/balance_test.gd
+      - tests/visual_asset_test.gd
+      - herramientas/comprobar_archivos.py
   workflow_dispatch:
 
 permissions:
@@ -154,20 +156,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Crear prerelease con APK
+      - name: Confirmar artefacto de CI sin modificar releases existentes
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
         run: |
-          TAG="v0.4.2-alpha"
-          APK="build/ElTemploDeLosEcos-Android-Debug.apk"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK" --clobber
-          else
-            gh release create "$TAG" "$APK" \
-              --target "$GITHUB_SHA" \
-              --title "El Templo de los Ecos — v0.4.2 Alpha (Android)" \
-              --notes-file docs/releases/v0.4.2-alpha.md \
-              --prerelease
-          fi
+          echo "APK generado y conservado como artefacto de GitHub Actions."
+          echo "El release v0.4.2-alpha publicado es inmutable."
+          echo "Publicar una version nueva requiere etiqueta y notas nuevas."
