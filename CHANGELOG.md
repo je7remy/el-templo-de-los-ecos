@@ -1,5 +1,18 @@
 # Historial de versiones
 
+## [0.4.2-alpha] — 2026-11-01
+
+**Correcciones técnicas y compilación Android validada.**
+
+- Reparado el ciclo de vida de los reproductores AudioStreamPlayer; se liberan streams al cambiar de escena y se evita reproducción innecesaria en headless.
+- Eliminados los errores de recursos retenidos de audio WAV en las pruebas automatizadas.
+- Las pruebas CI ya no ignoran errores de memoria, de importación ni de ejecución.
+- Tests de identidad gráfica, sprites, controles táctiles y simulación completa de Vigilia.
+- GitHub Actions actualizado a versiones compatibles con Node.js 24.
+- Se publica APK Android con verificación de ZIP, firma y paquete/versión por AAPT.
+- Pendiente: validar FPS y controles en teléfono físico.
+
+
 ## [0.4.1-alpha] — 2026-11-01
 
 **Vigilia del Claustro ampliada y controles móviles depurados.**

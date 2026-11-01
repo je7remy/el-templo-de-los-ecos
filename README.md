@@ -34,7 +34,7 @@ La idea narrativa central es que el templo no es una prisión convencional: form
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.4.1-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.4.1-alpha) para teléfonos Android ARM64. No es una aplicación publicada en Google Play y necesita pruebas en dispositivos reales. El modo **Vigilia del Claustro** es una alternativa defensiva con tres refugios, generación de ecos y energía, camas, puertas, centinelas, escudos, récords y enemigos en oleadas.
+Puedes descargar el [APK de prueba de v0.4.2-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.4.2-alpha) para teléfonos Android ARM64. No es una aplicación publicada en Google Play y necesita pruebas en dispositivos reales. El modo **Vigilia del Claustro** es una alternativa defensiva con tres refugios, generación de ecos y energía, camas, puertas, centinelas, escudos, récords y enemigos en oleadas.
 
 Para controles móviles y sus limitaciones, consulta la [guía Android y Vigilia](docs/MOVIL_Y_VIGILIA.md).
 
@@ -93,7 +93,7 @@ project.godot           Configuración del motor
 
 ## Progreso, pruebas y limitaciones
 
-- **QA:** las pruebas de importación, controles táctiles, identidad gráfica y una partida completa de Vigilia están automatizadas en GitHub Actions. Los avisos de recursos retenidos al cerrar siguen pendientes de investigación.
+- **QA:** las pruebas de importación, controles táctiles, identidad gráfica y una partida completa de Vigilia están automatizadas en GitHub Actions. Las fugas de audio WAV en modo headless se corrigieron; el pipeline falla si reaparecen.
 - **Versiones:** [registro de cambios](CHANGELOG.md) · [lanzamientos](https://github.com/je7remy/el-templo-de-los-ecos/releases).
 - **CI:** [verificación automática](https://github.com/je7remy/el-templo-de-los-ecos/actions/workflows/validar-godot.yml).
 - Los fondos son composiciones 2D, **todavía no** mapas editables en TileMapLayer.
@@ -110,4 +110,4 @@ project.godot           Configuración del motor
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Versión de trabajo: v0.4.1-alpha** (modo Vigilia y APK Android experimental).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Versión de trabajo: v0.4.2-alpha** (modo Vigilia y APK Android experimental).

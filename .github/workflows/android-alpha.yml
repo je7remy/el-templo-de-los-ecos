@@ -1,4 +1,4 @@
-name: Compilar APK Android v0.4.1-alpha
+name: Compilar APK Android v0.4.2-alpha
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
       - scripts/main.gd
       - scripts/defense.gd
       - scenes/defense.tscn
-      - docs/releases/v0.4.1-alpha.md
+      - docs/releases/v0.4.2-alpha.md
       - assets/branding/**
       - tests/balance_test.gd
   workflow_dispatch:
@@ -104,12 +104,24 @@ jobs:
           fi
           godot --headless --path . --script res://tests/defense_test.gd 2>&1 | tee "$RUNNER_TEMP/defense.log"
           grep -Fq 'OK: defensa tactil, ingreso, mejoras, centinelas, reparacion, victoria y derrota.' "$RUNNER_TEMP/defense.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/defense.log"; then exit 1; fi
 
       - name: Simular partida completa antes de compilar
         shell: bash
         run: |
           godot --headless --path . --script res://tests/balance_test.gd 2>&1 | tee "$RUNNER_TEMP/balance.log"
           grep -Fq 'OK: partida completa, economia equilibrada, record, reinicio y derrota sin defensas.' "$RUNNER_TEMP/balance.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/balance.log"; then exit 1; fi
+
+      - name: Validar sprites, sonidos y controles moviles
+        shell: bash
+        run: |
+          godot --headless --path . --script res://tests/visual_asset_test.gd 2>&1 | tee "$RUNNER_TEMP/visual.log"
+          grep -Fq 'OK: recursos visuales nuevos, originales y enemigos cargados correctamente.' "$RUNNER_TEMP/visual.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/visual.log"; then exit 1; fi
+          godot --headless --path . --script res://tests/mobile_input_test.gd 2>&1 | tee "$RUNNER_TEMP/mobile.log"
+          grep -Fq 'OK: toques de inicio, joystick, linterna, refugio y descanso.' "$RUNNER_TEMP/mobile.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/mobile.log"; then exit 1; fi
 
       - name: Generar APK Android ARM64
         shell: bash
@@ -131,7 +143,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" \
             | tee "$RUNNER_TEMP/android-badging.txt"
           grep -Fq "package: name='org.je7remy.temploecos'" "$RUNNER_TEMP/android-badging.txt"
-          grep -Fq "versionName='0.4.1-alpha'" "$RUNNER_TEMP/android-badging.txt"
+          grep -Fq "versionName='0.4.2-alpha'" "$RUNNER_TEMP/android-badging.txt"
           ls -lh "$APK"
 
       - name: Guardar APK como artefacto
@@ -148,14 +160,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          TAG="v0.4.1-alpha"
+          TAG="v0.4.2-alpha"
           APK="build/ElTemploDeLosEcos-Android-Debug.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
             gh release create "$TAG" "$APK" \
               --target "$GITHUB_SHA" \
-              --title "El Templo de los Ecos — v0.4.1 Alpha (Android)" \
-              --notes-file docs/releases/v0.4.1-alpha.md \
+              --title "El Templo de los Ecos — v0.4.2 Alpha (Android)" \
+              --notes-file docs/releases/v0.4.2-alpha.md \
               --prerelease
           fi
