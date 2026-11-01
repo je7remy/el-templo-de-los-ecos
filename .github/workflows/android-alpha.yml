@@ -103,6 +103,12 @@ jobs:
           godot --headless --path . --script res://tests/defense_test.gd 2>&1 | tee "$RUNNER_TEMP/defense.log"
           grep -Fq 'OK: defensa tactil, ingreso, mejoras, centinelas, reparacion, victoria y derrota.' "$RUNNER_TEMP/defense.log"
 
+      - name: Simular partida completa antes de compilar
+        shell: bash
+        run: |
+          godot --headless --path . --script res://tests/balance_test.gd 2>&1 | tee "$RUNNER_TEMP/balance.log"
+          grep -Fq 'OK: partida completa, economia equilibrada, record, reinicio y derrota sin defensas.' "$RUNNER_TEMP/balance.log"
+
       - name: Generar APK Android ARM64
         shell: bash
         run: |
