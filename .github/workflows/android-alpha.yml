@@ -24,10 +24,10 @@ jobs:
     timeout-minutes: 35
     steps:
       - name: Descargar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Instalar Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -135,7 +135,7 @@ jobs:
           ls -lh "$APK"
 
       - name: Guardar APK como artefacto
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ElTemploDeLosEcos-Android-Debug
           path: build/ElTemploDeLosEcos-Android-Debug.apk
