@@ -32,6 +32,12 @@
 
 La idea narrativa central es que el templo no es una prisión convencional: forma parte de un sistema de explotación de almas. El antagonista permanece fuera de escena mientras el sistema continúa funcionando.
 
+## Jugar en Android
+
+Puedes descargar el [APK de prueba de v0.4.1-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.4.1-alpha) para teléfonos Android ARM64. No es una aplicación publicada en Google Play y necesita pruebas en dispositivos reales. El modo **Vigilia del Claustro** es una alternativa defensiva con tres refugios, generación de ecos y energía, camas, puertas, centinelas, escudos, récords y enemigos en oleadas.
+
+Para controles móviles y sus limitaciones, consulta la [guía Android y Vigilia](docs/MOVIL_Y_VIGILIA.md).
+
 ## Descargar y ejecutar en Fedora / Linux
 
 La [sección Releases](https://github.com/je7remy/el-templo-de-los-ecos/releases) ofrece **el proyecto fuente**, no un ejecutable listo para instalar. Descarga el archivo ZIP de código fuente, descomprímelo y abre `project.godot` con Godot 4.3 o superior.
@@ -87,6 +93,7 @@ project.godot           Configuración del motor
 
 ## Progreso, pruebas y limitaciones
 
+- **QA:** las pruebas de importación, controles táctiles, identidad gráfica y una partida completa de Vigilia están automatizadas en GitHub Actions. Los avisos de recursos retenidos al cerrar siguen pendientes de investigación.
 - **Versiones:** [registro de cambios](CHANGELOG.md) · [lanzamientos](https://github.com/je7remy/el-templo-de-los-ecos/releases).
 - **CI:** [verificación automática](https://github.com/je7remy/el-templo-de-los-ecos/actions/workflows/validar-godot.yml).
 - Los fondos son composiciones 2D, **todavía no** mapas editables en TileMapLayer.
@@ -103,4 +110,4 @@ project.godot           Configuración del motor
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Versión de trabajo: v0.3.1-alpha** (correcciones y documentación de la v0.3).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Versión de trabajo: v0.4.1-alpha** (modo Vigilia y APK Android experimental).

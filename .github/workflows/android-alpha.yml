@@ -1,4 +1,4 @@
-name: Compilar APK Android v0.4.0-alpha
+name: Compilar APK Android v0.4.1-alpha
 
 on:
   push:
@@ -10,7 +10,9 @@ on:
       - scripts/main.gd
       - scripts/defense.gd
       - scenes/defense.tscn
-      - docs/releases/v0.4.0-alpha.md
+      - docs/releases/v0.4.1-alpha.md
+      - assets/branding/**
+      - tests/balance_test.gd
   workflow_dispatch:
 
 permissions:
@@ -118,8 +120,19 @@ jobs:
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android" \
           godot --headless --verbose --path . --export-debug "Android" \
             build/ElTemploDeLosEcos-Android-Debug.apk 2>&1 | tee "$RUNNER_TEMP/export.log"
-          test -s build/ElTemploDeLosEcos-Android-Debug.apk
-          ls -lh build/*.apk
+          APK="build/ElTemploDeLosEcos-Android-Debug.apk"
+          test -s "$APK"
+          if grep -E 'ERROR:|SCRIPT ERROR|Parse Error' "$RUNNER_TEMP/export.log"; then
+            echo "Godot registro errores en la exportacion. No publicar el APK."
+            exit 1
+          fi
+          unzip -tq "$APK" >/dev/null
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" \
+            | tee "$RUNNER_TEMP/android-badging.txt"
+          grep -Fq "package: name='org.je7remy.temploecos'" "$RUNNER_TEMP/android-badging.txt"
+          grep -Fq "versionName='0.4.1-alpha'" "$RUNNER_TEMP/android-badging.txt"
+          ls -lh "$APK"
 
       - name: Guardar APK como artefacto
         uses: actions/upload-artifact@v4
@@ -135,14 +148,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          TAG="v0.4.0-alpha"
+          TAG="v0.4.1-alpha"
           APK="build/ElTemploDeLosEcos-Android-Debug.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$APK" --clobber
           else
             gh release create "$TAG" "$APK" \
               --target "$GITHUB_SHA" \
-              --title "El Templo de los Ecos — v0.4.0 Alpha (Android)" \
-              --notes-file docs/releases/v0.4.0-alpha.md \
+              --title "El Templo de los Ecos — v0.4.1 Alpha (Android)" \
+              --notes-file docs/releases/v0.4.1-alpha.md \
               --prerelease
           fi
