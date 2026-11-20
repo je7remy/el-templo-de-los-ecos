@@ -27,6 +27,22 @@ const ROOM_WHISPERS := [
 const RELICS := [
     Vector2(280, 245), Vector2(500, 465), Vector2(725, 230)
 ]
+## Objetos interactivos. Las posiciones de dibujo y de interacción comparten
+## constante para que lo que se ve coincida con donde se pulsa E.
+const SEAL_POS := Vector2(704, 343)
+const ALTAR_POS := Vector2(488, 318) # delante de la estatua central del claustro
+const BOOK_POS := Vector2(497, 310) # sobre la mesa del archivo (base del libro)
+const ARCHIVE_POS := Vector2(497, 362) # frente a la mesa, donde se lee
+const EYE_POS := Vector2(690, 143) # ojo tallado en el muro del fondo
+const DOOR_POS := Vector2(867, 355)
+## Enemigos: caja útil del sprite (sin relleno transparente) y escala para que
+## los tres convivan con el protagonista (56 px). x0, x1, y_base, escala.
+const ENEMY_FRAMES := {
+    "angel": [13.0, 108.0, 112.0, 0.78],
+    "ghoul": [9.0, 49.0, 59.0, 1.2],
+    "wizard": [21.0, 55.0, 65.0, 1.3],
+}
+const RoomProps = preload("res://scripts/room_props.gd")
 const WALL_COLOR := Color("#394052")
 const BG := Color("#090c17")
 const CREAM := Color("#d9d2ba")
@@ -42,6 +58,12 @@ const ART_PRELOADED := {
     "visual_room_3": preload("res://assets/visual/rooms/room_3.png"),
     "visual_room_4": preload("res://assets/visual/rooms/room_4.png"),
     "visual_hero": preload("res://assets/visual/protagonist_sheet.png"),
+    "props_0": preload("res://assets/visual/rooms/room_0_props.png"),
+    "props_1": preload("res://assets/visual/rooms/room_1_props.png"),
+    "props_2": preload("res://assets/visual/rooms/room_2_props.png"),
+    "props_3": preload("res://assets/visual/rooms/room_3_props.png"),
+    "props_4": preload("res://assets/visual/rooms/room_4_props.png"),
+    "knowledge_book_sheet": preload("res://assets/knowledge/magic_book_sheet.png"),
 
     "room_0": preload("res://assets/knowledge/rooms/room_0.png"),
     "room_1": preload("res://assets/knowledge/rooms/room_1.png"),
@@ -258,15 +280,18 @@ func _enter_room() -> void:
         1:
             obstacles.append(Rect2(331, 305, 55, 86))
             obstacles.append(Rect2(601, 305, 55, 86))
+            obstacles.append(Rect2(ALTAR_POS.x - 25.0, ALTAR_POS.y - 18.0, 50.0, 36.0)) # altar
         2:
             obstacles.append(Rect2(315, 285, 50, 70))
             obstacles.append(Rect2(530, 400, 55, 70))
         3:
             obstacles.append(Rect2(341, 340, 70, 60))
             obstacles.append(Rect2(635, 340, 70, 60))
+            obstacles.append(Rect2(457, 296, 82, 44)) # mesa del archivo
         4:
             obstacles.append(Rect2(365, 245, 62, 62))
             obstacles.append(Rect2(655, 412, 54, 54))
+            obstacles.append(Rect2(767, 424, 58, 46)) # sarcófago
     _say(ROOM_WHISPERS[current_room], 4.5)
 
 
@@ -437,7 +462,7 @@ func _use_pulse() -> void:
 
 func _interact() -> void:
     visual_interaction_left = 0.24 # solo dibujo; no cambia la interacción
-    if current_room == 2 and not seal_acquired and player_pos.distance_to(Vector2(704, 343)) < 60.0:
+    if current_room == 2 and not seal_acquired and player_pos.distance_to(SEAL_POS) < 60.0:
         seal_acquired = true
         remembered_rule = true
         observed_rule = true
@@ -447,10 +472,10 @@ func _interact() -> void:
         _say("SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
         _play_effect()
         return
-    if current_room == 1 and player_pos.distance_to(Vector2(522, 230)) < 64.0:
+    if current_room == 1 and player_pos.distance_to(ALTAR_POS) < 64.0:
         game_mode = "altar"
         return
-    if current_room == 3 and player_pos.distance_to(Vector2(507, 355)) < 72.0:
+    if current_room == 3 and player_pos.distance_to(ARCHIVE_POS) < 72.0:
         letter_found = true
         _say("Carta: 'He regresado. El cuerpo cambia, pero recuerdo sus ojos.'", 5.0)
         _play_effect()
@@ -463,7 +488,7 @@ func _interact() -> void:
             _say("Fragmento reunido: +7 almas. Es la moneda del templo.", 2.5)
             _play_effect()
             return
-    if player_pos.distance_to(Vector2(867, 355)) < 74.0:
+    if player_pos.distance_to(DOOR_POS) < 74.0:
         if _room_ready():
             if current_room == 4:
                 _win_run()
@@ -668,8 +693,7 @@ func _draw() -> void:
     _draw_topbar()
     _draw_footer()
     if toast_left > 0.0:
-        draw_rect(Rect2(110, 581, 744, 37), Color("#191f2a"))
-        _text(toast, Vector2(124, 605), 15, CREAM)
+        _draw_toast()
     if game_mode == "altar":
         _draw_altar_overlay()
     elif game_mode == "dead":
@@ -692,29 +716,17 @@ func _draw_room() -> void:
     draw_texture_rect(room_bg, Rect2(0.0, 0.0, W, H), false)
     # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
     _draw_visual_atmosphere()
-    # Environmental props are authentic textures baked into the backgrounds.
+    # Objetos a ras de suelo: siempre por debajo de personajes y estatuas.
     _draw_door()
     if current_room == 2:
-        var rune := Vector2(704, 343)
-        draw_arc(rune, 41.0, 0.0, TAU, 48, SOUL if seal_acquired else Color("#be9b68"), 2.0)
-        if not seal_acquired:
-            _draw_relic(rune, 2)
-            _text("SELLO", rune + Vector2(-23, 57), 12, CREAM)
-        _draw_watcher_eye(Vector2(765, 245))
-    if current_room == 3:
-        _draw_letter(Vector2(507, 355))
-    if current_room == 1:
-        _draw_altar(Vector2(522, 230))
+        _draw_seal(SEAL_POS)
+        _draw_watcher_eye(EYE_POS)
     for i in range(RELICS.size()):
         if not collected[i]:
             _draw_relic(RELICS[i], i)
+    _draw_depth_sorted()
     if current_room == 3:
         _draw_fireballs()
-    if current_room in [1, 2, 3] and enemy_pos.y < player_pos.y:
-        _draw_enemy()
-    _draw_player()
-    if current_room in [1, 2, 3] and enemy_pos.y >= player_pos.y:
-        _draw_enemy()
     # Small lighting cue; room architecture remains legible even unlit.
     if torch_on:
         for r in range(4, 0, -1):
@@ -723,7 +735,65 @@ func _draw_room() -> void:
         draw_rect(ARENA, Color(0.0, 0.0, 0.05, 0.09))
     if damage_cd > 0.0:
         draw_rect(ARENA, Color(0.8, 0.1, 0.18, 0.05))
+    _draw_object_labels()
 
+
+## [VISUAL UPGRADE] Ordenación por profundidad. Columnas y estatuas están
+## pintadas en el fondo; se redibujan desde la capa room_N_props.png cuando un
+## personaje pasa por detrás, de modo que la base del objeto lo tape.
+func _draw_depth_sorted() -> void:
+    var items: Array = [] # [y_base, tipo, dato]
+    items.append([player_pos.y, "player", null])
+    var actors: Array[Rect2] = [Rect2(player_pos.x - 22.0, player_pos.y - 54.0, 44.0, 58.0)]
+    if current_room in [1, 2, 3]:
+        items.append([enemy_pos.y, "enemy", null])
+        actors.append(_enemy_rect())
+    if current_room == 1:
+        items.append([ALTAR_POS.y + 22.0, "altar", null])
+    if current_room == 3:
+        items.append([347.0, "book", null]) # justo después de la mesa (base y=346)
+    var props: Array = RoomProps.PROPS[current_room]
+    for prop in props:
+        var region: Rect2 = prop[0]
+        for actor in actors:
+            if region.intersects(actor):
+                items.append([float(prop[1]), "prop", region])
+                break
+    items.sort_custom(func(x, y): return x[0] < y[0])
+    var layer: Texture2D = art["props_%d" % current_room]
+    for item in items:
+        match item[1]:
+            "player":
+                _draw_player()
+            "enemy":
+                _draw_enemy()
+            "altar":
+                _draw_altar(ALTAR_POS)
+            "book":
+                _draw_letter(BOOK_POS)
+            "prop":
+                draw_texture_rect_region(layer, item[2], item[2])
+
+
+func _draw_object_labels() -> void:
+    # Etiquetas por encima de todo para que nunca queden tapadas.
+    if current_room == 1 and player_pos.distance_to(ALTAR_POS) < 150.0:
+        _label_center("INTERCAMBIO [E]", ALTAR_POS + Vector2(0.0, 46.0), CREAM)
+    if current_room == 3 and player_pos.distance_to(ARCHIVE_POS) < 150.0:
+        _label_center("LEER CARTA [E]" if not letter_found else "CARTA LEÍDA", ARCHIVE_POS + Vector2(0.0, 30.0), CREAM)
+    if current_room == 2 and not seal_acquired:
+        _label_center("SELLO [E]", SEAL_POS + Vector2(0.0, 56.0), Color("#e2c48a"))
+    if current_room in [1, 2, 3] and enemy_stun > 0.0:
+        var top: float = _enemy_rect().position.y
+        _label_center("ATURDIDO", Vector2(enemy_pos.x, top - 6.0), SOUL)
+
+
+func _label_center(msg: String, at: Vector2, color: Color) -> void:
+    var size: int = 12
+    var width: float = font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+    var box := Rect2(at.x - width * 0.5 - 6.0, at.y - 12.0, width + 12.0, 17.0)
+    draw_rect(box, Color(0.03, 0.05, 0.06, 0.72))
+    draw_string(font, Vector2(box.position.x + 6.0, at.y), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 
 
 ## [VISUAL UPGRADE] Puntos luminosos ligeros: no modifican colisiones ni reglas.
@@ -736,82 +806,204 @@ func _draw_visual_atmosphere() -> void:
         var intensity: float = 0.11 + 0.06 * sin(elapsed * 1.3 + seed_value)
         draw_circle(Vector2(x_pos, y_pos), 1.0, Color(0.85, 0.78, 0.60, intensity))
 
+
+## Elipse rellena (sombras, halos de suelo): círculo aplastado en vertical.
+func _draw_ellipse(center: Vector2, radius_x: float, radius_y: float, color: Color) -> void:
+    draw_set_transform(center, 0.0, Vector2(1.0, radius_y / radius_x))
+    draw_circle(Vector2.ZERO, radius_x, color)
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Sombra de contacto suave, con la misma luz que las sombras del fondo.
+func _draw_soft_shadow(at: Vector2, radius_x: float, strength: float = 1.0) -> void:
+    for i in range(3):
+        var k: float = 1.0 - float(i) * 0.28
+        _draw_ellipse(at, radius_x * k, radius_x * k * 0.32, Color(0.0, 0.0, 0.0, 0.13 * strength))
+
 ## [VISUAL UPGRADE] Sombra leve de contacto, anclada a los pies del protagonista.
 func draw_ellipse_fake_shadow(at: Vector2) -> void:
-    for i in range(3, 0, -1):
-        draw_circle(at + Vector2(0.0, 3.0), float(i * 4), Color(0.0, 0.0, 0.0, 0.036))
+    _draw_soft_shadow(at + Vector2(0.0, 1.0), 15.0)
 
+
+## Ojo del Testigo tallado en el muro del fondo: abierto (rojo) o cerrado.
 func _draw_watcher_eye(at: Vector2) -> void:
-    var tint: Color = RED if watcher_open else Color("#72858d")
-    draw_circle(at, 26, Color("#22202a"))
-    draw_arc(at, 22, 0.0, TAU, 35, tint, 3.0)
-    draw_circle(at, 9.0 if watcher_open else 2.0, tint)
-    _text("MIRADA" if watcher_open else "CEGUERA", at + Vector2(-33, -35), 11, tint)
+    var almond := PackedVector2Array()
+    for i in range(16):
+        var t: float = float(i) / 16.0 * TAU
+        almond.append(at + Vector2(cos(t) * 24.0, sin(t) * 10.0 * (1.0 - 0.35 * absf(cos(t)))))
+    draw_colored_polygon(almond, Color("#1a1c17"))
+    almond.append(almond[0])
+    draw_polyline(almond, Color("#5d6450"), 2.0)
+    if watcher_open:
+        var pulse: float = 0.5 + 0.5 * sin(elapsed * 4.0)
+        for r in range(3, 0, -1):
+            draw_circle(at, 7.0 + float(r) * 4.0, Color(0.82, 0.25, 0.30, 0.07 + 0.03 * pulse))
+        draw_circle(at, 7.5, Color("#c2414f"))
+        draw_circle(at, 3.2, Color("#1a0d10"))
+        draw_circle(at + Vector2(-2.5, -2.5), 1.4, Color(1.0, 0.85, 0.85, 0.9))
+        # Mirada proyectada sobre la sala: indica que moverse ahora es peligroso.
+        draw_polygon(PackedVector2Array([at + Vector2(-8, 10), at + Vector2(8, 10), at + Vector2(140, 260), at + Vector2(-140, 260)]),
+            PackedColorArray([Color(0.82, 0.2, 0.25, 0.10 + 0.04 * pulse), Color(0.82, 0.2, 0.25, 0.10 + 0.04 * pulse), Color(0.82, 0.2, 0.25, 0.0), Color(0.82, 0.2, 0.25, 0.0)]))
+    else:
+        draw_arc(at + Vector2(0.0, -6.0), 22.0, 0.35, PI - 0.35, 18, Color("#72858d"), 2.0)
+        for i in range(5):
+            var x: float = -14.0 + float(i) * 7.0
+            draw_line(at + Vector2(x, 9.0), at + Vector2(x * 1.15, 13.0), Color("#5d6450"), 1.0)
 
 
+## Círculo rúnico en el suelo con el sello del Testigo.
+func _draw_seal(at: Vector2) -> void:
+    var ring: Color = SOUL if seal_acquired else Color("#be9b68")
+    _draw_ellipse(at + Vector2(0.0, 6.0), 44.0, 20.0, Color(ring.r, ring.g, ring.b, 0.08))
+    draw_set_transform(at + Vector2(0.0, 6.0), 0.0, Vector2(1.0, 0.46))
+    draw_arc(Vector2.ZERO, 42.0, 0.0, TAU, 48, Color(ring.r, ring.g, ring.b, 0.75), 2.0)
+    draw_arc(Vector2.ZERO, 33.0, 0.0, TAU, 40, Color(ring.r, ring.g, ring.b, 0.35), 1.0)
+    for i in range(8):
+        var t: float = float(i) / 8.0 * TAU + elapsed * 0.25
+        draw_line(Vector2(cos(t), sin(t)) * 34.0, Vector2(cos(t), sin(t)) * 41.0, Color(ring.r, ring.g, ring.b, 0.8), 2.0)
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    if seal_acquired:
+        return
+    var lift: float = sin(elapsed * 2.0) * 3.0
+    var c := at + Vector2(0.0, -14.0 + lift)
+    for r in range(3, 0, -1):
+        draw_circle(c, 8.0 + float(r) * 5.0, Color(0.95, 0.78, 0.45, 0.06))
+    var hexagon := PackedVector2Array()
+    for i in range(6):
+        var t: float = float(i) / 6.0 * TAU + PI / 6.0
+        hexagon.append(c + Vector2(cos(t), sin(t)) * 11.0)
+    draw_colored_polygon(hexagon, Color("#c9a35f"))
+    hexagon.append(hexagon[0])
+    draw_polyline(hexagon, Color("#f2dc9f"), 1.5)
+    draw_circle(c, 3.5, Color("#5a3f1d"))
+
+
+## [VISUAL UPGRADE] Salida en el muro derecho vista desde arriba: losa con runas
+## cuando está sellada; vano abierto con luz que entra cuando está lista.
 func _draw_door() -> void:
     var ready: bool = _room_ready()
-    var tone: Color = Color("#82bdaf") if ready else Color("#904657")
-    draw_rect(Rect2(874, 298, 31, 115), Color("#090c0d"))
-    draw_texture_rect(art["knowledge_door"], Rect2(865, 300, 38, 106), false)
-    draw_rect(Rect2(872, 303, 26, 101), tone, false, 2.0)
+    var tone: Color = Color("#82bdaf") if ready else Color("#b04d5e")
+    var gap := Rect2(DOOR_POS.x + 28.0, DOOR_POS.y - 36.0, 19.0, 72.0)
+    var pulse: float = 0.5 + 0.5 * sin(elapsed * 2.2)
+    # Luz en el umbral.
+    _draw_ellipse(Vector2(gap.position.x - 30.0, DOOR_POS.y), 34.0, 40.0, Color(tone.r, tone.g, tone.b, 0.05 + 0.03 * pulse))
     if ready:
-        _text("SALIDA", Vector2(852, 288), 12, tone)
+        draw_rect(gap, Color("#05080a"))
+        draw_polygon(PackedVector2Array([gap.position, gap.position + Vector2(0, gap.size.y), Vector2(gap.position.x - 60.0, gap.end.y + 18.0), Vector2(gap.position.x - 60.0, gap.position.y - 18.0)]),
+            PackedColorArray([Color(tone.r, tone.g, tone.b, 0.22), Color(tone.r, tone.g, tone.b, 0.22), Color(tone.r, tone.g, tone.b, 0.0), Color(tone.r, tone.g, tone.b, 0.0)]))
+        draw_rect(Rect2(gap.position.x + 4.0, gap.position.y + 4.0, 3.0, gap.size.y - 8.0), Color(tone.r, tone.g, tone.b, 0.35 + 0.2 * pulse))
     else:
-        _text("SELLADA", Vector2(838, 288), 12, tone)
+        draw_rect(gap, Color("#2b3027"))
+        draw_rect(Rect2(gap.position, Vector2(3.0, gap.size.y)), Color("#3d4436"))
+        for i in range(4):
+            var y: float = gap.position.y + 11.0 + float(i) * 16.0
+            draw_line(Vector2(gap.position.x + 5.0, y), Vector2(gap.position.x + 14.0, y + 5.0), Color(tone.r, tone.g, tone.b, 0.55 + 0.35 * pulse), 2.0)
+    # Jambas de piedra.
+    for y in [gap.position.y - 9.0, gap.end.y]:
+        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#454c3c"))
+        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 2.0), Color("#68715a"))
+        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#15170f"), false, 1.0)
+    _label_center("SALIDA [E]" if ready else "SELLADA", Vector2(DOOR_POS.x - 4.0, gap.position.y - 16.0), tone)
 
 
+## Altar a proporción real (78x112 escalado de forma uniforme).
 func _draw_altar(at: Vector2) -> void:
-    draw_arc(at, 44.0, 0.0, TAU, 48, Color("#b5a179"), 2.0)
-    draw_texture_rect(art["knowledge_altar"], Rect2(at.x - 36.0, at.y - 40.0, 72.0, 90.0), false)
-    _text("INTERCAMBIO [E]", at + Vector2(-52, 69), 12, CREAM)
+    var scale: float = 0.75
+    var tex: Texture2D = art["knowledge_altar"]
+    var size := Vector2(tex.get_width(), tex.get_height()) * scale
+    # La base visible del sprite está en y=99 de 112.
+    var origin := Vector2(at.x - size.x * 0.5, at.y + 22.0 - 99.0 * scale)
+    _draw_soft_shadow(Vector2(at.x, at.y + 20.0), 30.0)
+    var glow: float = 0.05 + 0.03 * sin(elapsed * 1.7)
+    draw_circle(at + Vector2(0.0, -20.0), 26.0, Color(0.85, 0.72, 0.45, glow))
+    draw_texture_rect(tex, Rect2(origin, size), false)
 
 
+## Libro del archivo sobre la mesa: cerrado hasta leerlo; después hojea páginas.
 func _draw_letter(at: Vector2) -> void:
-    draw_circle(at, 31.0, Color(0.59, 0.79, 0.55, 0.09))
-    draw_texture_rect(art["knowledge_book"], Rect2(at.x - 34, at.y - 26, 68, 49), false)
-    _text("ARCHIVO [E]", at + Vector2(-44, 46), 12, CREAM)
+    var sheet: Texture2D = art["knowledge_book_sheet"]
+    var frame: int = 0
+    if letter_found:
+        frame = 15 + int(elapsed * 10.0) % 86
+    else:
+        var glow: float = 0.08 + 0.05 * sin(elapsed * 2.4)
+        draw_circle(at + Vector2(0.0, -8.0), 22.0, Color(0.59, 0.79, 0.55, glow))
+    var scale: float = 2.0
+    # Celda de 64x64; la base del libro está en y=45.
+    var region := Rect2(float(frame * 64) + 4.0, 0.0, 56.0, 48.0)
+    var dest := Rect2(at.x - 28.0 * scale, at.y - 45.0 * scale, 56.0 * scale, 48.0 * scale)
+    draw_texture_rect_region(sheet, dest, region)
 
 
+## Fragmento de alma: cristal flotante con halo y sombra fija en el suelo.
 func _draw_relic(at: Vector2, index: int) -> void:
     var wave: float = sin(elapsed * 2.3 + float(index) * 2.5) * 4.0
-    var p := at + Vector2(0, wave)
-    draw_circle(p, 26.0, Color(0.43, 0.76, 0.87, 0.11))
-    draw_circle(p, 13.0, Color("#679ba9"))
-    draw_colored_polygon(PackedVector2Array([
-        p + Vector2(0, -16), p + Vector2(10, 0),
-        p + Vector2(0, 16), p + Vector2(-10, 0)
-    ]), SOUL)
-    draw_line(p + Vector2(-4, 0), p + Vector2(4, 0), Color.WHITE, 2.0)
+    var p := at + Vector2(0, -8.0 + wave)
+    _draw_soft_shadow(at + Vector2(0.0, 10.0), 9.0 - wave * 0.5, 0.8)
+    for r in range(3, 0, -1):
+        draw_circle(p, 6.0 + float(r) * 5.0, Color(0.43, 0.76, 0.87, 0.05))
+    var top := p + Vector2(0, -14)
+    var bottom := p + Vector2(0, 12)
+    var left := p + Vector2(-7, -1)
+    var right := p + Vector2(7, -1)
+    draw_colored_polygon(PackedVector2Array([top, p + Vector2(0, -1), bottom, left]), Color("#bfe9f2"))
+    draw_colored_polygon(PackedVector2Array([top, right, bottom, p + Vector2(0, -1)]), Color("#5ea7bb"))
+    draw_polyline(PackedVector2Array([top, right, bottom, left, top]), Color("#e8fbff"), 1.0)
+    var sparkle: float = 0.5 + 0.5 * sin(elapsed * 5.0 + float(index))
+    var s := top + Vector2(3, 2)
+    draw_line(s + Vector2(-3, 0), s + Vector2(3, 0), Color(1, 1, 1, sparkle), 1.0)
+    draw_line(s + Vector2(0, -3), s + Vector2(0, 3), Color(1, 1, 1, sparkle), 1.0)
+
+
+func _enemy_kind() -> String:
+    return "ghoul" if current_room == 1 else ("angel" if current_room == 2 else "wizard")
+
+
+func _enemy_rect() -> Rect2:
+    var info: Array = ENEMY_FRAMES[_enemy_kind()]
+    var scale: float = info[3]
+    var width: float = (info[1] - info[0]) * scale
+    var height: float = info[2] * scale
+    return Rect2(enemy_pos.x - width * 0.5, enemy_pos.y + 4.0 - height, width, height)
 
 
 func _draw_enemy() -> void:
-    var kind: String = "ghoul" if current_room == 1 else ("angel" if current_room == 2 else "wizard")
+    var kind: String = _enemy_kind()
     var max_frames: int = 5 if kind == "wizard" else 8
     var frame: int = 1 + (int(elapsed * 8.0) % max_frames)
     var texture: Texture2D = art["%s_%d" % [kind, frame]]
-    ## [VISUAL UPGRADE] Sin escalado fraccionario de sprites góticos.
-    var dims := Vector2(57.0, 60.0)
+    var info: Array = ENEMY_FRAMES[kind]
+    var scale: float = info[3]
+    var size := Vector2(texture.get_width(), texture.get_height()) * scale
+    var lift: float = 0.0
     if kind == "angel":
-        dims = Vector2(122.0, 117.0)
-    elif kind == "wizard":
-        dims = Vector2(81.0, 66.0)
-    var dest := Rect2(roundf(enemy_pos.x - dims.x * 0.5), roundf(enemy_pos.y - dims.y + 8.0), dims.x, dims.y)
-    draw_circle(enemy_pos + Vector2(0.0, 2.0), 22.0, Color(0.0, 0.0, 0.0, 0.32))
+        lift = 10.0 + sin(elapsed * 2.6) * 4.0 # flota: la sombra se queda en el suelo
+    # Ancla: centro de la caja útil sobre enemy_pos y base apoyada en el suelo.
+    var anchor := Vector2((info[0] + info[1]) * 0.5 * scale, info[2] * scale)
+    var feet := Vector2(roundf(enemy_pos.x), roundf(enemy_pos.y + 4.0 - lift))
+    var footprint: float = 22.0 if kind == "angel" else 15.0
+    _draw_soft_shadow(enemy_pos + Vector2(0.0, 3.0), footprint, 1.0 if lift == 0.0 else 0.7)
     if enemy_alert:
-        draw_arc(enemy_pos, 34.0, 0.0, TAU, 40, Color(0.83, 0.35, 0.35, 0.54), 1.0)
-    draw_texture_rect(texture, dest, false)
-    if enemy_alert:
-        draw_arc(enemy_pos, 41.0, 0.0, TAU, 36, RED, 1.6)
+        var pulse: float = 0.5 + 0.5 * sin(elapsed * 8.0)
+        _draw_ellipse(enemy_pos + Vector2(0.0, 3.0), footprint + 9.0, (footprint + 9.0) * 0.34, Color(0.85, 0.22, 0.28, 0.18 + 0.12 * pulse))
     if enemy_stun > 0.0:
-        draw_arc(enemy_pos, 40.0, 0.0, TAU, 36, SOUL, 2.0)
-        _text("ATURDIDO", enemy_pos + Vector2(-43, -85), 12, SOUL)
+        _draw_ellipse(enemy_pos + Vector2(0.0, 3.0), footprint + 9.0, (footprint + 9.0) * 0.34, Color(0.56, 0.78, 0.84, 0.30))
+    # Los sprites de perfil miran a la derecha: se voltean hacia el jugador.
+    var flip: bool = kind != "angel" and player_pos.x < enemy_pos.x
+    var tint := Color(0.75, 0.85, 1.0, 1.0) if enemy_stun > 0.0 else Color.WHITE
+    if flip:
+        draw_set_transform(feet, 0.0, Vector2(-1.0, 1.0))
+    else:
+        draw_set_transform(feet, 0.0, Vector2.ONE)
+    draw_texture_rect(texture, Rect2(-anchor, size), false, tint)
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_fireballs() -> void:
     var frame: int = 1 + (int(elapsed * 11.0) % 3)
     for ball in fireballs:
         var p: Vector2 = ball["pos"]
+        draw_circle(p, 16.0, Color(1.0, 0.55, 0.2, 0.12))
         draw_texture_rect(art["fireball_%d" % frame], Rect2(p.x - 20, p.y - 20, 40, 40), false)
 
 
@@ -900,11 +1092,10 @@ func _bar(rect: Rect2, fraction: float, color: Color) -> void:
 
 
 func _draw_footer() -> void:
-    ## [VISUAL UPGRADE] Conserva indicaciones, controles y misión originales.
+    ## [VISUAL UPGRADE] Fila 1: objetivo de la sala. Fila 2: controles.
+    ## La misión ya no flota sobre el muro ni los mensajes tapan los controles.
     draw_rect(Rect2(0, 575, W, 65), Color("#101720"))
     draw_rect(Rect2(0, 575, W, 2), Color("#8b795c"))
-    _text("WASD / FLECHAS  MOVER     E  INTERACTUAR     F  LINTERNA     ESPACIO  ESQUIVAR", Vector2(26, 602), 13, CREAM)
-    _text("Q  RESONANCIA%s     ESC  MENÚ" % (" NIVEL %d" % ability_level if has_pulse else " (NO ADQUIRIDA)"), Vector2(26, 624), 13, SOUL)
     var task: String = "MISIÓN: Recuperar el sello del Testigo"
     if current_room == 1:
         task = "BRASAS: tu luz puede atraer algo"
@@ -914,9 +1105,25 @@ func _draw_footer() -> void:
         task = "OJO ABIERTO: INMÓVIL" if watcher_open else "OJO CERRADO: AVANZA"
         if seal_acquired:
             task = "SELLO RECUPERADO · VE A LA PUERTA"
-    draw_rect(Rect2(505, 103, 430, 24), Color(0.05, 0.08, 0.10, 0.91))
-    draw_rect(Rect2(505, 125, 430, 1), Color("#75644b"))
-    _text(task, Vector2(521, 120), 12, SOUL if _room_ready() else CREAM)
+    var task_color: Color = SOUL if _room_ready() else CREAM
+    if current_room == 2 and watcher_open and not seal_acquired:
+        task_color = RED
+    draw_colored_polygon(PackedVector2Array([Vector2(26, 594), Vector2(31, 589), Vector2(36, 594), Vector2(31, 599)]), Color("#bb9e6d"))
+    _text(task, Vector2(44, 600), 14, task_color)
+    var pulse_text: String = "RESONANCIA NIVEL %d" % ability_level if has_pulse else "RESONANCIA NO ADQUIRIDA"
+    draw_string(font, Vector2(560, 600), pulse_text, HORIZONTAL_ALIGNMENT_RIGHT, 374.0, 12, SOUL if has_pulse else Color("#7d8a8c"))
+    _text("WASD / FLECHAS  mover   ·   E  interactuar   ·   F  linterna   ·   ESPACIO  esquivar   ·   Q  resonancia   ·   ESC  menú", Vector2(26, 626), 12, Color("#a9a48f"))
+
+
+func _draw_toast() -> void:
+    ## Mensaje flotante bajo la barra superior, centrado y con desvanecimiento.
+    var alpha: float = clampf(toast_left * 3.0, 0.0, 1.0)
+    var size: int = 14
+    var width: float = minf(font.get_string_size(toast, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 36.0, W - 40.0)
+    var box := Rect2((W - width) * 0.5, 104.0, width, 27.0)
+    draw_rect(box, Color(0.035, 0.05, 0.065, 0.92 * alpha))
+    draw_rect(Rect2(box.position.x, box.end.y - 1.0, box.size.x, 1.0), Color(0.73, 0.62, 0.43, 0.8 * alpha))
+    draw_string(font, Vector2(box.position.x, box.position.y + 19.0), toast, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, size, Color(CREAM.r, CREAM.g, CREAM.b, alpha))
 
 
 func _draw_title() -> void:
@@ -928,22 +1135,25 @@ func _draw_title() -> void:
     draw_rect(Rect2(160, 178, 640, 362), Color("#455452"), false, 1.0)
     draw_line(Vector2(300, 228), Vector2(660, 228), Color("#8d7957"), 1.0)
     draw_texture_rect(BRAND_ICON, Rect2(443, 184, 74, 74), false)
-    draw_rect(Rect2(203, 452, 257, 64), Color(0.06, 0.22, 0.25, 0.90))
-    draw_rect(Rect2(500, 452, 257, 64), Color(0.25, 0.19, 0.10, 0.90))
-    draw_rect(Rect2(203, 452, 257, 64), SOUL, false, 2.0)
-    draw_rect(Rect2(500, 452, 257, 64), Color("#c6aa6e"), false, 2.0)
+    ## Botones: misma zona táctil que antes (izquierda explorar, derecha vigilia).
+    var explore := Rect2(203, 446, 257, 58)
+    var vigil := Rect2(500, 446, 257, 58)
+    draw_rect(explore, Color(0.06, 0.22, 0.25, 0.90))
+    draw_rect(vigil, Color(0.25, 0.19, 0.10, 0.90))
+    draw_rect(explore, SOUL, false, 2.0)
+    draw_rect(vigil, Color("#c6aa6e"), false, 2.0)
     _center("EL TEMPLO", 289, 40, CREAM)
     _center("DE LOS ECOS", 339, 43, SOUL)
-    _center("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", 380, 15, CREAM)
-    draw_line(Vector2(318, 408), Vector2(642, 408), Color("#736851"), 1.0)
-    _center("No conoces las reglas. Aún.", 440, 18, CREAM)
-    _text("EXPLORAR", Vector2(281, 494), 21, CREAM)
-    _text("VIGILIA", Vector2(584, 494), 21, CREAM)
-    _center("ENTER: EXPLORAR   |   H: VIGILIA", 438, 13, SOUL)
-    _center("PISO I  •  5 SALAS  •  REGLAS POR DESCUBRIR", 521, 13, SOUL)
+    _center("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", 376, 15, CREAM)
+    draw_line(Vector2(318, 392), Vector2(642, 392), Color("#736851"), 1.0)
+    _center("PISO I  •  5 SALAS  •  REGLAS POR DESCUBRIR", 413, 12, SOUL)
+    _center("No conoces las reglas. Aún.", 434, 16, CREAM)
+    draw_string(font, Vector2(explore.position.x, explore.position.y + 37.0), "EXPLORAR", HORIZONTAL_ALIGNMENT_CENTER, explore.size.x, 21, CREAM)
+    draw_string(font, Vector2(vigil.position.x, vigil.position.y + 37.0), "VIGILIA", HORIZONTAL_ALIGNMENT_CENTER, vigil.size.x, 21, CREAM)
+    _center("ENTER  explorar      ·      H  vigilia", 528, 12, Color("#9fb3b3"))
     _center("IDENTIDAD %03d   |   RETORNOS %d   |   ABSORCIONES %d" % [identity_number, reincarnations, new_humans], 567, 12, CREAM)
     if toast_left > 0:
-        _center(toast, 145, 14, RED)
+        _draw_toast()
 
 
 func _draw_altar_overlay() -> void:

@@ -1,5 +1,32 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-20 · Pulido visual de la jugabilidad
+
+**Fondos de sala**
+- Eliminadas las guías de maquetación que quedaron pintadas en los cinco fondos: líneas de cuadrícula verdes y elipses negras separadas de los objetos. Eran píxeles semitransparentes del original que se volvieron opacos al aplanar la versión visual.
+- Sombras de contacto suaves y coherentes pegadas a la base de cada columna, estatua y mueble.
+- Borrado el trozo del fotograma vecino que aparecía junto a cada brasero.
+- Nueva herramienta reproducible `herramientas/limpiar_fondos.py` (no toca `assets/knowledge/`).
+
+**Profundidad y objetos**
+- Ordenación por profundidad: personajes y enemigos que pasan por detrás de una estatua o columna quedan tapados por ella (capas `assets/visual/rooms/room_N_props.png` + `scripts/room_props.gd`, generadas por la herramienta).
+- Reliquias como cristales de alma flotantes con sombra; sello del Testigo como círculo rúnico en el suelo.
+- Ojo del Testigo tallado en el muro del fondo (ya no tapa una estatua) con su mirada proyectada cuando está abierto.
+- Salida dibujada como vano en el muro derecho: losa con runas cuando está sellada y luz entrante cuando está abierta (antes era un sprite de muro estirado al doble de alto).
+- Altar con proporciones reales, delante de la estatua del claustro; libro del archivo sobre la mesa, animado con `magic_book_sheet.png` tras leer la carta.
+- Colisiones añadidas al altar, la mesa del archivo y el sarcófago (antes se podían atravesar). Verificado que todos los objetivos siguen siendo alcanzables.
+
+**Enemigos**
+- Escalas unificadas a partir de la caja útil de cada sprite; Ghoul y Wizard se voltean hacia el jugador; el Ángel flota sobre su sombra.
+- Sombra suave en lugar del disco negro; alerta y aturdimiento como halos en el suelo en lugar de anillos dobles.
+
+**Interfaz**
+- Menú: corregidos los textos superpuestos y los textos que invadían los botones (las zonas táctiles no cambian).
+- Partida: los mensajes flotan bajo la barra superior y ya no tapan los controles; la misión pasa a su propia fila del pie (en rojo cuando el ojo está abierto).
+- Vigilia: lecho, puerta con herrajes y grietas por daño, centinelas de cristal, enemigos sin deformar y barra de vida siempre dentro de la pantalla.
+
+Sin cambios en reglas, economía, IA ni controles: los seis tests pasan y el balance de Vigilia da la misma puntuación de referencia (2645).
+
 ## En `main` (sin nuevo release) — 2026-11-01
 
 - Normalizado el marcador de compatibilidad de `project.godot` a Godot 4.3, conservando nearest-neighbor y la configuración móvil.

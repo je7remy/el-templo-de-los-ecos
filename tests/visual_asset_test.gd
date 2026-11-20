@@ -42,8 +42,34 @@ func _check() -> void:
             _fail("Dimensiones incorrectas de la sala visual %d." % i)
             return
 
+    # Capas de objetos para ordenar por profundidad (generadas por
+    # herramientas/limpiar_fondos.py junto con scripts/room_props.gd).
+    var room_props = load("res://scripts/room_props.gd")
+    var props: Array = room_props.PROPS
+    if props.size() != 5:
+        _fail("scripts/room_props.gd debe describir las cinco salas.")
+        return
+    for i in range(5):
+        var layer: Texture2D = assets.get("props_%d" % i)
+        if layer == null or layer.get_width() != 960 or layer.get_height() != 640:
+            _fail("Falta o tiene dimensiones incorrectas la capa de objetos %d." % i)
+            return
+        if (props[i] as Array).is_empty():
+            _fail("La sala %d no tiene objetos para ordenar por profundidad." % i)
+            return
+        for prop in props[i]:
+            var region: Rect2 = prop[0]
+            if not Rect2(0, 0, 960, 640).encloses(region) or float(prop[1]) < region.position.y:
+                _fail("Región de objeto inválida en la sala %d." % i)
+                return
+    var book_sheet: Texture2D = assets.get("knowledge_book_sheet")
+    if book_sheet == null or book_sheet.get_width() != 8640 or book_sheet.get_height() != 64:
+        _fail("La animación del libro del archivo debe tener 135 fotogramas de 64x64.")
+        return
+
     print("OK: recursos visuales nuevos, originales y enemigos cargados correctamente.")
     print("OK: protagonista 360x224, cinco salas 960x640, Angel, Ghoul y Wizard.")
+    print("OK: capas de profundidad de las cinco salas y libro animado del archivo.")
     game.free()
     game = null
     packed = null
