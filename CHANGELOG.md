@@ -1,5 +1,18 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Piso IV: El Claustro Enraizado
+
+Cuatro salas: Atrio de las Raíces, Claustro Enraizado, Jardín de Ceniza y Muro de los Nombres.
+- **Enredaderas que arden**: un golpe de antorcha prende las secas (gasta un fósforo, salvo con Llama Interior) y el fuego salta a las vecinas cada 0,3 s; cada tramo arde 3,6 s y queda en ceniza con brasas. Lo que pisa el fuego se quema, tú incluido (esquivando lo cruzas sin daño); las alimañas también. Las secas vuelven a crecer a los 14 s.
+- **Raíces vivas en la puerta** (Atrio): no prenden con la antorcha; hay que hacerles llegar el fuego desde las secas.
+- **Tejedora de Raíz** (sprite original): criatura de corteza que te persigue rodeando columnas, alza las garras 0,65 s y da un zarpazo (22). Los golpes y la Resonancia apenas la marcan (18 %); el fuego la consume. Misión de sala: quemarla.
+- **Muro de los Nombres**: entre cientos de nombres grabados aparece el tuyo (verdad del piso: otros también vuelven).
+- **Eco Piel curtida**: recibes un 25 % menos de daño.
+- Sonidos nuevos: fuego que prende y raíces que crujen. Conversaciones internas al entrar.
+- El menú de pisos ya permite elegir el IV.
+- Valores provisionales (vida 110, daño, tiempos de fuego).
+
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Saltar diálogos y volver a la pausa
 
 - Botón **SALTAR (ESC) »»** sobre el cuadro de diálogo y en la intro; se puede pulsar con el ratón o tocar en el móvil. ESC sigue saltando.

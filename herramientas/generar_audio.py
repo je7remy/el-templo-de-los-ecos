@@ -473,6 +473,27 @@ def sfx_pinchos() -> np.ndarray:
     return normalizar(reverb_simple(clic + hierro + roce, 0.9, 0.25, 6000), 0.6)
 
 
+def sfx_fuego() -> np.ndarray:
+    """Las enredaderas prenden: bocanada de aire y chisporroteo seco."""
+    t = t_(1.3)
+    bocanada = paso_bajo(rng.standard_normal(len(t)), 900) * env_ad(t, 0.06, 0.5) * 0.7
+    chispas = np.zeros(len(t))
+    for _ in range(40):
+        i = int(rng.uniform(0.05, 1.2) * SR)
+        n = int(0.006 * SR)
+        if i + n < len(t):
+            chispas[i:i + n] += rng.standard_normal(n) * np.exp(-np.linspace(0, 6, n)) * rng.uniform(0.2, 0.6)
+    return normalizar(reverb_simple(bocanada + paso_banda(chispas, 1500, 8000), 0.9, 0.2, 5000), 0.7)
+
+
+def sfx_raices() -> np.ndarray:
+    """La Tejedora alza las garras: madera que cruje y se retuerce."""
+    t = t_(0.9)
+    cruje = paso_banda(rng.standard_normal(len(t)), 200, 1400) * (0.4 + 0.6 * (np.sin(2 * np.pi * 17 * t) > 0.3))
+    gemido = saw(70 + 30 * np.sin(2 * np.pi * 1.3 * t), t) * 0.25
+    return normalizar(reverb_simple((cruje * 0.6 + gemido) * env_ad(t, 0.05, 0.6), 1.0, 0.3, 4000), 0.65)
+
+
 def main() -> None:
     SALIDA.mkdir(exist_ok=True)
     guardar("musica_templo.ogg", musica_templo(), 3)
@@ -486,7 +507,7 @@ def main() -> None:
                        ("sfx_resonancia", sfx_resonancia), ("sfx_destierro", sfx_destierro),
                        ("sfx_interfaz", sfx_interfaz), ("sfx_toque", sfx_toque),
                        ("sfx_cuchillo", sfx_cuchillo), ("sfx_hilo", sfx_hilo), ("sfx_latigo", sfx_latigo),
-                       ("sfx_pinchos", sfx_pinchos)):
+                       ("sfx_pinchos", sfx_pinchos), ("sfx_fuego", sfx_fuego), ("sfx_raices", sfx_raices)):
         guardar(f"{nombre}.ogg", fn(), 4)
     for i in range(3):
         guardar(f"sfx_paso_{i + 1}.ogg", _paso(i + 1), 3)

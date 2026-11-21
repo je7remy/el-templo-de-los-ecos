@@ -37,6 +37,8 @@ FRAMES = {
     "peregrino": 8,
     # Segador de Hilos (Piso III). 0-1 reposo, 2-5 correr, 6 tensar, 7 enganchado.
     "segador": 8,
+    # Tejedora de Raíz (Piso IV). 0-1 reposo, 2-5 andar, 6 alzar garras, 7 zarpazo.
+    "tejedora": 8,
 }
 
 
@@ -657,7 +659,72 @@ def segador(direccion: int, frame: int) -> Image.Image:
     return l.contorno()
 
 
-DIBUJAR = {"testigo": testigo, "ghoul": ghoul, "hechicero": hechicero, "peregrino": peregrino, "segador": segador}
+# --------------------------------------------------------------------------
+# TEJEDORA DE RAÍZ — Piso IV: criatura de corteza más alta que una persona,
+# cuerpo de raíces trenzadas, cara hueca con brasa ámbar y garras de rama.
+# Los golpes apenas la marcan; el fuego la consume.
+# --------------------------------------------------------------------------
+CORTEZA = c("#5b4632")
+CORTEZA_SOMBRA = c("#3a2c20")
+CORTEZA_LUZ = c("#7e6547")
+RAIZ = c("#4a3a2a")
+MUSGO = c("#4f5a3a")
+BRASA = c("#ffb347")
+BRASA_FONDO = c("#7a2e10")
+
+
+def tejedora(direccion: int, frame: int) -> Image.Image:
+    l = Lienzo()
+    andar = 2 <= frame <= 5
+    paso = [0, 1, 0, -1][(frame - 2) % 4] if andar else 0
+    resp = 0 if andar or frame >= 6 else frame % 2
+    alza = frame == 6
+    zarpa = frame == 7
+    cx = 24
+    hombro = 16 + resp
+    cadera = 40
+    # Raíces por piernas: varias, arrastrándose.
+    for i, x in enumerate((cx - 7, cx - 3, cx + 2, cx + 6)):
+        fase = paso if i % 2 == 0 else -paso
+        l.linea([(x, cadera), (x + fase * 2 + (i - 2), PIE - 4), (x + fase * 3 + (i - 2) * 2, PIE)], RAIZ if i % 2 else CORTEZA_SOMBRA, 2)
+    # Tronco: trenza de corteza que se ensancha hacia arriba.
+    l.poly([(cx - 9, hombro), (cx + 9, hombro), (cx + 6, cadera), (cx - 6, cadera)], CORTEZA)
+    l.poly([(cx + 2, hombro), (cx + 9, hombro), (cx + 6, cadera), (cx + 2, cadera)], CORTEZA_SOMBRA)
+    for y in range(hombro + 3, cadera - 1, 5):
+        l.linea([(cx - 7, y), (cx - 1, y + 3)], CORTEZA_LUZ)
+        l.linea([(cx + 1, y + 2), (cx + 6, y)], RAIZ)
+    l.rect(cx - 8, hombro + 1, cx - 5, hombro + 4, MUSGO)
+    # Brazos-rama larguísimos con garras.
+    for lado in (-1, 1):
+        x = cx + lado * 9
+        if alza:
+            mano = (cx + lado * 15, hombro - 12)
+        elif zarpa:
+            mano = (cx + lado * 6, cadera + 10)
+        else:
+            mano = (cx + lado * 13 + paso * lado, cadera + 4)
+        l.linea([(x, hombro + 2), mano], CORTEZA_LUZ if lado < 0 else CORTEZA, 2)
+        for k in (-2, 0, 2):  # garras de rama
+            l.linea([mano, (mano[0] + lado * 2 + k, mano[1] + (4 if not alza else -4))], CORTEZA_SOMBRA)
+    # Cabeza: cuenco de corteza con cara hueca y brasa.
+    cab = hombro - 13
+    l.elipse(cx - 7, cab, cx + 7, cab + 15, CORTEZA)
+    l.elipse(cx + 1, cab + 1, cx + 7, cab + 14, CORTEZA_SOMBRA)
+    for x in (cx - 6, cx - 2, cx + 3, cx + 6):  # ramitas como corona
+        l.linea([(x, cab + 1), (x + (x - cx) // 3, cab - 5)], RAIZ)
+    if direccion != 1:
+        hx = cx + (3 if direccion == 2 else -3 if direccion == 3 else 0)
+        l.elipse(hx - 4, cab + 5, hx + 4, cab + 12, BRASA_FONDO)
+        l.elipse(hx - 2, cab + 7, hx + 2, cab + 10, BRASA)
+        if alza or zarpa:
+            l.px(hx, cab + 8, c("#fff3c4"))
+    else:
+        for i in range(5):
+            l.px(cx - 4 + i * 2, cab + 6 + (i % 2) * 3, CORTEZA_LUZ)
+    return l.contorno()
+
+
+DIBUJAR = {"testigo": testigo, "ghoul": ghoul, "hechicero": hechicero, "peregrino": peregrino, "segador": segador, "tejedora": tejedora}
 
 
 def hoja(nombre: str) -> Image.Image:
