@@ -66,6 +66,7 @@ var slain: int = 0
 var info: String = "Elige un refugio y protege su umbral."
 var info_time: float = 4.0
 var font: Font
+const Ajustes := preload("res://scripts/ajustes.gd")
 const PIXEL_FONT := preload("res://assets/fonts/PixelifySans.ttf")
 var tick: float = 0.0
 var sparks: float = 0.0
@@ -100,8 +101,13 @@ func _ready() -> void:
     add_child(tension)
     for i in range(4):
         var player := AudioStreamPlayer.new()
+        player.bus = "Efectos"
         add_child(player)
         sfx_pool.append(player)
+    # Mismos volúmenes que en Configuración (scripts/ajustes.gd).
+    Ajustes.preparar_buses()
+    music.bus = "Musica"
+    tension.bus = "Musica"
     # Sin audio en pruebas headless (igual que la campaña).
     if DisplayServer.get_name() != "headless":
         var templo: AudioStreamOggVorbis = load("res://audio/musica_templo.ogg")

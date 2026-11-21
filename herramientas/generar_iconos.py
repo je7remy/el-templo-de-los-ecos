@@ -360,6 +360,20 @@ def calavera() -> Image.Image:
     return i.fin()
 
 
+def engranaje() -> Image.Image:
+    i = Icono()
+    for k in range(8):
+        a = k / 8 * math.tau
+        cx, cy = 16 + math.cos(a) * 11, 16 + math.sin(a) * 11
+        i.p([(cx + math.cos(a + 1.57) * 3, cy + math.sin(a + 1.57) * 3), (cx - math.cos(a + 1.57) * 3, cy - math.sin(a + 1.57) * 3),
+             (cx - math.cos(a + 1.57) * 3 + math.cos(a) * 4, cy - math.sin(a + 1.57) * 3 + math.sin(a) * 4),
+             (cx + math.cos(a + 1.57) * 3 + math.cos(a) * 4, cy + math.sin(a + 1.57) * 3 + math.sin(a) * 4)], c("#9aa1a8"))
+    i.e(5, 5, 27, 27, c("#9aa1a8"))
+    i.e(6, 6, 22, 22, c("#c3c9ce"))
+    i.e(11, 11, 21, 21, c("#2a2e38"))
+    return i.fin()
+
+
 ICONOS = {
     "madera": madera, "fosforos": fosforos, "antorcha": antorcha,
     "antorcha_encendida": antorcha_encendida, "llama_interior": llama_interior, "alma": alma,
@@ -368,7 +382,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "calavera": calavera,
+    "eco_nuca": eco_nuca, "calavera": calavera, "engranaje": engranaje,
 }
 
 
