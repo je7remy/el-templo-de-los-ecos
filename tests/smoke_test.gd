@@ -68,7 +68,9 @@ func _run_checks() -> void:
     if not (game.get("soul_fate") in ["retorno", "absorcion"]):
         _fail("Resultado de muerte invalido.")
         return
-    print("OK: carga, inicio, 5 salas, sello, almas por contacto y desenlace de muerte.")
+    print("OK: almas recogidas por contacto.")
+    # La CI busca esta línea exacta: no cambiar su texto.
+    print("OK: carga, inicio, 5 salas, sello y desenlace de muerte.")
     # Liberar la escena y sus recursos antes de cerrar la prueba headless.
     # Sin esto, Godot puede informar recursos retenidos al finalizar el proceso.
     game.free()
