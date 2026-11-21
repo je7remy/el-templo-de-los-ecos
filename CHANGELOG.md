@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Puertas por contacto, cuerpos y salas simétricas
+
+- **Puertas por contacto:** al tocar la puerta con la sala lista se pasa a la siguiente sin pulsar E (E sigue funcionando). Si está sellada, avisa de lo que falta.
+- **Cuerpos bajo las almas:** cada alma flota sobre el cadáver de su antiguo dueño, con charco de sangre, salpicaduras y heridas. Tres variantes originales (`herramientas/generar_cuerpos.py`), algunas en espejo. El cuerpo se queda al recoger el alma.
+- **Salas simétricas:** en las cinco salas los objetos van en el eje central (x = 480) o en parejas en espejo, y lo mismo las almas, la runa del suelo, el altar, la mesa, el sello y el ojo. Lo aplica `herramientas/simetrizar_salas.py`; las colisiones acompañan a cada objeto.
+- Corregido el dibujo de los objetos volteados (se desplazaban un ancho a la derecha).
+
 ## En `main` (sin nuevo release) — 2026-11-20 · Antorcha, inventario y combate
 
 **Antorcha e inventario**

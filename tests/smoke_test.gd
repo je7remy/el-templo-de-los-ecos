@@ -94,9 +94,27 @@ func _run_checks() -> void:
         return
     print("OK: antorcha, fósforos, golpe, debilidades y destierro.")
 
+    # La puerta se cruza al tocarla, sin pulsar E; sellada, no deja pasar.
+    game.set("current_room", 0)
+    game.call("_enter_room")
+    game.set("player_pos", Vector2(game.get("door_pos")) + Vector2(-12, 0))
+    game.call("_update_play", 1.0 / 60.0)
+    if int(game.get("current_room")) != 1:
+        _fail("Tocar la puerta abierta no lleva a la siguiente sala.")
+        return
     game.set("current_room", 2)
     game.call("_enter_room")
-    game.set("player_pos", Vector2(704, 343))
+    game.set("seal_acquired", false)
+    game.set("player_pos", Vector2(game.get("door_pos")) + Vector2(-12, 0))
+    game.call("_update_play", 1.0 / 60.0)
+    if int(game.get("current_room")) != 2:
+        _fail("La puerta sellada no debe dejar pasar.")
+        return
+    print("OK: puerta por contacto.")
+
+    game.set("current_room", 2)
+    game.call("_enter_room")
+    game.set("player_pos", game.get("seal_pos"))
     game.call("_interact")
     if not bool(game.get("seal_acquired")):
         _fail("No fue posible recoger el sello de la mision.")

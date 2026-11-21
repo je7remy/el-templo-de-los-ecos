@@ -97,6 +97,8 @@ func _construir() -> void:
 			sprite.offset = Vector2(o["offset"][0], o["offset"][1])
 			sprite.set_meta("sombra", bool(o["sombra"]))
 			sprite.set_meta("luz", bool(o["luz"]))
+			# Parejas simétricas: el objeto de la derecha es el espejo del izquierdo.
+			sprite.flip_h = bool(o.get("flip", false))
 			_agregar(raiz, objetos, sprite)
 			if o.has("colision"):
 				_colision(raiz, sprite, "Colision", o["colision"], sprite.position)

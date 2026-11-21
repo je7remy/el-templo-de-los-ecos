@@ -67,6 +67,13 @@ const ROOM_ITEMS := {
     2: [["fosforos", "Fosforos", Vector2(250, 470)]],
     3: [["fosforos", "Fosforos", Vector2(230, 460)]],
 }
+## Cuerpos de los antiguos dueños bajo cada alma (herramientas/generar_cuerpos.py).
+const CORPSES := [
+    preload("res://assets/visual/cuerpos/cuerpo_1.png"),
+    preload("res://assets/visual/cuerpos/cuerpo_2.png"),
+    preload("res://assets/visual/cuerpos/cuerpo_3.png"),
+]
+const DOOR_TOUCH := 36.0 # distancia a la que tocar la puerta abierta te hace cruzarla
 const MATCHES_FIRST_BOX := 5
 const MATCHES_REFILL := 3
 ## Vida de cada entidad por sala (PROVISIONAL, ajustar en pruebas de juego).
@@ -174,6 +181,7 @@ var pulse_fx: float = -1.0
 var float_fx: Array = [] # {pos, text, color, t}
 var dissolve_fx: Array = [] # {pos, kind, facing, frame, t}
 var drops: Array = [] # {pos}
+var door_msg_cd: float = 0.0
 var step_t: float = 0.0
 var step_i: int = 0
 var dash_left: float = 0.0
@@ -942,12 +950,7 @@ func _interact() -> void:
         return
     if player_pos.distance_to(door_pos) < 74.0:
         if _room_ready():
-            if current_room == 4:
-                _win_run()
-            else:
-                current_room += 1
-                _enter_room()
-                _sfx("puerta", -6.0)
+            _go_through_door()
         else:
             _say(_required_clue(), 3.2)
         return
@@ -955,6 +958,28 @@ func _interact() -> void:
         return
     _sfx("toque", -10.0)
     _say("La piedra no responde a tu tacto.", 1.3)
+
+func _go_through_door() -> void:
+    if current_room == 4:
+        _win_run()
+    else:
+        current_room += 1
+        _enter_room()
+        _sfx("puerta", -6.0)
+
+
+## La puerta se cruza al tocarla (sin pulsar E). Si sigue sellada, avisa.
+func _check_door_touch(dt: float) -> void:
+    door_msg_cd = maxf(0.0, door_msg_cd - dt)
+    if player_pos.distance_to(door_pos) >= DOOR_TOUCH:
+        return
+    if _room_ready():
+        _go_through_door()
+    elif door_msg_cd <= 0.0:
+        door_msg_cd = 3.0
+        _say(_required_clue(), 3.0)
+        _sfx("toque", -10.0)
+
 
 func _room_ready() -> bool:
     # Una misión principal en el primer piso: recuperar el sello del Testigo.
@@ -1113,6 +1138,9 @@ func _update_play(dt: float) -> void:
     for i in range(room_items.size() - 1, -1, -1):
         if player_pos.distance_to(room_items[i]["pos"]) < 30.0:
             _take_item(i)
+    _check_door_touch(dt)
+    if game_mode != "play":
+        return # se ganó la partida al cruzar la última puerta
     for i in range(drops.size() - 1, -1, -1):
         if player_pos.distance_to(drops[i]["pos"]) < 32.0:
             souls += BANISH_SOULS
@@ -1277,6 +1305,8 @@ func _draw_room() -> void:
     if current_room == 2:
         _draw_seal(seal_pos)
         _draw_watcher_eye(eye_pos)
+    for i in range(relics.size()):
+        _draw_corpse(relics[i], current_room * 3 + i)
     for i in range(relics.size()):
         if not collected[i]:
             _draw_relic(relics[i], i)
@@ -1465,10 +1495,7 @@ func _draw_depth_sorted() -> void:
                 _draw_letter(book_pos)
             "prop":
                 var prop: Dictionary = room_props[item[2]]
-                var dest: Rect2 = prop["rect"]
-                if prop["flip"]:
-                    dest = Rect2(dest.position + Vector2(dest.size.x, 0.0), Vector2(-dest.size.x, dest.size.y))
-                draw_texture_rect(prop["tex"], dest, false)
+                _draw_texture_flipped(prop["tex"], prop["rect"], prop["flip"])
 
 
 func _draw_object_labels() -> void:
@@ -1604,7 +1631,7 @@ func _draw_door() -> void:
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#454c3c"))
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 2.0), Color("#68715a"))
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#15170f"), false, 1.0)
-    _label_center("SALIDA [E]" if ready else "SELLADA", Vector2(door_pos.x - 4.0, gap.position.y - 16.0), tone)
+    _label_center("SALIDA" if ready else "SELLADA", Vector2(door_pos.x - 4.0, gap.position.y - 16.0), tone)
 
 
 ## Altar a proporción real (78x112 escalado de forma uniforme).
@@ -1816,6 +1843,25 @@ func _draw_float_fx() -> void:
         var p: Vector2 = fx["pos"] + Vector2(0.0, -t * 24.0)
         draw_string(font, p + Vector2(-50, 1), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 100, 16, Color(0, 0, 0, a * 0.8))
         draw_string(font, p + Vector2(-51, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 100, 16, Color(col.r, col.g, col.b, a))
+
+
+## Cadáver del antiguo dueño del alma: tendido en el suelo, bajo la luz de la sala.
+func _draw_corpse(at: Vector2, seed_index: int) -> void:
+    var tex: Texture2D = CORPSES[seed_index % CORPSES.size()]
+    var size := Vector2(tex.get_width(), tex.get_height())
+    var dest := Rect2(roundf(at.x - size.x * 0.5), roundf(at.y + 4.0 - size.y * 0.5), size.x, size.y)
+    _draw_texture_flipped(tex, dest, seed_index % 2 == 1) # variedad: espejo
+
+
+## Dibuja una textura en su rectángulo, volteada en horizontal si se pide.
+## (Un Rect2 de ancho negativo no sirve: Godot lo desplaza un ancho.)
+func _draw_texture_flipped(tex: Texture2D, dest: Rect2, flip: bool) -> void:
+    if not flip:
+        draw_texture_rect(tex, dest, false)
+        return
+    draw_set_transform(Vector2(dest.position.x + dest.size.x, dest.position.y), 0.0, Vector2(-1.0, 1.0))
+    draw_texture_rect(tex, Rect2(Vector2.ZERO, dest.size), false)
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Objeto recogible en el suelo: icono que flota sobre su sombra.

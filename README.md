@@ -26,7 +26,8 @@
   - **Hechicero del archivo**: lanza conjuros hacia la luz. Solo recibe daño mientras carga el conjuro.
 - **Antorcha e inventario**: despiertas a oscuras; en la primera sala encuentras madera y fósforos y se construye la antorcha. Encenderla gasta un fósforo (apagarla no); hay más cajas en las salas 3 y 4, y el altar vende la **Llama interior**, que la enciende sin gastar.
 - **Combate**: golpe de antorcha (clic o E) y **Resonancia** (Q), una onda visible que daña y aturde. Las entidades tienen barra de vida, avisan si son INMUNES o VULNERABLES y, a 0, se disuelven dejando almas. Vuelven si mueres.
-- **Exploración e interacción**: almas que se recogen al tocarlas, el sello del Testigo, la carta del archivo y el altar del Mercader Silencioso.
+- **Exploración e interacción**: almas que se recogen al tocarlas, cada una sobre el cuerpo ensangrentado de su antiguo dueño; el sello del Testigo, la carta del archivo y el altar del Mercader Silencioso. Las puertas se cruzan al tocarlas.
+- **Salas simétricas**: los objetos de cada sala van en el eje central o en parejas en espejo.
 - **Penumbra dinámica**: tu antorcha, los braseros y las almas abren claros en la oscuridad; apagarla te esconde, pero también te ciega.
 - **Peligro que se anuncia**: el ojo del Testigo tiembla antes de abrirse y el Hechicero carga su conjuro a la vista. Los golpes sacuden la pantalla y dan un breve margen de invulnerabilidad.
 - **Música y sonido originales** que reaccionan al miedo y a la persecución.
@@ -44,7 +45,7 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | | |
 | --- | --- |
 | ![Menú principal](docs/galeria/01_menu.png) | ![Umbral del despertar](docs/galeria/02_umbral.png) |
-| **Menú principal.** Elige entre Explorar o Vigilia. | **I · Umbral del despertar.** Despiertas a oscuras: la madera y los fósforos brillan en el suelo. |
+| **Menú principal.** Elige entre Explorar o Vigilia. | **I · Umbral del despertar.** Despiertas a oscuras: la madera y los fósforos brillan en el suelo; cada alma flota sobre un cadáver. |
 | ![Claustro de las ofrendas con el Ghoul de brasas](docs/galeria/03_claustro_ghoul.png) | ![Altar del Mercader Silencioso](docs/galeria/07_altar.png) |
 | **II · Claustro de las ofrendas.** El Ghoul de brasas persigue tu luz. El altar está en el centro. | **El Mercader Silencioso.** Cambia almas por Resonancia o por la Llama interior. |
 | ![Golpe de antorcha contra el Ghoul](docs/galeria/12_combate.png) | ![Inventario](docs/galeria/13_inventario.png) |
@@ -66,7 +67,7 @@ Descansa en el lecho para ganar ecos, levanta centinelas en los pedestales rúni
 
 ![Sala con sus colisiones, marcadores y la base de cada objeto](docs/galeria/10_sala_editable.png)
 
-Cada sala es una escena (`rooms/sala_N.tscn`). Puedes mover columnas y estatuas en el editor y su colisión las acompaña. Las posiciones de juego (jugador, enemigo, salida, reliquias, altar…) son `Marker2D`. Consulta la [guía para editar salas](docs/EDITAR_SALAS.md).
+Cada sala es una escena (`rooms/sala_N.tscn`). Los objetos están en simetría respecto al eje central. Puedes mover columnas y estatuas en el editor y su colisión las acompaña. Las posiciones de juego (jugador, enemigo, salida, reliquias, altar…) son `Marker2D`. Consulta la [guía para editar salas](docs/EDITAR_SALAS.md).
 
 ### Evolución visual
 
@@ -118,7 +119,7 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | Enter | Iniciar la exploración o reiniciar |
 | H | Abrir Vigilia del Claustro desde el menú |
 | W / A / S / D o flechas | Moverse |
-| E | Interactuar (sello, carta, altar, puertas). Si no hay nada cerca y la antorcha arde, golpear. Almas y objetos se recogen al tocarlos |
+| E | Interactuar (sello, carta, altar). Si no hay nada cerca y la antorcha arde, golpear. Almas, objetos y puertas abiertas funcionan al tocarlos |
 | Clic izquierdo | Golpe de antorcha |
 | F | Encender (gasta un fósforo) o apagar la antorcha |
 | I o Tab | Inventario |

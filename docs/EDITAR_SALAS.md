@@ -17,6 +17,9 @@ Las cinco salas del piso 1 son escenas normales de Godot en `rooms/sala_0.tscn` 
 - **La posición de cada objeto es su base** (el punto donde toca el suelo). Esa `y` decide si un personaje se dibuja delante o detrás. El dibujo se desplaza con `offset`; si cambias la textura de un objeto, ajusta `offset` para que la base siga en la posición del nodo.
 - En partida los `Sprite2D` de `Objetos` se ocultan porque el juego los dibuja ordenados junto con los personajes. En el editor se ven normales.
 - Metadatos de cada objeto: `sombra` (bool, sombra de contacto suave) y `luz` (bool, halo animado de brasero).
+- **Simetría:** los objetos van en el eje central (x = 480) o en parejas en espejo. El de la derecha usa la misma textura con `flip_h` activado. Si mueves uno de una pareja, mueve el otro a `960 - x` para conservar la simetría.
+- **Almas y cuerpos:** bajo cada `Reliquia` el juego dibuja el cuerpo de su antiguo dueño (`assets/visual/cuerpos/`, generados con `herramientas/generar_cuerpos.py`). Al mover el marcador, el cuerpo lo acompaña.
+- **Puerta:** al tocar el marcador `Salida` con la sala lista, el personaje cruza solo (también con E).
 - Solo se usan colisiones **rectangulares** (`RectangleShape2D`). Una forma desactivada (`disabled`) no bloquea.
 - **Todos los objetos son sólidos.** La colisión cubre solo la base (pedestal o pie) para poder pasar por detrás de la figura. Si añades un objeto nuevo, dale su `Colision`; el test `visual_asset_test.gd` falla si alguno queda atravesable. El juego amplía cada colisión 15,5 px (radio del personaje).
 - Si borras un marcador, el juego usa la posición por defecto de `scripts/main.gd`. Los tests (`tests/visual_asset_test.gd`) exigen que existan los marcadores básicos.
@@ -32,7 +35,7 @@ Comprueba también a mano que las reliquias, la puerta y los objetos interactivo
 ## Regenerar desde las composiciones originales
 Solo si quieres empezar de cero (**sobrescribe las escenas y se pierden los cambios hechos a mano**):
 ```bash
-python3 herramientas/construir_salas.py          # atlas, objetos y herramientas/salas.json
+python3 herramientas/construir_salas.py          # atlas, objetos y herramientas/salas.json (aplica la simetría)
 godot --headless --path . --import
 godot --headless --path . --script res://herramientas/construir_salas.gd   # escenas .tscn
 ```
