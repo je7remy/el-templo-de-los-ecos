@@ -27,7 +27,9 @@
   - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve. Solo recibe daño con el ojo cerrado.
   - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
   - **Hechicero del archivo**: lanza conjuros hacia la luz. Solo recibe daño mientras carga el conjuro.
-- **Antorcha e inventario**: despiertas a oscuras; en la primera sala encuentras madera y fósforos y se construye la antorcha. Encenderla gasta un fósforo (apagarla no); hay más cajas en las salas 3 y 4, y el altar vende la **Llama interior**, que la enciende sin gastar.
+- **Estilo roguelike de acción**: HUD de paneles biselados con el retrato de Mark (con sangre cuando está herido), barras de vida, vigor y miedo con icono y números, minimapa del piso, contador de almas, panel de arma con su munición (fósforos) y habilidades redondas con su recuperación. Tipografía pixel (Pixelify Sans, OFL) y salas con restos, sangre, velas, estandartes y cadenas.
+- **Perfil del jugador (I)**: retrato, estadísticas de la partida y de tus vidas, equipo y mochila, y los Ecos despertados.
+- **Antorcha y mochila**: despiertas a oscuras; en la primera sala encuentras madera y fósforos y se construye la antorcha. Encenderla gasta un fósforo (apagarla no); hay más cajas en las salas 3 y 4, y el altar vende la **Llama interior**, que la enciende sin gastar.
 - **Combate**: golpe de antorcha (clic o E) y **Resonancia** (Q), una onda visible que daña y aturde. Las entidades tienen barra de vida, avisan si son INMUNES o VULNERABLES y, a 0, se disuelven dejando almas. Vuelven si mueres.
 - **Exploración e interacción**: almas que se recogen al tocarlas, cada una sobre el cuerpo ensangrentado de su antiguo dueño; el sello del Testigo, la carta del archivo y el altar del Mercader Silencioso. Las puertas se cruzan al tocarlas.
 - **Salas simétricas**: los objetos de cada sala van en el eje central o en parejas en espejo.
@@ -51,8 +53,8 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Menú principal.** Elige entre Explorar o Vigilia. | **I · Umbral del despertar.** Despiertas a oscuras: la madera y los fósforos brillan en el suelo; cada alma flota sobre un cadáver. |
 | ![Claustro de las ofrendas con el Ghoul de brasas](docs/galeria/03_claustro_ghoul.png) | ![Altar del Mercader Silencioso](docs/galeria/07_altar.png) |
 | **II · Claustro de las ofrendas.** El Ghoul de brasas persigue tu luz. El altar está en el centro. | **El Mercader Silencioso.** Cambia almas por Resonancia o por la Llama interior. |
-| ![Golpe de antorcha contra el Ghoul](docs/galeria/12_combate.png) | ![Inventario](docs/galeria/13_inventario.png) |
-| **Combate.** El golpe de antorcha deja una estela de fuego; la barra indica la vida de la entidad. | **Inventario (I).** Iconos de objetos y habilidades con su descripción. |
+| ![Golpe de antorcha contra el Ghoul](docs/galeria/12_combate.png) | ![Perfil del jugador](docs/galeria/13_inventario.png) |
+| **Combate.** El golpe de antorcha deja una estela de fuego; la barra indica la vida de la entidad. | **Perfil (I).** Retrato, estadísticas, equipo, mochila y Ecos. |
 | ![Entrada al Piso II](docs/galeria/14_piso2_entrada.png) | ![El Peregrino traiciona en la Cripta del Reparto](docs/galeria/15_peregrino.png) |
 | **Entrada al Piso II.** Solo un fragmento de la sala: lo demás se descubre al entrar. | **La Cosecha.** «Lo siento. Las almas no alcanzan para dos.» |
 | ![Archivo de los ausentes con el Hechicero](docs/galeria/05_archivo.png) | ![Pórtico del siguiente piso](docs/galeria/06_portico.png) |
@@ -127,7 +129,7 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | E | Interactuar (sello, carta, altar). Si no hay nada cerca y la antorcha arde, golpear. Almas, objetos y puertas abiertas funcionan al tocarlos |
 | Clic izquierdo | Golpe de antorcha |
 | F | Encender (gasta un fósforo) o apagar la antorcha |
-| I o Tab | Inventario |
+| I o Tab | Perfil (en móvil, tocar el retrato) |
 | Espacio | Esquivar |
 | Q | Resonancia: onda que daña y aturde (después de adquirirla) |
 | Esc | Volver al menú o cerrar un panel |
@@ -162,7 +164,10 @@ assets/                 Arte: escenario (Knowledge Temple), entidades, tiles, ob
   visual/enemies/       Entidades originales (Testigo, Ghoul de brasas, Hechicero)
   visual/tiles/         Atlas de la arquitectura de las salas
   visual/objetos/       Columnas, estatuas, braseros, mesa, sarcófago… por sala
-  visual/iconos/        Iconos de inventario, habilidades y botones de Vigilia
+  visual/iconos/        Iconos de mochila, habilidades, HUD y botones de Vigilia
+  visual/retratos/      Retrato de Mark (normal y herido)
+  visual/decorados/     Restos, sangre, velas, estandartes y cadenas de las salas
+  fonts/                Pixelify Sans (licencia OFL)
 audio/                  Música y efectos originales (OGG)
 rooms/                  Escenas editables de las cinco salas y su TileSet
 shaders/                Luz y tinte de cada sala

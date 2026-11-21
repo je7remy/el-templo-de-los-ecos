@@ -298,6 +298,68 @@ def salir() -> Image.Image:
     return i.fin()
 
 
+# ------------------------------------------------------------ HUD Y PERFIL
+def corazon() -> Image.Image:
+    i = Icono()
+    i.e(4, 6, 17, 19, c("#b5303a"))
+    i.e(15, 6, 28, 19, c("#b5303a"))
+    i.p([(5, 15), (27, 15), (16, 28)], c("#b5303a"))
+    i.p([(16, 17), (27, 15), (16, 28)], c("#7d1d27"))
+    i.e(7, 8, 12, 13, c("#e06a6f"))
+    return i.fin()
+
+
+def vigor() -> Image.Image:
+    i = Icono()
+    # Rayo verde: el aliento para correr y esquivar.
+    i.p([(19, 2), (8, 17), (15, 17), (11, 30), (25, 13), (18, 13), (23, 2)], c("#4f9e78"))
+    i.p([(19, 2), (8, 17), (11, 17), (20, 4)], c("#9fe0b8"))
+    return i.fin()
+
+
+def miedo() -> Image.Image:
+    i = Icono()
+    # Ojo violeta inyectado en sangre: el horror cósmico mirándote.
+    i.e(3, 8, 29, 24, c("#e9e1d0"))
+    i.e(10, 9, 22, 23, c("#6a3d91"))
+    i.e(13, 12, 19, 20, c("#16101c"))
+    i.px(14, 13, c("#ffffff"))
+    for x, y, dx in ((4, 15, 4), (5, 20, 4), (24, 12, 4), (23, 19, 5)):
+        i.ln([(x, y), (x + dx, y - 1)], c("#c23a40"))
+    i.arco(16, 16, 13, 200, 340, c("#2a2230"), 2)
+    return i.fin()
+
+
+def eco_respiracion() -> Image.Image:
+    i = Icono()
+    for k, y in enumerate((9, 16, 23)):
+        i.ln([(4 + k * 2, y), (20 + k, y), (24 + k, y - 3), (21 + k, y - 6)], c("#8fc7d7") if k != 1 else c("#e8fbff"), 2)
+    return i.fin()
+
+
+def eco_nuca() -> Image.Image:
+    i = Icono()
+    for k in range(3):
+        a = k * math.pi / 3
+        i.ln([(16 + math.cos(a) * 12, 16 + math.sin(a) * 12), (16 - math.cos(a) * 12, 16 - math.sin(a) * 12)], c("#bfe6f5"), 2)
+    i.e(12, 12, 20, 20, c("#e8fbff"))
+    i.e(14, 14, 18, 18, c("#6aaed0"))
+    return i.fin()
+
+
+def calavera() -> Image.Image:
+    i = Icono()
+    i.e(6, 3, 26, 22, c("#e2dccb"))
+    i.r(10, 18, 22, 26, c("#e2dccb"))
+    i.e(9, 10, 15, 16, c("#1b1418"))
+    i.e(17, 10, 23, 16, c("#1b1418"))
+    i.p([(16, 16), (14, 20), (18, 20)], c("#1b1418"))
+    for x in (12, 15, 18, 21):
+        i.ln([(x, 22), (x, 26)], c("#8a8273"))
+    i.px(11, 12, c("#c23a40"))
+    return i.fin()
+
+
 ICONOS = {
     "madera": madera, "fosforos": fosforos, "antorcha": antorcha,
     "antorcha_encendida": antorcha_encendida, "llama_interior": llama_interior, "alma": alma,
@@ -305,6 +367,8 @@ ICONOS = {
     "descansar": descansar, "levantar": levantar, "lecho": lecho, "puerta": puerta,
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
+    "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
+    "eco_nuca": eco_nuca, "calavera": calavera,
 }
 
 

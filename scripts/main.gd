@@ -81,7 +81,26 @@ const ICONS := {
     "resonancia": preload("res://assets/visual/iconos/resonancia.png"),
     "golpe": preload("res://assets/visual/iconos/golpe.png"),
     "alma": preload("res://assets/visual/iconos/alma.png"),
+    "corazon": preload("res://assets/visual/iconos/corazon.png"),
+    "vigor": preload("res://assets/visual/iconos/vigor.png"),
+    "miedo": preload("res://assets/visual/iconos/miedo.png"),
+    "eco_respiracion": preload("res://assets/visual/iconos/eco_respiracion.png"),
+    "eco_nuca": preload("res://assets/visual/iconos/eco_nuca.png"),
+    "calavera": preload("res://assets/visual/iconos/calavera.png"),
+    "pausa": preload("res://assets/visual/iconos/pausa.png"),
 }
+## Retrato de Mark para el HUD y el perfil (herramientas/generar_retrato.py).
+const DEFENSE_ICONS := {"descansar": preload("res://assets/visual/iconos/descansar.png")}
+const PORTRAIT := preload("res://assets/visual/retratos/mark.png")
+const PORTRAIT_HURT := preload("res://assets/visual/retratos/mark_herido.png")
+## Paleta del HUD (estilo roguelike de acción: paneles biselados y barras vivas).
+const UI_PANEL := Color(0.055, 0.065, 0.085, 0.92)
+const UI_EDGE := Color("#3c3f4c")
+const UI_LIGHT := Color("#6b6f80")
+const UI_GOLD := Color("#c6aa6e")
+const BAR_HP := Color("#c8393f")
+const BAR_VIGOR := Color("#4f9e78")
+const BAR_FEAR := Color("#7a4aa3")
 ## Ecos: [nombre, descripción]. Se ganan al superar cada piso (clave "eco" del piso).
 const ECOS := {
     "respiracion": ["RESPIRACIÓN CONTENIDA", "El miedo sube un 25 % más despacio."],
@@ -178,6 +197,7 @@ const ART_PRELOADED := {
 }
 
 var font: Font
+const PIXEL_FONT := preload("res://assets/fonts/PixelifySans.ttf")
 var game_mode: String = "title" # title, play, altar, inventory, floor_intro, dead, victory
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
 var current_room: int = 0
@@ -326,7 +346,13 @@ var watcher_warned: bool = false
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     touch_enabled = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
-    font = ThemeDB.fallback_font
+    # Tipografía pixel (Pixelify Sans, OFL), sin suavizado para que encaje con el pixel art.
+    font = PIXEL_FONT
+    if font is FontFile:
+        var ff := font as FontFile
+        ff.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+        ff.hinting = TextServer.HINTING_NONE
+        ff.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
     randomize()
     _load_progress()
     _load_art()
@@ -721,13 +747,13 @@ func _mobile_tap(at: Vector2) -> void:
         return
     if game_mode != "play":
         return
-    if at.x > 834.0 and at.y < 98.0:
-        game_mode = "title"
+    if at.x > 890.0 and at.y < 64.0:
+        game_mode = "title" # botón de pausa del minimapa
         mobile_axis = Vector2.ZERO
         mobile_finger = -1
         return
-    if at.y < 100.0 and at.x > 560.0:
-        # Tocar la zona del inventario de la barra superior lo abre.
+    if at.y < 104.0 and at.x < 330.0:
+        # Tocar el retrato abre el perfil.
         _open_inventory()
         return
     if at.y > 365.0 and at.x > 370.0:
@@ -766,8 +792,6 @@ func _draw_mobile_controls() -> void:
             draw_string(font, at + Vector2(-47, 38), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 94, 14, CREAM)
         else:
             draw_string(font, at + Vector2(-47, 8), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 94, 23, CREAM)
-    draw_rect(Rect2(834, 16, 112, 72), Color(0.10, 0.22, 0.28, 0.85))
-    draw_string(font, Vector2(840, 56), "MENÚ", HORIZONTAL_ALIGNMENT_CENTER, 100, 15, CREAM)
 
 
 func _buy_upgrade(choice: int) -> void:
@@ -937,7 +961,7 @@ func _slot_owned(i: int) -> bool:
 
 
 func _inventory_slot_rect(i: int) -> Rect2:
-    return Rect2(222.0 + float(i % 3) * 180.0, 214.0 + float(i / 3) * 120.0, 156.0, 104.0)
+    return Rect2(372.0 + float(i % 3) * 168.0, 100.0 + float(i / 3) * 128.0, 160.0, 120.0)
 
 
 func _inventory_slot_at(at: Vector2) -> int:
@@ -1452,6 +1476,7 @@ func _draw_room() -> void:
     # El suelo y los muros los dibuja la escena de la sala (TileMapLayer).
     _draw_room_depth()
     _draw_wear()
+    _draw_decor()
     _draw_prop_shadows()
     # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
     _draw_visual_atmosphere()
@@ -1540,6 +1565,9 @@ func _lights() -> Array:
         list.append([item["pos"], 62.0, 0.5])
     for drop in drops:
         list.append([drop["pos"], 80.0, 0.6])
+    for d in decor_cache:
+        if d[0] == "velas" and decor_cache_key == _room_key():
+            list.append([Vector2(d[1]) + Vector2(11, 8), 58.0, 0.45])
     if _pilgrim_present() and pilgrim_state != "dead":
         list.append([pilgrim_pos + Vector2(0.0, -20.0), 60.0, 0.5]) # se le distingue siempre
     for prop in room_props:
@@ -2135,59 +2163,179 @@ func _draw_hand_torch(hand: Vector2) -> void:
 
 
 func _draw_topbar() -> void:
-    ## [VISUAL UPGRADE] HUD gótico: zonas despejadas y jerarquía legible.
-    draw_rect(Rect2(0, 0, W, 103), Color("#0d1219"))
-    draw_rect(Rect2(0, 100, W, 2), Color("#6f6552"))
-    draw_rect(Rect2(25, 14, 3, 69), Color("#bb9e6d"))
-    _text("EL TEMPLO DE LOS ECOS", Vector2(40, 34), 18, CREAM)
-    _text(_room()["name"], Vector2(40, 66), 13, Color("#a0b6b2"))
-    _text("PISO %s  /  %s" % [_floor()["number"], _floor()["state"]], Vector2(40, 85), 10, Color("#978d77"))
-    _text("VIDA", Vector2(317, 27), 11, CREAM)
-    _text("VIGOR", Vector2(309, 54), 11, CREAM)
-    _text("MIEDO", Vector2(310, 82), 11, CREAM)
-    _bar(Rect2(361, 15, 169, 13), hp / max_hp, Color("#bd6b70"))
-    _bar(Rect2(361, 42, 169, 11), stamina / 100.0, Color("#84b3a0"))
-    _bar(Rect2(361, 70, 169, 10), fear / 100.0, Color("#c5a06e"))
-    draw_rect(Rect2(566, 20, 1, 66), Color("#444a4d"))
-    _text("SALA %02d / %02d" % [current_room + 1, _room_count()], Vector2(590, 43), 16, CREAM)
+    ## HUD estilo roguelike de acción: paneles flotantes sobre una franja oscura.
+    _vgradient(Rect2(0, 0, W, 112), Color(0.02, 0.025, 0.035, 0.96), Color(0.02, 0.025, 0.035, 0.55))
+    _draw_player_panel()
+    _draw_floor_banner()
+    _draw_minimap()
+
+
+## Panel del jugador: retrato, nombre y barras con icono y números.
+func _draw_player_panel() -> void:
+    var panel := Rect2(8, 6, 318, 96)
+    _panel(panel)
+    var frame := Rect2(16, 12, 72, 72)
+    _panel(frame, Color("#1a1f2a"), UI_GOLD)
+    var hurt: bool = hp / max_hp < 0.35
+    var shake_x: float = roundf(sin(elapsed * 40.0)) if damage_cd > 0.9 else 0.0
+    draw_texture_rect(PORTRAIT_HURT if hurt else PORTRAIT, Rect2(frame.position + Vector2(4.0 + shake_x, 4.0), Vector2(64, 64)), false)
+    if damage_cd > 0.0:
+        draw_rect(frame.grow(-2.0), Color(0.8, 0.05, 0.08, 0.35 * clampf(damage_cd / 1.2, 0.0, 1.0)))
+    # Placa con el nombre bajo el retrato.
+    _panel(Rect2(16, 82, 72, 17), Color("#2a1d22"), UI_GOLD)
+    _text_outline("MARK", Vector2(16, 95), 12, CREAM, 72.0)
+    var bars := [
+        ["corazon", hp, max_hp, BAR_HP, "%d/%d" % [int(ceil(hp)), int(max_hp)]],
+        ["vigor", stamina, 100.0, BAR_VIGOR, "%d/100" % int(stamina)],
+        ["miedo", fear, 100.0, BAR_FEAR, "MIEDO %d%%" % int(fear)],
+    ]
+    for i in range(bars.size()):
+        var y: float = 15.0 + float(i) * 27.0
+        var b: Array = bars[i]
+        draw_texture_rect(ICONS[b[0]], Rect2(96, y - 1.0, 22, 22), false)
+        _px_bar(Rect2(122, y, 196, 20), float(b[1]) / float(b[2]), b[3], b[4])
+    if fear > 70.0:
+        # Al borde del pánico la barra de miedo late.
+        var k: float = 0.5 + 0.5 * sin(elapsed * 9.0)
+        draw_rect(Rect2(121, 68, 198, 22), Color(0.7, 0.3, 1.0, 0.35 * k), false, 2.0)
+
+
+## Cartel del piso y la sala, con el contador de almas.
+func _draw_floor_banner() -> void:
+    var banner := Rect2(336, 6, 288, 58)
+    _panel(banner)
+    _text_outline("PISO %s · %s" % [_floor()["number"], _floor()["title"]], Vector2(banner.position.x, 25), 13, UI_GOLD, banner.size.x)
+    _text_outline(_room()["name"], Vector2(banner.position.x, 44), 14, CREAM, banner.size.x)
+    _text_outline(_floor()["state"], Vector2(banner.position.x, 58), 10, Color("#8a8574"), banner.size.x)
+    # Almas: icono y número que destella al recoger.
+    var souls_box := Rect2(420, 68, 120, 34)
+    _panel(souls_box)
+    var bounce: float = souls_flash * 6.0
+    draw_texture_rect(ICONS["alma"], Rect2(428, 72.0 - roundf(bounce * 0.5), 26, 26), false)
     var soul_color: Color = SOUL.lerp(Color.WHITE, clampf(souls_flash / 0.8, 0.0, 1.0))
-    _text("ALMAS  %03d" % souls, Vector2(590, 70), 17 + int(round(souls_flash * 4.0)), soul_color)
-    _text("IDENTIDAD %03d" % identity_number, Vector2(781, 30), 12, Color("#a0b6b2"))
-    # Inventario rápido: antorcha (o madera), fósforos y llama interior.
-    var torch_icon: String = ("antorcha_encendida" if torch_on else "antorcha") if has_torch else "madera"
-    var slots := [[torch_icon, has_torch or has_wood, ""], ["fosforos", matches > 0 or has_torch, "%d" % matches], ["llama_interior", has_inner_flame, ""]]
-    for i in range(slots.size()):
-        var box := Rect2(781.0 + float(i) * 46.0, 40.0, 40.0, 40.0)
-        draw_rect(box, Color("#151c25"))
-        draw_rect(box, Color("#5b5444"), false, 1.0)
-        var owned: bool = slots[i][1]
-        draw_texture_rect(ICONS[slots[i][0]], Rect2(box.position + Vector2(4, 4), Vector2(32, 32)), false, Color(1, 1, 1, 1.0) if owned else Color(0.3, 0.3, 0.3, 0.45))
-        if owned and slots[i][2] != "":
-            draw_string(font, box.position + Vector2(2, 38), slots[i][2], HORIZONTAL_ALIGNMENT_RIGHT, 36, 13, CREAM if matches > 0 else RED)
-    _text("I  inventario", Vector2(781, 95), 10, Color("#978d77"))
+    _text_outline("%d" % souls, Vector2(460, 93), 18 + int(round(bounce)), soul_color)
+
+
+## Minimapa del piso: salas en cadena, la actual resaltada.
+func _draw_minimap() -> void:
+    var panel := Rect2(634, 6, 318, 96)
+    _panel(panel)
+    _text_outline("MAPA DEL PISO", Vector2(644, 24), 11, Color("#8a8574"))
+    var count: int = _room_count()
+    var cell := Vector2(28, 22)
+    var gap: float = 12.0
+    var total: float = float(count) * cell.x + float(count - 1) * gap
+    var x0: float = roundf(634.0 + (258.0 - total) * 0.5)
+    var y0: float = 40.0
+    for i in range(count):
+        var r := Rect2(x0 + float(i) * (cell.x + gap), y0, cell.x, cell.y)
+        if i < count - 1:
+            draw_rect(Rect2(r.end.x, r.position.y + 9.0, gap, 4.0), UI_GOLD if i < current_room else Color("#2a2e38"))
+        var room: Dictionary = _floor()["rooms"][i]
+        if i < current_room:
+            _panel(r, Color("#3a3f4c"), UI_LIGHT)
+        elif i == current_room:
+            var pulse: float = 0.6 + 0.4 * sin(elapsed * 4.0)
+            _panel(r, Color(0.78, 0.67, 0.43, 0.35 + 0.2 * pulse), UI_GOLD)
+            draw_rect(Rect2(r.get_center() - Vector2(3, 3), Vector2(6, 6)), CREAM)
+        else:
+            _panel(r, Color("#12151c"), Color("#2a2e38"))
+            if i < count - 1:
+                _text_outline("?", Vector2(r.position.x, r.position.y + 16.0), 12, Color("#4a4e5a"), r.size.x)
+        # Marcas: amenaza viva en la sala actual; el final del piso, una calavera.
+        if i == current_room and (_enemy_active() or pilgrim_state in ["tell", "hostile"]):
+            draw_rect(Rect2(r.end.x - 7.0, r.position.y + 3.0, 4, 4), RED)
+        if i == count - 1 and i > current_room:
+            draw_texture_rect(ICONS["calavera"], Rect2(r.position + Vector2(5, 2), Vector2(18, 18)), false, Color(1, 1, 1, 0.8))
+        if "cosecha" in room["traits"] and i <= current_room:
+            draw_texture_rect(ICONS["calavera"], Rect2(r.position + Vector2(-5, -10), Vector2(14, 14)), false)
+    _text_outline("SALA %d/%d" % [current_room + 1, count], Vector2(644, 92), 12, CREAM)
+    _text_outline("ID %03d" % identity_number, Vector2(800, 92), 11, Color("#8a8574"))
+    # Botón de pausa (en móvil vuelve al menú).
+    var pause := Rect2(898, 12, 46, 46)
+    _panel(pause, Color("#1a1f2a"), UI_LIGHT)
+    draw_texture_rect(ICONS["pausa"], Rect2(pause.position + Vector2(7, 7), Vector2(32, 32)), false, Color(1, 1, 1, 0.85))
 
 
 func _bar(rect: Rect2, fraction: float, color: Color) -> void:
-    draw_rect(rect, Color("#30353d"))
-    draw_rect(Rect2(rect.position, Vector2(rect.size.x * clampf(fraction, 0.0, 1.0), rect.size.y)), color)
-    draw_rect(rect, Color("#666a75"), false, 1.0)
+    _px_bar(rect, fraction, color, "")
+
+
+## Panel biselado de pixel art: sombra, borde, luz superior y esquinas recortadas.
+func _panel(rect: Rect2, fill: Color = UI_PANEL, edge: Color = UI_EDGE) -> void:
+    var r := rect
+    draw_rect(Rect2(r.position + Vector2(2, 3), r.size), Color(0, 0, 0, 0.45 * fill.a)) # sombra
+    draw_rect(Rect2(r.position.x + 2.0, r.position.y, r.size.x - 4.0, r.size.y), edge)
+    draw_rect(Rect2(r.position.x, r.position.y + 2.0, r.size.x, r.size.y - 4.0), edge)
+    var inner := r.grow(-2.0)
+    draw_rect(inner, fill)
+    draw_rect(Rect2(inner.position, Vector2(inner.size.x, 2.0)), Color(1, 1, 1, 0.07 * fill.a)) # luz
+    draw_rect(Rect2(inner.position.x, inner.end.y - 2.0, inner.size.x, 2.0), Color(0, 0, 0, 0.25 * fill.a))
+
+
+## Barra viva: fondo hundido, relleno con brillo arriba y sombra abajo,
+## marcas cada 10 % y el valor escrito encima con contorno.
+func _px_bar(rect: Rect2, fraction: float, color: Color, label: String) -> void:
+    draw_rect(rect, Color("#0b0d12"))
+    var inner := rect.grow(-2.0)
+    draw_rect(inner, color.darkened(0.75))
+    var w: float = roundf(inner.size.x * clampf(fraction, 0.0, 1.0))
+    if w > 0.0:
+        draw_rect(Rect2(inner.position, Vector2(w, inner.size.y)), color)
+        draw_rect(Rect2(inner.position, Vector2(w, 3.0)), color.lightened(0.35))
+        draw_rect(Rect2(inner.position.x, inner.end.y - 3.0, w, 3.0), color.darkened(0.3))
+    for k in range(1, 10):
+        var x: float = roundf(inner.position.x + inner.size.x * float(k) / 10.0)
+        draw_rect(Rect2(x, inner.position.y, 1.0, inner.size.y), Color(0, 0, 0, 0.25))
+    draw_rect(rect, Color("#2c303b"), false, 1.0)
+    if label != "":
+        _text_outline(label, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.5 + 5.0), 13, Color.WHITE, rect.size.x)
+
+
+## Texto con contorno negro de 1 px (legible sobre cualquier fondo).
+func _text_outline(msg: String, at: Vector2, size: int, color: Color, width: float = -1.0) -> void:
+    var align: int = HORIZONTAL_ALIGNMENT_CENTER if width > 0.0 else HORIZONTAL_ALIGNMENT_LEFT
+    var dark := Color(0, 0, 0, color.a * 0.9)
+    for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(1, 1)]:
+        draw_string(font, at + o, msg, align, width, size, dark)
+    draw_string(font, at, msg, align, width, size, color)
 
 
 func _draw_footer() -> void:
-    ## [VISUAL UPGRADE] Fila 1: objetivo de la sala. Fila 2: controles.
-    ## La misión ya no flota sobre el muro ni los mensajes tapan los controles.
-    draw_rect(Rect2(0, 575, W, 65), Color("#101720"))
-    draw_rect(Rect2(0, 575, W, 2), Color("#8b795c"))
+    ## Abajo: misión a la izquierda; arma y habilidades a la derecha.
+    _vgradient(Rect2(0, 572, W, 68), Color(0.02, 0.025, 0.035, 0.55), Color(0.02, 0.025, 0.035, 0.96))
     var task: String = _mission_text()
     var task_color: Color = SOUL if _room_ready() else CREAM
     if _has("sello") and _enemy_active() and watcher_open and not seal_acquired:
         task_color = RED
-    draw_colored_polygon(PackedVector2Array([Vector2(26, 594), Vector2(31, 589), Vector2(36, 594), Vector2(31, 599)]), Color("#bb9e6d"))
-    _text(task, Vector2(44, 600), 14, task_color)
-    # Habilidades con icono y recuperación (sombra que baja).
-    _draw_ability_icon(Rect2(846, 581, 34, 34), "golpe", has_torch and torch_on, strike_cd / 0.6, "E")
-    _draw_ability_icon(Rect2(890, 581, 34, 34), "resonancia", has_pulse, pulse_cd / 8.0, "Q")
-    _text("WASD mover  ·  E / CLIC interactuar o golpear  ·  F antorcha  ·  ESPACIO esquivar  ·  Q resonancia  ·  I inventario  ·  ESC menú", Vector2(26, 630), 11, Color("#a9a48f"))
+    if pilgrim_state in ["tell", "hostile"]:
+        task_color = RED
+    var mission := Rect2(8, 580, 568, 34)
+    _panel(mission)
+    draw_colored_polygon(PackedVector2Array([Vector2(22, 597), Vector2(28, 591), Vector2(34, 597), Vector2(28, 603)]), UI_GOLD)
+    _text_outline(task, Vector2(42, 603), 15, task_color)
+    if not touch_enabled:
+        _text_outline("WASD mover · E/CLIC golpear · F antorcha · ESPACIO esquivar · Q resonancia · I perfil · ESC menú", Vector2(12, 632), 11, Color("#8d8877"))
+    _draw_weapon_panel()
+
+
+## Arma equipada (la antorcha) con su «munición» y las habilidades.
+func _draw_weapon_panel() -> void:
+    var panel := Rect2(586, 578, 366, 58)
+    _panel(panel)
+    var slot := Rect2(594, 583, 48, 48)
+    _panel(slot, Color("#1a1f2a"), UI_GOLD if has_torch and torch_on else UI_LIGHT)
+    var icon: String = ("antorcha_encendida" if torch_on else "antorcha") if has_torch else "madera"
+    var owned: bool = has_torch or has_wood
+    draw_texture_rect(ICONS[icon], Rect2(slot.position + Vector2(8, 8), Vector2(32, 32)), false, Color.WHITE if owned else Color(0.3, 0.3, 0.3, 0.5))
+    var name_txt: String = "ANTORCHA" if has_torch else ("MADERA" if has_wood else "SIN ARMA")
+    _text_outline(name_txt, Vector2(650, 600), 14, CREAM if owned else Color("#6d6a60"))
+    var ammo: String = "LLAMA INTERIOR" if has_inner_flame else "FÓSFOROS x%d" % matches
+    var ammo_col: Color = SOUL if has_inner_flame else (Color("#f0c98a") if matches > 0 else RED)
+    draw_texture_rect(ICONS["llama_interior" if has_inner_flame else "fosforos"], Rect2(648, 608, 20, 20), false)
+    _text_outline(ammo, Vector2(672, 624), 12, ammo_col)
+    _draw_ability_icon(Rect2(838, 583, 48, 48), "golpe", has_torch and torch_on, strike_cd / 0.6, "E")
+    _draw_ability_icon(Rect2(896, 583, 48, 48), "resonancia", has_pulse, pulse_cd / 8.0, "Q")
 
 
 ## Objetivo de la sala para el pie de pantalla.
@@ -2220,61 +2368,81 @@ func _mission_text() -> String:
 
 
 func _draw_ability_icon(box: Rect2, key: String, ready_to_use: bool, cooldown: float, hotkey: String) -> void:
-    draw_rect(box, Color("#151c25"))
-    draw_texture_rect(ICONS[key], box.grow(-1.0), false, Color.WHITE if ready_to_use else Color(0.35, 0.35, 0.35, 0.6))
+    ## Botón de habilidad redondo; la recuperación se ve como un reloj que se vacía.
+    var c: Vector2 = box.get_center()
+    var r: float = box.size.x * 0.5
+    draw_circle(c + Vector2(1, 2), r, Color(0, 0, 0, 0.45))
+    draw_circle(c, r, UI_EDGE)
+    draw_circle(c, r - 2.0, Color("#1a1f2a"))
+    draw_texture_rect(ICONS[key], Rect2(c - Vector2(16, 16), Vector2(32, 32)), false, Color.WHITE if ready_to_use else Color(0.3, 0.3, 0.3, 0.55))
     if ready_to_use and cooldown > 0.0:
-        var h: float = box.size.y * clampf(cooldown, 0.0, 1.0)
-        draw_rect(Rect2(box.position.x, box.end.y - h, box.size.x, h), Color(0.02, 0.03, 0.05, 0.7))
-    draw_rect(box, Color("#c6aa6e") if ready_to_use and cooldown <= 0.0 else Color("#4d4a42"), false, 1.0)
-    draw_rect(Rect2(box.end.x - 11.0, box.end.y - 12.0, 11.0, 12.0), Color(0.03, 0.04, 0.06, 0.85))
-    draw_string(font, Vector2(box.end.x - 11.0, box.end.y - 2.0), hotkey, HORIZONTAL_ALIGNMENT_CENTER, 11, 10, CREAM)
+        var k: float = clampf(cooldown, 0.0, 1.0)
+        var pts := PackedVector2Array([c])
+        for i in range(25):
+            pts.append(c + Vector2.from_angle(-PI * 0.5 + TAU * k * float(i) / 24.0) * (r - 2.0))
+        draw_colored_polygon(pts, Color(0.02, 0.03, 0.05, 0.72))
+    var ready_now: bool = ready_to_use and cooldown <= 0.0
+    draw_arc(c, r - 1.0, 0.0, TAU, 32, UI_GOLD if ready_now else UI_LIGHT, 2.0)
+    if ready_now:
+        draw_arc(c, r + 1.5, 0.0, TAU, 32, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.25 + 0.2 * sin(elapsed * 5.0)), 2.0)
+    var badge := Rect2(box.end.x - 15.0, box.end.y - 15.0, 16, 16)
+    _panel(badge, Color("#2a1d22"), UI_GOLD)
+    _text_outline(hotkey, Vector2(badge.position.x, badge.end.y - 4.0), 11, CREAM, badge.size.x)
 
 
 func _draw_toast() -> void:
-    ## Mensaje flotante bajo la barra superior, centrado y con desvanecimiento.
+    ## Mensaje flotante bajo el HUD, centrado y con desvanecimiento.
     var alpha: float = clampf(toast_left * 3.0, 0.0, 1.0)
     var size: int = 14
-    var width: float = minf(font.get_string_size(toast, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 36.0, W - 40.0)
-    var box := Rect2((W - width) * 0.5, 104.0, width, 27.0)
-    draw_rect(box, Color(0.035, 0.05, 0.065, 0.92 * alpha))
-    draw_rect(Rect2(box.position.x, box.end.y - 1.0, box.size.x, 1.0), Color(0.73, 0.62, 0.43, 0.8 * alpha))
-    draw_string(font, Vector2(box.position.x, box.position.y + 19.0), toast, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, size, Color(CREAM.r, CREAM.g, CREAM.b, alpha))
+    var width: float = minf(font.get_string_size(toast, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 40.0, W - 40.0)
+    var box := Rect2(roundf((W - width) * 0.5), 110.0, width, 28.0)
+    _panel(box, Color(0.035, 0.045, 0.06, 0.94 * alpha), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.8 * alpha))
+    _text_outline(toast, Vector2(box.position.x, box.position.y + 19.0), size, Color(CREAM.r, CREAM.g, CREAM.b, alpha), box.size.x)
 
 
 func _draw_title() -> void:
-    ## [VISUAL UPGRADE] Panel ceremonial: temple still visible behind the title.
+    ## Menú principal estilo roguelike: panel biselado, botones gruesos con icono.
     # La sala actual (escena) queda detrás; solo se oscurece.
-    draw_rect(Rect2(0, 0, W, H), Color(0.018, 0.027, 0.032, 0.60))
-    draw_rect(Rect2(149, 166, 662, 386), Color(0.055, 0.076, 0.086, 0.94))
-    draw_rect(Rect2(149, 166, 662, 386), Color("#8d7957"), false, 2.0)
-    draw_rect(Rect2(160, 178, 640, 362), Color("#455452"), false, 1.0)
-    draw_line(Vector2(300, 228), Vector2(660, 228), Color("#8d7957"), 1.0)
-    draw_texture_rect(BRAND_ICON, Rect2(443, 184, 74, 74), false)
+    draw_rect(Rect2(0, 0, W, H), Color(0.018, 0.027, 0.032, 0.62))
+    var main := Rect2(149, 150, 662, 410)
+    _panel(main, Color(0.045, 0.055, 0.07, 0.95), UI_GOLD)
+    draw_rect(main.grow(-8.0), Color("#3a3f4c"), false, 1.0)
+    draw_texture_rect(BRAND_ICON, Rect2(443, 164, 74, 74), false)
+    _text_outline("EL TEMPLO", Vector2(149, 284), 44, CREAM, main.size.x)
+    _text_outline("DE LOS ECOS", Vector2(149, 330), 46, SOUL, main.size.x)
+    _text_outline("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", Vector2(149, 362), 14, CREAM, main.size.x)
+    draw_rect(Rect2(318, 376, 324, 2), UI_GOLD.darkened(0.3))
+    _text_outline("ROGUELIKE DE TERROR · PISOS I–%s · REGLAS POR DESCUBRIR" % FLOORS[FLOORS.size() - 1]["number"], Vector2(149, 398), 12, SOUL, main.size.x)
+    _text_outline("No conoces las reglas. Aún.", Vector2(149, 422), 15, Color("#b9b29b"), main.size.x)
     ## Botones: misma zona táctil que antes (izquierda explorar, derecha vigilia).
-    var explore := Rect2(203, 446, 257, 58)
-    var vigil := Rect2(500, 446, 257, 58)
-    draw_rect(explore, Color(0.06, 0.22, 0.25, 0.90))
-    draw_rect(vigil, Color(0.25, 0.19, 0.10, 0.90))
-    draw_rect(explore, SOUL, false, 2.0)
-    draw_rect(vigil, Color("#c6aa6e"), false, 2.0)
-    _center("EL TEMPLO", 289, 40, CREAM)
-    _center("DE LOS ECOS", 339, 43, SOUL)
-    _center("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", 376, 15, CREAM)
-    draw_line(Vector2(318, 392), Vector2(642, 392), Color("#736851"), 1.0)
-    _center("PISOS I–%s  •  REGLAS POR DESCUBRIR" % FLOORS[FLOORS.size() - 1]["number"], 413, 12, SOUL)
-    _center("No conoces las reglas. Aún.", 434, 16, CREAM)
-    draw_string(font, Vector2(explore.position.x, explore.position.y + 37.0), "EXPLORAR", HORIZONTAL_ALIGNMENT_CENTER, explore.size.x, 21, CREAM)
-    draw_string(font, Vector2(vigil.position.x, vigil.position.y + 37.0), "VIGILIA", HORIZONTAL_ALIGNMENT_CENTER, vigil.size.x, 21, CREAM)
-    _center("ENTER  explorar      ·      H  vigilia", 528, 12, Color("#9fb3b3"))
-    _center("IDENTIDAD %03d   |   RETORNOS %d   |   ABSORCIONES %d" % [identity_number, reincarnations, new_humans], 567, 12, CREAM)
+    var explore := Rect2(203, 440, 257, 64)
+    var vigil := Rect2(500, 440, 257, 64)
+    _big_button(explore, "EXPLORAR", "antorcha_encendida", Color("#1d4a4f"), SOUL)
+    _big_button(vigil, "VIGILIA", "descansar", Color("#4a3417"), UI_GOLD)
+    _text_outline("ENTER  explorar      ·      H  vigilia", Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
+    # Ficha rápida del personaje.
+    draw_texture_rect(PORTRAIT, Rect2(171, 494, 48, 48), false)
+    _text_outline("MARK · ID %03d   |   RETORNOS %d   |   ABSORCIONES %d" % [identity_number, reincarnations, new_humans], Vector2(149, 548), 12, CREAM, main.size.x)
     if toast_left > 0:
         _draw_toast()
 
 
+## Botón grueso de pixel art: bisel claro arriba, oscuro abajo, icono y texto.
+func _big_button(rect: Rect2, label: String, icon: String, fill: Color, edge: Color) -> void:
+    var pulse: float = 0.5 + 0.5 * sin(elapsed * 3.0)
+    _panel(rect, fill, edge)
+    draw_rect(Rect2(rect.position + Vector2(4, 4), Vector2(rect.size.x - 8.0, 4)), fill.lightened(0.25))
+    draw_rect(Rect2(rect.position.x + 4.0, rect.end.y - 8.0, rect.size.x - 8.0, 4), fill.darkened(0.35))
+    draw_rect(rect.grow(2.0), Color(edge.r, edge.g, edge.b, 0.15 + 0.15 * pulse), false, 2.0)
+    var icon_tex: Texture2D = DEFENSE_ICONS.get(icon, ICONS.get(icon, null))
+    if icon_tex != null:
+        draw_texture_rect(icon_tex, Rect2(rect.position + Vector2(18, 16), Vector2(32, 32)), false)
+    _text_outline(label, Vector2(rect.position.x + 30.0, rect.position.y + 42.0), 24, CREAM, rect.size.x - 30.0)
+
+
 func _draw_altar_overlay() -> void:
     _overlay()
-    draw_rect(Rect2(164, 155, 632, 357), Color("#19202b"))
-    draw_rect(Rect2(164, 155, 632, 357), Color("#8c8088"), false, 2)
+    _panel(Rect2(164, 155, 632, 357), Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
     _center("EL MERCADER SILENCIOSO", 200, 26, CREAM)
     _center("'Todo préstamo tiene un dueño que no conoces.'", 232, 15, SOUL)
     var offers := [
@@ -2285,8 +2453,7 @@ func _draw_altar_overlay() -> void:
         var row: Rect2 = _altar_row_rect(i)
         var o: Array = offers[i]
         var hover: bool = inventory_sel == i
-        draw_rect(row, Color("#202a36") if hover else Color("#1a222d"))
-        draw_rect(row, Color("#c6aa6e") if hover else Color("#4d4a42"), false, 1.0)
+        _panel(row, Color("#202a36") if hover else Color("#141922"), UI_GOLD if hover else UI_EDGE)
         draw_texture_rect(ICONS[o[0]], Rect2(row.position + Vector2(12, 11), Vector2(64, 64)), false)
         _text(o[1], row.position + Vector2(92, 32), 18, CREAM)
         _text(o[2], row.position + Vector2(92, 60), 13, Color("#b9b29b"))
@@ -2299,33 +2466,75 @@ func _draw_altar_overlay() -> void:
 
 
 func _draw_inventory_overlay() -> void:
-    _overlay()
-    draw_rect(Rect2(196, 140, 568, 400), Color("#19202b"))
-    draw_rect(Rect2(196, 140, 568, 400), Color("#8c8088"), false, 2)
-    _center("INVENTARIO", 184, 24, CREAM)
-    var eco_names: Array = []
-    for e in ecos:
-        eco_names.append(ECOS[e][0])
-    _center("ECOS: " + (" · ".join(eco_names) if not eco_names.is_empty() else "ninguno todavía"), 204, 11, SOUL if not eco_names.is_empty() else Color("#6d6a60"))
+    ## PERFIL del jugador (I / Tab, o tocar el retrato): ficha de personaje al
+    ## estilo de los roguelike de acción. Izquierda: retrato y estadísticas.
+    ## Derecha: equipo y habilidades, Ecos y la descripción de lo señalado.
+    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.78))
+    var sheet := Rect2(70, 46, 820, 548)
+    _panel(sheet, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
+    _panel(Rect2(380, 34, 200, 30), Color("#2a1d22"), UI_GOLD)
+    _text_outline("PERFIL", Vector2(380, 55), 18, CREAM, 200.0)
+    # --- Columna izquierda: retrato y datos.
+    var frame := Rect2(102, 84, 140, 140)
+    _panel(frame, Color("#1a1f2a"), UI_GOLD)
+    draw_texture_rect(PORTRAIT_HURT if hp / max_hp < 0.35 else PORTRAIT, Rect2(frame.position + Vector2(6, 6), Vector2(128, 128)), false)
+    _text_outline("MARK", Vector2(252, 112), 26, CREAM)
+    _text_outline("IDENTIDAD %03d" % identity_number, Vector2(252, 136), 13, Color("#a0b6b2"))
+    _text_outline("PISO %s · SALA %d" % [_floor()["number"], current_room + 1], Vector2(252, 158), 13, UI_GOLD)
+    var fate: String = "Recuerda sus vidas" if reincarnations > 0 else "Primera vida"
+    _text_outline(fate, Vector2(252, 180), 12, Color("#8a8574"))
+    _px_bar(Rect2(102, 236, 238, 18), hp / max_hp, BAR_HP, "VIDA %d/%d" % [int(ceil(hp)), int(max_hp)])
+    _px_bar(Rect2(102, 258, 238, 18), stamina / 100.0, BAR_VIGOR, "VIGOR %d" % int(stamina))
+    _px_bar(Rect2(102, 280, 238, 18), fear / 100.0, BAR_FEAR, "MIEDO %d%%" % int(fear))
+    var stats := [
+        ["Daño del golpe", "%d" % int(STRIKE_DAMAGE)],
+        ["Daño de Resonancia", ("%d" % int(30.0 + 10.0 * float(ability_level))) if has_pulse else "—"],
+        ["Almas", "%d" % souls],
+        ["Muertes", "%d" % deaths],
+        ["Retornos", "%d" % reincarnations],
+        ["Absorciones", "%d" % new_humans],
+        ["Pisos superados", "%d" % cleared],
+    ]
+    _panel(Rect2(96, 310, 250, 268), Color("#0f1218"))
+    for i in range(stats.size()):
+        var y: float = 340.0 + float(i) * 33.0
+        _text_outline(stats[i][0], Vector2(112, y), 13, Color("#b9b29b"))
+        draw_string(font, Vector2(112, y), stats[i][1], HORIZONTAL_ALIGNMENT_RIGHT, 220.0, 15, CREAM)
+        if i < stats.size() - 1:
+            draw_rect(Rect2(112, y + 11.0, 220, 1), Color(1, 1, 1, 0.06))
+    # --- Columna derecha: equipo/mochila (casillas seleccionables).
+    _text_outline("EQUIPO Y MOCHILA", Vector2(372, 92), 13, UI_GOLD)
     for i in range(INVENTORY_SLOTS.size()):
         var box: Rect2 = _inventory_slot_rect(i)
         var owned: bool = _slot_owned(i)
         var sel: bool = inventory_sel == i
-        draw_rect(box, Color("#222c39") if sel else Color("#151c25"))
-        draw_rect(box, Color("#c6aa6e") if sel else Color("#3f4448"), false, 2.0 if sel else 1.0)
+        _panel(box, Color("#222c39") if sel else Color("#141922"), UI_GOLD if sel else UI_EDGE)
         var key: String = INVENTORY_SLOTS[i][0]
         if key == "antorcha" and torch_on:
             key = "antorcha_encendida"
-        draw_texture_rect(ICONS[key], Rect2(box.position + Vector2(46, 8), Vector2(64, 64)), false, Color.WHITE if owned else Color(0.12, 0.12, 0.14, 0.9))
+        draw_texture_rect(ICONS[key], Rect2(box.position + Vector2(roundf(box.size.x * 0.5) - 24.0, 8), Vector2(48, 48)), false, Color.WHITE if owned else Color(0.1, 0.1, 0.12, 0.9))
         var title: String = INVENTORY_SLOTS[i][1] if owned else "???"
         if INVENTORY_SLOTS[i][0] == "fosforos" and owned:
             title = "FÓSFOROS x%d" % matches
-        draw_string(font, box.position + Vector2(0, 92), title, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, 12, CREAM if owned else Color("#6d6a60"))
-    # Descripción de la casilla señalada (cursor, flechas o toque).
-    var desc: String = INVENTORY_SLOTS[inventory_sel][2] if _slot_owned(inventory_sel) else "Aún no lo tienes. Explora el templo."
-    draw_rect(Rect2(222, 458, 516, 40), Color("#101720"))
-    draw_string(font, Vector2(222, 483), desc, HORIZONTAL_ALIGNMENT_CENTER, 516, 13, SOUL if _slot_owned(inventory_sel) else Color("#8a8778"))
-    _center("I / ESC: cerrar", 524, 12, Color("#978d77"))
+        _text_outline(title, Vector2(box.position.x, box.end.y - 10.0), 11, CREAM if owned else Color("#5d5a52"), box.size.x)
+    # --- Ecos: pasivas acumuladas, una por piso superado.
+    _text_outline("ECOS", Vector2(372, 368), 13, UI_GOLD)
+    var keys: Array = ECOS.keys()
+    for i in range(keys.size()):
+        var r := Rect2(372.0 + float(i) * 252.0, 378.0, 244.0, 60.0)
+        var has_it: bool = ecos.has(keys[i])
+        _panel(r, Color("#141922"), Color("#3b6f7d") if has_it else UI_EDGE)
+        draw_texture_rect(ICONS["eco_" + str(keys[i])], Rect2(r.position + Vector2(8, 14), Vector2(32, 32)), false, Color.WHITE if has_it else Color(0.15, 0.15, 0.18, 0.9))
+        _text_outline(ECOS[keys[i]][0] if has_it else "ECO SIN DESPERTAR", Vector2(r.position.x + 48.0, r.position.y + 26.0), 12, SOUL if has_it else Color("#5d5a52"))
+        draw_string(font, Vector2(r.position.x + 48.0, r.position.y + 46.0), ECOS[keys[i]][1] if has_it else "Supera un piso para despertarlo.", HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 54.0, 10, Color("#9a957f"))
+    # --- Descripción de la casilla señalada (cursor, flechas o toque).
+    var desc_box := Rect2(372, 454, 496, 76)
+    _panel(desc_box, Color("#0f1218"))
+    var owned_sel: bool = _slot_owned(inventory_sel)
+    _text_outline(INVENTORY_SLOTS[inventory_sel][1] if owned_sel else "???", Vector2(388, 478), 15, CREAM if owned_sel else Color("#6d6a60"))
+    draw_string(font, Vector2(388, 502), INVENTORY_SLOTS[inventory_sel][2] if owned_sel else "Aún no lo tienes. Explora el templo.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, SOUL if owned_sel else Color("#8a8778"))
+    _text_outline("I / ESC: cerrar", Vector2(372, 566), 12, Color("#8a8574"), 496.0)
+
 
 ## Pantalla de entrada al piso (GDD §7): solo una vista parcial del interior,
 ## sin desvelar lo que hay tras las puertas.
@@ -2718,3 +2927,93 @@ func _draw_wear() -> void:
     for n in range(int(10.0 * wear)):
         var q := Vector2(rng.randf_range(80.0, 880.0), rng.randf_range(165.0, 545.0))
         draw_rect(Rect2(q, Vector2(rng.randi_range(2, 4), rng.randi_range(2, 3))), Color(0.42, 0.45, 0.38, 0.6))
+
+
+# ============================================================ DECORADOS
+## Detalle de mazmorra (herramientas/generar_decorados.py): sin colisión,
+## en espejo respecto al eje x = 480 y siempre igual en la misma sala.
+const DECOR := {
+    "craneo": preload("res://assets/visual/decorados/craneo.png"),
+    "huesos": preload("res://assets/visual/decorados/huesos.png"),
+    "costillar": preload("res://assets/visual/decorados/costillar.png"),
+    "vasija_rota": preload("res://assets/visual/decorados/vasija_rota.png"),
+    "velas": preload("res://assets/visual/decorados/velas.png"),
+    "charco_grande": preload("res://assets/visual/decorados/charco_grande.png"),
+    "charco_pequeno": preload("res://assets/visual/decorados/charco_pequeno.png"),
+    "reguero": preload("res://assets/visual/decorados/reguero.png"),
+    "estandarte": preload("res://assets/visual/decorados/estandarte.png"),
+    "cadena": preload("res://assets/visual/decorados/cadena.png"),
+    "telarana": preload("res://assets/visual/decorados/telarana.png"),
+    "manos": preload("res://assets/visual/decorados/manos.png"),
+    "goteo": preload("res://assets/visual/decorados/goteo.png"),
+}
+const DECOR_FLOOR := ["craneo", "huesos", "costillar", "vasija_rota", "velas", "charco_pequeno", "charco_grande", "reguero"]
+var decor_cache_key: String = ""
+var decor_cache: Array = [] # [clave, posición (arriba-izquierda), espejo]
+
+
+func _decor_layout() -> Array:
+    if decor_cache_key == _room_key():
+        return decor_cache
+    decor_cache_key = _room_key()
+    decor_cache = []
+    var rng := RandomNumberGenerator.new()
+    rng.seed = hash("decor:" + _room_key())
+    var wear: float = float(_floor().get("wear", 0.0))
+    # Puntos que no se deben tapar: almas, objetos, puerta, entrada y objetos de juego.
+    var keep_clear: Array = relics.duplicate()
+    keep_clear.append_array([door_pos, Vector2(115, 359), seal_pos, altar_pos, archive_pos, book_pos])
+    for item in room_items:
+        keep_clear.append(item["pos"])
+    # Muro del fondo: estandartes y cadenas en parejas; sangre según el piso.
+    var wall_slots := [150.0, 262.0, 372.0]
+    for x in wall_slots:
+        var roll: float = rng.randf()
+        var key: String = "estandarte" if roll < 0.4 else ("cadena" if roll < 0.7 else ("manos" if roll < 0.7 + 0.15 * (1.0 + wear) else "goteo"))
+        var tex: Texture2D = DECOR[key]
+        var y: float = 121.0 if key in ["estandarte", "cadena"] else 126.0
+        decor_cache.append([key, Vector2(x - tex.get_width() * 0.5, y), false])
+        decor_cache.append([key, Vector2(960.0 - x - tex.get_width() * 0.5, y), true])
+    # Telarañas en las esquinas del fondo.
+    decor_cache.append(["telarana", Vector2(68, 158), false])
+    decor_cache.append(["telarana", Vector2(893 - 26, 158), true])
+    # Suelo: restos en la mitad izquierda y su reflejo.
+    var count: int = 6 + int(3.0 * wear)
+    var tries: int = 0
+    var placed: int = 0
+    while placed < count and tries < 80:
+        tries += 1
+        var key2: String = DECOR_FLOOR[rng.randi() % DECOR_FLOOR.size()]
+        if key2 in ["charco_grande", "reguero"] and rng.randf() > 0.5 + 0.4 * wear:
+            continue
+        var tex2: Texture2D = DECOR[key2]
+        var size := Vector2(tex2.get_width(), tex2.get_height())
+        var center := Vector2(rng.randf_range(90.0, 450.0), rng.randf_range(185.0, 535.0))
+        var ok: bool = true
+        for q in keep_clear:
+            if Vector2(q).distance_to(center) < 48.0 or Vector2(960.0 - q.x, q.y).distance_to(center) < 48.0:
+                ok = false
+                break
+        if ok and (_is_blocked(center) or _is_blocked(Vector2(960.0 - center.x, center.y))):
+            ok = false
+        for d in decor_cache:
+            if Vector2(d[1]).distance_to(center - size * 0.5) < 40.0:
+                ok = false
+        if not ok:
+            continue
+        var top_left := (center - size * 0.5).round()
+        decor_cache.append([key2, top_left, false])
+        decor_cache.append([key2, Vector2(960.0 - top_left.x - size.x, top_left.y), true])
+        placed += 1
+    return decor_cache
+
+
+func _draw_decor() -> void:
+    for d in _decor_layout():
+        var tex: Texture2D = DECOR[d[0]]
+        _draw_texture_flipped(tex, Rect2(d[1], Vector2(tex.get_width(), tex.get_height())), d[2])
+    # Las velas encendidas titilan un poco por encima del suelo.
+    for d in decor_cache:
+        if d[0] == "velas":
+            var c: Vector2 = Vector2(d[1]) + Vector2(11, 6)
+            draw_circle(c, 14.0, Color(1.0, 0.7, 0.3, 0.05 + 0.03 * sin(elapsed * 9.0 + c.x)))

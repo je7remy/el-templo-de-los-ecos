@@ -66,6 +66,7 @@ var slain: int = 0
 var info: String = "Elige un refugio y protege su umbral."
 var info_time: float = 4.0
 var font: Font
+const PIXEL_FONT := preload("res://assets/fonts/PixelifySans.ttf")
 var tick: float = 0.0
 var sparks: float = 0.0
 var generator_level: int = 0
@@ -85,7 +86,13 @@ var tension_level: float = 0.0
 
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    font = ThemeDB.fallback_font
+    # Tipografía pixel (Pixelify Sans, OFL), sin suavizado para que encaje con el pixel art.
+    font = PIXEL_FONT
+    if font is FontFile:
+        var ff := font as FontFile
+        ff.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+        ff.hinting = TextServer.HINTING_NONE
+        ff.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
     _load_records()
     music = AudioStreamPlayer.new()
     tension = AudioStreamPlayer.new()
