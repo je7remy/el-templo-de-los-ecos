@@ -1,0 +1,9 @@
+Sonidos de Kenney (www.kenney.nl), paquete «Impact Sounds».
+Licencia: Creative Commons Zero (CC0 1.0), dominio público.
+Se pueden usar en proyectos comerciales; el crédito no es obligatorio,
+pero se agradece en los créditos del juego.
+
+Origen en este proyecto: se copiaron del primer juego del autor
+(je7remy/videoJuegoMultiplataforma2d, «Craving Candy»), que ya los usaba.
+Archivos: footstep_concrete_*, impactBell_heavy_*, impactMetal_*,
+impactGlass_*, impactPunch_medium_*, impactSoft_heavy_*, impactMining_*.

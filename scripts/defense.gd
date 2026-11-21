@@ -6,6 +6,7 @@ const W := 960.0
 const H := 640.0
 const LENGTH := 135.0
 const DEFENSE_SAVE := "user://vigilia_claustro_records.json"
+const DEFENSE_SAVE_TEST := "user://prueba_vigilia.json" # pruebas automáticas
 const MINT := Color("#d7cfb6")
 const BLUE := Color("#9bcfd8")
 const GOLD := Color("#e3bd7b")
@@ -176,15 +177,15 @@ func _start(_choice: int = 0) -> void:
     queue_redraw()
 
 func _load_records() -> void:
-    if not FileAccess.file_exists(DEFENSE_SAVE):
+    if not FileAccess.file_exists(_defense_path()):
         return
-    var parsed = JSON.parse_string(FileAccess.get_file_as_string(DEFENSE_SAVE))
+    var parsed = JSON.parse_string(FileAccess.get_file_as_string(_defense_path()))
     if parsed is Dictionary:
         high_score = maxi(0, int(parsed.get("high_score", 0)))
         best_time = maxf(0.0, float(parsed.get("best_time", 0.0)))
 
 func _save_records() -> void:
-    var file := FileAccess.open(DEFENSE_SAVE, FileAccess.WRITE)
+    var file := FileAccess.open(_defense_path(), FileAccess.WRITE)
     if file != null:
         file.store_string(JSON.stringify({
             "high_score": high_score,
@@ -692,3 +693,8 @@ func _center(text_value: String, y: float, size: int = 16, color: Color = MINT) 
 
 func _text_centered(text_value: String, rect: Rect2, size: int, color: Color) -> void:
     draw_string(font, Vector2(rect.position.x, rect.position.y + size + 4), text_value, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, size, color)
+
+
+func _defense_path() -> String:
+    return DEFENSE_SAVE_TEST if Engine.has_meta("modo_prueba") else DEFENSE_SAVE
+

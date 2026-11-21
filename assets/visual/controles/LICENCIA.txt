@@ -1,0 +1,4 @@
+Controles en pantalla de Kenney (www.kenney.nl), paquete «Onscreen Controls».
+Licencia: Creative Commons Zero (CC0 1.0), dominio público.
+joystick_base.png = shadedDark01.png · boton.png = shadedDark11.png
+Copiados del primer juego del autor (je7remy/videoJuegoMultiplataforma2d).

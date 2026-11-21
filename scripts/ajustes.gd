@@ -6,6 +6,12 @@ extends RefCounted
 ##       Ajustes.cargar(); Ajustes.aplicar_audio(); Ajustes.tecla("golpe")
 
 const RUTA := "user://ajustes.cfg"
+## Las pruebas automáticas usan archivos propios para no tocar tu configuración.
+const RUTA_PRUEBA := "user://prueba_ajustes.cfg"
+
+
+static func ruta() -> String:
+    return RUTA_PRUEBA if Engine.has_meta("modo_prueba") else RUTA
 
 ## Acciones reasignables: [nombre visible ES, nombre visible EN, tecla por defecto].
 ## El movimiento acepta además las flechas siempre.
@@ -34,6 +40,7 @@ static func valores_por_defecto() -> Dictionary:
         teclas[accion] = int(ACCIONES[accion][2])
     return {
         "volumen_general": 0.9, "volumen_musica": 0.8, "volumen_efectos": 0.9, "silencio": false,
+        "pantalla_completa": false,
         "teclas": teclas, "tactil": "auto", # auto, siempre, nunca
         "idioma": "es",
         "acuerdo_aceptado": false, "acuerdo_version": 0,
@@ -45,7 +52,7 @@ static func cargar() -> void:
     datos = valores_por_defecto()
     cargado = true
     var cfg := ConfigFile.new()
-    if cfg.load(RUTA) != OK:
+    if cfg.load(ruta()) != OK:
         return
     for clave in datos:
         if clave == "teclas":
@@ -62,7 +69,7 @@ static func guardar() -> void:
             cfg.set_value("ajustes", clave, datos[clave])
     for accion in datos["teclas"]:
         cfg.set_value("teclas", accion, datos["teclas"][accion])
-    cfg.save(RUTA)
+    cfg.save(ruta())
 
 
 static func obtener(clave: String, defecto = null):
@@ -133,7 +140,7 @@ static func aplicar_audio() -> void:
 
 ## Borra progreso y ajustes del equipo (pestaña Privacidad).
 static func borrar_todo(ruta_progreso: String) -> void:
-    for ruta in [ruta_progreso, RUTA]:
+    for ruta in [ruta_progreso, ruta()]:
         if FileAccess.file_exists(ruta):
             DirAccess.remove_absolute(ProjectSettings.globalize_path(ruta))
     cargar()
