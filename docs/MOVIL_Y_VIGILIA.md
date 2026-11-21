@@ -3,8 +3,8 @@
 ## Qué incluye
 - La campaña original de cinco habitaciones, almas y reencarnación se mantiene intacta.
 - El menú principal incorpora acceso al modo alternativo **Vigilia del Claustro** (tecla H o toque en la parte derecha).
-- En la campaña aparece un joystick virtual y botones E/F/DASH/Q para pantallas táctiles.
-- El nuevo modo cuenta con elección de refugio, cama productora de ecos, puerta reforzable, cuatro centinelas automáticos, reparación y oleadas crecientes hasta el amanecer (135 s). La derrota sucede cuando cae la puerta.
+- En la campaña aparece un joystick virtual y botones E/F/DASH/Q para pantallas táctiles. E interactúa o, si no hay nada cerca y la antorcha está encendida, golpea con fuego. Tocar la parte derecha de la barra superior abre el inventario.
+- El nuevo modo cuenta con una sola cámara, cama productora de ecos, puerta reforzable, cuatro centinelas automáticos, reparación y oleadas crecientes hasta el amanecer (135 s). La derrota sucede cuando cae la puerta.
 - El nuevo modo tiene una economía **independiente** para no alterar el lore, las almas ni el personaje de la campaña.
 
 ## Controles
@@ -13,10 +13,12 @@
 | Campaña | Tocar mitad izquierda en menú | Enter |
 | Vigilia | Tocar mitad derecha en menú | H |
 | Caminar en campaña | Joystick virtual | WASD o flechas |
-| Interactuar / linterna / esquivar / resonancia | Botones E/F/DASH/Q | E/F/Espacio/Q |
+| Interactuar o golpear / antorcha / esquivar / resonancia | Botones E/F/DASH/Q | E o clic / F / Espacio / Q |
+| Inventario | Tocar la barra superior (derecha) | I o Tab |
 | Descansar | Tocar lecho o botón DESCANSAR | Espacio |
 | Mejorar lecho/puerta/centinela/reparar | Botones inferiores | 2/3/4/5 |
-| Salir del modo defensa | Botón SALIR | Esc |
+| Ver qué hace un botón | Tocarlo (la descripción se ve un momento) | Pasar el cursor por encima |
+| Salir del modo defensa | Icono de salida (arriba a la derecha) | Esc |
 
 ## Android
 La configuración contiene orientación **horizontal** y un preset de exportación Android, pero un APK requiere las plantillas oficiales de la versión exacta de Godot, JDK y Android SDK. Un APK de desarrollo no es un lanzamiento firmado para Play Store. Nunca publiques tu keystore de producción.
@@ -26,7 +28,8 @@ Inspirado en mecánicas generales de defensa de habitación y supervivencia: **n
 
 
 ## Ampliación de jugabilidad (v0.4.1)
-- **Tres habitaciones** con ventajas mecánicas diferentes: Umbral (+1 eco/s), Claustro (+125 salud inicial de puerta), Archivo (+8 de energía inicial).
+- **Un solo modo** (antes había tres cámaras): combina sus ventajas en una partida equilibrada (2,5 ecos/s iniciales, puerta de 210 y 4 de energía). La portada se toca para empezar.
+- **Botones de imagen**: cada botón muestra un icono y su coste; el nombre y la descripción aparecen al pasar el cursor o al tocarlo.
 - **Dos recursos:** ecos al descansar y energía mediante generadores. Sin descanso, no produce ninguno.
 - **Construcción y mejora:** cama, puerta, hasta 4 centinelas, nivel de daño de las torres, generadores y escudo temporal.
 - **Pausa**, reinicio, variaciones Ghoul/Wizard/Angel por oleada, récord local y puntuación al terminar.

@@ -19,6 +19,9 @@ func _run() -> void:
     if Vector2(game.get("mobile_axis")).length() > 0.01:
         _fail("El joystick permanece activo despues de soltar el dedo.")
         return
+    # El botón F necesita una antorcha construida y un fósforo.
+    game.set("has_torch", true)
+    game.set("matches", 5)
     var prev: bool = game.get("torch_on")
     game.call("_mobile_tap", Vector2(585, 478))
     if bool(game.get("torch_on")) == prev:

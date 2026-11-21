@@ -175,3 +175,11 @@ gizmo_extents = 14.0
 [node name="Salida" type="Marker2D" parent="Marcadores"]
 position = Vector2(867, 355)
 gizmo_extents = 14.0
+
+[node name="Madera" type="Marker2D" parent="Marcadores"]
+position = Vector2(330, 445)
+gizmo_extents = 14.0
+
+[node name="Fosforos" type="Marker2D" parent="Marcadores"]
+position = Vector2(600, 250)
+gizmo_extents = 14.0

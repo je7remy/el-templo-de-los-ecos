@@ -24,7 +24,7 @@ Los recursos integrados forman parte del proyecto jugable; no deben extraerse y 
 
 ## Protagonista y otros contenidos
 
-- El sprite del jugador sigue siendo un marcador **provisional**. Mark todavía no está integrado.
+- **Protagonista, entidades e iconos:** arte original del proyecto, generado por `herramientas/generar_protagonista.py`, `herramientas/generar_enemigos.py` y `herramientas/generar_iconos.py`. Mark todavía no está integrado como personaje con nombre.
 - **Audio:** música y efectos de `audio/` son originales, sintetizados por `herramientas/generar_audio.py` (sin muestras de terceros). El código y el audio no comparten necesariamente la licencia del arte de terceros.
 - No se declara que el proyecto completo sea CC0, MIT u otra licencia general: el titular decidirá más adelante la licencia de su código y contenido propio.
 

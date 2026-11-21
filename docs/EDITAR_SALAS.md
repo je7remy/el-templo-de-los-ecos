@@ -11,7 +11,7 @@ Las cinco salas del piso 1 son escenas normales de Godot en `rooms/sala_0.tscn` 
 | `Objetos` | `Node2D` | Columnas, estatuas, braseros, mesa, sarcófago… Un `Sprite2D` por objeto. |
 | `Objetos/<objeto>/Colision` | `StaticBody2D` + `CollisionShape2D` | Bloqueo del objeto. Es hija del sprite: **si mueves el objeto, su colisión lo acompaña**. |
 | `Colisiones` | `StaticBody2D` | Bloqueos que no pertenecen a un solo objeto (altar, grupo de cirios). |
-| `Marcadores` | `Marker2D` | Posiciones de juego: `Jugador`, `Enemigo`, `Salida`, `Reliquia1-3`, y según la sala `Altar`, `Sello`, `Ojo`, `Libro`, `Lectura`. |
+| `Marcadores` | `Marker2D` | Posiciones de juego: `Jugador`, `Enemigo`, `Salida`, `Reliquia1-3`, y según la sala `Altar`, `Sello`, `Ojo`, `Libro`, `Lectura`, `Madera` (sala 1) y `Fosforos` (salas 1, 3 y 4). |
 
 ### Reglas importantes
 - **La posición de cada objeto es su base** (el punto donde toca el suelo). Esa `y` decide si un personaje se dibuja delante o detrás. El dibujo se desplaza con `offset`; si cambias la textura de un objeto, ajusta `offset` para que la base siga en la posición del nodo.

@@ -62,8 +62,28 @@ class Lienzo:
     def linea(self, pts, col, ancho=1) -> None:
         self.d.line([(round(x), round(y)) for x, y in pts], fill=col, width=ancho)
 
+    def luz_cenital(self) -> None:
+        """Vista desde arriba: la luz cae del techo.
+
+        Aclara los 2 primeros píxeles opacos de cada columna (coronilla,
+        hombros, borde superior de alas y capuchas) y oscurece el último,
+        que queda cerca del suelo.
+        """
+        a = self.img.load()
+        for x in range(CW):
+            ys = [y for y in range(CH) if a[x, y][3] > 0]
+            if not ys:
+                continue
+            for k, y in enumerate(ys[:2]):
+                r, g, b, al = a[x, y]
+                f = 0.34 if k == 0 else 0.16
+                a[x, y] = (int(r + (255 - r) * f), int(g + (255 - g) * f), int(b + (240 - b) * f), al)
+            r, g, b, al = a[x, ys[-1]]
+            a[x, ys[-1]] = (int(r * 0.7), int(g * 0.7), int(b * 0.75), al)
+
     def contorno(self) -> Image.Image:
         """Contorno exterior de 1 px, como el protagonista."""
+        self.luz_cenital()
         src = self.img.copy()
         a = src.load()
         out = src.copy()
@@ -93,6 +113,12 @@ OJO_BLANCO = c("#efe6d8")
 OJO_IRIS = c("#c2414f")
 OJO_PUPILA = c("#2a0c12")
 VACIO = c("#17141a")
+MUSGO = c("#4d6a3c")
+MUSGO_LUZ = c("#77964f")
+CADENA = c("#5c5f63")
+CADENA_LUZ = c("#9da2a3")
+HALO = c("#f1d48a")
+HALO_APAGADO = c("#8d876f")
 
 
 def _alas(l: Lienzo, cx: float, y: float, aleteo: float, delante: bool) -> None:
@@ -168,6 +194,21 @@ def testigo(direccion: int, frame: int) -> Image.Image:
         # Espalda: costura de la capucha y alas por delante.
         l.linea([(cx, top + 2), (cx, top + 16)], PIEDRA_SOMBRA)
         _alas(l, cx, top + 17, aleteo, delante=True)
+    # Detalles: grietas en la piedra, musgo en el borde y cadena de penitente.
+    l.linea([(cx - 6, top + 30), (cx - 4, top + 34), (cx - 6, top + 37)], PIEDRA_OSCURA)
+    l.linea([(cx + 5, top + 22), (cx + 7, top + 26)], PIEDRA_OSCURA)
+    for x, y in ((cx - 9, hem - 2), (cx - 7, hem - 1), (cx + 6, hem - 2), (cx + 8, hem - 1), (cx - 1, hem - 1)):
+        l.px(x, y, MUSGO)
+        l.px(x + 1, y, MUSGO_LUZ)
+    for i, x in enumerate(range(cx - 7, cx + 8, 2)):
+        l.px(x, top + 20 + (1 if 2 <= i <= 5 else 0), CADENA if i % 2 else CADENA_LUZ)
+    # Halo roto que flota sobre la capucha: se ve desde arriba como un arco.
+    hy = top - 3 + (fase % 2)
+    for x in range(cx - 6, cx + 7):
+        if x in (cx + 1, cx + 2):
+            continue  # el hueco de la rotura
+        dy = 0 if abs(x - cx) < 4 else 1
+        l.px(x, hy + dy, HALO if abierto else HALO_APAGADO)
     return l.contorno()
 
 
@@ -191,6 +232,14 @@ def _llama(l: Lienzo, cx: float, base: float, t: int, ancho: int = 6) -> None:
         l.poly([(x - 2, base), (x + 2, base), (x, base - h + 2)], BRASA)
         if i == 1:
             l.poly([(x - 1, base), (x + 1, base), (x, base - h + 5)], BRASA_VIVA)
+
+
+def _ceniza(l: Lienzo, cx: float, cab: float, t: int) -> None:
+    """Chispas que suben desde la cabeza en llamas."""
+    for i, (dx, base) in enumerate(((-7, 4), (6, 1), (-2, 7))):
+        y = cab - base - ((t * 3 + i * 5) % 9)
+        if y > 0:
+            l.px(cx + dx + (t + i) % 2, y, BRASA_VIVA if i % 2 else BRASA)
 
 
 def ghoul(direccion: int, frame: int) -> Image.Image:
@@ -235,6 +284,16 @@ def ghoul(direccion: int, frame: int) -> Image.Image:
             l.rect(cx + 2, cab + 5, cx + 4, cab + 7, OJO_FUEGO)
             l.linea([(cx - 3, cab + 10), (cx + 3, cab + 10)], BRASA)
         _llama(l, cx, cab + 3, frame)
+        # La llama de la cabeza ilumina los hombros desde arriba.
+        for lado in (-1, 1):
+            l.linea([(cx + lado * 4, hombro), (cx + lado * 9, hombro + 1)], BRASA)
+            l.px(cx + lado * 10, hombro + 1, LLAMA_ROJA)
+        # Grietas de brasa en muslos y vientre.
+        l.px(cx - 4, cadera + 4, BRASA)
+        l.px(cx + 4, cadera + 7, BRASA)
+        if direccion == 0:
+            l.linea([(cx - 3, cadera - 2), (cx + 3, cadera - 2)], LLAMA_ROJA)
+        _ceniza(l, cx, cab, frame)
     else:
         # Perfil derecho: avanza encorvado con un brazo extendido.
         for fase, col in ((paso, CARBON_SOMBRA), (-paso, CARBON)):
@@ -251,6 +310,9 @@ def ghoul(direccion: int, frame: int) -> Image.Image:
         l.elipse(cx - 4, cab, cx + 7, cab + 12, CARBON)
         l.rect(cx + 3, cab + 5, cx + 5, cab + 7, OJO_FUEGO)
         _llama(l, cx + 1, cab + 3, frame, ancho=4)
+        l.linea([(cx - 2, hombro), (cx + 4, hombro + 1)], BRASA)
+        l.px(cx - 2, cadera - 6, BRASA)
+        _ceniza(l, cx, cab, frame)
     return l.contorno()
 
 
@@ -283,6 +345,9 @@ def hechicero(direccion: int, frame: int) -> Image.Image:
         l.rect(cx - 12 + vaiven, hem - 2, cx + 12 + vaiven, hem, TUNICA_SOMBRA)
         if direccion == 0:
             l.linea([(cx - 1, top + 14), (cx - 1 + vaiven, hem - 3)], ADORNO)
+            l.linea([(cx - 8, top + 31), (cx + 8, top + 31)], ADORNO)
+            l.px(cx + 5, top + 32, ADORNO)
+            l.px(cx + 5, top + 33, ADORNO)
             # Pies asomando al caminar.
             if caminar:
                 l.rect(cx - 6 + vaiven * 2, hem, cx - 3 + vaiven * 2, hem + 1, c("#2a1f2c"))
@@ -317,8 +382,22 @@ def hechicero(direccion: int, frame: int) -> Image.Image:
             l.elipse(cx - 5, top + 3, cx + 5, top + 15, VACIO)
             l.px(cx - 2, top + 9, OJO_VIOLETA)
             l.px(cx + 2, top + 9, OJO_VIOLETA)
+            # Ribete dorado del borde de la capucha.
+            for x, y in ((cx - 6, top + 6), (cx - 6, top + 10), (cx + 6, top + 6), (cx + 6, top + 10)):
+                l.px(x, y, ADORNO)
+            # Runas bordadas en el bajo de la túnica.
+            for i, x in enumerate(range(cx - 9, cx + 10, 5)):
+                y = hem - 5
+                l.px(x + vaiven, y, GLIFO if i % 2 else ADORNO)
+                l.px(x + 1 + vaiven, y - 1, GLIFO if i % 2 else ADORNO)
         else:
             l.linea([(cx, top - 4), (cx, top + 14)], TUNICA_LUZ)
+            # Cordón y página suelta colgando de la espalda.
+            l.linea([(cx - 6, top + 22), (cx + 6, top + 22)], ADORNO)
+            l.rect(cx + 2, top + 23, cx + 5, top + 28, PAGINA)
+            l.px(cx + 3, top + 25, GLIFO)
+        # Borla de la punta de la capucha.
+        l.px(cx + 1, top - 8, ADORNO)
     else:
         l.poly([(cx - 6, top + 13), (cx + 5, top + 13), (cx + 9 + vaiven, hem), (cx - 9 + vaiven, hem)], TUNICA)
         l.poly([(cx - 6, top + 13), (cx - 1, top + 13), (cx - 3 + vaiven, hem), (cx - 9 + vaiven, hem)], TUNICA_SOMBRA)
@@ -338,6 +417,10 @@ def hechicero(direccion: int, frame: int) -> Image.Image:
         l.poly([(cx + 2, top + 4), (cx + 8, top + 5), (cx + 8, top + 14), (cx + 2, top + 14)], VACIO)
         l.px(cx + 6, top + 9, OJO_VIOLETA)
         l.linea([(cx - 7, top + 15), (cx + 7, top + 15)], ADORNO)
+        l.px(cx + 2, top - 8, ADORNO)
+        for i, x in enumerate(range(cx - 7, cx + 8, 5)):
+            l.px(x + vaiven, hem - 5, GLIFO if i % 2 else ADORNO)
+        l.linea([(cx - 5, top + 22), (cx + 3, top + 22)], ADORNO)
     return l.contorno()
 
 
