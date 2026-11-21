@@ -6,7 +6,8 @@ Salida en audio/ (OGG Vorbis, requiere ffmpeg con libvorbis):
   musica_tension.ogg  capa de tensión sincronizable: latido + cuerdas disonantes
   sfx_*.ogg           efectos: alma, daño, ojo, aviso, sello, puerta, conjuro,
                       libro, linterna, muerte, fósforo, apagar, objeto, golpe,
-                      impacto, inmune, resonancia, destierro, interfaz, toque
+                      impacto, inmune, resonancia, destierro, interfaz, toque,
+                      cuchillo
   sfx_paso_1..3.ogg   pisadas sobre losa (tres variaciones)
 
 Diseño: re menor / frigio. Acordes Dm, B♭, Gm y E♭ (el II♭ frigio da la
@@ -436,6 +437,15 @@ def sfx_toque() -> np.ndarray:
     return normalizar(reverb_simple(x, 0.5, 0.2, 2000), 0.4)
 
 
+def sfx_cuchillo() -> np.ndarray:
+    """Un cuchillo sale de entre la ropa: roce de tela y filo que silba."""
+    t = t_(0.7)
+    tela = paso_banda(rng.standard_normal(len(t)), 500, 2500) * env_ad(t, 0.02, 0.08) * 0.5
+    filo = np.sin(2 * np.pi * (3200 + 900 * t) * t) * env_ad(np.maximum(t - 0.1, 0), 0.03, 0.18) * (t > 0.1) * 0.25
+    roce = paso_banda(rng.standard_normal(len(t)), 4000, 9000) * env_ad(np.maximum(t - 0.1, 0), 0.05, 0.12) * (t > 0.1) * 0.4
+    return normalizar(reverb_simple(tela + filo + roce, 1.0, 0.25, 6000), 0.65)
+
+
 def main() -> None:
     SALIDA.mkdir(exist_ok=True)
     guardar("musica_templo.ogg", musica_templo(), 3)
@@ -447,7 +457,8 @@ def main() -> None:
                        ("sfx_fosforo", sfx_fosforo), ("sfx_apagar", sfx_apagar), ("sfx_objeto", sfx_objeto),
                        ("sfx_golpe", sfx_golpe), ("sfx_impacto", sfx_impacto), ("sfx_inmune", sfx_inmune),
                        ("sfx_resonancia", sfx_resonancia), ("sfx_destierro", sfx_destierro),
-                       ("sfx_interfaz", sfx_interfaz), ("sfx_toque", sfx_toque)):
+                       ("sfx_interfaz", sfx_interfaz), ("sfx_toque", sfx_toque),
+                       ("sfx_cuchillo", sfx_cuchillo)):
         guardar(f"{nombre}.ogg", fn(), 4)
     for i in range(3):
         guardar(f"sfx_paso_{i + 1}.ogg", _paso(i + 1), 3)

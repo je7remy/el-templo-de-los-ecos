@@ -1,5 +1,24 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Pisos y Piso II: Los Peregrinos
+
+**Estructura de pisos**
+- El juego se organiza en pisos (`FLOORS` en `scripts/main.gd`). Cada sala declara su escena, su entidad, sus rasgos y sus objetos; el código ya no depende de «la sala 2 es la del Testigo».
+- Al cruzar la última puerta de un piso aparece la **pantalla de entrada** del siguiente (GDD §7), con solo una vista parcial de la sala.
+- **Ecos**: pasivas acumulables que se ganan al superar cada piso. *Respiración contenida* (Piso I: el miedo sube un 25 % más despacio) y *Nuca fría* (Piso II: notas a quien te quiere mal cuando está a tu espalda). Se guardan, se conservan si el alma regresa y se pierden si es absorbida. Se ven en el inventario.
+- Desgaste progresivo: el Piso II tiene grietas, cascotes y un tono más apagado.
+
+**Piso II · Los Peregrinos** (cuatro salas)
+- El **Peregrino**, un NPC original, te acompaña y compite por las almas. Hay que reunir las tres almas de cada sala para que la puerta se abra.
+- En la mayoría de las vidas (70 %) es un **traidor**: se queda a tu espalda, va a por las almas a las que no te diriges y miente sobre cuántas lleva. Al reunir la última alma de la Cripta del Reparto desenvaina, avisa durante 0,9 s y ataca con tajos que se anuncian con un destello.
+- Si es **sincero**, en la Cosecha te da agua (+30 de vida) y la mitad de sus almas.
+- Atacarlo primero: el traidor lo admite; si era sincero muere sin entenderlo y el miedo se dispara.
+- Al morir deja su cuerpo y sus almas.
+- Arte original (`generar_enemigos.py`, celdas de 48 × 64) y sonido de cuchillo nuevo.
+
+**Pruebas**
+- Prueba de humo: paso del Piso I al II, Eco, aparición del Peregrino, puerta que exige las almas, traición en la Cosecha y muerte del Peregrino.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Puertas por contacto, cuerpos y salas simétricas
 
 - **Puertas por contacto:** al tocar la puerta con la sala lista se pasa a la siguiente sin pulsar E (E sigue funcionando). Si está sellada, avisa de lo que falta.

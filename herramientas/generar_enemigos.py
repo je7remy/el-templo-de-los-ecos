@@ -33,6 +33,8 @@ FRAMES = {
     "ghoul": 6,
     # 0-1 reposo, 2-5 caminar, 6-7 conjurar.
     "hechicero": 8,
+    # Humano del Piso II. 0-1 reposo, 2-5 caminar, 6 cuchillo alzado, 7 estocada.
+    "peregrino": 8,
 }
 
 
@@ -424,7 +426,113 @@ def hechicero(direccion: int, frame: int) -> Image.Image:
     return l.contorno()
 
 
-DIBUJAR = {"testigo": testigo, "ghoul": ghoul, "hechicero": hechicero}
+# --------------------------------------------------------------------------
+# PEREGRINO — otro atrapado: hábito gastado, capucha, morral y un cuchillo.
+# --------------------------------------------------------------------------
+HABITO = c("#6b5a43")
+HABITO_SOMBRA = c("#4a3d2d")
+HABITO_LUZ = c("#8a7656")
+CUERDA = c("#c9b48a")
+PIEL_P = c("#d2a789")
+PIEL_P_SOMBRA = c("#a87e64")
+BARBA = c("#4a3a2e")
+MORRAL = c("#3e4a3a")
+ACERO = c("#cfd6dc")
+ACERO_SOMBRA = c("#7f8a93")
+OJO_P = c("#1d1a1c")
+
+
+def peregrino(direccion: int, frame: int) -> Image.Image:
+    l = Lienzo()
+    caminar = 2 <= frame <= 5
+    cuchillo = frame >= 6
+    paso = [0, 1, 0, -1][(frame - 2) % 4] if caminar else 0
+    resp = frame % 2 if frame < 2 else 0
+    cx = 24
+    top = 15 + resp
+    hem = PIE - 4
+    estocada = 3 if frame == 7 else 0
+    # Pies con sandalias.
+    for lado, fase in ((-1, paso), (1, -paso)):
+        x = cx + lado * 4
+        l.rect(x - 2, hem + 1 - max(0, fase), x + 1, PIE - max(0, fase), c("#3a2d22"))
+    if direccion in (0, 1):
+        # Hábito acampanado.
+        l.poly([(cx - 8, top + 13), (cx + 8, top + 13), (cx + 11 + paso, hem + 1), (cx - 11 + paso, hem + 1)], HABITO)
+        l.poly([(cx + 2, top + 13), (cx + 8, top + 13), (cx + 11 + paso, hem + 1), (cx + 4 + paso, hem + 1)], HABITO_SOMBRA)
+        for x in range(cx - 10, cx + 11, 3):  # bajo deshilachado
+            l.px(x + paso, hem + 2, HABITO_SOMBRA)
+        # Cuerda a la cintura con nudo colgante.
+        l.linea([(cx - 8, top + 24), (cx + 8, top + 24)], CUERDA)
+        l.linea([(cx + 2, top + 24), (cx + 3, top + 30)], CUERDA)
+        # Morral cruzado.
+        if direccion == 0:
+            l.linea([(cx - 7, top + 14), (cx + 6, top + 26)], c("#2c3529"))
+            l.rect(cx + 5, top + 25, cx + 10, top + 30, MORRAL)
+        else:
+            l.rect(cx - 6, top + 14, cx + 6, top + 26, MORRAL)  # morral a la espalda
+            l.rect(cx - 6, top + 14, cx + 6, top + 15, c("#56634f"))
+        # Brazos.
+        if cuchillo and direccion == 0:
+            alto = 6 if frame == 6 else 1
+            l.poly([(cx + 6, top + 15), (cx + 10, top + 14), (cx + 13, top + 8 - alto + estocada * 3), (cx + 10, top + 9 - alto + estocada * 3)], HABITO_LUZ)
+            hy = top + 6 - alto + estocada * 3
+            l.rect(cx + 10, hy, cx + 13, hy + 3, PIEL_P)
+            l.poly([(cx + 11, hy), (cx + 13, hy), (cx + 12, hy - 8)], ACERO)
+            l.px(cx + 12, hy - 7, c("#ffffff"))
+            l.poly([(cx - 10, top + 15), (cx - 6, top + 14), (cx - 5, top + 25), (cx - 9, top + 26)], HABITO_LUZ)
+            l.rect(cx - 9, top + 25, cx - 6, top + 27, PIEL_P)
+        elif direccion == 0:
+            l.poly([(cx - 10, top + 15), (cx - 6, top + 14), (cx - 5, top + 25), (cx - 9, top + 26)], HABITO_LUZ)
+            l.rect(cx - 9, top + 25, cx - 6, top + 27, PIEL_P)
+            # La otra mano siempre queda escondida tras la cadera.
+            l.poly([(cx + 6, top + 14), (cx + 10, top + 15), (cx + 8, top + 24), (cx + 5, top + 23)], HABITO)
+        else:
+            for lado in (-1, 1):
+                l.poly([(cx + lado * 6, top + 14), (cx + lado * 10, top + 15), (cx + lado * 9, top + 26), (cx + lado * 5, top + 25)], HABITO_SOMBRA)
+            if cuchillo:
+                l.poly([(cx + 9, top + 26), (cx + 11, top + 26), (cx + 10, top + 33)], ACERO_SOMBRA)
+        # Capucha y rostro.
+        l.elipse(cx - 9, top - 2, cx + 9, top + 15, HABITO)
+        l.elipse(cx + 1, top - 1, cx + 9, top + 15, HABITO_SOMBRA)
+        l.elipse(cx - 7, top - 1, cx + 3, top + 4, HABITO_LUZ)
+        if direccion == 0:
+            l.elipse(cx - 6, top + 3, cx + 6, top + 15, PIEL_P)
+            l.elipse(cx + 1, top + 4, cx + 6, top + 15, PIEL_P_SOMBRA)
+            l.rect(cx - 6, top + 3, cx + 6, top + 5, HABITO_SOMBRA)  # sombra de la capucha
+            l.rect(cx - 3, top + 8, cx - 2, top + 9, OJO_P)
+            l.rect(cx + 2, top + 8, cx + 3, top + 9, OJO_P)
+            l.poly([(cx - 5, top + 11), (cx + 5, top + 11), (cx + 3, top + 16), (cx - 3, top + 16)], BARBA)
+            l.linea([(cx - 1, top + 12), (cx + 1, top + 12)], c("#2a1f1a"))
+            if cuchillo:  # cejas fruncidas
+                l.linea([(cx - 4, top + 6), (cx - 2, top + 7)], OJO_P)
+                l.linea([(cx + 4, top + 6), (cx + 2, top + 7)], OJO_P)
+        else:
+            l.linea([(cx, top), (cx, top + 13)], HABITO_SOMBRA)
+    else:
+        l.poly([(cx - 6, top + 13), (cx + 6, top + 13), (cx + 8 + paso, hem + 1), (cx - 8 + paso, hem + 1)], HABITO)
+        l.poly([(cx - 6, top + 13), (cx - 1, top + 13), (cx - 3 + paso, hem + 1), (cx - 8 + paso, hem + 1)], HABITO_SOMBRA)
+        l.linea([(cx - 6, top + 24), (cx + 6, top + 24)], CUERDA)
+        l.rect(cx - 9, top + 16, cx - 5, top + 24, MORRAL)
+        if cuchillo:
+            alto = 4 if frame == 6 else 0
+            ex = estocada  # la punta no debe salir de la celda
+            l.poly([(cx + 1, top + 15), (cx + 4, top + 14), (cx + 11 + ex, top + 17 - alto), (cx + 9 + ex, top + 20 - alto)], HABITO_LUZ)
+            l.rect(cx + 10 + ex, top + 16 - alto, cx + 12 + ex, top + 19 - alto, PIEL_P)
+            l.poly([(cx + 12 + ex, top + 16 - alto), (cx + 12 + ex, top + 18 - alto), (cx + 20 + ex, top + 17 - alto)], ACERO)
+        else:
+            l.poly([(cx + 1, top + 14), (cx + 4, top + 14), (cx + 3, top + 25), (cx, top + 25)], HABITO_LUZ)
+            l.rect(cx, top + 25, cx + 3, top + 27, PIEL_P)
+        l.elipse(cx - 7, top - 2, cx + 8, top + 15, HABITO)
+        l.elipse(cx - 7, top - 1, cx - 1, top + 15, HABITO_SOMBRA)
+        l.elipse(cx + 1, top + 4, cx + 8, top + 14, PIEL_P)
+        l.rect(cx + 1, top + 4, cx + 8, top + 5, HABITO_SOMBRA)
+        l.rect(cx + 5, top + 8, cx + 6, top + 9, OJO_P)
+        l.poly([(cx + 2, top + 11), (cx + 8, top + 11), (cx + 6, top + 16), (cx + 2, top + 15)], BARBA)
+    return l.contorno()
+
+
+DIBUJAR = {"testigo": testigo, "ghoul": ghoul, "hechicero": hechicero, "peregrino": peregrino}
 
 
 def hoja(nombre: str) -> Image.Image:

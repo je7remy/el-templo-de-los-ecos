@@ -19,7 +19,10 @@
 
 ## ¿Qué incluye el prototipo?
 
-- **Un piso de cinco salas**: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
+- **Dos pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
+  - **Piso I · El Despertar**, cinco salas: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
+  - **Piso II · Los Peregrinos**, cuatro salas con las primeras grietas del templo. Un Peregrino se ofrece a reunir almas contigo… y en la mayoría de las vidas te traiciona al llegar a la Cripta del Reparto. Tiene indicios: se queda a tu espalda y miente sobre cuántas almas lleva. Si lo atacas primero y era sincero, lo pagas.
+- **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría). Se conservan si tu alma regresa y se pierden si es absorbida.
 - **Tres entidades con reglas que se pueden aprender**, con arte propio en vista cenital y cuatro direcciones:
   - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve. Solo recibe daño con el ojo cerrado.
   - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
@@ -50,6 +53,8 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **II · Claustro de las ofrendas.** El Ghoul de brasas persigue tu luz. El altar está en el centro. | **El Mercader Silencioso.** Cambia almas por Resonancia o por la Llama interior. |
 | ![Golpe de antorcha contra el Ghoul](docs/galeria/12_combate.png) | ![Inventario](docs/galeria/13_inventario.png) |
 | **Combate.** El golpe de antorcha deja una estela de fuego; la barra indica la vida de la entidad. | **Inventario (I).** Iconos de objetos y habilidades con su descripción. |
+| ![Entrada al Piso II](docs/galeria/14_piso2_entrada.png) | ![El Peregrino traiciona en la Cripta del Reparto](docs/galeria/15_peregrino.png) |
+| **Entrada al Piso II.** Solo un fragmento de la sala: lo demás se descubre al entrar. | **La Cosecha.** «Lo siento. Las almas no alcanzan para dos.» |
 | ![Archivo de los ausentes con el Hechicero](docs/galeria/05_archivo.png) | ![Pórtico del siguiente piso](docs/galeria/06_portico.png) |
 | **IV · Archivo de los ausentes.** El libro se abre al leer la carta; el Hechicero responde a la antorcha. | **V · Pórtico del siguiente piso.** «Esto no es una salida. Es una transición.» |
 

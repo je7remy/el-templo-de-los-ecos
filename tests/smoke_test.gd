@@ -112,6 +112,51 @@ func _run_checks() -> void:
         return
     print("OK: puerta por contacto.")
 
+    # Pisos: la última puerta del Piso I da un Eco y lleva al Piso II.
+    game.set("current_floor", 0)
+    game.set("current_room", 4)
+    game.call("_enter_room")
+    game.call("_finish_floor")
+    if int(game.get("current_floor")) != 1 or game.get("game_mode") != "floor_intro":
+        _fail("Superar el Piso I no lleva a la entrada del Piso II.")
+        return
+    if not (game.get("ecos") as Array).has("respiracion"):
+        _fail("Superar el Piso I no da el Eco de Respiración contenida.")
+        return
+    game.call("_enter_floor")
+    if game.get("pilgrim_state") != "follow":
+        _fail("El Peregrino no aparece al entrar en el Piso II.")
+        return
+    # La puerta exige reunir las almas de la sala.
+    game.set("player_pos", Vector2(game.get("door_pos")) + Vector2(-12, 0))
+    game.call("_update_play", 1.0 / 60.0)
+    if int(game.get("current_room")) != 0:
+        _fail("La puerta del Piso II deja pasar sin reunir las almas.")
+        return
+    # La Cosecha: un Peregrino traidor desenvaina al reunir la última alma.
+    game.set("current_room", 2)
+    game.call("_enter_room")
+    game.set("pilgrim_traitor", true)
+    game.set("pilgrim_state", "follow")
+    var got: Array = game.get("collected")
+    for k in range(got.size()):
+        got[k] = true # el array tipado se modifica en su sitio
+    game.call("_update_play", 1.0 / 60.0)
+    if game.get("pilgrim_state") != "tell":
+        _fail("El Peregrino traidor no reacciona en la Cosecha.")
+        return
+    game.call("_update_play", 1.0)
+    if game.get("pilgrim_state") != "hostile":
+        _fail("El Peregrino no pasa al ataque tras el aviso.")
+        return
+    game.set("pilgrim_hp", 1.0)
+    game.call("_damage_pilgrim", 10.0)
+    if game.get("pilgrim_state") != "dead" or (game.get("drops") as Array).is_empty():
+        _fail("El Peregrino no cae ni suelta sus almas.")
+        return
+    print("OK: pisos, Eco, Peregrino y Cosecha.")
+    game.set("current_floor", 0)
+
     game.set("current_room", 2)
     game.call("_enter_room")
     game.set("player_pos", game.get("seal_pos"))
