@@ -1,5 +1,11 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-20 · Pulido visual, segunda tanda
+
+- Sin costuras donde la antigua cuadrícula cruzaba estatuas y columnas: el relleno copia el píxel vecino en vez de promediarlo.
+- Altar del claustro legible: luz cálida de ofrenda, velas a los lados y sprite aclarado.
+- Libro del archivo a 1,5× para que quepa en la mesa y sin glifos flotando sobre la estatua; la etiqueta desaparece tras leer la carta.
+
 ## En `main` (sin nuevo release) — 2026-11-20 · Pulido visual de la jugabilidad
 
 **Fondos de sala**

@@ -779,8 +779,8 @@ func _draw_object_labels() -> void:
     # Etiquetas por encima de todo para que nunca queden tapadas.
     if current_room == 1 and player_pos.distance_to(ALTAR_POS) < 150.0:
         _label_center("INTERCAMBIO [E]", ALTAR_POS + Vector2(0.0, 46.0), CREAM)
-    if current_room == 3 and player_pos.distance_to(ARCHIVE_POS) < 150.0:
-        _label_center("LEER CARTA [E]" if not letter_found else "CARTA LEÍDA", ARCHIVE_POS + Vector2(0.0, 30.0), CREAM)
+    if current_room == 3 and not letter_found and player_pos.distance_to(ARCHIVE_POS) < 150.0:
+        _label_center("LEER CARTA [E]", ARCHIVE_POS + Vector2(0.0, 30.0), CREAM)
     if current_room == 2 and not seal_acquired:
         _label_center("SELLO [E]", SEAL_POS + Vector2(0.0, 56.0), Color("#e2c48a"))
     if current_room in [1, 2, 3] and enemy_stun > 0.0:
@@ -914,9 +914,18 @@ func _draw_altar(at: Vector2) -> void:
     # La base visible del sprite está en y=99 de 112.
     var origin := Vector2(at.x - size.x * 0.5, at.y + 22.0 - 99.0 * scale)
     _draw_soft_shadow(Vector2(at.x, at.y + 20.0), 30.0)
-    var glow: float = 0.05 + 0.03 * sin(elapsed * 1.7)
-    draw_circle(at + Vector2(0.0, -20.0), 26.0, Color(0.85, 0.72, 0.45, glow))
-    draw_texture_rect(tex, Rect2(origin, size), false)
+    # Luz cálida de ofrenda: el sprite original es muy oscuro sobre este suelo.
+    var flicker: float = 0.5 + 0.5 * sin(elapsed * 3.1) * sin(elapsed * 1.3)
+    _draw_ellipse(Vector2(at.x, at.y + 18.0), 48.0, 20.0, Color(0.95, 0.72, 0.38, 0.07 + 0.03 * flicker))
+    for r in range(3, 0, -1):
+        draw_circle(at + Vector2(0.0, -14.0), 10.0 + float(r) * 7.0, Color(0.95, 0.74, 0.42, 0.035 + 0.015 * flicker))
+    draw_texture_rect(tex, Rect2(origin, size), false, Color(1.55, 1.42, 1.22))
+    # Velas a los lados del altar.
+    for side in [-1.0, 1.0]:
+        var c := Vector2(at.x + side * 30.0, at.y + 14.0)
+        draw_rect(Rect2(c.x - 2.0, c.y - 9.0, 4.0, 9.0), Color("#d8cfb4"))
+        draw_circle(c + Vector2(0.0, -12.0), 2.2 + flicker * 0.6, Color(1.0, 0.78, 0.35, 0.95))
+        draw_circle(c + Vector2(0.0, -12.0), 6.0, Color(1.0, 0.7, 0.3, 0.12))
 
 
 ## Libro del archivo sobre la mesa: cerrado hasta leerlo; después hojea páginas.
@@ -928,10 +937,12 @@ func _draw_letter(at: Vector2) -> void:
     else:
         var glow: float = 0.08 + 0.05 * sin(elapsed * 2.4)
         draw_circle(at + Vector2(0.0, -8.0), 22.0, Color(0.59, 0.79, 0.55, glow))
-    var scale: float = 2.0
+    var scale: float = 1.5
     # Celda de 64x64; la base del libro está en y=45.
-    var region := Rect2(float(frame * 64) + 4.0, 0.0, 56.0, 48.0)
-    var dest := Rect2(at.x - 28.0 * scale, at.y - 45.0 * scale, 56.0 * scale, 48.0 * scale)
+    # Desde y=26 de la celda: libro y páginas, sin los glifos que flotaban
+    # sobre la estatua de detrás.
+    var region := Rect2(float(frame * 64) + 4.0, 26.0, 56.0, 22.0)
+    var dest := Rect2(at.x - 28.0 * scale, at.y - 19.0 * scale, 56.0 * scale, 22.0 * scale)
     draw_texture_rect_region(sheet, dest, region)
 
 

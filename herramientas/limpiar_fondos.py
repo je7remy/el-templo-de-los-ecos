@@ -158,7 +158,10 @@ def reparar_huecos(img: np.ndarray, huecos: np.ndarray, suelo: np.ndarray) -> No
         sobre_suelo = not vecinos or all(suelo[yy, xx] for yy, xx in vecinos)
         valor = suelo_en(fuente, suelo, y, x) if sobre_suelo else None
         if valor is None and vecinos:
-            valor = np.mean([fuente[yy, xx] for yy, xx in vecinos], axis=0)
+            # Sobre un objeto: copiar un vecino en lugar de promediar. En pixel
+            # art un color intermedio se lee como una costura; un píxel
+            # duplicado no se nota.
+            valor = fuente[vecinos[0]].copy()
         if valor is None:
             sin_fuente[y, x] = True
         else:
