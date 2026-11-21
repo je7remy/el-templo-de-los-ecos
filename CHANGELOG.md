@@ -1,5 +1,21 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-20 · Salas editables, entidades originales y Vigilia
+
+**Salas editables en Godot**
+- Las cinco salas son escenas `rooms/sala_N.tscn`: arquitectura en `TileMapLayer` (atlas de 59 tiles de 32 × 32), objetos como `Sprite2D` con su colisión como hija, marcadores (`Jugador`, `Enemigo`, `Salida`, reliquias, altar, sello, ojo, libro) y la runa del suelo.
+- `scripts/main.gd` lee de la escena posiciones, colisiones y objetos; ya no están fijos en el código.
+- Luz y tinte por sala con `shaders/luz_sala.gdshader`; braseros con halo animado.
+- Herramientas `herramientas/construir_salas.py` + `.gd` para regenerar desde las composiciones originales. Guía: `docs/EDITAR_SALAS.md`.
+- Sustituyen a las capas `room_N_props.png` y a `scripts/room_props.gd` de la tanda anterior.
+
+**Entidades originales cenitales**
+- Testigo (creación de piedra con un solo ojo; el sprite muestra si el ojo está abierto o cerrado), Ghoul de brasas y Hechicero del archivo, en 4 direcciones, generados por `herramientas/generar_enemigos.py`.
+- Miran hacia donde se mueven y, quietos, hacia el jugador. Los sprites de GothicVania se conservan como respaldo.
+
+**Vigilia del Claustro como escena**
+- Claustro despejado (`assets/visual/rooms/vigilia.png`), cámara con muros de sillares, luz cálida, lecho con durmiente, pedestales rúnicos para centinelas y puerta en el hueco del muro. Misma lógica y mismas zonas táctiles.
+
 ## En `main` (sin nuevo release) — 2026-11-20 · Pulido visual, segunda tanda
 
 - Sin costuras donde la antigua cuadrícula cruzaba estatuas y columnas: el relleno copia el píxel vecino en vez de promediarlo.

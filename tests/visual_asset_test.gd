@@ -42,26 +42,36 @@ func _check() -> void:
             _fail("Dimensiones incorrectas de la sala visual %d." % i)
             return
 
-    # Capas de objetos para ordenar por profundidad (generadas por
-    # herramientas/limpiar_fondos.py junto con scripts/room_props.gd).
-    var room_props = load("res://scripts/room_props.gd")
-    var props: Array = room_props.PROPS
-    if props.size() != 5:
-        _fail("scripts/room_props.gd debe describir las cinco salas.")
-        return
+    # Salas editables (rooms/sala_N.tscn): arquitectura en TileMapLayer,
+    # objetos como Sprite2D, marcadores de juego y colisiones.
+    var required_markers := ["Jugador", "Salida", "Reliquia1", "Reliquia2", "Reliquia3"]
+    var room_markers := [[], ["Enemigo", "Altar"], ["Enemigo", "Sello", "Ojo"], ["Enemigo", "Libro", "Lectura"], []]
     for i in range(5):
-        var layer: Texture2D = assets.get("props_%d" % i)
-        if layer == null or layer.get_width() != 960 or layer.get_height() != 640:
-            _fail("Falta o tiene dimensiones incorrectas la capa de objetos %d." % i)
+        var scene: PackedScene = load("res://rooms/sala_%d.tscn" % i)
+        if scene == null:
+            _fail("No se puede cargar rooms/sala_%d.tscn." % i)
             return
-        if (props[i] as Array).is_empty():
-            _fail("La sala %d no tiene objetos para ordenar por profundidad." % i)
+        var room: Node = scene.instantiate()
+        var layer := room.get_node_or_null("Arquitectura") as TileMapLayer
+        if layer == null or layer.get_used_cells().size() < 600:
+            _fail("La sala %d no tiene la arquitectura en TileMapLayer." % i)
+            room.free()
             return
-        for prop in props[i]:
-            var region: Rect2 = prop[0]
-            if not Rect2(0, 0, 960, 640).encloses(region) or float(prop[1]) < region.position.y:
-                _fail("Región de objeto inválida en la sala %d." % i)
+        var props: Node = room.get_node_or_null("Objetos")
+        if props == null or props.get_child_count() < 8:
+            _fail("La sala %d perdió sus objetos (columnas, estatuas, arcos)." % i)
+            room.free()
+            return
+        for marker in required_markers + room_markers[i]:
+            if room.get_node_or_null("Marcadores/" + marker) == null:
+                _fail("Falta el marcador %s en la sala %d." % [marker, i])
+                room.free()
                 return
+        if room.find_children("*", "CollisionShape2D", true, false).size() < 2:
+            _fail("La sala %d no tiene colisiones." % i)
+            room.free()
+            return
+        room.free()
     var book_sheet: Texture2D = assets.get("knowledge_book_sheet")
     if book_sheet == null or book_sheet.get_width() != 8640 or book_sheet.get_height() != 64:
         _fail("La animación del libro del archivo debe tener 135 fotogramas de 64x64.")
@@ -69,7 +79,12 @@ func _check() -> void:
 
     print("OK: recursos visuales nuevos, originales y enemigos cargados correctamente.")
     print("OK: protagonista 360x224, cinco salas 960x640, Angel, Ghoul y Wizard.")
-    print("OK: capas de profundidad de las cinco salas y libro animado del archivo.")
+    for kind in ["testigo", "ghoul", "hechicero"]:
+        var sheet: Texture2D = assets.get("enemy_" + kind)
+        if sheet == null or sheet.get_height() != 256 or sheet.get_width() % 48 != 0:
+            _fail("La hoja de la entidad %s debe tener 4 filas de 48x64." % kind)
+            return
+    print("OK: cinco salas editables (TileMapLayer, objetos, marcadores, colisiones), entidades y libro.")
     game.free()
     game = null
     packed = null

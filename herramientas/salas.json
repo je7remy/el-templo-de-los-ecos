@@ -1,0 +1,2314 @@
+{
+ "tile": 32,
+ "origen": [
+  -24,
+  -24
+ ],
+ "atlas_columnas": 8,
+ "rejilla": [
+  [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   3,
+   4,
+   5,
+   6,
+   3,
+   4,
+   5,
+   6,
+   3,
+   4,
+   5,
+   6,
+   3,
+   4,
+   5,
+   6,
+   3,
+   4,
+   5,
+   6,
+   3,
+   4,
+   7,
+   0
+  ],
+  [
+   0,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   10,
+   11,
+   12,
+   13,
+   10,
+   11,
+   12,
+   13,
+   10,
+   11,
+   12,
+   13,
+   10,
+   11,
+   12,
+   13,
+   10,
+   11,
+   12,
+   13,
+   10,
+   14,
+   15,
+   0
+  ],
+  [
+   0,
+   8,
+   16,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   21,
+   22,
+   0
+  ],
+  [
+   0,
+   8,
+   23,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   28,
+   29,
+   0
+  ],
+  [
+   0,
+   8,
+   30,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   35,
+   36,
+   0
+  ],
+  [
+   0,
+   8,
+   37,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   42,
+   43,
+   0
+  ],
+  [
+   0,
+   8,
+   16,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   21,
+   22,
+   0
+  ],
+  [
+   0,
+   8,
+   23,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   28,
+   29,
+   0
+  ],
+  [
+   0,
+   8,
+   30,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   35,
+   36,
+   0
+  ],
+  [
+   0,
+   8,
+   37,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   42,
+   43,
+   0
+  ],
+  [
+   0,
+   8,
+   16,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   18,
+   19,
+   20,
+   17,
+   21,
+   22,
+   0
+  ],
+  [
+   0,
+   8,
+   23,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   25,
+   26,
+   27,
+   24,
+   28,
+   29,
+   0
+  ],
+  [
+   0,
+   8,
+   30,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   32,
+   33,
+   34,
+   31,
+   35,
+   36,
+   0
+  ],
+  [
+   0,
+   8,
+   37,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   39,
+   40,
+   41,
+   38,
+   42,
+   43,
+   0
+  ],
+  [
+   0,
+   8,
+   44,
+   45,
+   46,
+   47,
+   48,
+   45,
+   46,
+   47,
+   48,
+   45,
+   46,
+   47,
+   48,
+   45,
+   46,
+   47,
+   48,
+   45,
+   46,
+   47,
+   48,
+   45,
+   46,
+   47,
+   48,
+   45,
+   49,
+   50,
+   0
+  ],
+  [
+   0,
+   51,
+   52,
+   53,
+   54,
+   26,
+   52,
+   53,
+   54,
+   26,
+   52,
+   53,
+   54,
+   26,
+   52,
+   53,
+   54,
+   26,
+   52,
+   53,
+   54,
+   26,
+   52,
+   53,
+   54,
+   26,
+   52,
+   53,
+   54,
+   26,
+   0
+  ],
+  [
+   0,
+   0,
+   55,
+   56,
+   57,
+   58,
+   55,
+   56,
+   57,
+   58,
+   55,
+   56,
+   57,
+   58,
+   55,
+   56,
+   57,
+   58,
+   55,
+   56,
+   57,
+   58,
+   55,
+   56,
+   57,
+   58,
+   55,
+   56,
+   57,
+   58,
+   0
+  ]
+ ],
+ "salas": [
+  {
+   "luz": {
+    "ganancia": [
+     1.4959,
+     1.5707,
+     1.5666
+    ],
+    "desplazamiento": [
+     0.036,
+     0.0387,
+     0.039
+    ]
+   },
+   "objetos": [
+    {
+     "nodo": "Arco1",
+     "textura": "res://assets/visual/objetos/sala_0/arco1.png",
+     "ancla": [
+      159,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      138,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco2",
+     "textura": "res://assets/visual/objetos/sala_0/arco2.png",
+     "ancla": [
+      373,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      352,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco3",
+     "textura": "res://assets/visual/objetos/sala_0/arco3.png",
+     "ancla": [
+      589,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      568,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco4",
+     "textura": "res://assets/visual/objetos/sala_0/arco4.png",
+     "ancla": [
+      804,
+      158
+     ],
+     "offset": [
+      -20,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      784,
+      147,
+      40,
+      42
+     ]
+    },
+    {
+     "nodo": "EstatuaOrante1",
+     "textura": "res://assets/visual/objetos/sala_0/estatuaorante1.png",
+     "ancla": [
+      490,
+      225
+     ],
+     "offset": [
+      -18,
+      -49
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      472,
+      176,
+      37,
+      49
+     ]
+    },
+    {
+     "nodo": "Brasero1",
+     "textura": "res://assets/visual/objetos/sala_0/brasero1.png",
+     "ancla": [
+      88,
+      226
+     ],
+     "offset": [
+      -17,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      71,
+      188,
+      34,
+      38
+     ]
+    },
+    {
+     "nodo": "Brasero2",
+     "textura": "res://assets/visual/objetos/sala_0/brasero2.png",
+     "ancla": [
+      853,
+      226
+     ],
+     "offset": [
+      -15,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      838,
+      188,
+      31,
+      38
+     ]
+    },
+    {
+     "nodo": "EstatuaArquero1",
+     "textura": "res://assets/visual/objetos/sala_0/estatuaarquero1.png",
+     "ancla": [
+      202,
+      279
+     ],
+     "offset": [
+      -24,
+      -104
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      178,
+      175,
+      48,
+      104
+     ]
+    },
+    {
+     "nodo": "EstatuaArquero2",
+     "textura": "res://assets/visual/objetos/sala_0/estatuaarquero2.png",
+     "ancla": [
+      795,
+      279
+     ],
+     "offset": [
+      -29,
+      -132
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      766,
+      147,
+      58,
+      132
+     ]
+    },
+    {
+     "nodo": "Columna1",
+     "textura": "res://assets/visual/objetos/sala_0/columna1.png",
+     "ancla": [
+      427,
+      382
+     ],
+     "offset": [
+      -27,
+      -112
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      400,
+      270,
+      54,
+      112
+     ],
+     "colision": {
+      "centro": [
+       428.0,
+       325.0
+      ],
+      "tamano": [
+       62,
+       60
+      ]
+     }
+    },
+    {
+     "nodo": "EstatuaPedestal1",
+     "textura": "res://assets/visual/objetos/sala_0/estatuapedestal1.png",
+     "ancla": [
+      665,
+      425
+     ],
+     "offset": [
+      -41,
+      -67
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      624,
+      358,
+      83,
+      67
+     ],
+     "colision": {
+      "centro": [
+       665.0,
+       405.5
+      ],
+      "tamano": [
+       70,
+       55
+      ]
+     }
+    }
+   ],
+   "colisiones": [],
+   "decales": [
+    {
+     "nodo": "RunaSuelo",
+     "textura": "res://assets/visual/objetos/runa_suelo.png",
+     "posicion": [
+      400,
+      425
+     ]
+    }
+   ],
+   "marcadores": {
+    "Jugador": [
+     115,
+     359
+    ],
+    "Salida": [
+     867,
+     355
+    ],
+    "Reliquia1": [
+     280,
+     245
+    ],
+    "Reliquia2": [
+     500,
+     465
+    ],
+    "Reliquia3": [
+     725,
+     230
+    ]
+   }
+  },
+  {
+   "luz": {
+    "ganancia": [
+     1.5718,
+     1.5132,
+     1.413
+    ],
+    "desplazamiento": [
+     0.0446,
+     0.0356,
+     0.0279
+    ]
+   },
+   "objetos": [
+    {
+     "nodo": "Arco1",
+     "textura": "res://assets/visual/objetos/sala_1/arco1.png",
+     "ancla": [
+      159,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      138,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco2",
+     "textura": "res://assets/visual/objetos/sala_1/arco2.png",
+     "ancla": [
+      373,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      352,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco3",
+     "textura": "res://assets/visual/objetos/sala_1/arco3.png",
+     "ancla": [
+      589,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      568,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco4",
+     "textura": "res://assets/visual/objetos/sala_1/arco4.png",
+     "ancla": [
+      804,
+      158
+     ],
+     "offset": [
+      -20,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      784,
+      147,
+      40,
+      42
+     ]
+    },
+    {
+     "nodo": "EstatuaOrante1",
+     "textura": "res://assets/visual/objetos/sala_1/estatuaorante1.png",
+     "ancla": [
+      204,
+      225
+     ],
+     "offset": [
+      -18,
+      -49
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      186,
+      176,
+      37,
+      49
+     ]
+    },
+    {
+     "nodo": "EstatuaOrante2",
+     "textura": "res://assets/visual/objetos/sala_1/estatuaorante2.png",
+     "ancla": [
+      799,
+      225
+     ],
+     "offset": [
+      -25,
+      -78
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      774,
+      147,
+      50,
+      78
+     ]
+    },
+    {
+     "nodo": "Brasero1",
+     "textura": "res://assets/visual/objetos/sala_1/brasero1.png",
+     "ancla": [
+      88,
+      226
+     ],
+     "offset": [
+      -17,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      71,
+      188,
+      34,
+      38
+     ]
+    },
+    {
+     "nodo": "Brasero2",
+     "textura": "res://assets/visual/objetos/sala_1/brasero2.png",
+     "ancla": [
+      853,
+      226
+     ],
+     "offset": [
+      -15,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      838,
+      188,
+      31,
+      38
+     ]
+    },
+    {
+     "nodo": "EstatuaArquero1",
+     "textura": "res://assets/visual/objetos/sala_1/estatuaarquero1.png",
+     "ancla": [
+      488,
+      279
+     ],
+     "offset": [
+      -24,
+      -104
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      464,
+      175,
+      48,
+      104
+     ]
+    },
+    {
+     "nodo": "EstatuaPedestal1",
+     "textura": "res://assets/visual/objetos/sala_1/estatuapedestal1.png",
+     "ancla": [
+      629,
+      379
+     ],
+     "offset": [
+      -34,
+      -92
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      595,
+      287,
+      68,
+      92
+     ],
+     "colision": {
+      "centro": [
+       628.5,
+       348.0
+      ],
+      "tamano": [
+       55,
+       86
+      ]
+     }
+    },
+    {
+     "nodo": "Columna1",
+     "textura": "res://assets/visual/objetos/sala_1/columna1.png",
+     "ancla": [
+      357,
+      416
+     ],
+     "offset": [
+      -23,
+      -134
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      334,
+      282,
+      47,
+      134
+     ],
+     "colision": {
+      "centro": [
+       358.5,
+       348.0
+      ],
+      "tamano": [
+       55,
+       86
+      ]
+     }
+    }
+   ],
+   "colisiones": [
+    {
+     "centro": [
+      488.0,
+      318.0
+     ],
+     "tamano": [
+      50,
+      36
+     ]
+    }
+   ],
+   "decales": [
+    {
+     "nodo": "RunaSuelo",
+     "textura": "res://assets/visual/objetos/runa_suelo.png",
+     "posicion": [
+      400,
+      425
+     ]
+    }
+   ],
+   "marcadores": {
+    "Jugador": [
+     115,
+     359
+    ],
+    "Salida": [
+     867,
+     355
+    ],
+    "Reliquia1": [
+     280,
+     245
+    ],
+    "Reliquia2": [
+     500,
+     465
+    ],
+    "Reliquia3": [
+     725,
+     230
+    ],
+    "Enemigo": [
+     772,
+     472
+    ],
+    "Altar": [
+     488,
+     318
+    ]
+   }
+  },
+  {
+   "luz": {
+    "ganancia": [
+     1.4567,
+     1.562,
+     1.5976
+    ],
+    "desplazamiento": [
+     0.0311,
+     0.0381,
+     0.0423
+    ]
+   },
+   "objetos": [
+    {
+     "nodo": "Arco1",
+     "textura": "res://assets/visual/objetos/sala_2/arco1.png",
+     "ancla": [
+      159,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      138,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco2",
+     "textura": "res://assets/visual/objetos/sala_2/arco2.png",
+     "ancla": [
+      373,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      352,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco3",
+     "textura": "res://assets/visual/objetos/sala_2/arco3.png",
+     "ancla": [
+      589,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      568,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco4",
+     "textura": "res://assets/visual/objetos/sala_2/arco4.png",
+     "ancla": [
+      804,
+      158
+     ],
+     "offset": [
+      -20,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      784,
+      147,
+      40,
+      42
+     ]
+    },
+    {
+     "nodo": "EstatuaOrante1",
+     "textura": "res://assets/visual/objetos/sala_2/estatuaorante1.png",
+     "ancla": [
+      490,
+      225
+     ],
+     "offset": [
+      -18,
+      -49
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      472,
+      176,
+      37,
+      49
+     ]
+    },
+    {
+     "nodo": "Brasero1",
+     "textura": "res://assets/visual/objetos/sala_2/brasero1.png",
+     "ancla": [
+      88,
+      226
+     ],
+     "offset": [
+      -17,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      71,
+      188,
+      34,
+      38
+     ]
+    },
+    {
+     "nodo": "Brasero2",
+     "textura": "res://assets/visual/objetos/sala_2/brasero2.png",
+     "ancla": [
+      853,
+      226
+     ],
+     "offset": [
+      -15,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      838,
+      188,
+      31,
+      38
+     ]
+    },
+    {
+     "nodo": "EstatuaArquero1",
+     "textura": "res://assets/visual/objetos/sala_2/estatuaarquero1.png",
+     "ancla": [
+      202,
+      279
+     ],
+     "offset": [
+      -24,
+      -104
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      178,
+      175,
+      48,
+      104
+     ]
+    },
+    {
+     "nodo": "EstatuaArquero2",
+     "textura": "res://assets/visual/objetos/sala_2/estatuaarquero2.png",
+     "ancla": [
+      795,
+      279
+     ],
+     "offset": [
+      -29,
+      -132
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      766,
+      147,
+      58,
+      132
+     ]
+    },
+    {
+     "nodo": "Columna1",
+     "textura": "res://assets/visual/objetos/sala_2/columna1.png",
+     "ancla": [
+      339,
+      381
+     ],
+     "offset": [
+      -21,
+      -120
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      318,
+      261,
+      42,
+      120
+     ],
+     "colision": {
+      "centro": [
+       340.0,
+       320.0
+      ],
+      "tamano": [
+       50,
+       70
+      ]
+     }
+    },
+    {
+     "nodo": "EstatuaPedestal1",
+     "textura": "res://assets/visual/objetos/sala_2/estatuapedestal1.png",
+     "ancla": [
+      558,
+      460
+     ],
+     "offset": [
+      -34,
+      -79
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      524,
+      381,
+      68,
+      79
+     ],
+     "colision": {
+      "centro": [
+       557.5,
+       435.0
+      ],
+      "tamano": [
+       55,
+       70
+      ]
+     }
+    }
+   ],
+   "colisiones": [],
+   "decales": [
+    {
+     "nodo": "RunaSuelo",
+     "textura": "res://assets/visual/objetos/runa_suelo.png",
+     "posicion": [
+      400,
+      425
+     ]
+    }
+   ],
+   "marcadores": {
+    "Jugador": [
+     115,
+     359
+    ],
+    "Salida": [
+     867,
+     355
+    ],
+    "Reliquia1": [
+     280,
+     245
+    ],
+    "Reliquia2": [
+     500,
+     465
+    ],
+    "Reliquia3": [
+     725,
+     230
+    ],
+    "Enemigo": [
+     765,
+     358
+    ],
+    "Sello": [
+     704,
+     343
+    ],
+    "Ojo": [
+     690,
+     143
+    ]
+   }
+  },
+  {
+   "luz": {
+    "ganancia": [
+     1.5247,
+     1.4019,
+     1.548
+    ],
+    "desplazamiento": [
+     0.0358,
+     0.0329,
+     0.0387
+    ]
+   },
+   "objetos": [
+    {
+     "nodo": "Arco1",
+     "textura": "res://assets/visual/objetos/sala_3/arco1.png",
+     "ancla": [
+      159,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      138,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco2",
+     "textura": "res://assets/visual/objetos/sala_3/arco2.png",
+     "ancla": [
+      373,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      352,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco3",
+     "textura": "res://assets/visual/objetos/sala_3/arco3.png",
+     "ancla": [
+      589,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      568,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco4",
+     "textura": "res://assets/visual/objetos/sala_3/arco4.png",
+     "ancla": [
+      804,
+      158
+     ],
+     "offset": [
+      -20,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      784,
+      147,
+      40,
+      42
+     ]
+    },
+    {
+     "nodo": "EstatuaOrante1",
+     "textura": "res://assets/visual/objetos/sala_3/estatuaorante1.png",
+     "ancla": [
+      204,
+      225
+     ],
+     "offset": [
+      -18,
+      -49
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      186,
+      176,
+      37,
+      49
+     ]
+    },
+    {
+     "nodo": "EstatuaOrante2",
+     "textura": "res://assets/visual/objetos/sala_3/estatuaorante2.png",
+     "ancla": [
+      799,
+      225
+     ],
+     "offset": [
+      -25,
+      -78
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      774,
+      147,
+      50,
+      78
+     ]
+    },
+    {
+     "nodo": "Brasero1",
+     "textura": "res://assets/visual/objetos/sala_3/brasero1.png",
+     "ancla": [
+      88,
+      226
+     ],
+     "offset": [
+      -17,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      71,
+      188,
+      34,
+      38
+     ]
+    },
+    {
+     "nodo": "Brasero2",
+     "textura": "res://assets/visual/objetos/sala_3/brasero2.png",
+     "ancla": [
+      853,
+      226
+     ],
+     "offset": [
+      -15,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      838,
+      188,
+      31,
+      38
+     ]
+    },
+    {
+     "nodo": "EstatuaArquero1",
+     "textura": "res://assets/visual/objetos/sala_3/estatuaarquero1.png",
+     "ancla": [
+      488,
+      279
+     ],
+     "offset": [
+      -24,
+      -104
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      464,
+      175,
+      48,
+      104
+     ]
+    },
+    {
+     "nodo": "Mesa1",
+     "textura": "res://assets/visual/objetos/sala_3/mesa1.png",
+     "ancla": [
+      497,
+      345
+     ],
+     "offset": [
+      -42,
+      -55
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      455,
+      290,
+      85,
+      55
+     ],
+     "colision": {
+      "centro": [
+       498.0,
+       318.0
+      ],
+      "tamano": [
+       82,
+       44
+      ]
+     }
+    },
+    {
+     "nodo": "Cirios1",
+     "textura": "res://assets/visual/objetos/sala_3/cirios1.png",
+     "ancla": [
+      661,
+      415
+     ],
+     "offset": [
+      -6,
+      -70
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      655,
+      345,
+      13,
+      70
+     ]
+    },
+    {
+     "nodo": "Cirios2",
+     "textura": "res://assets/visual/objetos/sala_3/cirios2.png",
+     "ancla": [
+      680,
+      415
+     ],
+     "offset": [
+      -6,
+      -70
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      674,
+      345,
+      13,
+      70
+     ]
+    },
+    {
+     "nodo": "Cirios3",
+     "textura": "res://assets/visual/objetos/sala_3/cirios3.png",
+     "ancla": [
+      641,
+      416
+     ],
+     "offset": [
+      -6,
+      -71
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      635,
+      345,
+      13,
+      71
+     ]
+    },
+    {
+     "nodo": "Cirios4",
+     "textura": "res://assets/visual/objetos/sala_3/cirios4.png",
+     "ancla": [
+      700,
+      416
+     ],
+     "offset": [
+      -6,
+      -71
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      694,
+      345,
+      13,
+      71
+     ]
+    },
+    {
+     "nodo": "Columna1",
+     "textura": "res://assets/visual/objetos/sala_3/columna1.png",
+     "ancla": [
+      375,
+      427
+     ],
+     "offset": [
+      -31,
+      -112
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      344,
+      315,
+      62,
+      112
+     ],
+     "colision": {
+      "centro": [
+       376.0,
+       370.0
+      ],
+      "tamano": [
+       70,
+       60
+      ]
+     }
+    }
+   ],
+   "colisiones": [
+    {
+     "centro": [
+      670.0,
+      370.0
+     ],
+     "tamano": [
+      70,
+      60
+     ]
+    }
+   ],
+   "decales": [
+    {
+     "nodo": "RunaSuelo",
+     "textura": "res://assets/visual/objetos/runa_suelo.png",
+     "posicion": [
+      400,
+      425
+     ]
+    }
+   ],
+   "marcadores": {
+    "Jugador": [
+     115,
+     359
+    ],
+    "Salida": [
+     867,
+     355
+    ],
+    "Reliquia1": [
+     280,
+     245
+    ],
+    "Reliquia2": [
+     500,
+     465
+    ],
+    "Reliquia3": [
+     725,
+     230
+    ],
+    "Enemigo": [
+     773,
+     354
+    ],
+    "Libro": [
+     497,
+     310
+    ],
+    "Lectura": [
+     497,
+     362
+    ]
+   }
+  },
+  {
+   "luz": {
+    "ganancia": [
+     1.469,
+     1.4481,
+     1.4393
+    ],
+    "desplazamiento": [
+     0.0285,
+     0.0385,
+     0.0331
+    ]
+   },
+   "objetos": [
+    {
+     "nodo": "Arco1",
+     "textura": "res://assets/visual/objetos/sala_4/arco1.png",
+     "ancla": [
+      159,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      138,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco2",
+     "textura": "res://assets/visual/objetos/sala_4/arco2.png",
+     "ancla": [
+      373,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      352,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco3",
+     "textura": "res://assets/visual/objetos/sala_4/arco3.png",
+     "ancla": [
+      589,
+      158
+     ],
+     "offset": [
+      -21,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      568,
+      147,
+      42,
+      42
+     ]
+    },
+    {
+     "nodo": "Arco4",
+     "textura": "res://assets/visual/objetos/sala_4/arco4.png",
+     "ancla": [
+      804,
+      158
+     ],
+     "offset": [
+      -20,
+      -11
+     ],
+     "sombra": false,
+     "luz": false,
+     "caja": [
+      784,
+      147,
+      40,
+      42
+     ]
+    },
+    {
+     "nodo": "EstatuaOrante1",
+     "textura": "res://assets/visual/objetos/sala_4/estatuaorante1.png",
+     "ancla": [
+      490,
+      225
+     ],
+     "offset": [
+      -18,
+      -49
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      472,
+      176,
+      37,
+      49
+     ]
+    },
+    {
+     "nodo": "Brasero1",
+     "textura": "res://assets/visual/objetos/sala_4/brasero1.png",
+     "ancla": [
+      88,
+      226
+     ],
+     "offset": [
+      -17,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      71,
+      188,
+      34,
+      38
+     ]
+    },
+    {
+     "nodo": "Brasero2",
+     "textura": "res://assets/visual/objetos/sala_4/brasero2.png",
+     "ancla": [
+      853,
+      226
+     ],
+     "offset": [
+      -15,
+      -38
+     ],
+     "sombra": true,
+     "luz": true,
+     "caja": [
+      838,
+      188,
+      31,
+      38
+     ]
+    },
+    {
+     "nodo": "EstatuaArquero1",
+     "textura": "res://assets/visual/objetos/sala_4/estatuaarquero1.png",
+     "ancla": [
+      202,
+      279
+     ],
+     "offset": [
+      -24,
+      -104
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      178,
+      175,
+      48,
+      104
+     ]
+    },
+    {
+     "nodo": "EstatuaArquero2",
+     "textura": "res://assets/visual/objetos/sala_4/estatuaarquero2.png",
+     "ancla": [
+      795,
+      279
+     ],
+     "offset": [
+      -29,
+      -132
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      766,
+      147,
+      58,
+      132
+     ]
+    },
+    {
+     "nodo": "ColumnaRota1",
+     "textura": "res://assets/visual/objetos/sala_4/columnarota1.png",
+     "ancla": [
+      396,
+      302
+     ],
+     "offset": [
+      -31,
+      -73
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      365,
+      229,
+      62,
+      73
+     ],
+     "colision": {
+      "centro": [
+       396.0,
+       276.0
+      ],
+      "tamano": [
+       62,
+       62
+      ]
+     }
+    },
+    {
+     "nodo": "Sarcofago1",
+     "textura": "res://assets/visual/objetos/sala_4/sarcofago1.png",
+     "ancla": [
+      796,
+      474
+     ],
+     "offset": [
+      -30,
+      -63
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      766,
+      411,
+      60,
+      63
+     ],
+     "colision": {
+      "centro": [
+       796.0,
+       447.0
+      ],
+      "tamano": [
+       58,
+       46
+      ]
+     }
+    },
+    {
+     "nodo": "Columna1",
+     "textura": "res://assets/visual/objetos/sala_4/columna1.png",
+     "ancla": [
+      681,
+      493
+     ],
+     "offset": [
+      -23,
+      -106
+     ],
+     "sombra": true,
+     "luz": false,
+     "caja": [
+      658,
+      387,
+      46,
+      106
+     ],
+     "colision": {
+      "centro": [
+       682.0,
+       439.0
+      ],
+      "tamano": [
+       54,
+       54
+      ]
+     }
+    }
+   ],
+   "colisiones": [],
+   "decales": [
+    {
+     "nodo": "RunaSuelo",
+     "textura": "res://assets/visual/objetos/runa_suelo.png",
+     "posicion": [
+      400,
+      425
+     ]
+    }
+   ],
+   "marcadores": {
+    "Jugador": [
+     115,
+     359
+    ],
+    "Salida": [
+     867,
+     355
+    ],
+    "Reliquia1": [
+     280,
+     245
+    ],
+    "Reliquia2": [
+     500,
+     465
+    ],
+    "Reliquia3": [
+     725,
+     230
+    ]
+   }
+  }
+ ]
+}

@@ -11,15 +11,15 @@
 - Espectro de luz: ámbar tenue, no manchas blancas sin explicación.
 
 ## Pixel art y escala
-- Base visual de los tiles originales Knowledge Temple: **16 × 16 px**. Las habitaciones del prototipo no utilizan TileMapLayer: son cinco composiciones RGBA de **960 × 640 px**.
+- Base visual de los tiles originales Knowledge Temple: **16 × 16 px**. Las salas son escenas editables (`rooms/sala_N.tscn`) con `TileMapLayer` de **32 × 32 px** para la arquitectura y `Sprite2D` para los objetos. Ver `docs/EDITAR_SALAS.md`.
 - Protagonista: **40 × 56 px** por fotograma, dibujado a tamaño nativo.
-- Enemigos originales: Burning Ghoul **57 × 60**, Angel **122 × 117** y Wizard **81 × 66**; se muestran al tamaño nativo para evitar distorsión por factores decimales.
+- Entidades: sprites originales cenitales de **48 × 64 px** por celda, en 4 direcciones (`assets/visual/enemies/`). Los de GothicVania (de perfil) se conservan como respaldo.
 - Filtrado `Nearest` en el CanvasItem principal y parámetro de filtrado más próximo en `project.godot`. Si se amplía la ventana, se recomienda escala de pantalla entera. Un tamaño de pantalla de 1152 × 768 a partir de 960 × 640 no implica escalado entero perfecto.
 
 ## Diseño de escenarios
 - Toda la composición existente se conserva: obstáculos, accesos, zonas transitables, altares e interacciones NO se desplazan.
 - Las nuevas variantes solo corrigen contraste, reducen líneas de cuadrícula de construcción, añaden iluminación ambiental discreta y pequeños detalles de suelo.
-- Cuatro nichos góticos originales y las dos antorchas centrales de cada lado funcionan como invariantes visuales; más adelante deben ajustarse con TileMapLayer antes de permitir editor visual de salas.
+- Cuatro nichos góticos originales y los dos braseros de cada lado funcionan como invariantes visuales; ahora son objetos editables de cada escena de sala.
 - Simetría para la arquitectura ceremonial; una grieta o símbolo asimétrico será deliberado, no un error de colocación.
 - Transición visual prevista: templo conservado → primera anomalía → corrupción localizada → arquitectura improbable. En el piso 1 solo se sugieren señales incipientes; NO se generan automáticamente nuevos pisos.
 
