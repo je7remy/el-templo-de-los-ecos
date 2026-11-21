@@ -171,8 +171,26 @@ var toast: String = ""
 var toast_left: float = 0.0
 var deaths: int = 0
 var cleared: int = 0
-var ambience: AudioStreamPlayer
-var effects: AudioStreamPlayer
+## Audio original (herramientas/generar_audio.py): ambiente + capa de tensión
+## adaptativa + grupo de reproductores para efectos.
+const SFX_PATHS := {
+    "alma": "res://audio/sfx_alma.ogg", "dano": "res://audio/sfx_dano.ogg",
+    "ojo": "res://audio/sfx_ojo.ogg", "aviso": "res://audio/sfx_aviso.ogg",
+    "sello": "res://audio/sfx_sello.ogg", "puerta": "res://audio/sfx_puerta.ogg",
+    "conjuro": "res://audio/sfx_conjuro.ogg", "libro": "res://audio/sfx_libro.ogg",
+    "linterna": "res://audio/sfx_linterna.ogg", "muerte": "res://audio/sfx_muerte.ogg",
+}
+var music: AudioStreamPlayer
+var tension: AudioStreamPlayer
+var sfx_pool: Array[AudioStreamPlayer] = []
+var sfx_streams: Dictionary = {}
+var tension_level: float = 0.0
+## Sensación de juego (solo visual / sonoro, sin efecto en las reglas).
+var shake: float = 0.0
+var souls_flash: float = 0.0
+var pickup_fx: Array = [] # {pos, t}
+var watcher_was_open: bool = false
+var watcher_warned: bool = false
 
 
 func _ready() -> void:
@@ -186,17 +204,27 @@ func _ready() -> void:
     # No iniciar AudioServer en tests sin pantalla: no hay salida de sonido.
     # En juego normal mantener audio ambiental y efectos completos.
     var audio_available: bool = DisplayServer.get_name() != "headless"
-    ambience = AudioStreamPlayer.new()
-    add_child(ambience)
-    effects = AudioStreamPlayer.new()
-    add_child(effects)
+    music = AudioStreamPlayer.new()
+    tension = AudioStreamPlayer.new()
+    add_child(music)
+    add_child(tension)
+    for i in range(5):
+        var player := AudioStreamPlayer.new()
+        add_child(player)
+        sfx_pool.append(player)
     if audio_available:
-        ambience.stream = load("res://audio/ambient.wav")
-        ambience.volume_db = -21.0
-        ambience.finished.connect(_repeat_ambience)
-        ambience.play()
-        effects.stream = load("res://audio/chime.wav")
-        effects.volume_db = -12.0
+        var templo: AudioStreamOggVorbis = load("res://audio/musica_templo.ogg")
+        var capa: AudioStreamOggVorbis = load("res://audio/musica_tension.ogg")
+        templo.loop = true
+        capa.loop = true
+        music.stream = templo
+        tension.stream = capa
+        music.volume_db = -14.0
+        tension.volume_db = -60.0
+        music.play()
+        tension.play() # empieza en silencio; sube con el peligro
+        for key in SFX_PATHS:
+            sfx_streams[key] = load(SFX_PATHS[key])
     queue_redraw()
 
 func _load_art() -> void:
@@ -207,20 +235,46 @@ func _load_art() -> void:
 func _exit_tree() -> void:
     # Evita que el servidor de audio retenga AudioStreamPlaybackWAV al
     # cambiar escenas, cerrar el juego o terminar una prueba automatizada.
-    if is_instance_valid(ambience):
-        ambience.stop()
-        ambience.stream = null
-    if is_instance_valid(effects):
-        effects.stop()
-        effects.stream = null
+    for player in [music, tension] + sfx_pool:
+        if is_instance_valid(player):
+            player.stop()
+            player.stream = null
+    sfx_streams.clear()
 
-func _play_effect() -> void:
-    if is_instance_valid(effects) and effects.stream != null:
-        effects.play()
 
-func _repeat_ambience() -> void:
-    if is_instance_valid(ambience) and ambience.stream != null:
-        ambience.play()
+## Efecto con ligera variación de tono para que no suene repetitivo.
+func _sfx(key: String, volume_db: float = -6.0, pitch: float = 1.0) -> void:
+    if not sfx_streams.has(key):
+        return
+    var chosen: AudioStreamPlayer = sfx_pool[0]
+    for player in sfx_pool:
+        if not player.playing:
+            chosen = player
+            break
+    chosen.stream = sfx_streams[key]
+    chosen.volume_db = volume_db
+    chosen.pitch_scale = pitch * randf_range(0.96, 1.04)
+    chosen.play()
+
+
+## La capa de tensión sube con el miedo, la persecución y el ojo abierto;
+## el ambiente baja un poco para dejarle sitio.
+func _update_audio(delta: float) -> void:
+    if music == null or music.stream == null:
+        return
+    var target: float = 0.0
+    if game_mode == "play":
+        target = fear / 100.0 * 0.75
+        if enemy_alert:
+            target += 0.55
+        if current_room == 2 and watcher_open and not seal_acquired:
+            target += 0.25
+    tension_level = move_toward(tension_level, clampf(target, 0.0, 1.0), delta * 0.4)
+    tension.volume_db = linear_to_db(maxf(tension_level, 0.001)) - 7.0
+    var base_db: float = -14.0 - 5.0 * tension_level
+    if game_mode == "dead":
+        base_db = -26.0
+    music.volume_db = move_toward(music.volume_db, base_db, delta * 12.0)
 
 
 func _load_progress() -> void:
@@ -390,6 +444,7 @@ func _input(event: InputEvent) -> void:
             _interact()
         elif k == KEY_F:
             torch_on = not torch_on
+            _sfx("linterna", -10.0)
             _say("Linterna " + ("encendida" if torch_on else "apagada") + ".", 1.3)
         elif k == KEY_SPACE and dash_cd <= 0.0 and stamina >= 28.0:
             dash_left = 0.19
@@ -452,6 +507,7 @@ func _mobile_tap(at: Vector2) -> void:
             _interact()
         elif at.x < 660.0:
             torch_on = not torch_on
+            _sfx("linterna", -10.0)
         elif at.x < 790.0:
             if dash_cd <= 0.0 and stamina >= 28.0:
                 dash_left = 0.19
@@ -497,7 +553,7 @@ func _buy_upgrade(choice: int) -> void:
     has_pulse = true
     ability_level = 0
     _save_progress()
-    _play_effect()
+    _sfx("sello", -6.0, 1.25)
     _say("Adquiriste Resonancia nivel 0. Pulsa Q para utilizarla.", 4.0)
 
 
@@ -515,7 +571,7 @@ func _use_pulse() -> void:
         _say("La resonancia interrumpe brevemente a la criatura.", 2.2)
     else:
         _say("Una vibración recorre la piedra.", 1.6)
-    _play_effect()
+    _sfx("sello", -8.0, 1.6)
 
 
 func _interact() -> void:
@@ -528,7 +584,7 @@ func _interact() -> void:
             ability_level = maxi(ability_level, 1)
         _save_progress()
         _say("SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
-        _play_effect()
+        _sfx("sello", -4.0)
         return
     if current_room == 1 and player_pos.distance_to(altar_pos) < 64.0:
         game_mode = "altar"
@@ -536,16 +592,8 @@ func _interact() -> void:
     if current_room == 3 and player_pos.distance_to(archive_pos) < 72.0:
         letter_found = true
         _say("Carta: 'He regresado. El cuerpo cambia, pero recuerdo sus ojos.'", 5.0)
-        _play_effect()
+        _sfx("libro", -5.0)
         return
-    for i in range(relics.size()):
-        if not collected[i] and player_pos.distance_to(relics[i]) < 47.0:
-            collected[i] = true
-            souls += 7
-            fear = maxf(0.0, fear - 8.0)
-            _say("Fragmento reunido: +7 almas. Es la moneda del templo.", 2.5)
-            _play_effect()
-            return
     if player_pos.distance_to(door_pos) < 74.0:
         if _room_ready():
             if current_room == 4:
@@ -553,6 +601,7 @@ func _interact() -> void:
             else:
                 current_room += 1
                 _enter_room()
+                _sfx("puerta", -6.0)
         else:
             _say(_required_clue(), 3.2)
         return
@@ -582,7 +631,7 @@ func _win_run() -> void:
     cleared += 1
     _save_progress()
     game_mode = "victory"
-    _play_effect()
+    _sfx("sello", -4.0, 0.8)
 
 func _lose_run() -> void:
     deaths += 1
@@ -603,6 +652,7 @@ func _lose_run() -> void:
         # Una persona nueva, sin la memoria de la anterior.
     _save_progress()
     game_mode = "dead"
+    _sfx("muerte", -3.0)
 
 
 func _say(message: String, duration: float = 2.8) -> void:
@@ -645,9 +695,17 @@ func _process(delta: float) -> void:
     toast_left = maxf(0.0, toast_left - delta)
     visual_interaction_left = maxf(0.0, visual_interaction_left - delta)
     bump_left = maxf(0.0, bump_left - delta)
+    souls_flash = maxf(0.0, souls_flash - delta)
+    for fx in pickup_fx:
+        fx["t"] = float(fx["t"]) + delta
+    pickup_fx = pickup_fx.filter(func(fx): return float(fx["t"]) < 1.1)
     if game_mode == "play":
         _update_play(delta)
         _track_enemy_visual(delta)
+    # Sacudida de pantalla tras un golpe (todo el lienzo; decae rápido).
+    shake = maxf(0.0, shake - delta * 2.4)
+    position = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake * 9.0 if shake > 0.0 else Vector2.ZERO
+    _update_audio(delta)
     queue_redraw()
 
 
@@ -677,7 +735,22 @@ func _update_play(dt: float) -> void:
             bump_left = 0.35
             bump_at = player_pos + Vector2(signf(move.x) * 10.0 if blocked_x else 0.0, 2.0)
 
+    # Las almas se recogen al tocarlas.
+    for i in range(relics.size()):
+        if not collected[i] and player_pos.distance_to(relics[i]) < 30.0:
+            _collect_relic(i)
+
     watcher_open = fmod(room_elapsed, 6.0) < 3.25
+    if current_room == 2:
+        # Aviso justo: el ojo tiembla y cruje 0,6 s antes de abrirse.
+        var phase: float = fmod(room_elapsed, 6.0)
+        if phase >= 5.4 and not watcher_warned:
+            watcher_warned = true
+            _sfx("aviso", -9.0)
+        if watcher_open and not watcher_was_open:
+            watcher_warned = false
+            _sfx("ojo", -7.0)
+        watcher_was_open = watcher_open
     if current_room in [1, 2, 3]:
         _update_enemy(dt)
         var near: float = player_pos.distance_to(enemy_pos)
@@ -690,6 +763,22 @@ func _update_play(dt: float) -> void:
         hp -= dt * 5.0
     if hp <= 0.0:
         _lose_run()
+
+func _collect_relic(i: int) -> void:
+    collected[i] = true
+    souls += 7
+    fear = maxf(0.0, fear - 8.0)
+    souls_flash = 0.8
+    pickup_fx.append({"pos": relics[i], "t": 0.0})
+    _say("Fragmento reunido: +7 almas. Es la moneda del templo.", 2.5)
+    _sfx("alma", -5.0)
+
+
+## Golpe recibido: sacudida, destello y sonido. No cambia el daño.
+func _on_hurt() -> void:
+    shake = 0.45
+    _sfx("dano", -4.0)
+
 
 func _update_enemy(dt: float) -> void:
     # PROVISIONAL: only the Witness rule is part of this vertical slice.
@@ -726,6 +815,7 @@ func _update_enemy(dt: float) -> void:
             fireballs.append({"pos": enemy_pos + Vector2(0.0, -20.0), "vel": direction * 215.0, "life": 2.2})
             wizard_cast_cd = 2.9
             _say("El hechicero responde a tu luz.", 1.6)
+            _sfx("conjuro", -8.0)
         for i in range(fireballs.size() - 1, -1, -1):
             var ball: Dictionary = fireballs[i]
             var p: Vector2 = ball["pos"] + ball["vel"] * dt
@@ -737,6 +827,7 @@ func _update_enemy(dt: float) -> void:
                     fear = minf(100.0, fear + 13.0)
                     damage_cd = 1.1
                     _say("El conjuro te alcanza. Busca cobertura.", 2.6)
+                    _on_hurt()
                 fireballs.remove_at(i)
             elif float(ball["life"]) <= 0.0 or _is_blocked(p):
                 fireballs.remove_at(i)
@@ -754,6 +845,7 @@ func _update_enemy(dt: float) -> void:
             if not _is_blocked(escape):
                 player_pos = escape
             _say("La criatura te ha herido. Descubre su regla.", 3.0)
+            _on_hurt()
 
 
 func _draw() -> void:
@@ -806,15 +898,93 @@ func _draw_room() -> void:
     _draw_depth_sorted()
     if current_room == 3:
         _draw_fireballs()
-    # Small lighting cue; room architecture remains legible even unlit.
-    if torch_on:
-        for r in range(4, 0, -1):
-            draw_circle(player_pos, float(r) * 37.0, Color(0.87, 0.74, 0.43, 0.012))
-    else:
-        draw_rect(ARENA, Color(0.0, 0.0, 0.05, 0.09))
+    _draw_lighting()
+    _draw_pickup_fx()
     if damage_cd > 0.0:
-        draw_rect(ARENA, Color(0.8, 0.1, 0.18, 0.05))
+        # Destello rojo que se apaga durante la invulnerabilidad.
+        draw_rect(ARENA, Color(0.75, 0.08, 0.14, 0.16 * clampf(damage_cd / 1.5, 0.0, 1.0) ** 2))
     _draw_object_labels()
+
+
+## [LUZ] Penumbra con luces dinámicas. Rejilla de vértices con oscuridad
+## interpolada: el personaje lleva su luz (menor con la linterna apagada);
+## braseros, almas, Ghoul, conjuros y la salida abierta iluminan su entorno.
+## Nunca llega al negro: la sala siempre se lee (guía de estilo).
+const LIGHT_CELL := 24.0
+const LIGHT_CELL_MOBILE := 32.0 # rejilla más gruesa en móvil: menos coste por fotograma
+func _lights() -> Array:
+    var list: Array = [] # [pos, radio, intensidad]
+    list.append([player_pos + Vector2(0.0, -20.0), 205.0 if torch_on else 120.0, 1.0])
+    for prop in room_props:
+        if prop["light"]:
+            var rect: Rect2 = prop["rect"]
+            var flicker: float = 0.92 + 0.08 * sin(elapsed * 9.0 + rect.position.x)
+            list.append([rect.get_center(), 130.0 * flicker, 0.85])
+    for i in range(relics.size()):
+        if not collected[i]:
+            list.append([relics[i], 70.0, 0.55])
+    if current_room in [1, 2, 3]:
+        # Las amenazas siempre se distinguen (juego limpio); el Ghoul arde.
+        list.append([enemy_pos + Vector2(0.0, -24.0), 120.0 if current_room == 1 else 70.0, 0.8 if current_room == 1 else 0.45])
+    for ball in fireballs:
+        list.append([ball["pos"], 85.0, 0.9])
+    if _room_ready():
+        list.append([door_pos + Vector2(20.0, 0.0), 95.0, 0.6])
+    if current_room == 1:
+        list.append([altar_pos, 85.0, 0.6])
+    return list
+
+
+func _draw_lighting() -> void:
+    if torch_on:
+        # Tono cálido de la linterna alrededor del personaje.
+        for r in range(4, 0, -1):
+            draw_circle(player_pos + Vector2(0, -20), float(r) * 34.0, Color(1.0, 0.78, 0.45, 0.018))
+    var lights: Array = _lights()
+    var base_dark: float = 0.50 if torch_on else 0.66
+    var fear_edge: float = fear / 100.0 * 0.28
+    var cell: float = LIGHT_CELL_MOBILE if touch_enabled else LIGHT_CELL
+    var cols: int = int(ceil(ARENA.size.x / cell)) + 1
+    var rows: int = int(ceil(ARENA.size.y / cell)) + 1
+    var center: Vector2 = ARENA.get_center()
+    var alpha: PackedFloat32Array = PackedFloat32Array()
+    alpha.resize(cols * rows)
+    for r in range(rows):
+        for c in range(cols):
+            var p := ARENA.position + Vector2(c, r) * cell
+            var lit: float = 0.0
+            for light in lights:
+                var d: float = p.distance_to(light[0])
+                if d < light[1]:
+                    lit = maxf(lit, pow(1.0 - d / light[1], 1.4) * light[2])
+            var edge: float = clampf((p - center).length() / (ARENA.size.x * 0.55) - 0.35, 0.0, 1.0)
+            alpha[r * cols + c] = clampf(base_dark * (1.0 - lit) + fear_edge * edge, 0.0, 0.85)
+    var tint := Color(0.01, 0.015, 0.035)
+    for r in range(rows - 1):
+        for c in range(cols - 1):
+            var a0: float = alpha[r * cols + c]
+            var a1: float = alpha[r * cols + c + 1]
+            var a2: float = alpha[(r + 1) * cols + c + 1]
+            var a3: float = alpha[(r + 1) * cols + c]
+            if a0 + a1 + a2 + a3 < 0.01:
+                continue
+            var p := ARENA.position + Vector2(c, r) * cell
+            draw_polygon(
+                PackedVector2Array([p, p + Vector2(cell, 0), p + Vector2(cell, cell), p + Vector2(0, cell)]),
+                PackedColorArray([Color(tint, a0), Color(tint, a1), Color(tint, a2), Color(tint, a3)]))
+
+
+## Destello al recoger un alma: anillo que se expande y "+7" que asciende.
+func _draw_pickup_fx() -> void:
+    for fx in pickup_fx:
+        var t: float = float(fx["t"])
+        var p: Vector2 = fx["pos"]
+        var a: float = clampf(1.0 - t / 1.1, 0.0, 1.0)
+        draw_arc(p + Vector2(0, -8), 10.0 + t * 46.0, 0.0, TAU, 32, Color(0.75, 0.93, 1.0, a * 0.8), 2.0)
+        for k in range(6):
+            var ang: float = float(k) / 6.0 * TAU + t * 2.0
+            draw_circle(p + Vector2(cos(ang), sin(ang) * 0.6) * (8.0 + t * 30.0) + Vector2(0, -10 - t * 14.0), 2.0 * a, Color(0.85, 0.97, 1.0, a))
+        draw_string(font, p + Vector2(-14, -30 - t * 26.0), "+7", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.75, 0.93, 1.0, a))
 
 
 ## Sombras de contacto de los objetos de la sala (antes horneadas en el PNG)
@@ -932,6 +1102,12 @@ func _draw_watcher_eye(at: Vector2) -> void:
         # Mirada proyectada sobre la sala: indica que moverse ahora es peligroso.
         draw_polygon(PackedVector2Array([at + Vector2(-8, 10), at + Vector2(8, 10), at + Vector2(140, 260), at + Vector2(-140, 260)]),
             PackedColorArray([Color(0.82, 0.2, 0.25, 0.10 + 0.04 * pulse), Color(0.82, 0.2, 0.25, 0.10 + 0.04 * pulse), Color(0.82, 0.2, 0.25, 0.0), Color(0.82, 0.2, 0.25, 0.0)]))
+    elif fmod(room_elapsed, 6.0) >= 5.4:
+        # A punto de abrirse: el párpado tiembla y asoma una rendija roja.
+        var jitter := Vector2(randf_range(-1.5, 1.5), randf_range(-1.0, 1.0))
+        var open_k: float = (fmod(room_elapsed, 6.0) - 5.4) / 0.6
+        draw_line(at + jitter + Vector2(-16, 0), at + jitter + Vector2(16, 0), Color(0.85, 0.25, 0.3, 0.5 + 0.5 * open_k), 2.0 + 3.0 * open_k)
+        draw_circle(at + jitter, 2.0 + 3.0 * open_k, Color("#c2414f"))
     else:
         draw_arc(at + Vector2(0.0, -6.0), 22.0, 0.35, PI - 0.35, 18, Color("#72858d"), 2.0)
         for i in range(5):
@@ -1079,7 +1255,7 @@ func _enemy_frame(kind: String) -> int:
         "ghoul":
             return 2 + int(elapsed * 9.0) % 4 if enemy_moving else int(elapsed * 2.5) % 2
         _:
-            if enemy_alert and wizard_cast_cd > 2.45: # acaba de lanzar un conjuro
+            if enemy_alert and (wizard_cast_cd > 2.45 or wizard_cast_cd < 0.7): # carga o acaba de lanzar
                 return 6 + int(elapsed * 8.0) % 2
             return 2 + int(elapsed * 7.0) % 4 if enemy_moving else int(elapsed * 2.0) % 2
 
@@ -1106,6 +1282,14 @@ func _draw_enemy() -> void:
     var tint := Color(0.75, 0.85, 1.0, 1.0) if enemy_stun > 0.0 else Color.WHITE
     var dest := Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y)
     draw_texture_rect_region(sheet, dest, region, tint)
+    if kind == "hechicero" and enemy_alert and wizard_cast_cd < 0.7 and enemy_stun <= 0.0:
+        # Aviso justo: el orbe crece antes de lanzar el conjuro.
+        var k: float = 1.0 - wizard_cast_cd / 0.7
+        # Donde el sprite sostiene el orbe: sobre la cabeza de frente, en la mano de lado.
+        var hand: Vector2 = [Vector2(0, -57), Vector2(0, -57), Vector2(19, -49), Vector2(-19, -49)][enemy_facing]
+        var orb := feet + hand
+        draw_circle(orb, 5.0 + 9.0 * k, Color(1.0, 0.6, 0.25, 0.15 + 0.2 * k))
+        draw_circle(orb, 1.5 + 3.0 * k, Color(1.0, 0.88, 0.6, 0.9))
 
 
 func _draw_fireballs() -> void:
@@ -1136,7 +1320,8 @@ func _draw_player() -> void:
         var atlas := Rect2(float(frame_index * 40), float(direction_index * 56), 40.0, 56.0)
         var location := Vector2(roundf(player_pos.x) - 20.0, roundf(player_pos.y) - 50.0)
         draw_ellipse_fake_shadow(player_pos)
-        draw_texture_rect_region(art["visual_hero"], Rect2(location, Vector2(40.0, 56.0)), atlas)
+        var blink: bool = damage_cd > 0.0 and int(elapsed * 14.0) % 2 == 0
+        draw_texture_rect_region(art["visual_hero"], Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
         if bump_left > 0.0:
             # Polvo del choque a ambos lados de los pies: el objeto es sólido.
             var t: float = 1.0 - bump_left / 0.35
@@ -1196,7 +1381,8 @@ func _draw_topbar() -> void:
     _bar(Rect2(361, 70, 169, 10), fear / 100.0, Color("#c5a06e"))
     draw_rect(Rect2(566, 20, 1, 66), Color("#444a4d"))
     _text("SALA %02d / 05" % (current_room + 1), Vector2(590, 43), 16, CREAM)
-    _text("ALMAS  %03d" % souls, Vector2(590, 70), 17, SOUL)
+    var soul_color: Color = SOUL.lerp(Color.WHITE, clampf(souls_flash / 0.8, 0.0, 1.0))
+    _text("ALMAS  %03d" % souls, Vector2(590, 70), 17 + int(round(souls_flash * 4.0)), soul_color)
     _text("IDENTIDAD %03d" % identity_number, Vector2(781, 43), 13, CREAM)
     _text("LINTERNA: ON" if torch_on else "LINTERNA: OFF", Vector2(781, 69), 12, SOUL if torch_on else RED)
 

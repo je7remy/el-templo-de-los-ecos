@@ -25,7 +25,7 @@ Los recursos integrados forman parte del proyecto jugable; no deben extraerse y 
 ## Protagonista y otros contenidos
 
 - El sprite del jugador sigue siendo un marcador **provisional**. Mark todavía no está integrado.
-- Los archivos `audio/` y el código se suministran como parte del prototipo; no debe presumirse que comparten una misma licencia con el arte.
+- **Audio:** música y efectos de `audio/` son originales, sintetizados por `herramientas/generar_audio.py` (sin muestras de terceros). El código y el audio no comparten necesariamente la licencia del arte de terceros.
 - No se declara que el proyecto completo sea CC0, MIT u otra licencia general: el titular decidirá más adelante la licencia de su código y contenido propio.
 
 ## Publicación

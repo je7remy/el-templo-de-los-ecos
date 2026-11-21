@@ -58,12 +58,62 @@ var hunter_kind: String = "ghoul"
 var high_score: int = 0
 var best_time: float = 0.0
 var session_score: int = 0
+## Audio original compartido con la campaña (herramientas/generar_audio.py).
+var music: AudioStreamPlayer
+var tension: AudioStreamPlayer
+var sfx_pool: Array[AudioStreamPlayer] = []
+var sfx_streams: Dictionary = {}
+var tension_level: float = 0.0
 
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     font = ThemeDB.fallback_font
     _load_records()
+    music = AudioStreamPlayer.new()
+    tension = AudioStreamPlayer.new()
+    add_child(music)
+    add_child(tension)
+    for i in range(4):
+        var player := AudioStreamPlayer.new()
+        add_child(player)
+        sfx_pool.append(player)
+    # Sin audio en pruebas headless (igual que la campaña).
+    if DisplayServer.get_name() != "headless":
+        var templo: AudioStreamOggVorbis = load("res://audio/musica_templo.ogg")
+        var capa: AudioStreamOggVorbis = load("res://audio/musica_tension.ogg")
+        templo.loop = true
+        capa.loop = true
+        music.stream = templo
+        tension.stream = capa
+        music.volume_db = -15.0
+        tension.volume_db = -60.0
+        music.play()
+        tension.play()
+        for key in ["alma", "dano", "sello", "puerta", "linterna", "muerte"]:
+            sfx_streams[key] = load("res://audio/sfx_%s.ogg" % key)
     queue_redraw()
+
+
+func _exit_tree() -> void:
+    for player in [music, tension] + sfx_pool:
+        if is_instance_valid(player):
+            player.stop()
+            player.stream = null
+    sfx_streams.clear()
+
+
+func _sfx(key: String, volume_db: float = -8.0, pitch: float = 1.0) -> void:
+    if not sfx_streams.has(key):
+        return
+    var chosen: AudioStreamPlayer = sfx_pool[0]
+    for player in sfx_pool:
+        if not player.playing:
+            chosen = player
+            break
+    chosen.stream = sfx_streams[key]
+    chosen.volume_db = volume_db
+    chosen.pitch_scale = pitch * randf_range(0.96, 1.04)
+    chosen.play()
 
 func _start(choice: int = 0) -> void:
     chamber = clampi(choice, 0, 2)
@@ -204,6 +254,7 @@ func _action(choice: int) -> bool:
             _say("Escudo protector: 8 segundos de inmunidad al umbral.")
         _:
             return false
+    _sfx("sello" if choice == 3 else "linterna", -10.0, 1.3 if choice == 3 else 1.0)
     queue_redraw()
     return true
 
@@ -212,6 +263,13 @@ func _process(delta: float) -> void:
     info_time = maxf(0.0, info_time - delta)
     if phase == "play" and not paused:
         _advance(delta)
+    # Tensión: sube cuando la entidad llega a la puerta y con la puerta dañada.
+    if tension != null and tension.stream != null:
+        var target: float = 0.0
+        if phase == "play" and hunter_respawn <= 0.0:
+            target = clampf((900.0 - hunter_x) / 165.0, 0.0, 1.0) * 0.6 + (1.0 - clampf(gate_hp / gate_max, 0.0, 1.0)) * 0.5
+        tension_level = move_toward(tension_level, clampf(target, 0.0, 1.0), delta * 0.5)
+        tension.volume_db = linear_to_db(maxf(tension_level, 0.001)) - 8.0
     queue_redraw()
 
 func _advance(dt: float) -> void:
@@ -224,6 +282,7 @@ func _advance(dt: float) -> void:
     best_time = maxf(best_time, minf(elapsed, LENGTH))
     if elapsed >= LENGTH:
         phase = "won"
+        _sfx("sello", -4.0, 0.8)
         _record_end(true)
         sleeping = false
         _say("Has sobrevivido a la vigilia. El templo mantiene sus secretos.")
@@ -246,6 +305,7 @@ func _advance(dt: float) -> void:
                 hunter_respawn = 2.4
                 hunter_x = 1000.0
                 _say("Centinelas: entidad repelida. Ecos recuperados.")
+                _sfx("alma", -7.0)
                 return
     if hunter_x <= 736.0:
         hunter_cooldown -= dt
@@ -254,11 +314,14 @@ func _advance(dt: float) -> void:
             gate_hp -= 14.0 + waves * 4.0
             if shield_left > 0.0:
                 gate_hp += 14.0 + waves * 4.0
+            else:
+                _sfx("puerta", -9.0, 1.3)
             if gate_hp <= 0.0:
                 gate_hp = 0.0
                 _record_end(false)
                 sleeping = false
                 phase = "lost"
+                _sfx("muerte", -4.0)
                 _say("La puerta ha cedido. La vigilia ha terminado.")
 
 func _input(event: InputEvent) -> void:
