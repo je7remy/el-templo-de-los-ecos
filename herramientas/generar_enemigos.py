@@ -35,6 +35,8 @@ FRAMES = {
     "hechicero": 8,
     # Humano del Piso II. 0-1 reposo, 2-5 caminar, 6 cuchillo alzado, 7 estocada.
     "peregrino": 8,
+    # Segador de Hilos (Piso III). 0-1 reposo, 2-5 correr, 6 tensar, 7 enganchado.
+    "segador": 8,
 }
 
 
@@ -532,7 +534,130 @@ def peregrino(direccion: int, frame: int) -> Image.Image:
     return l.contorno()
 
 
-DIBUJAR = {"testigo": testigo, "ghoul": ghoul, "hechicero": hechicero, "peregrino": peregrino}
+# --------------------------------------------------------------------------
+# SEGADOR DE HILOS — Piso III: cazador delgado y veloz. Piel de tendón seco,
+# sin ojos, una costura vertical por boca y haces de hilo rojo en los brazos.
+# --------------------------------------------------------------------------
+TENDON = c("#8d8173")
+TENDON_SOMBRA = c("#5f554c")
+TENDON_LUZ = c("#b4a796")
+HILO = c("#b3262f")
+HILO_VIVO = c("#ff4a4f")
+CARNE = c("#3a2326")
+COSTURA = c("#1c0f12")
+
+
+def segador(direccion: int, frame: int) -> Image.Image:
+    l = Lienzo()
+    correr = 2 <= frame <= 5
+    paso = [0, 1, 0, -1][(frame - 2) % 4] if correr else 0
+    resp = 0 if correr or frame >= 6 else frame % 2
+    tensa = frame == 6
+    enganchado = frame == 7
+    cx = 24
+    incl = 2 if (correr or enganchado) else 0  # se inclina hacia delante al cazar
+    hombro = 22 + resp + incl
+    cadera = 42
+    if direccion in (0, 1):
+        # Piernas larguísimas, articuladas hacia atrás.
+        for lado, fase in ((-1, paso), (1, -paso)):
+            x = cx + lado * 4
+            rodilla = cadera + 9
+            fin = PIE - max(0, fase) * 2
+            l.linea([(x, cadera), (x + lado * 2, rodilla), (x, fin)], TENDON if lado < 0 else TENDON_SOMBRA, 2)
+            l.rect(x - 2, fin - 1, x + 2, fin, CARNE)
+        # Torso estrecho de costillas marcadas.
+        l.poly([(cx - 6, hombro), (cx + 6, hombro), (cx + 4, cadera), (cx - 4, cadera)], TENDON)
+        l.poly([(cx + 1, hombro), (cx + 6, hombro), (cx + 4, cadera), (cx + 1, cadera)], TENDON_SOMBRA)
+        if direccion == 0:
+            for i in range(4):
+                y = hombro + 4 + i * 4
+                l.linea([(cx - 4, y), (cx - 1, y + 1)], TENDON_SOMBRA)
+                l.linea([(cx + 1, y + 1), (cx + 3, y)], CARNE)
+            l.linea([(cx, hombro + 2), (cx, cadera - 2)], HILO)
+        else:
+            # Espina dorsal saliente.
+            for i in range(6):
+                l.px(cx, hombro + 2 + i * 3, TENDON_LUZ)
+        # Brazos: muy largos; tensan hacia atrás o se lanzan hacia delante.
+        for lado in (-1, 1):
+            x = cx + lado * 7
+            if tensa:
+                mano = (cx + lado * 16, hombro - 4)
+            elif enganchado:
+                mano = (cx + lado * 5, cadera + 12)
+            else:
+                mano = (cx + lado * 9 + paso * lado, cadera + 8)
+            l.linea([(x, hombro + 1), mano], TENDON_LUZ if lado < 0 else TENDON, 2)
+            l.linea([(x, hombro + 4), (mano[0], mano[1] + 1)], HILO)
+            l.rect(mano[0] - 1, mano[1] - 1, mano[0] + 1, mano[1] + 1, CARNE)
+            if not (tensa or enganchado):
+                for k in (-1, 0, 1):  # garras
+                    l.px(mano[0] + k, mano[1] + 2, COSTURA)
+            if tensa or enganchado:
+                # Hilos que salen de las muñecas.
+                fin = (mano[0] + lado * 6, mano[1] - 8) if tensa else (mano[0], PIE)
+                l.linea([mano, fin], HILO_VIVO)
+        # Paño desgarrado en la cadera, con tiras colgando.
+        l.rect(cx - 5, cadera - 3, cx + 5, cadera + 1, CARNE)
+        for i, x in enumerate((cx - 4, cx - 1, cx + 2, cx + 4)):
+            l.linea([(x, cadera + 1), (x + (i % 2), cadera + 4 + (i * 3) % 5)], CARNE)
+        # Garfios de hueso en los hombros, con hilo enrollado.
+        for lado in (-1, 1):
+            base = cx + lado * 6
+            l.poly([(base - lado, hombro), (base + lado * 2, hombro), (base + lado * 5, hombro - 7), (base + lado * 3, hombro - 6)], TENDON_LUZ)
+            l.px(base + lado * 5, hombro - 8, HILO_VIVO if (tensa or enganchado) else HILO)
+        # Cabeza alargada, sin ojos, con una costura por boca.
+        cab = hombro - 13
+        l.elipse(cx - 5, cab, cx + 5, cab + 14, TENDON)
+        l.elipse(cx + 1, cab + 1, cx + 5, cab + 13, TENDON_SOMBRA)
+        if direccion == 0:
+            l.linea([(cx, cab + 4), (cx, cab + 12)], COSTURA)
+            for y in (cab + 6, cab + 9):
+                l.linea([(cx - 1, y), (cx + 1, y)], HILO)
+            l.px(cx - 3, cab + 5, CARNE)
+            l.px(cx + 3, cab + 5, CARNE)
+            # Sangre seca que gotea de la costura hasta el pecho.
+            l.linea([(cx - 1, cab + 13), (cx - 1, hombro + 6)], HILO)
+            l.px(cx - 2, hombro + 7, HILO)
+        else:
+            l.linea([(cx - 3, cab + 3), (cx + 2, cab + 11)], HILO)
+    else:
+        # Perfil derecho: casi a cuatro patas cuando corre.
+        for fase, col in ((paso, TENDON_SOMBRA), (-paso, TENDON)):
+            x = cx - 2 + fase * 4
+            l.linea([(cx - 1, cadera), (cx - 5 + fase, cadera + 9), (x, PIE)], col, 2)
+            l.rect(x - 1, PIE - 1, x + 3, PIE, CARNE)
+        l.poly([(cx - 4, hombro + 1), (cx + 5, hombro), (cx + 3, cadera), (cx - 3, cadera)], TENDON)
+        l.poly([(cx - 4, hombro + 1), (cx - 1, hombro + 1), (cx - 1, cadera), (cx - 3, cadera)], TENDON_SOMBRA)
+        for i in range(5):
+            l.px(cx - 4, hombro + 3 + i * 3, TENDON_LUZ)
+        l.rect(cx - 4, cadera - 3, cx + 4, cadera + 1, CARNE)
+        l.linea([(cx - 3, cadera + 1), (cx - 4, cadera + 5)], CARNE)
+        l.poly([(cx - 4, hombro + 1), (cx - 2, hombro), (cx - 6, hombro - 7), (cx - 7, hombro - 5)], TENDON_LUZ)
+        l.px(cx - 7, hombro - 8, HILO_VIVO if (tensa or enganchado) else HILO)
+        if tensa:
+            mano = (cx - 10, hombro - 2)
+        elif enganchado:
+            mano = (cx + 18, hombro + 8)
+        else:
+            mano = (cx + 10 + paso * 2, cadera + 6)
+        l.linea([(cx + 2, hombro + 2), mano], TENDON_LUZ, 2)
+        l.linea([(cx + 2, hombro + 5), (mano[0], mano[1] + 1)], HILO)
+        l.rect(mano[0] - 1, mano[1] - 1, mano[0] + 1, mano[1] + 1, CARNE)
+        if tensa:
+            l.linea([mano, (mano[0] - 6, mano[1] - 6)], HILO_VIVO)
+        elif enganchado:
+            l.linea([mano, (CW - 1, mano[1])], HILO_VIVO)
+        cab = hombro - 12
+        l.elipse(cx - 2, cab, cx + 9, cab + 11, TENDON)
+        l.linea([(cx + 5, cab + 6), (cx + 9, cab + 7)], COSTURA)
+        l.px(cx + 7, cab + 8, HILO)
+        l.linea([(cx + 7, cab + 9), (cx + 6, hombro + 4)], HILO)
+    return l.contorno()
+
+
+DIBUJAR = {"testigo": testigo, "ghoul": ghoul, "hechicero": hechicero, "peregrino": peregrino, "segador": segador}
 
 
 def hoja(nombre: str) -> Image.Image:

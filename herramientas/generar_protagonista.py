@@ -2,7 +2,9 @@
 """Genera la hoja ORIGINAL del protagonista en vista cenital 3/4.
 
 Misma disposición que usa scripts/main.gd (no cambia el código de animación):
-  assets/visual/protagonist_sheet.png  360 x 224, celdas de 40 x 56, pies en y = 50
+  assets/visual/protagonist_sheet.png    (masculino) 360 x 224, celdas de 40 x 56, pies en y = 50
+  assets/visual/protagonist_sheet_f.png  (femenino, misma disposición: pelo largo,
+                                          hombros más estrechos y abrigo más largo)
   Filas: 0 frente, 1 espalda, 2 derecha, 3 izquierda (espejo).
   Columnas: 0-1 reposo (respira), 2-5 caminar, 6 interactuar, 7 daño, 8 muerte.
 
@@ -22,6 +24,8 @@ from PIL import Image, ImageDraw
 
 RAIZ = Path(__file__).resolve().parent.parent
 SALIDA = RAIZ / "assets" / "visual" / "protagonist_sheet.png"
+SALIDA_F = RAIZ / "assets" / "visual" / "protagonist_sheet_f.png"
+FEM = False  # variante femenina; la activa hoja(femenino=True)
 CW, CH = 40, 56
 PIE = 50
 
@@ -41,6 +45,7 @@ CALZADO = c("#1B1D23")
 LATON, LATON_LUZ = c("#B5A986"), c("#DCD2AE")
 CUERO, CUERO_LUZ = c("#433A3B"), c("#5E5051")
 OJO, OJO_BRILLO = c("#1A1418"), c("#F4EBDD")
+PELO_LARGO, PELO_LARGO_LUZ = c("#2A1E22"), c("#43323A")  # castaño casi negro (variante femenina)
 
 
 class L:
@@ -97,6 +102,10 @@ def piernas(l: L, cx: int, paso: int, lateral: bool) -> None:
 
 def cuerpo_frente(l: L, cx: int, resp: int, brazo_izq: int, brazo_der: int, espalda: bool) -> None:
     top = 23 + resp
+    if FEM:
+        # Faldón del abrigo más largo y abierto en campana.
+        l.p([(cx - 9, 38), (cx + 9, 38), (cx + 11, 44), (cx - 11, 44)], ABRIGO_SOMBRA)
+        l.r(cx - 11, 44, cx + 11, 44, ABRIGO_COSTURA)
     # Abrigo: trapecio, hombros anchos iluminados desde arriba.
     l.p([(cx - 10, top + 2), (cx + 10, top + 2), (cx + 9, 42), (cx - 9, 42)], ABRIGO)
     l.p([(cx + 3, top + 2), (cx + 10, top + 2), (cx + 9, 42), (cx + 4, 42)], ABRIGO_SOMBRA)
@@ -170,6 +179,14 @@ def cabeza_frente(l: L, cx: int, resp: int, ojos: str) -> None:
             l.r(x, top + 15, x + 1, top + 15, OJO)
     l.px(cx - 1, top + 17, PIEL_SOMBRA)  # nariz
     l.r(cx - 2, top + 19, cx, top + 19, PIEL_SOMBRA)  # boca
+    if FEM:
+        # Melena larga que cae por delante de los hombros, con mechones.
+        for x0 in (cx - 10, cx + 7):
+            l.r(x0, top + 8, x0 + 3, top + 27, PELO_LARGO)
+            l.ln([(x0 + 1, top + 10), (x0 + 1, top + 25)], PELO_LARGO_LUZ)
+            l.px(x0 + (0 if x0 < cx else 3), top + 28, PELO_LARGO)
+        l.r(cx - 4, top + 14, cx - 3, top + 14, OJO)  # pestañas
+        l.r(cx + 2, top + 14, cx + 3, top + 14, OJO)
 
 
 def cabeza_espalda(l: L, cx: int, resp: int) -> None:
@@ -187,6 +204,14 @@ def cabeza_espalda(l: L, cx: int, resp: int) -> None:
         l.r(x, top + 18, x + 1, top + 19, PELO)
     l.r(cx - 9, top + 13, cx - 8, top + 15, PIEL_SOMBRA)
     l.r(cx + 8, top + 13, cx + 9, top + 15, PIEL_SOMBRA)
+    if FEM:
+        # Melena hasta media espalda, terminada en puntas.
+        l.p([(cx - 10, top + 9), (cx + 10, top + 9), (cx + 9, top + 30), (cx - 9, top + 30)], PELO_LARGO)
+        for x in (cx - 8, cx - 4, cx, cx + 4, cx + 7):
+            l.r(x, top + 30, x + 1, top + 31, PELO_LARGO)
+        for x in (cx - 6, cx - 1, cx + 4):
+            l.ln([(x, top + 12), (x + 1, top + 28)], PELO_LARGO_LUZ)
+        l.e(cx - 6, top + 2, cx + 4, top + 8, PELO_LUZ)
 
 
 def lateral(l: L, f: int, cx: int, resp: int, paso: int, brazo: int, ojos: str, cola: int, interactua: bool) -> None:
@@ -214,6 +239,10 @@ def lateral(l: L, f: int, cx: int, resp: int, paso: int, brazo: int, ojos: str, 
         l.r(cx - 2 + brazo, top + 15, cx + 2 + brazo, top + 17, PIEL)
     # Cabeza de perfil, mirando a la derecha.
     hy = 3 + resp
+    if FEM:
+        # Melena hacia atrás, sobre la espalda.
+        l.p([(cx - 9, hy + 8), (cx - 1, hy + 8), (cx - 3, hy + 29), (cx - 10 - cola, hy + 28)], PELO_LARGO)
+        l.ln([(cx - 5, hy + 10), (cx - 7 - cola, hy + 26)], PELO_LARGO_LUZ)
     l.e(cx - 8, hy, cx + 8, hy + 18, PELO)
     l.p([(cx - 1, hy + 9), (cx + 8, hy + 9), (cx + 8, hy + 18), (cx + 2, hy + 21), (cx - 1, hy + 18)], PIEL)
     l.px(cx + 9, hy + 15, PIEL)  # nariz
@@ -281,7 +310,9 @@ def muerte(direccion: int) -> Image.Image:
     return lienzo
 
 
-def hoja() -> Image.Image:
+def hoja(femenino: bool = False) -> Image.Image:
+    global FEM
+    FEM = femenino
     sheet = Image.new("RGBA", (CW * 9, CH * 4), (0, 0, 0, 0))
     for fila, direccion in enumerate((0, 1, 2, 2)):
         for col in range(9):
@@ -289,6 +320,7 @@ def hoja() -> Image.Image:
             if fila == 3:
                 celda = celda.transpose(Image.FLIP_LEFT_RIGHT)
             sheet.paste(celda, (col * CW, fila * CH))
+    FEM = False
     return sheet
 
 
@@ -299,9 +331,13 @@ def main() -> None:
     s = hoja()
     s.save(SALIDA, optimize=True)
     print(f"{SALIDA.relative_to(RAIZ)}: {s.width}x{s.height}")
+    f = hoja(femenino=True)
+    f.save(SALIDA_F, optimize=True)
+    print(f"{SALIDA_F.relative_to(RAIZ)}: {f.width}x{f.height}")
     if args.vista_previa:
-        fondo = Image.new("RGBA", s.size, (38, 58, 48, 255))
+        fondo = Image.new("RGBA", (s.width, s.height * 2), (38, 58, 48, 255))
         fondo.alpha_composite(s)
+        fondo.alpha_composite(f, (0, s.height))
         fondo.resize((s.width * 3, s.height * 3), Image.NEAREST).save(args.vista_previa)
 
 

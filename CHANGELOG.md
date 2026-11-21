@@ -1,5 +1,27 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Personaje propio, muerte sin pérdida y Piso III
+
+**Creación del personaje**
+- Al explorar por primera vez: **nombre** (teclado físico o letras en pantalla, hasta 12 caracteres, con Ñ y tildes; botón «al azar») y luego **género** (masculino o femenino) con vista previa animada y retrato.
+- Variante femenina original del sprite (`assets/visual/protagonist_sheet_f.png`: melena larga, hombros más estrechos, abrigo más largo) y de los retratos (`femenina.png`, `femenina_herida.png`). Las hojas masculinas no cambian.
+- El nombre sustituye a «MARK» en el HUD, el perfil, el menú y la pantalla de muerte. Se guarda con el progreso. En el menú, «CAMBIAR (C)» vuelve a la creación (conserva el progreso).
+
+**Muerte sin pérdida (temporal)**
+- Con `MUERTE_SIN_PERDIDA = true` (por defecto, mientras se prueban los pisos), morir te levanta en la entrada de la misma sala con la vida llena y todo lo que llevabas: almas, objetos, habilidades, Ecos, entidades desterradas y almas ya recogidas (no reaparecen). En `false` vuelve el 50 % retorno / absorción.
+- Ir al menú desde la pantalla de muerte y volver a explorar sigue empezando una partida nueva.
+
+**Piso III · La Cacería** (4 salas: Claustro del Encargo, Nave de los Hilos, Coro Desgarrado y Umbral del Cuarto Piso)
+- **Segador de Hilos** (sprite original, 4 direcciones): ronda rápido a media distancia; antes de atacar **tensa** una línea roja durante 0,9 s y dispara: lo que esté en la línea recibe 45 de daño (esquivar a tiempo lo evita). Atraviesa el sitio donde estabas y queda **enganchado** 1,6 s: solo entonces es vulnerable. Las columnas te cubren. Aturdirlo con Resonancia mientras tensa rompe el ataque.
+- En la Nave huye a media vida (conserva sus heridas); en el Coro hay que matarlo. La puerta no se abre mientras la presa viva.
+- **Tres aliados** (Odón, Bruna y Ciro) te siguen por el piso y reaccionan tarde a veces: si la línea los alcanza, mueren y dejan su cuerpo. Los que lleguen al Umbral te dan +6 almas cada uno y 3 fósforos.
+- **Eco Reflejos**: esquivar se recarga un 40 % antes.
+- Sonidos nuevos: hilos que se tensan y latigazo.
+- Valores provisionales (vida 140, daño, tiempos): ajustar tras probarlo.
+
+**Pruebas**: creación por toques (nombre y género), reaparición sin pérdida, y Piso III (aliados, puerta cerrada, inmunidad, línea que hiere a jugador y aliado, enganche, huida con heridas, recompensa y Reflejos).
+
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Inicio, configuración, intro, tutorial y pausa
 
 - **Pantalla de inicio** al abrir el juego: «Haz clic para continuar» (o toca), con el engranaje de **Configuración** abajo a la izquierda. Al volver de la Vigilia se va directo al menú.

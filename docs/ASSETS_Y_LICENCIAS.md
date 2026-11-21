@@ -24,7 +24,7 @@ Los recursos integrados forman parte del proyecto jugable; no deben extraerse y 
 
 ## Protagonista y otros contenidos
 
-- **Protagonista, entidades e iconos:** arte original del proyecto, generado por `herramientas/generar_protagonista.py`, `herramientas/generar_enemigos.py`, `herramientas/generar_iconos.py`, `herramientas/generar_cuerpos.py` (cuerpos bajo las almas), `herramientas/generar_retrato.py` (retrato de Mark) y `herramientas/generar_decorados.py` (decorados de las salas).
+- **Protagonista (variantes masculina y femenina), entidades (incluido el Segador de Hilos) e iconos:** arte original del proyecto, generado por `herramientas/generar_protagonista.py`, `herramientas/generar_enemigos.py`, `herramientas/generar_iconos.py`, `herramientas/generar_cuerpos.py` (cuerpos bajo las almas), `herramientas/generar_retrato.py` (retratos masculino y femenino) y `herramientas/generar_decorados.py` (decorados de las salas).
 - **Tipografía:** Pixelify Sans, © The Pixelify Sans Project Authors, bajo la SIL Open Font License 1.1 (texto completo en `assets/fonts/OFL_PixelifySans.txt`). Fuente: repositorio google/fonts. Mark todavía no está integrado como personaje con nombre.
 - **Audio:** música y efectos de `audio/` son originales, sintetizados por `herramientas/generar_audio.py` (sin muestras de terceros). El código y el audio no comparten necesariamente la licencia del arte de terceros.
 - No se declara que el proyecto completo sea CC0, MIT u otra licencia general: el titular decidirá más adelante la licencia de su código y contenido propio.

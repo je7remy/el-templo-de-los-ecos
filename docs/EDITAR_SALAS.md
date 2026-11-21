@@ -33,7 +33,7 @@ godot --headless --path . --script res://tests/smoke_test.gd
 Comprueba también a mano que las reliquias, la puerta y los objetos interactivos siguen siendo alcanzables.
 
 ## Pisos
-Los pisos se declaran en `FLOORS`, al principio de `scripts/main.gd`. Cada sala indica qué escena usa (`scene`: el número de `rooms/sala_N.tscn`), su nombre, su susurro, su entidad (`enemy`), sus rasgos (`traits`: `tutorial`, `altar`, `sello`, `archivo`, `almas`, `peregrino`, `cosecha`) y sus objetos (`items`). Una misma escena se puede reutilizar en varios pisos: el desgaste (`wear`) añade grietas, cascotes y un tono más apagado. El código consulta rasgos, nunca números de sala, así que un piso nuevo es, sobre todo, una entrada de datos más. El diseño de los diez pisos está en el documento del proyecto «DISEÑO DE 10 PISOS».
+Los pisos se declaran en `FLOORS`, al principio de `scripts/main.gd`. Cada sala indica qué escena usa (`scene`: el número de `rooms/sala_N.tscn`), su nombre, su susurro, su entidad (`enemy`), sus rasgos (`traits`: `tutorial`, `altar`, `sello`, `archivo`, `almas`, `peregrino`, `cosecha`, `aliados`, `caza`, `huida`, `recuento`) y sus objetos (`items`). Una misma escena se puede reutilizar en varios pisos: el desgaste (`wear`) añade grietas, cascotes y un tono más apagado. El código consulta rasgos, nunca números de sala, así que un piso nuevo es, sobre todo, una entrada de datos más. El diseño de los diez pisos está en el documento del proyecto «DISEÑO DE 10 PISOS».
 
 ## Regenerar desde las composiciones originales
 Solo si quieres empezar de cero (**sobrescribe las escenas y se pierden los cambios hechos a mano**):

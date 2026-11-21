@@ -198,6 +198,64 @@ func _run_checks() -> void:
         _fail("El Peregrino no cae ni suelta sus almas.")
         return
     print("OK: pisos, Eco, Peregrino y Cosecha.")
+
+    # Piso III: la Cacería. Aliados, línea del Segador, enganche y huida.
+    game.set("current_floor", 2)
+    game.set("current_room", 0)
+    game.call("_on_floor_start")
+    game.call("_enter_room")
+    if int(game.call("_allies_alive")) != 3:
+        _fail("Los tres aliados del Piso III no aparecen.")
+        return
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    if bool(game.call("_room_ready")):
+        _fail("La puerta de la Cacería se abre con la presa viva.")
+        return
+    game.call("_damage_enemy", 10.0)
+    if float(game.get("enemy_hp")) < float(game.get("enemy_max")):
+        _fail("El Segador recibe daño mientras acecha.")
+        return
+    # Tensa los hilos hacia el jugador con un aliado justo detrás.
+    game.set("enemy_pos", Vector2(600, 360))
+    game.set("player_pos", Vector2(300, 360))
+    var ally0: Dictionary = (game.get("allies") as Array)[0]
+    ally0["pos"] = Vector2(250, 360)
+    game.set("seg_cd", 0.0)
+    game.set("damage_cd", 0.0)
+    var hp_line: float = float(game.get("hp"))
+    game.call("_update_segador", 1.0 / 60.0)
+    if game.get("seg_state") != "tensa":
+        _fail("El Segador no tensa sus hilos.")
+        return
+    for k in range(70):
+        ally0["react"] = 9.0 # este aliado no reacciona a tiempo
+        game.call("_update_segador", 1.0 / 60.0)
+    if game.get("seg_state") != "engancha" or float(game.get("hp")) >= hp_line or bool(ally0["alive"]):
+        _fail("El disparo del hilo no hiere a quien está en la línea.")
+        return
+    game.set("enemy_hp", float(game.get("enemy_max")) * 0.5 + 5.0)
+    game.call("_damage_enemy", 10.0)
+    if bool(game.call("_enemy_active")) or not bool(game.call("_room_ready")):
+        _fail("A media vida el Segador no huye ni abre la puerta.")
+        return
+    game.set("current_room", 2)
+    game.call("_enter_room")
+    if float(game.get("enemy_hp")) > float(game.get("enemy_max")) * 0.5:
+        _fail("El Segador no conserva sus heridas en la sala siguiente.")
+        return
+    game.set("current_room", 3)
+    game.call("_enter_room")
+    if int(game.get("souls")) <= 0:
+        _fail("Sobrevivir con aliados no da recompensa.")
+        return
+    var eco_before: Array = (game.get("ecos") as Array).duplicate()
+    (game.get("ecos") as Array).append("reflejos")
+    if float(game.call("_dash_cooldown")) >= 2.65:
+        _fail("El Eco Reflejos no acorta la recarga de esquivar.")
+        return
+    game.set("ecos", eco_before)
+    print("OK: Piso III, Segador de Hilos, aliados y Reflejos.")
     game.set("current_floor", 0)
 
     game.set("current_room", 2)
@@ -217,11 +275,27 @@ func _run_checks() -> void:
         _fail("Las almas no se recogen por contacto.")
         return
 
+    # Muerte: con MUERTE_SIN_PERDIDA se reaparece en la misma sala con todo;
+    # sin ella, retorno o absorción al 50 %.
+    var souls_at_death: int = int(game.get("souls"))
+    var floor_at_death: int = int(game.get("current_floor"))
+    var room_at_death: int = int(game.get("current_room"))
     game.call("_lose_run")
     if game.get("game_mode") != "dead":
         _fail("La derrota no cambia el estado de juego.")
         return
-    if not (game.get("soul_fate") in ["retorno", "absorcion"]):
+    if bool(game.get("MUERTE_SIN_PERDIDA")):
+        if game.get("soul_fate") != "persistencia":
+            _fail("La muerte sin pérdida no se registra.")
+            return
+        game.call("_after_end")
+        if game.get("game_mode") != "play" or int(game.get("souls")) != souls_at_death \
+                or int(game.get("current_floor")) != floor_at_death or int(game.get("current_room")) != room_at_death \
+                or not bool((game.get("collected") as Array)[1]) or float(game.get("hp")) < float(game.get("max_hp")):
+            _fail("Al reaparecer se perdió progreso (almas, sala o almas recogidas).")
+            return
+        print("OK: la muerte no cuesta progreso (modo de pruebas).")
+    elif not (game.get("soul_fate") in ["retorno", "absorcion"]):
         _fail("Resultado de muerte invalido.")
         return
     print("OK: almas recogidas por contacto.")

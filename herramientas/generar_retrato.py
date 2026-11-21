@@ -8,6 +8,10 @@ bufanda granate y correa de latón. Dos variantes:
   assets/visual/retratos/mark.png         normal
   assets/visual/retratos/mark_herido.png  con sangre y la mirada perdida
                                           (se muestra con poca vida)
+  assets/visual/retratos/femenina.png y femenina_herida.png
+                                          variante femenina (melena larga,
+                                          rasgos más finos), para el personaje
+                                          creado con género femenino
 
 Uso:  python3 herramientas/generar_retrato.py [--vista-previa RUTA.png]
 """
@@ -36,6 +40,8 @@ PIEL, PIEL_SOMBRA, PIEL_LUZ = c("#C59C81"), c("#906A57"), c("#E1B592")
 LATON, LATON_LUZ = c("#B5A986"), c("#DCD2AE")
 OJO, OJO_BRILLO = c("#1A1418"), c("#F4EBDD")
 OJERA = c("#7a5a50")
+PELO_LARGO, PELO_LARGO_LUZ = c("#2A1E22"), c("#43323A")
+LABIO = c("#8a4a4c")
 SANGRE, SANGRE_VIVA, SANGRE_SECA = c("#8a1620"), c("#c23a40"), c("#5e1117")
 
 
@@ -55,7 +61,7 @@ def contorno(img: Image.Image) -> Image.Image:
     return out
 
 
-def retrato(herido: bool) -> Image.Image:
+def retrato(herido: bool, fem: bool = False) -> Image.Image:
     img = Image.new("RGBA", (T, T), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     # Hombros y abrigo (cortados por el borde inferior).
@@ -71,10 +77,19 @@ def retrato(herido: bool) -> Image.Image:
     d.polygon([(20, 40), (44, 40), (44, 42), (20, 42)], fill=GRANATE_LUZ)
     d.polygon([(38, 46), (46, 46), (50, 58), (43, 57)], fill=GRANATE_SOMBRA)
     d.line([(24, 44), (40, 44)], fill=GRANATE_SOMBRA)
+    if fem:
+        # Melena larga por detrás de la cara, cayendo sobre los hombros.
+        d.polygon([(16, 12), (48, 12), (52, 40), (50, 58), (42, 56), (40, 40), (24, 40), (22, 56), (13, 58), (12, 38)], fill=PELO_LARGO)
+        for x0, x1 in ((15, 16), (19, 18), (45, 47), (49, 50)):
+            d.line([(x0, 22), (x1, 54)], fill=PELO_LARGO_LUZ)
     # Cuello y cara (tres cuartos, mirando a la izquierda del encuadre).
     d.rectangle([27, 33, 37, 40], fill=PIEL_SOMBRA)
-    d.ellipse([19, 11, 45, 40], fill=PIEL)
-    d.ellipse([33, 13, 45, 39], fill=PIEL_SOMBRA)
+    if fem:
+        d.ellipse([20, 11, 44, 39], fill=PIEL)
+        d.ellipse([33, 13, 44, 38], fill=PIEL_SOMBRA)
+    else:
+        d.ellipse([19, 11, 45, 40], fill=PIEL)
+        d.ellipse([33, 13, 45, 39], fill=PIEL_SOMBRA)
     d.ellipse([21, 14, 30, 22], fill=PIEL_LUZ)  # frente iluminada desde arriba
     # Oreja.
     d.ellipse([41, 22, 47, 30], fill=PIEL_SOMBRA)
@@ -98,6 +113,14 @@ def retrato(herido: bool) -> Image.Image:
     d.line([(30, 25), (29, 30)], fill=PIEL_SOMBRA)
     d.point((30, 31), fill=PIEL_SOMBRA)
     d.line([(27, 34), (32, 34)], fill=c("#7a4c44"))
+    if fem:
+        d.line([(28, 34), (31, 34)], fill=LABIO)
+        d.point((29, 35), fill=LABIO)
+        for ox in (24, 33):
+            d.line([(ox - 1, 23), (ox + 3, 23)], fill=OJO)  # pestañas
+        # Mechones que enmarcan la cara.
+        d.polygon([(17, 14), (22, 12), (21, 30), (18, 34)], fill=PELO_LARGO)
+        d.polygon([(44, 14), (48, 18), (47, 34), (44, 28)], fill=PELO_LARGO)
     img = contorno(img)
     if herido:
         d = ImageDraw.Draw(img)
@@ -124,11 +147,14 @@ def main() -> None:
     a, b = retrato(False), retrato(True)
     a.save(SALIDA / "mark.png", optimize=True)
     b.save(SALIDA / "mark_herido.png", optimize=True)
+    fa, fb = retrato(False, True), retrato(True, True)
+    fa.save(SALIDA / "femenina.png", optimize=True)
+    fb.save(SALIDA / "femenina_herida.png", optimize=True)
     print(f"retratos en {SALIDA.relative_to(RAIZ)}")
     if args.vista_previa:
-        lam = Image.new("RGBA", (T * 2 + 12, T + 8), (25, 30, 38, 255))
-        lam.alpha_composite(a, (4, 4))
-        lam.alpha_composite(b, (T + 8, 4))
+        lam = Image.new("RGBA", (T * 4 + 20, T + 8), (25, 30, 38, 255))
+        for i, im in enumerate((a, b, fa, fb)):
+            lam.alpha_composite(im, (4 + i * (T + 4), 4))
         lam.resize((lam.width * 5, lam.height * 5), Image.NEAREST).save(args.vista_previa)
 
 

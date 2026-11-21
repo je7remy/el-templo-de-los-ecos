@@ -347,6 +347,19 @@ def eco_nuca() -> Image.Image:
     return i.fin()
 
 
+def eco_reflejos() -> Image.Image:
+    """Piso III: un hilo rojo cortado y la silueta que lo esquiva con estela."""
+    i = Icono()
+    i.ln([(3, 26), (13, 17)], c("#c23a40"), 2)
+    i.ln([(19, 12), (29, 4)], c("#c23a40"), 2)
+    for k, col in enumerate((c("#2f474e"), c("#5f8a96"), c("#d8f2f7"))):
+        x = 6 + k * 8
+        i.e(x + 1, 7, x + 5, 11, col)
+        i.p([(x, 13), (x + 6, 13), (x + 7, 20), (x + 4, 20), (x + 6, 25), (x + 3, 25), (x + 2, 21), (x - 1, 24), (x - 2, 22), (x + 1, 19)], col)
+    i.ln([(5, 28), (27, 28)], c("#e3bd7b"), 1)
+    return i.fin()
+
+
 def calavera() -> Image.Image:
     i = Icono()
     i.e(6, 3, 26, 22, c("#e2dccb"))
@@ -382,7 +395,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "calavera": calavera, "engranaje": engranaje,
 }
 
 
