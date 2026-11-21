@@ -267,44 +267,6 @@ def limpiar(indice: int, fuente_visual: Path) -> str:
     return texto
 
 
-# Vigilia del Claustro: la sala II sin los objetos que ocupan la cámara
-# defendida (columna, estatua central y estatua del arquero).
-VIGILIA_BORRAR = [(326, 274, 64, 152), (588, 280, 82, 112), (456, 168, 64, 120)]
-
-
-def generar_vigilia(fuente_visual: Path) -> None:
-    original = np.array(Image.open(ORIGINALES / "room_1.png").convert("RGBA"))
-    img = np.array(Image.open(VISUALES / "room_1.png").convert("RGBA")).astype(float)
-    zona = np.zeros(original.shape[:2], dtype=bool)
-    zona[ARENA_Y[0]:ARENA_Y[1], ARENA_X[0]:ARENA_X[1]] = True
-    suelo = mascara_suelo(original) & zona & (original[..., 3] == 255)
-    borrar = np.zeros_like(suelo)
-    for x, y, w, h in VIGILIA_BORRAR:
-        borrar[y:y + h, x:x + w] = True
-    fuente = suelo & ~borrar
-    copia = img.copy()
-    pendientes = np.zeros_like(suelo)
-    for y, x in zip(*np.nonzero(borrar)):
-        for dy, dx in DESPLAZAMIENTOS:
-            yy, xx = y + dy, x + dx
-            if 0 <= yy < fuente.shape[0] and 0 <= xx < fuente.shape[1] and fuente[yy, xx]:
-                img[y, x] = copia[yy, xx]
-                break
-        else:
-            pendientes[y, x] = True
-    rellenar_por_vecinos(img, pendientes)
-    # Restos tenues de guías en las filas copiadas: mediana local solo dentro
-    # de las zonas borradas.
-    luz = img[..., :3].sum(2)
-    for y, x in zip(*np.nonzero(borrar)):
-        ventana = img[max(0, y - 3):y + 4, x - 1:x + 2, :3].reshape(-1, 3)
-        mediana = np.median(ventana, axis=0)
-        if abs(luz[y, x] - mediana.sum()) > 18:
-            img[y, x, :3] = mediana
-    img[..., 3] = 255
-    Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).save(VISUALES / "vigilia.png", optimize=True)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Repara los fondos visuales de las salas.")
     parser.add_argument("--fuente-visual", type=Path, required=True,
@@ -312,8 +274,7 @@ def main() -> None:
     args = parser.parse_args()
     for i in range(5):
         print(limpiar(i, args.fuente_visual))
-    generar_vigilia(args.fuente_visual)
-    print("vigilia.png generado")
+
 
 
 if __name__ == "__main__":

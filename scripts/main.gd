@@ -179,6 +179,7 @@ func _ready() -> void:
     randomize()
     _load_progress()
     _load_art()
+    _load_room_scene() # sala 1 como fondo del menú
     # No iniciar AudioServer en tests sin pantalla: no hay salida de sonido.
     # En juego normal mantener audio ambiental y efectos completos.
     var audio_available: bool = DisplayServer.get_name() != "headless"
@@ -739,9 +740,14 @@ func _update_enemy(dt: float) -> void:
 
 
 func _draw() -> void:
-    # En partida el fondo lo pone la escena de la sala (está por debajo).
-    if room_node == null or game_mode == "title":
+    # El fondo lo pone la escena de la sala (está por debajo).
+    if room_node == null:
         draw_rect(Rect2(0, 0, W, H), BG)
+    elif game_mode == "title":
+        # En el menú se ve la sala completa, con sus objetos, detrás del panel.
+        var objetos: Node = room_node.get_node_or_null("Objetos")
+        if objetos != null:
+            (objetos as CanvasItem).visible = true
     _draw_background()
     if game_mode == "title":
         _draw_title()
@@ -765,7 +771,6 @@ func _draw_background() -> void:
         var px: float = float(i * 73 + 19)
         var py: float = 54.0 + sin(float(i) * 1.67) * 24.0
         draw_circle(Vector2(px, py), 1.0 + float(i % 3), Color(0.50, 0.64, 0.72, 0.20))
-    draw_line(Vector2(35, 105), Vector2(925, 105), Color("#394352"), 1.0)
 
 
 func _draw_room() -> void:
@@ -806,7 +811,7 @@ func _draw_prop_shadows() -> void:
             var flicker: float = 0.5 + 0.5 * sin(elapsed * 7.0 + rect.position.x) * sin(elapsed * 2.3)
             var c := Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.35)
             for r in range(4, 0, -1):
-                draw_circle(c, 14.0 + float(r) * 13.0, Color(1.0, 0.78, 0.40, 0.022 + 0.01 * flicker))
+                draw_circle(c, 10.0 + float(r) * 7.0, Color(1.0, 0.78, 0.40, 0.03 + 0.012 * flicker))
 
 
 ## [VISUAL UPGRADE] Ordenación por profundidad: objetos de la sala, personajes,
@@ -1215,7 +1220,7 @@ func _draw_toast() -> void:
 
 func _draw_title() -> void:
     ## [VISUAL UPGRADE] Panel ceremonial: temple still visible behind the title.
-    draw_texture_rect(art["visual_room_0"], Rect2(0, 0, W, H), false)
+    # La sala actual (escena) queda detrás; solo se oscurece.
     draw_rect(Rect2(0, 0, W, H), Color(0.018, 0.027, 0.032, 0.60))
     draw_rect(Rect2(149, 166, 662, 386), Color(0.055, 0.076, 0.086, 0.94))
     draw_rect(Rect2(149, 166, 662, 386), Color("#8d7957"), false, 2.0)

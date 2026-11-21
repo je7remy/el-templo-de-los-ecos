@@ -1,5 +1,11 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-20 · Marco de las salas
+
+- Marco de la sala rehecho y simétrico: muros completos que cierran en las cuatro esquinas con pilares de piedra, muro derecho igual al izquierdo, muro inferior que ya no sobresale, remate de piedra sobre el muro superior y sombra de los muros sobre el suelo.
+- Eliminados la franja de suelo exterior con su línea gris, el filo suelto bajo el muro superior y los cuatro nichos con arco del muro superior.
+- El menú y Vigilia usan el mismo marco (el menú muestra la escena de la sala; `vigilia.png` se genera ahora con `construir_salas.py`).
+
 ## En `main` (sin nuevo release) — 2026-11-20 · Salas editables, entidades originales y Vigilia
 
 **Salas editables en Godot**

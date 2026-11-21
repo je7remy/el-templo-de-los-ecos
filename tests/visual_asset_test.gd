@@ -58,8 +58,8 @@ func _check() -> void:
             room.free()
             return
         var props: Node = room.get_node_or_null("Objetos")
-        if props == null or props.get_child_count() < 8:
-            _fail("La sala %d perdió sus objetos (columnas, estatuas, arcos)." % i)
+        if props == null or props.get_child_count() < 6:
+            _fail("La sala %d perdió sus objetos (columnas, estatuas, braseros)." % i)
             room.free()
             return
         for marker in required_markers + room_markers[i]:
