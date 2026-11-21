@@ -71,6 +71,25 @@ func _check() -> void:
             _fail("La sala %d no tiene colisiones." % i)
             room.free()
             return
+        # Todo objeto es sólido: tiene su colisión o lo cubre una colisión de grupo.
+        var sueltas: Array = []
+        var grupo: Node = room.get_node_or_null("Colisiones")
+        if grupo != null:
+            for forma in grupo.get_children():
+                var r := (forma as CollisionShape2D).shape as RectangleShape2D
+                sueltas.append(Rect2((forma as Node2D).position - r.size * 0.5, r.size))
+        for sprite in props.get_children():
+            if sprite.get_node_or_null("Colision") != null:
+                continue
+            var base: Vector2 = (sprite as Node2D).position + Vector2(0.0, -4.0)
+            var cubierto := false
+            for r in sueltas:
+                if (r as Rect2).grow(15.5).has_point(base): # mismo margen que _is_blocked
+                    cubierto = true
+            if not cubierto:
+                _fail("El objeto %s de la sala %d se puede atravesar." % [sprite.name, i])
+                room.free()
+                return
         room.free()
     var book_sheet: Texture2D = assets.get("knowledge_book_sheet")
     if book_sheet == null or book_sheet.get_width() != 8640 or book_sheet.get_height() != 64:

@@ -161,6 +161,9 @@ var new_humans: int = 0
 var reincarnations: int = 0
 var art: Dictionary = {}
 var visual_interaction_left: float = 0.0
+## Solo visual: polvo a los pies al chocar con un objeto sólido.
+var bump_left: float = 0.0
+var bump_at: Vector2 = Vector2.ZERO
 var mobile_axis: Vector2 = Vector2.ZERO
 var mobile_finger: int = -1
 var touch_enabled: bool = false
@@ -620,6 +623,14 @@ func _controls_axis() -> Vector2:
     return (v + mobile_axis).limit_length(1.0)
 
 
+## Choca con un objeto de la sala (no con los muros): para el polvo del impacto.
+func _hits_obstacle(at: Vector2) -> bool:
+    for rect in obstacles:
+        if rect.grow(15.5).has_point(at):
+            return true
+    return false
+
+
 func _is_blocked(at: Vector2) -> bool:
     if at.x < 63.0 or at.x > 895.0 or at.y < 155.0 or at.y > 552.0:
         return true
@@ -633,6 +644,7 @@ func _process(delta: float) -> void:
     elapsed += delta
     toast_left = maxf(0.0, toast_left - delta)
     visual_interaction_left = maxf(0.0, visual_interaction_left - delta)
+    bump_left = maxf(0.0, bump_left - delta)
     if game_mode == "play":
         _update_play(delta)
         _track_enemy_visual(delta)
@@ -654,11 +666,16 @@ func _update_play(dt: float) -> void:
     var speed: float = 157.0 if dash_left <= 0.0 else 480.0
     if player_moving:
         var nx := Vector2(player_pos.x + move.x * speed * dt, player_pos.y)
+        var blocked_x: bool = absf(move.x) > 0.3 and _hits_obstacle(nx)
         if not _is_blocked(nx):
             player_pos.x = nx.x
         var ny := Vector2(player_pos.x, player_pos.y + move.y * speed * dt)
+        var blocked_y: bool = absf(move.y) > 0.3 and _hits_obstacle(ny)
         if not _is_blocked(ny):
             player_pos.y = ny.y
+        if (blocked_x or blocked_y) and bump_left <= 0.0:
+            bump_left = 0.35
+            bump_at = player_pos + Vector2(signf(move.x) * 10.0 if blocked_x else 0.0, 2.0)
 
     watcher_open = fmod(room_elapsed, 6.0) < 3.25
     if current_room in [1, 2, 3]:
@@ -1120,6 +1137,13 @@ func _draw_player() -> void:
         var location := Vector2(roundf(player_pos.x) - 20.0, roundf(player_pos.y) - 50.0)
         draw_ellipse_fake_shadow(player_pos)
         draw_texture_rect_region(art["visual_hero"], Rect2(location, Vector2(40.0, 56.0)), atlas)
+        if bump_left > 0.0:
+            # Polvo del choque a ambos lados de los pies: el objeto es sólido.
+            var t: float = 1.0 - bump_left / 0.35
+            for side in [-1.0, 1.0]:
+                for i in range(3):
+                    var p: Vector2 = bump_at + Vector2(side * (12.0 + t * 10.0 + float(i) * 4.0), -float(i) * 3.0 - t * 4.0)
+                    draw_circle(p, 3.0 - t * 1.6 - float(i) * 0.4, Color(0.84, 0.80, 0.66, 0.65 * (1.0 - t)))
         if ward_left > 0.0:
             draw_arc(player_pos, 27.0, 0.0, TAU, 40, SOUL, 2.0)
         if damage_cd > 0.0:
