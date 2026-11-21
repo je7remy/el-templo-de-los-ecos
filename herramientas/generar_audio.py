@@ -446,6 +446,24 @@ def sfx_cuchillo() -> np.ndarray:
     return normalizar(reverb_simple(tela + filo + roce, 1.0, 0.25, 6000), 0.65)
 
 
+def sfx_hilo() -> np.ndarray:
+    """El Segador tensa los hilos: cuerda que cruje y un tono que sube (0,9 s de aviso)."""
+    t = t_(0.95)
+    f = 180 + 520 * (t / t[-1]) ** 2
+    tono = saw(f, t) * 0.18 * np.minimum(1.0, t / 0.6)
+    cruje = paso_banda(rng.standard_normal(len(t)), 900, 3000) * (0.25 + 0.5 * (np.sin(2 * np.pi * 23 * t) > 0.6)) * 0.35
+    return normalizar(fundido_final(reverb_simple(paso_bajo(tono, 2400) + cruje, 0.8, 0.2, 5000), 0.05), 0.6)
+
+
+def sfx_latigo() -> np.ndarray:
+    """Los hilos se disparan: chasquido seco de látigo y vibración que se clava en la piedra."""
+    t = t_(0.8)
+    chasquido = paso_banda(rng.standard_normal(len(t)), 2500, 9000) * env_ad(t, 0.002, 0.035)
+    silbido = np.sin(2 * np.pi * (2400 - 1800 * np.minimum(t / 0.12, 1.0)) * t) * env_ad(t, 0.005, 0.09) * 0.35
+    vibra = np.sin(2 * np.pi * 95 * t) * np.sin(2 * np.pi * 7 * t) * env_ad(np.maximum(t - 0.05, 0), 0.01, 0.4) * (t > 0.05) * 0.5
+    return normalizar(reverb_simple(chasquido + silbido + vibra, 1.1, 0.3, 5000), 0.8)
+
+
 def main() -> None:
     SALIDA.mkdir(exist_ok=True)
     guardar("musica_templo.ogg", musica_templo(), 3)
@@ -458,7 +476,7 @@ def main() -> None:
                        ("sfx_golpe", sfx_golpe), ("sfx_impacto", sfx_impacto), ("sfx_inmune", sfx_inmune),
                        ("sfx_resonancia", sfx_resonancia), ("sfx_destierro", sfx_destierro),
                        ("sfx_interfaz", sfx_interfaz), ("sfx_toque", sfx_toque),
-                       ("sfx_cuchillo", sfx_cuchillo)):
+                       ("sfx_cuchillo", sfx_cuchillo), ("sfx_hilo", sfx_hilo), ("sfx_latigo", sfx_latigo)):
         guardar(f"{nombre}.ogg", fn(), 4)
     for i in range(3):
         guardar(f"sfx_paso_{i + 1}.ogg", _paso(i + 1), 3)

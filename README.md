@@ -11,7 +11,7 @@
 
 **El Templo de los Ecos** es un juego independiente de terror psicológico y cósmico, supervivencia y elementos roguelite, desarrollado en **Godot Engine 4** con **GDScript**. El jugador explora un templo cuyo funcionamiento desconoce. Cada entidad obedece reglas propias, y entenderlas vale tanto como cualquier habilidad.
 
-> **Estado:** prototipo de un solo piso con cinco salas. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
+> **Estado:** prototipo con tres pisos jugables. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
 
 ![Sala del Testigo: el ojo del muro está abierto y el Testigo vigila el sello](docs/galeria/04_testigo.png)
 
@@ -19,10 +19,13 @@
 
 ## ¿Qué incluye el prototipo?
 
-- **Dos pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
+- **Tu personaje**: antes de la primera exploración eliges nombre (teclado o letras en pantalla) y género (masculino o femenino, cada uno con su sprite y su retrato). El nombre aparece en el HUD, el perfil y el menú; se puede cambiar desde el menú (C).
+- **Tres pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
   - **Piso I · El Despertar**, cinco salas: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
   - **Piso II · Los Peregrinos**, cuatro salas con las primeras grietas del templo. Un Peregrino se ofrece a reunir almas contigo… y en la mayoría de las vidas te traiciona al llegar a la Cripta del Reparto. Tiene indicios: se queda a tu espalda y miente sobre cuántas almas lleva. Si lo atacas primero y era sincero, lo pagas.
-- **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría). Se conservan si tu alma regresa y se pierden si es absorbida.
+  - **Piso III · La Cacería**, cuatro salas. El templo ordena cazar al **Segador de Hilos** con tres peregrinos aliados. Antes de atacar tensa una línea roja: lo que esté sobre ella (tú o tus aliados, también los que van detrás de ti) recibe el hilo. Después queda enganchado y solo entonces se le puede herir. A media vida huye a la sala siguiente; la puerta no se abre mientras viva.
+- **Morir no cuesta progreso (temporal, modo de pruebas)**: te levantas en la entrada de la misma sala con almas, objetos, habilidades y Ecos. Se desactiva con `MUERTE_SIN_PERDIDA` en `scripts/main.gd`.
+- **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría, Reflejos). Se conservan si tu alma regresa y se pierden si es absorbida.
 - **Tres entidades con reglas que se pueden aprender**, con arte propio en vista cenital y cuatro direcciones:
   - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve. Solo recibe daño con el ojo cerrado.
   - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
@@ -63,6 +66,10 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Inicio.** Haz clic para continuar; el engranaje abre la configuración. | **Configuración.** Sonido, controles reasignables, idioma y privacidad. |
 | ![Tutorial](docs/galeria/18_tutorial.png) | ![Pausa](docs/galeria/19_pausa.png) |
 | **Tutorial.** Sala de práctica con pasos guiados y un muñeco de entrenamiento. | **Pausa.** Continuar, configuración, perfil o volver al inicio. |
+| ![Creación del personaje: nombre](docs/galeria/20_crear_nombre.png) | ![Creación del personaje: género](docs/galeria/21_crear_genero.png) |
+| **Tu nombre.** Escribe con el teclado o toca las letras; también hay nombres al azar. | **Tu género.** Masculino o femenino, con su sprite y su retrato. |
+| ![El Segador de Hilos tensa la línea](docs/galeria/22_caza_hilos.png) | ![El Segador queda enganchado](docs/galeria/23_caza_enganche.png) |
+| **La Cacería.** El Segador tensa sus hilos: sal de la línea y no dejes a tus aliados detrás de ti. | **Enganchado.** El hilo mató a Odón; el Segador queda clavado y vulnerable. |
 | ![Archivo de los ausentes con el Hechicero](docs/galeria/05_archivo.png) | ![Pórtico del siguiente piso](docs/galeria/06_portico.png) |
 | **IV · Archivo de los ausentes.** El libro se abre al leer la carta; el Hechicero responde a la antorcha. | **V · Pórtico del siguiente piso.** «Esto no es una salida. Es una transición.» |
 

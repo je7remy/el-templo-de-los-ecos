@@ -20,7 +20,26 @@ func _run() -> void:
     var Ajustes = load("res://scripts/ajustes.gd")
     Ajustes.poner("intro_vista", true)
     Ajustes.poner("tutorial_hecho", true)
+    # Sin personaje guardado, EXPLORAR abre la creación: nombre y luego género.
+    game.set("player_name", "")
     game.call("_mobile_touch", 1, Vector2(220, 490), true)
+    if game.get("game_mode") != "create":
+        _fail("Explorar sin personaje no abre la creación.")
+        return
+    for letter in ["A", "N", "A"]:
+        for key in game.call("_create_name_keys"):
+            if str(key[1]) == letter:
+                game.call("_mobile_touch", 1, (key[0] as Rect2).get_center(), true)
+                game.call("_mobile_touch", 1, (key[0] as Rect2).get_center(), false)
+    game.call("_mobile_tap", Vector2(660, 432)) # SIGUIENTE
+    if int(game.get("create_step")) != 1 or str(game.get("create_buf")) != "ANA":
+        _fail("El teclado en pantalla no escribe el nombre.")
+        return
+    game.call("_mobile_tap", Vector2(620, 300)) # tarjeta FEMENINO
+    game.call("_mobile_tap", Vector2(645, 476)) # COMENZAR
+    if game.get("player_name") != "ANA" or game.get("player_gender") != "femenino":
+        _fail("No se guarda el personaje creado.")
+        return
     if game.get("game_mode") != "play":
         _fail("Toque de inicio en la campaña no funciona.")
         return

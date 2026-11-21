@@ -12,9 +12,12 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ## PISOS (docs: «DISEÑO DE 10 PISOS»). Cada sala usa una escena
 ## rooms/sala_N.tscn y declara qué contiene: entidad, rasgos (altar, sello,
 ## archivo…) y objetos. El código pregunta por rasgos, nunca por números de sala.
-##   enemy:  "" | "ghoul" | "testigo" | "hechicero"
+##   enemy:  "" | "ghoul" | "testigo" | "hechicero" | "segador"
 ##   traits: "tutorial", "altar", "sello", "archivo", "almas" (la puerta exige
-##           reunir las almas), "peregrino" (aparece el Peregrino), "cosecha"
+##           reunir las almas), "peregrino" (aparece el Peregrino), "cosecha",
+##           "aliados" (se unen tres peregrinos), "caza" (la puerta no se abre
+##           mientras viva la presa), "huida" (la presa escapa a media vida),
+##           "recuento" (premio por los aliados que siguen vivos)
 ##   items:  [clave, marcador, posición por defecto]
 const FLOORS := [
     {
@@ -52,6 +55,23 @@ const FLOORS := [
              "whisper": "Nadie llega a esta puerta acompañado.", "items": []},
         ],
     },
+    {
+        # Inspiración: la misión «matar al rápido», en grupo y con bajas.
+        "number": "III", "title": "LA CACERÍA", "state": "EL TEMPLO TIENE HAMBRE", "wear": 1.5,
+        "eco": "reflejos",
+        "rooms": [
+            {"scene": 1, "name": "I · CLAUSTRO DEL ENCARGO", "enemy": "", "traits": ["aliados"],
+             "whisper": "Una voz sin boca: «Cazad al rápido. Solo entonces bajaréis».",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]]},
+            {"scene": 2, "name": "II · NAVE DE LOS HILOS", "enemy": "segador", "traits": ["caza", "huida"],
+             "whisper": "Algo cruza la nave más rápido que tu luz.", "items": []},
+            {"scene": 3, "name": "III · CORO DESGARRADO", "enemy": "segador", "traits": ["caza"],
+             "whisper": "Hilos rojos cuelgan de cada columna. Siguen tensos.",
+             "items": [["fosforos", "Fosforos", Vector2(230, 460)]]},
+            {"scene": 4, "name": "IV · UMBRAL DEL CUARTO PISO", "enemy": "", "traits": ["recuento"],
+             "whisper": "Los que siguen vivos cuentan los pasos de los que no.", "items": []},
+        ],
+    },
 ]
 
 const RELICS := [
@@ -86,6 +106,7 @@ const ICONS := {
     "miedo": preload("res://assets/visual/iconos/miedo.png"),
     "eco_respiracion": preload("res://assets/visual/iconos/eco_respiracion.png"),
     "eco_nuca": preload("res://assets/visual/iconos/eco_nuca.png"),
+    "eco_reflejos": preload("res://assets/visual/iconos/eco_reflejos.png"),
     "calavera": preload("res://assets/visual/iconos/calavera.png"),
     "pausa": preload("res://assets/visual/iconos/pausa.png"),
     "engranaje": preload("res://assets/visual/iconos/engranaje.png"),
@@ -94,6 +115,16 @@ const ICONS := {
 const DEFENSE_ICONS := {"descansar": preload("res://assets/visual/iconos/descansar.png")}
 const PORTRAIT := preload("res://assets/visual/retratos/mark.png")
 const PORTRAIT_HURT := preload("res://assets/visual/retratos/mark_herido.png")
+## Variante femenina (creación de personaje): retratos y hoja de sprites.
+const PORTRAIT_F := preload("res://assets/visual/retratos/femenina.png")
+const PORTRAIT_F_HURT := preload("res://assets/visual/retratos/femenina_herida.png")
+const HERO_SHEET_F := preload("res://assets/visual/protagonist_sheet_f.png")
+## PROVISIONAL (petición del autor): mientras se prueban los pisos, morir no
+## cuesta progreso. Reapareces en la entrada de la sala donde caíste con todo
+## lo que llevabas: almas, objetos, habilidades, ecos y las almas ya recogidas
+## de esa sala (no reaparecen, así que no se puede «cultivar» la muerte).
+## En false vuelve la regla canónica: retorno o absorción al 50 %.
+const MUERTE_SIN_PERDIDA := true
 ## Paleta del HUD (estilo roguelike de acción: paneles biselados y barras vivas).
 const UI_PANEL := Color(0.055, 0.065, 0.085, 0.92)
 const UI_EDGE := Color("#3c3f4c")
@@ -106,6 +137,7 @@ const BAR_FEAR := Color("#7a4aa3")
 const ECOS := {
     "respiracion": ["RESPIRACIÓN CONTENIDA", "El miedo sube un 25 % más despacio."],
     "nuca": ["NUCA FRÍA", "Sientes cuando alguien con malas intenciones queda a tu espalda."],
+    "reflejos": ["REFLEJOS", "Esquivar se recarga un 40 % antes."],
 }
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
@@ -126,7 +158,7 @@ const DOOR_TOUCH := 36.0 # distancia a la que tocar la puerta abierta te hace cr
 const MATCHES_FIRST_BOX := 5
 const MATCHES_REFILL := 3
 ## Vida de cada entidad por sala (PROVISIONAL, ajustar en pruebas de juego).
-const ENEMY_MAX_HP := {"ghoul": 60.0, "testigo": 90.0, "hechicero": 70.0}
+const ENEMY_MAX_HP := {"ghoul": 60.0, "testigo": 90.0, "hechicero": 70.0, "segador": 140.0}
 const WIZARD_CHARGE := 1.0 # segundos de carga visibles (y vulnerables) del conjuro
 const STRIKE_RANGE := 64.0
 const STRIKE_DAMAGE := 18.0
@@ -160,6 +192,7 @@ const ART_PRELOADED := {
     "enemy_ghoul": preload("res://assets/visual/enemies/ghoul.png"),
     "enemy_hechicero": preload("res://assets/visual/enemies/hechicero.png"),
     "enemy_peregrino": preload("res://assets/visual/enemies/peregrino.png"),
+    "enemy_segador": preload("res://assets/visual/enemies/segador.png"),
 
     "room_0": preload("res://assets/knowledge/rooms/room_0.png"),
     "room_1": preload("res://assets/knowledge/rooms/room_1.png"),
@@ -199,7 +232,10 @@ const ART_PRELOADED := {
 
 var font: Font
 const PIXEL_FONT := preload("res://assets/fonts/PixelifySans.ttf")
-var game_mode: String = "title" # title, play, altar, inventory, floor_intro, dead, victory
+## Personaje creado por el jugador (se guarda con el progreso).
+var player_name: String = ""
+var player_gender: String = "masculino" # masculino | femenino
+var game_mode: String = "title" # title, create, play, altar, inventory, floor_intro, dead, victory
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
 var current_room: int = 0
 var elapsed: float = 0.0
@@ -330,6 +366,7 @@ const SFX_PATHS := {
     "interfaz": "res://audio/sfx_interfaz.ogg", "toque": "res://audio/sfx_toque.ogg",
     "paso_1": "res://audio/sfx_paso_1.ogg", "paso_2": "res://audio/sfx_paso_2.ogg",
     "paso_3": "res://audio/sfx_paso_3.ogg", "cuchillo": "res://audio/sfx_cuchillo.ogg",
+    "hilo": "res://audio/sfx_hilo.ogg", "latigo": "res://audio/sfx_latigo.ogg",
 }
 var music: AudioStreamPlayer
 var tension: AudioStreamPlayer
@@ -458,6 +495,8 @@ func _load_progress() -> void:
         remembered_rule = bool(data.get("remembered_rule", false))
         deaths = maxi(0, int(data.get("deaths", 0)))
         cleared = maxi(0, int(data.get("cleared", 0)))
+        player_name = _clean_name(str(data.get("player_name", "")))
+        player_gender = "femenino" if str(data.get("player_gender", "")) == "femenino" else "masculino"
 
 func _save_progress() -> void:
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -472,7 +511,9 @@ func _save_progress() -> void:
             "ability_level": ability_level,
             "remembered_rule": remembered_rule,
             "deaths": deaths,
-            "cleared": cleared
+            "cleared": cleared,
+            "player_name": player_name,
+            "player_gender": player_gender
         }))
 
 
@@ -503,6 +544,7 @@ func _new_run() -> void:
     current_room = 0
     pilgrim_state = "none"
     pilgrim_corpse = {}
+    _allies_reset()
     souls = 0
     max_hp = 100.0
     hp = max_hp
@@ -560,6 +602,8 @@ func _enter_room() -> void:
             room_items.append({"kind": entry[0], "pos": _marker(entry[1], entry[2])})
     enemy_max = maxf(1.0, float(ENEMY_MAX_HP.get(_enemy_kind(), 1.0)))
     enemy_hp = enemy_max
+    if _enemy_kind() == "segador":
+        _segador_enter_room()
     enemy_hit_t = 0.0
     pulse_fx = -1.0
     strike_fx = 0.0
@@ -567,6 +611,7 @@ func _enter_room() -> void:
     dissolve_fx.clear()
     drops.clear()
     _pilgrim_enter_room()
+    _allies_enter_room()
     if game_mode == "floor_intro":
         toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
     elif _has("tutorial") and not has_torch:
@@ -658,7 +703,7 @@ func _input(event: InputEvent) -> void:
         queue_redraw()
         return
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        if game_mode in ["title", "inventory", "altar", "floor_intro", "splash", "eula", "intro", "pause", "settings"]:
+        if game_mode in ["title", "create", "inventory", "altar", "floor_intro", "splash", "eula", "intro", "pause", "settings"]:
             _mobile_tap(make_input_local(event).position)
             return
         if game_mode == "play" and not touch_enabled:
@@ -670,6 +715,10 @@ func _input(event: InputEvent) -> void:
     if not event.pressed or event.echo:
         return
     var k: Key = event.keycode
+    if game_mode == "create":
+        _create_key(k, event.unicode)
+        queue_redraw()
+        return
     if game_mode == "settings":
         _settings_key(k)
         queue_redraw()
@@ -694,6 +743,8 @@ func _input(event: InputEvent) -> void:
     if game_mode == "title":
         if k == KEY_ENTER or k == KEY_KP_ENTER:
             _start_explore()
+        elif k == KEY_C:
+            _start_creation("title")
         elif k == KEY_H:
             _open_defense()
         elif k == KEY_ESCAPE:
@@ -703,7 +754,7 @@ func _input(event: InputEvent) -> void:
             _enter_floor()
     elif game_mode == "dead" or game_mode == "victory":
         if k == KEY_ENTER or k == KEY_KP_ENTER:
-            _new_run()
+            _after_end()
         elif k == KEY_ESCAPE:
             game_mode = "title"
     elif game_mode == "altar":
@@ -733,7 +784,7 @@ func _input(event: InputEvent) -> void:
             _open_inventory()
         elif k == _key("esquivar") and dash_cd <= 0.0 and stamina >= 28.0:
             dash_left = 0.19
-            dash_cd = 2.65
+            dash_cd = _dash_cooldown()
             stamina -= 28.0
         elif k == _key("resonancia"):
             _use_pulse()
@@ -796,8 +847,13 @@ func _mobile_tap(at: Vector2) -> void:
                 _pause_choose(i)
                 return
         return
+    if game_mode == "create":
+        _create_tap(at)
+        return
     if game_mode == "title":
-        if GEAR_RECT.has_point(at):
+        if CHANGE_CHAR_RECT.has_point(at):
+            _start_creation("title")
+        elif GEAR_RECT.has_point(at):
             _open_settings("title")
         elif at.x >= 480.0 and at.y > 415.0:
             _open_defense()
@@ -805,7 +861,7 @@ func _mobile_tap(at: Vector2) -> void:
             _start_explore()
         return
     if game_mode == "dead" or game_mode == "victory":
-        _new_run()
+        _after_end()
         return
     if game_mode == "floor_intro":
         _enter_floor()
@@ -845,7 +901,7 @@ func _mobile_tap(at: Vector2) -> void:
         elif at.x < 790.0:
             if dash_cd <= 0.0 and stamina >= 28.0:
                 dash_left = 0.19
-                dash_cd = 2.65
+                dash_cd = _dash_cooldown()
                 stamina -= 28.0
         else:
             _use_pulse()
@@ -1082,6 +1138,8 @@ func _enemy_vulnerable() -> bool:
             return not watcher_open
         "hechicero":
             return enemy_alert and wizard_cast_cd < WIZARD_CHARGE
+        "segador":
+            return seg_state == "engancha"
     return true
 
 
@@ -1092,6 +1150,8 @@ func _damage_enemy(amount: float) -> bool:
         _sfx("inmune", -8.0)
         if _enemy_kind() == "testigo":
             _say("Con el ojo abierto es piedra. Golpéalo cuando lo cierre.", 2.6)
+        elif _enemy_kind() == "segador":
+            _say("Es demasiado rápido. Espera a que dispare y quede enganchado.", 2.6)
         else:
             _say("Su escudo solo cae mientras carga el conjuro.", 2.6)
         return false
@@ -1101,6 +1161,8 @@ func _damage_enemy(amount: float) -> bool:
     _sfx("impacto", -6.0)
     if enemy_hp <= 0.0:
         _banish_enemy()
+    elif _enemy_kind() == "segador" and _has("huida") and enemy_hp <= enemy_max * 0.5:
+        _segador_flee()
     return true
 
 
@@ -1108,6 +1170,9 @@ func _damage_enemy(amount: float) -> bool:
 func _banish_enemy() -> void:
     var kind: String = _enemy_kind()
     banished[_room_key()] = true
+    if kind == "segador":
+        seg_state = "acecho"
+        seg_hp_floor = 0.0
     dissolve_fx.append({"pos": enemy_pos, "kind": kind, "facing": enemy_facing, "frame": _enemy_frame(kind), "t": 0.0})
     drops.append({"pos": enemy_pos})
     fireballs.clear()
@@ -1218,6 +1283,8 @@ func _room_ready() -> bool:
         return false
     if _has("almas") and collected.has(false):
         return false
+    if _has("caza") and _enemy_active():
+        return false
     return _pilgrim_allows_exit()
 
 
@@ -1231,6 +1298,8 @@ func _required_clue() -> String:
         return "El templo no deja pasar a nadie con las manos vacías: faltan almas."
     if pilgrim_state in ["tell", "hostile"]:
         return "No puedes darle la espalda a quien te quiere muerto."
+    if _has("caza") and _enemy_active():
+        return "La Cacería no ha terminado: la presa sigue viva."
     return "La puerta todavía no te reconoce."
 
 
@@ -1267,6 +1336,7 @@ func _finish_floor() -> void:
 ## Preparación propia de cada piso (p. ej., el Peregrino del Piso II).
 func _on_floor_start() -> void:
     _pilgrim_reset()
+    _allies_reset()
 
 
 func _win_run() -> void:
@@ -1277,6 +1347,12 @@ func _win_run() -> void:
 
 func _lose_run() -> void:
     deaths += 1
+    if MUERTE_SIN_PERDIDA:
+        soul_fate = "persistencia"
+        _save_progress()
+        game_mode = "dead"
+        _sfx("muerte", -3.0)
+        return
     souls = 0
     if randf() < 0.5:
         # Exactamente dos posibilidades equiprobables (regla canónica).
@@ -1433,6 +1509,7 @@ func _update_play(dt: float) -> void:
             _sfx("ojo", -7.0)
         watcher_was_open = watcher_open
     _update_pilgrim(dt)
+    _update_allies(dt)
     if _enemy_active():
         _update_enemy(dt)
         var near: float = player_pos.distance_to(enemy_pos)
@@ -1489,6 +1566,8 @@ func _update_enemy(dt: float) -> void:
                 remembered_rule = true
                 _save_progress()
                 _say("Observación: al detenerte, el Testigo también se detiene.", 4.5)
+    elif _enemy_kind() == "segador":
+        _update_segador(dt)
     elif _enemy_kind() == "hechicero":
         # Wizard: warded while the player's torch is off. Provisional mechanic.
         enemy_alert = torch_on and d < 390.0
@@ -1535,7 +1614,7 @@ func _draw() -> void:
     # El fondo lo pone la escena de la sala (está por debajo).
     if room_node == null:
         draw_rect(Rect2(0, 0, W, H), BG)
-    elif game_mode in ["title", "splash", "eula"] or (game_mode == "settings" and settings_return in ["title", "splash"]):
+    elif game_mode in ["title", "create", "splash", "eula"] or (game_mode == "settings" and settings_return in ["title", "splash"]):
         # En el menú se ve la sala completa, con sus objetos, detrás del panel.
         var objetos: Node = room_node.get_node_or_null("Objetos")
         if objetos != null:
@@ -1545,9 +1624,11 @@ func _draw() -> void:
     if screen == "intro":
         _draw_intro()
         return
-    if screen in ["title", "splash", "eula"]:
+    if screen in ["title", "create", "splash", "eula"]:
         if screen == "title":
             _draw_title()
+        elif screen == "create":
+            _draw_creation()
         elif screen == "splash":
             _draw_splash()
         else:
@@ -1601,6 +1682,9 @@ func _draw_room() -> void:
         _draw_watcher_eye(eye_pos)
     for i in range(relics.size()):
         _draw_corpse(relics[i], (current_floor * 5 + current_room) * 3 + i)
+    for ally in allies:
+        if not bool(ally["alive"]) and str(ally["dead_key"]) == _room_key():
+            _draw_corpse(ally["dead_pos"], int(ally["seed"]))
     if not pilgrim_corpse.is_empty() and pilgrim_corpse["key"] == _room_key():
         _draw_corpse(pilgrim_corpse["pos"], 1)
     for i in range(relics.size()):
@@ -1615,6 +1699,7 @@ func _draw_room() -> void:
     if not fireballs.is_empty():
         _draw_fireballs()
     _draw_lighting()
+    _draw_segador_threads()
     _draw_strike_fx()
     _draw_pulse_fx()
     _draw_pickup_fx()
@@ -1683,6 +1768,10 @@ func _lights() -> Array:
             list.append([Vector2(d[1]) + Vector2(11, 8), 58.0, 0.45])
     if _pilgrim_present() and pilgrim_state != "dead":
         list.append([pilgrim_pos + Vector2(0.0, -20.0), 60.0, 0.5]) # se le distingue siempre
+    if allies_here:
+        for ally in allies:
+            if bool(ally["alive"]):
+                list.append([Vector2(ally["pos"]) + Vector2(0.0, -20.0), 55.0, 0.45])
     for prop in room_props:
         if prop["light"]:
             var rect: Rect2 = prop["rect"]
@@ -1780,6 +1869,9 @@ func _draw_depth_sorted() -> void:
         items.append([enemy_pos.y, "enemy", null])
     if _pilgrim_present() and pilgrim_state != "dead":
         items.append([pilgrim_pos.y, "pilgrim", null])
+    for i in range(allies.size()):
+        if bool(allies[i]["alive"]) and allies_here:
+            items.append([Vector2(allies[i]["pos"]).y, "ally", i])
     if _has("altar"):
         items.append([altar_pos.y + 22.0, "altar", null])
     if in_tutorial:
@@ -1797,6 +1889,8 @@ func _draw_depth_sorted() -> void:
                 _draw_enemy()
             "pilgrim":
                 _draw_pilgrim()
+            "ally":
+                _draw_ally(item[2])
             "dummy":
                 _draw_dummy()
             "altar":
@@ -1818,6 +1912,7 @@ func _draw_object_labels() -> void:
         _label_center("SELLO [E]", seal_pos + Vector2(0.0, 56.0), Color("#e2c48a"))
     if _enemy_active():
         _draw_enemy_health()
+    _draw_ally_labels()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
 
@@ -2030,6 +2125,12 @@ func _enemy_frame(kind: String) -> int:
             return (0 if watcher_open else 4) + int(elapsed * 6.0) % 4
         "ghoul":
             return 2 + int(elapsed * 9.0) % 4 if enemy_moving else int(elapsed * 2.5) % 2
+        "segador":
+            if seg_state == "tensa":
+                return 6
+            if seg_state == "engancha":
+                return 7
+            return 2 + int(elapsed * 12.0) % 4 if enemy_moving else int(elapsed * 2.0) % 2
         _:
             if enemy_alert and (wizard_cast_cd > 2.45 or wizard_cast_cd < WIZARD_CHARGE): # carga o acaba de lanzar
                 return 6 + int(elapsed * 8.0) % 2
@@ -2153,8 +2254,8 @@ func _draw_float_fx() -> void:
         var a: float = clampf(1.0 - t / 0.9, 0.0, 1.0)
         var col: Color = fx["color"]
         var p: Vector2 = fx["pos"] + Vector2(0.0, -t * 24.0)
-        draw_string(font, p + Vector2(-50, 1), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 100, 16, Color(0, 0, 0, a * 0.8))
-        draw_string(font, p + Vector2(-51, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 100, 16, Color(col.r, col.g, col.b, a))
+        draw_string(font, p + Vector2(-110, 1), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color(0, 0, 0, a * 0.8))
+        draw_string(font, p + Vector2(-111, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color(col.r, col.g, col.b, a))
 
 
 ## Cadáver del antiguo dueño del alma: tendido en el suelo, bajo la luz de la sala.
@@ -2218,7 +2319,7 @@ func _draw_player() -> void:
         var hand: Vector2 = player_pos + [Vector2(12, -18), Vector2(-12, -20), Vector2(9, -19), Vector2(-9, -19)][direction_index]
         if has_torch and direction_index == 1 and game_mode != "dead":
             _draw_hand_torch(hand)
-        draw_texture_rect_region(art["visual_hero"], Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
+        draw_texture_rect_region(_hero_sheet(), Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
         if has_torch and direction_index != 1 and game_mode != "dead":
             _draw_hand_torch(hand)
         if bump_left > 0.0:
@@ -2295,12 +2396,12 @@ func _draw_player_panel() -> void:
     _panel(frame, Color("#1a1f2a"), UI_GOLD)
     var hurt: bool = hp / max_hp < 0.35
     var shake_x: float = roundf(sin(elapsed * 40.0)) if damage_cd > 0.9 else 0.0
-    draw_texture_rect(PORTRAIT_HURT if hurt else PORTRAIT, Rect2(frame.position + Vector2(4.0 + shake_x, 4.0), Vector2(64, 64)), false)
+    draw_texture_rect(_portrait(hurt), Rect2(frame.position + Vector2(4.0 + shake_x, 4.0), Vector2(64, 64)), false)
     if damage_cd > 0.0:
         draw_rect(frame.grow(-2.0), Color(0.8, 0.05, 0.08, 0.35 * clampf(damage_cd / 1.2, 0.0, 1.0)))
     # Placa con el nombre bajo el retrato.
     _panel(Rect2(16, 82, 72, 17), Color("#2a1d22"), UI_GOLD)
-    _text_outline("MARK", Vector2(16, 95), 12, CREAM, 72.0)
+    _text_outline(_hero_name(), Vector2(16, 95), 12, CREAM, 72.0)
     var bars := [
         ["corazon", hp, max_hp, BAR_HP, "%d/%d" % [int(ceil(hp)), int(max_hp)]],
         ["vigor", stamina, 100.0, BAR_VIGOR, "%d/100" % int(stamina)],
@@ -2477,6 +2578,9 @@ func _mission_text() -> String:
     var pilgrim_task: String = _pilgrim_mission_text()
     if pilgrim_task != "":
         return pilgrim_task
+    var hunt_task: String = _hunt_mission_text()
+    if hunt_task != "":
+        return hunt_task
     if _has("almas") and collected.has(false):
         return "MISIÓN: reúne las almas de la sala (%d/3)" % (3 - collected.count(false))
     match _enemy_kind():
@@ -2545,8 +2649,14 @@ func _draw_title() -> void:
     _big_button(vigil, "VIGILIA", "descansar", Color("#4a3417"), UI_GOLD)
     _text_outline("ENTER  explorar      ·      H  vigilia", Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
     # Ficha rápida del personaje.
-    draw_texture_rect(PORTRAIT, Rect2(171, 494, 48, 48), false)
-    _text_outline("MARK · ID %03d   |   RETORNOS %d   |   ABSORCIONES %d" % [identity_number, reincarnations, new_humans], Vector2(149, 548), 12, CREAM, main.size.x)
+    if player_name != "":
+        draw_texture_rect(_portrait(false), Rect2(171, 510, 40, 40), false)
+        _text_outline("%s · ID %03d   |   MUERTES %d" % [player_name, identity_number, deaths], Vector2(149, 548), 12, CREAM, main.size.x)
+        var hot_c: bool = CHANGE_CHAR_RECT.has_point(ui_hover)
+        _panel(CHANGE_CHAR_RECT, Color("#222c39") if hot_c else Color("#141922"), UI_GOLD if hot_c else UI_LIGHT)
+        _text_outline(_t("cambiar_pj"), CHANGE_CHAR_RECT.position + Vector2(0, 19), 12, CREAM if hot_c else Color("#b9b29b"), CHANGE_CHAR_RECT.size.x)
+    else:
+        _text_outline(_t("sin_pj"), Vector2(149, 548), 12, Color("#b9b29b"), main.size.x)
     var hot: bool = GEAR_RECT.has_point(ui_hover)
     _panel(GEAR_RECT, Color("#222c39") if hot else Color("#141922"), UI_GOLD if hot else UI_LIGHT)
     draw_texture_rect(ICONS["engranaje"], Rect2(GEAR_RECT.position + Vector2(10, 10), Vector2(32, 32)), false)
@@ -2604,8 +2714,8 @@ func _draw_inventory_overlay() -> void:
     # --- Columna izquierda: retrato y datos.
     var frame := Rect2(102, 84, 140, 140)
     _panel(frame, Color("#1a1f2a"), UI_GOLD)
-    draw_texture_rect(PORTRAIT_HURT if hp / max_hp < 0.35 else PORTRAIT, Rect2(frame.position + Vector2(6, 6), Vector2(128, 128)), false)
-    _text_outline("MARK", Vector2(252, 112), 26, CREAM)
+    draw_texture_rect(_portrait(hp / max_hp < 0.35), Rect2(frame.position + Vector2(6, 6), Vector2(128, 128)), false)
+    _text_outline(_hero_name(), Vector2(252, 112), 26, CREAM)
     _text_outline("IDENTIDAD %03d" % identity_number, Vector2(252, 136), 13, Color("#a0b6b2"))
     _text_outline("PISO %s · SALA %d" % [_floor()["number"], current_room + 1], Vector2(252, 158), 13, UI_GOLD)
     var fate: String = "Recuerda sus vidas" if reincarnations > 0 else "Primera vida"
@@ -2698,6 +2808,12 @@ func _draw_end_overlay(win: bool) -> void:
         _center("No has escapado. El siguiente nivel sigue oculto.", 280, 18, CREAM)
         _center("El templo conserva su apariencia. Nada es lo que parece.", 318, 16, CREAM)
         _center("ENTER: repetir prueba  ·  ESC: menú", 418, 18, CREAM)
+    elif soul_fate == "persistencia":
+        _center("%s HA CAÍDO" % _hero_name(), 230, 32, RED)
+        _center("El templo todavía no te reclama.", 278, 18, CREAM)
+        _center("Conservas almas, objetos, habilidades y ecos.", 318, 17, CREAM)
+        _center("(Modo de pruebas: la muerte no cuesta progreso.)", 352, 15, Color("#9fb3b3"))
+        _center("ENTER: levantarte en la entrada de la sala  ·  ESC: menú", 418, 18, CREAM)
     elif soul_fate == "retorno":
         _center("TU ALMA HA REGRESADO", 230, 30, SOUL)
         _center("Resultado aleatorio de la muerte: reencarnación (50 %).", 278, 18, CREAM)
@@ -3151,6 +3267,22 @@ func _draw_decor() -> void:
 ## (El resto del juego sigue en español: la traducción completa está pendiente.)
 const T := {
     "continuar": ["HAZ CLIC PARA CONTINUAR", "CLICK TO CONTINUE"],
+    "cambiar_pj": ["CAMBIAR (C)", "CHANGE (C)"],
+    "sin_pj": ["Al explorar crearás a tu personaje.", "Exploring will create your character."],
+    "pj_nombre": ["¿CÓMO TE LLAMAS?", "WHAT IS YOUR NAME?"],
+    "pj_nombre_ayuda": ["Escribe o toca las letras  ·  ENTER seguir  ·  ESC volver", "Type or tap the letters  ·  ENTER next  ·  ESC back"],
+    "pj_genero": ["ELIGE TU GÉNERO", "CHOOSE YOUR GENDER"],
+    "pj_genero_ayuda": ["A / D elegir  ·  ENTER comenzar  ·  ESC atrás", "A / D choose  ·  ENTER start  ·  ESC back"],
+    "pj_te_llamas": ["Te llamas %s.", "Your name is %s."],
+    "pj_masculino": ["MASCULINO", "MALE"],
+    "pj_femenino": ["FEMENINO", "FEMALE"],
+    "pj_borrar": ["BORRAR", "DELETE"],
+    "pj_espacio": ["ESPACIO", "SPACE"],
+    "pj_azar": ["AL AZAR", "RANDOM"],
+    "pj_siguiente": ["SIGUIENTE", "NEXT"],
+    "pj_atras": ["ATRÁS", "BACK"],
+    "pj_comenzar": ["COMENZAR", "START"],
+    "pj_vacio": ["Escribe un nombre primero.", "Type a name first."],
     "continuar_tactil": ["TOCA PARA CONTINUAR", "TAP TO CONTINUE"],
     "subtitulo": ["Un roguelike de terror en un templo que se alimenta de ti.", "A horror roguelike in a temple that feeds on you."],
     "ajustes": ["CONFIGURACIÓN", "SETTINGS"],
@@ -3713,6 +3845,9 @@ const INTRO := [
 
 
 func _start_explore() -> void:
+    if player_name == "":
+        _start_creation("explore")
+        return
     if not bool(Ajustes.obtener("intro_vista")):
         _start_intro("tutorial")
     elif not bool(Ajustes.obtener("tutorial_hecho")):
@@ -3762,7 +3897,7 @@ func _draw_intro() -> void:
             # Mark tendido en un círculo de luz mortecina.
             draw_circle(c + Vector2(0, 30), 120.0, Color(0.35, 0.45, 0.5, 0.10 * fade))
             var region := Rect2(8.0 * 40.0, 0.0, 40.0, 56.0)
-            draw_texture_rect_region(art["visual_hero"], Rect2(c + Vector2(-60, -50), Vector2(120, 168)), region, Color(1, 1, 1, fade))
+            draw_texture_rect_region(_hero_sheet(), Rect2(c + Vector2(-60, -50), Vector2(120, 168)), region, Color(1, 1, 1, fade))
         "templo":
             draw_set_transform(Vector2(-240, -160) * fade * 0.05, 0.0, Vector2.ONE)
             for k in range(4):
@@ -3922,3 +4057,635 @@ func _draw_dummy() -> void:
     draw_circle(p + Vector2(0, -37), 3.0, Color("#e2dccb"))
     for k in range(dummy_hits):
         draw_rect(Rect2(p.x - 8.0 + float(k) * 6.0, p.y - 46.0, 3, 3), Color("#3a2f2a"))
+
+
+# ------------------------------------------------------------ PERSONAJE
+## Creación del personaje: primero el nombre y después el género. Se guarda
+## con el progreso y se usa en el HUD, el perfil, el menú y la muerte.
+const NAME_MAX := 12
+const NAME_ROWS := ["ABCDEFGHIJ", "KLMNÑOPQRS", "TUVWXYZ"]
+const NAME_KEY := Vector2(52, 44)
+const NAME_GRID := Vector2(193, 252)
+const CHANGE_CHAR_RECT := Rect2(676, 528, 120, 26)
+const CREATE_PANEL := Rect2(150, 104, 660, 452)
+const RANDOM_NAMES := ["ELÍAS", "TOMÁS", "DARÍO", "ADRIÁN", "JONÁS", "MATEO", "LUCÍA", "ELENA", "IRENE", "NORA", "ALBA", "MARA"]
+var create_step: int = 0 # 0 nombre, 1 género
+var create_buf: String = ""
+var create_gender: int = 0 # 0 masculino, 1 femenino
+var create_then: String = "explore" # explore | title
+
+
+func _hero_name() -> String:
+    return player_name if player_name != "" else "MARK"
+
+
+func _portrait(hurt: bool) -> Texture2D:
+    if player_gender == "femenino":
+        return PORTRAIT_F_HURT if hurt else PORTRAIT_F
+    return PORTRAIT_HURT if hurt else PORTRAIT
+
+
+func _hero_sheet() -> Texture2D:
+    return HERO_SHEET_F if player_gender == "femenino" else art["visual_hero"]
+
+
+func _clean_name(raw: String) -> String:
+    var out := ""
+    for ch in raw.strip_edges().to_upper():
+        if out.length() >= NAME_MAX:
+            break
+        if ch == " " and (out == "" or out.ends_with(" ")):
+            continue
+        if ch.unicode_at(0) >= 65 and ch.unicode_at(0) <= 90 or ch in "ÁÉÍÓÚÜÑ -'":
+            out += ch
+    return out.strip_edges()
+
+
+func _start_creation(then: String) -> void:
+    create_then = then
+    create_step = 0
+    create_buf = player_name
+    create_gender = 1 if player_gender == "femenino" else 0
+    game_mode = "create"
+    _sfx("interfaz", -8.0, 0.9)
+
+
+func _create_type(ch: String) -> void:
+    if create_buf.length() >= NAME_MAX or ch.length() != 1:
+        return
+    ch = ch.to_upper()
+    var code: int = ch.unicode_at(0)
+    if not ((code >= 65 and code <= 90) or ch in "ÁÉÍÓÚÜÑ -'"):
+        return
+    if ch == " " and (create_buf == "" or create_buf.ends_with(" ")):
+        return
+    create_buf += ch
+    _sfx("toque", -14.0, 1.1)
+
+
+func _create_next() -> void:
+    create_buf = _clean_name(create_buf)
+    if create_buf == "":
+        _say(_t("pj_vacio"), 2.0)
+        return
+    create_step = 1
+    _sfx("interfaz", -8.0, 1.0)
+
+
+func _create_finish() -> void:
+    player_name = _clean_name(create_buf)
+    player_gender = "femenino" if create_gender == 1 else "masculino"
+    _save_progress()
+    _sfx("sello", -10.0, 1.1)
+    if create_then == "explore":
+        _start_explore()
+    else:
+        game_mode = "title"
+        _say(_t("pj_te_llamas") % player_name, 2.5)
+
+
+func _create_back() -> void:
+    if create_step == 1:
+        create_step = 0
+    else:
+        game_mode = "title"
+    _sfx("interfaz", -10.0, 0.8)
+
+
+func _create_key(k: Key, unicode: int) -> void:
+    if k == KEY_ESCAPE:
+        _create_back()
+        return
+    if create_step == 0:
+        if k in [KEY_ENTER, KEY_KP_ENTER]:
+            _create_next()
+        elif k == KEY_BACKSPACE:
+            create_buf = create_buf.substr(0, maxi(0, create_buf.length() - 1))
+        elif unicode > 0:
+            _create_type(char(unicode))
+    else:
+        if k in [KEY_LEFT, KEY_A, KEY_RIGHT, KEY_D, KEY_TAB]:
+            create_gender = 1 - create_gender
+            _sfx("toque", -14.0, 1.0)
+        elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E]:
+            _create_finish()
+
+
+## Teclas en pantalla: [rect, acción]. Acción: una letra o «borrar»,
+## «espacio», «azar», «siguiente».
+func _create_name_keys() -> Array:
+    var keys: Array = []
+    for row in range(NAME_ROWS.size()):
+        var letters: String = NAME_ROWS[row]
+        for col in range(letters.length()):
+            keys.append([Rect2(NAME_GRID + Vector2(col * (NAME_KEY.x + 6.0), row * (NAME_KEY.y + 6.0)), NAME_KEY), letters[col]])
+    var y3: float = NAME_GRID.y + 2.0 * (NAME_KEY.y + 6.0)
+    keys.append([Rect2(NAME_GRID.x + 7.0 * (NAME_KEY.x + 6.0), y3, 3.0 * NAME_KEY.x + 12.0, NAME_KEY.y), "borrar"])
+    var y4: float = NAME_GRID.y + 3.0 * (NAME_KEY.y + 6.0) + 8.0
+    keys.append([Rect2(193, y4, 170, 44), "espacio"])
+    keys.append([Rect2(373, y4, 170, 44), "azar"])
+    keys.append([Rect2(553, y4, 214, 44), "siguiente"])
+    return keys
+
+
+func _create_card(i: int) -> Rect2:
+    return Rect2(215.0 + i * 280.0, 196.0, 250.0, 236.0)
+
+
+func _create_step2_buttons() -> Array:
+    return [[Rect2(215, 452, 200, 48), "atras"], [Rect2(545, 452, 200, 48), "comenzar"]]
+
+
+func _create_tap(at: Vector2) -> void:
+    if create_step == 0:
+        for key in _create_name_keys():
+            if not (key[0] as Rect2).has_point(at):
+                continue
+            match str(key[1]):
+                "borrar":
+                    create_buf = create_buf.substr(0, maxi(0, create_buf.length() - 1))
+                    _sfx("toque", -14.0, 0.8)
+                "espacio":
+                    _create_type(" ")
+                "azar":
+                    create_buf = RANDOM_NAMES[randi() % RANDOM_NAMES.size()]
+                    _sfx("toque", -12.0, 1.2)
+                "siguiente":
+                    _create_next()
+                _:
+                    _create_type(str(key[1]))
+            return
+        return
+    for i in range(2):
+        if _create_card(i).has_point(at):
+            if create_gender == i:
+                _create_finish() # segundo toque sobre la misma tarjeta confirma
+            else:
+                create_gender = i
+                _sfx("toque", -14.0, 1.0)
+            return
+    for b in _create_step2_buttons():
+        if (b[0] as Rect2).has_point(at):
+            if b[1] == "atras":
+                _create_back()
+            else:
+                _create_finish()
+            return
+
+
+func _create_key_button(rect: Rect2, label: String, size: int, accent: bool = false) -> void:
+    var hot: bool = rect.has_point(ui_hover)
+    var fill := Color("#1d4a4f") if accent else Color("#141922")
+    _panel(rect, fill.lightened(0.12) if hot else fill, UI_GOLD if hot or accent else UI_EDGE)
+    _text_outline(label, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.5 + size * 0.36), size, CREAM, rect.size.x)
+
+
+func _draw_creation() -> void:
+    draw_rect(Rect2(0, 0, W, H), Color(0.018, 0.027, 0.032, 0.72))
+    _panel(CREATE_PANEL, Color(0.045, 0.055, 0.07, 0.96), UI_GOLD)
+    draw_rect(CREATE_PANEL.grow(-8.0), Color("#3a3f4c"), false, 1.0)
+    # Indicador de paso (1 nombre · 2 género).
+    for i in range(2):
+        var dot := Rect2(462.0 + i * 24.0, 120.0, 12.0, 12.0)
+        draw_rect(dot, UI_GOLD if create_step >= i else UI_EDGE)
+    if create_step == 0:
+        _text_outline(_t("pj_nombre"), Vector2(150, 168), 30, CREAM, CREATE_PANEL.size.x)
+        var box := Rect2(300, 182, 360, 54)
+        _panel(box, Color("#0b0e13"), SOUL)
+        var shown: String = create_buf + ("_" if int(elapsed * 2.0) % 2 == 0 and create_buf.length() < NAME_MAX else " ")
+        _text_outline(shown, Vector2(box.position.x, box.position.y + 38.0), 30, SOUL, box.size.x)
+        _text_outline("%d/%d" % [create_buf.length(), NAME_MAX], Vector2(box.end.x - 46.0, box.end.y - 6.0), 10, Color("#6b6f80"))
+        for key in _create_name_keys():
+            var action: String = str(key[1])
+            match action:
+                "borrar":
+                    _create_key_button(key[0], "< " + _t("pj_borrar"), 15)
+                "espacio":
+                    _create_key_button(key[0], _t("pj_espacio"), 15)
+                "azar":
+                    _create_key_button(key[0], _t("pj_azar"), 15)
+                "siguiente":
+                    _create_key_button(key[0], _t("pj_siguiente") + " »", 17, true)
+                _:
+                    _create_key_button(key[0], action, 20)
+        _text_outline(_t("pj_nombre_ayuda"), Vector2(150, 520), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
+    else:
+        _text_outline(_t("pj_genero"), Vector2(150, 162), 30, CREAM, CREATE_PANEL.size.x)
+        _text_outline(_t("pj_te_llamas") % _clean_name(create_buf), Vector2(150, 186), 14, SOUL, CREATE_PANEL.size.x)
+        var labels := [_t("pj_masculino"), _t("pj_femenino")]
+        var sheets: Array = [art["visual_hero"], HERO_SHEET_F]
+        var portraits: Array = [PORTRAIT, PORTRAIT_F]
+        for i in range(2):
+            var card := _create_card(i)
+            var sel: bool = create_gender == i
+            _panel(card, Color("#1a2430") if sel else Color("#10141b"), UI_GOLD if sel else UI_EDGE)
+            if sel:
+                draw_rect(card.grow(3.0), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.25 + 0.2 * sin(elapsed * 4.0)), false, 2.0)
+            # Círculo de luz y el personaje caminando de frente (o quieto si no está elegido).
+            var feet := Vector2(card.position.x + 142.0, card.position.y + 186.0)
+            draw_circle(feet + Vector2(0, -4), 46.0, Color(0.95, 0.85, 0.55, 0.07 if sel else 0.03))
+            draw_set_transform(feet + Vector2(0, -2), 0.0, Vector2(1.0, 0.35))
+            draw_circle(Vector2.ZERO, 30.0, Color(0, 0, 0, 0.45))
+            draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+            var frame_i: int = (2 + int(elapsed * 7.0) % 4) if sel else int(elapsed * 1.6) % 2
+            var region := Rect2(frame_i * 40.0, 0.0, 40.0, 56.0)
+            draw_texture_rect_region(sheets[i], Rect2(feet - Vector2(60, 150), Vector2(120, 168)), region, Color(1, 1, 1, 1.0 if sel else 0.6))
+            draw_texture_rect(portraits[i], Rect2(card.position + Vector2(12, 12), Vector2(64, 64)), false, Color(1, 1, 1, 1.0 if sel else 0.55))
+            _text_outline(labels[i], Vector2(card.position.x, card.end.y - 14.0), 22, CREAM if sel else Color("#8f8a7a"), card.size.x)
+        for b in _create_step2_buttons():
+            var is_go: bool = b[1] == "comenzar"
+            _create_key_button(b[0], (_t("pj_comenzar") + " »") if is_go else ("« " + _t("pj_atras")), 18, is_go)
+        _text_outline(_t("pj_genero_ayuda"), Vector2(150, 530), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
+    if toast_left > 0.0:
+        _draw_toast()
+
+
+## Tras la pantalla de muerte o de victoria.
+func _after_end() -> void:
+    if game_mode == "dead" and soul_fate == "persistencia":
+        _respawn()
+    else:
+        _new_run()
+
+
+## Muerte sin pérdida: se reaparece en la entrada de la misma sala con todo
+## lo que se tenía. Las almas ya recogidas de la sala siguen recogidas.
+func _respawn() -> void:
+    var keep_collected: Array[bool] = collected.duplicate()
+    var keep_letter: bool = letter_found
+    hp = max_hp
+    fear = 0.0
+    stamina = 100.0
+    dash_left = 0.0
+    dash_cd = 0.0
+    game_mode = "play"
+    _enter_room()
+    collected = keep_collected
+    letter_found = keep_letter
+    damage_cd = 1.5 # unos instantes de gracia al levantarse
+    _say("Te levantas en la entrada. Nada se ha perdido... por ahora.", 3.5)
+
+
+# ------------------------------------------------------------ PISO III · LA CACERÍA
+## El Segador de Hilos: rápido e intocable mientras acecha. Antes de cada
+## ataque TENSA sus hilos (línea roja visible, SEG_TENSE s); al disparar,
+## todo lo que esté sobre la línea recibe el golpe y él atraviesa el sitio
+## donde estabas. Después queda ENGANCHADO a la pared o la columna donde se
+## clavaron los hilos: solo entonces es vulnerable. Valores PROVISIONALES.
+const SEG_SPEED := 205.0
+const SEG_RANGE := 190.0 # distancia a la que le gusta acechar
+const SEG_TENSE := 0.9
+const SEG_HOOK := 1.6
+const SEG_BAND := 15.0 # medio ancho de la línea (lo que roza, recibe)
+const SEG_DAMAGE := 45.0
+const SEG_OVERSHOOT := 46.0 # cuánto atraviesa más allá de donde apuntó
+const ALLY_NAMES := ["ODÓN", "BRUNA", "CIRO"]
+const ALLY_TINTS := [Color(0.86, 1.0, 0.9), Color(1.0, 0.88, 0.84), Color(0.86, 0.92, 1.08)]
+const ALLY_SOULS := 6 # premio por cada aliado vivo al terminar el piso
+var seg_state: String = "acecho" # acecho, tensa, engancha
+var seg_t: float = 0.0
+var seg_cd: float = 2.0
+var seg_circle: float = 1.0
+var seg_from: Vector2 = Vector2.ZERO
+var seg_to: Vector2 = Vector2.ZERO # donde se clavan los hilos
+var seg_dash_to: Vector2 = Vector2.ZERO
+var seg_flash: float = 0.0
+var seg_hp_floor: float = -1.0 # vida que conserva al huir a la sala siguiente
+## Aliados del Piso III: tres peregrinos que te acompañan en la Cacería.
+var allies: Array = [] # {name, pos, prev, facing, moving, alive, react, seed, dead_key, dead_pos}
+var allies_here: bool = false
+var allies_rewarded: bool = false
+
+
+func _dash_cooldown() -> float:
+    return 2.65 * (0.6 if ecos.has("reflejos") else 1.0)
+
+
+func _segador_enter_room() -> void:
+    if seg_hp_floor > 0.0:
+        enemy_hp = minf(enemy_max, seg_hp_floor)
+    seg_state = "acecho"
+    seg_t = 0.0
+    seg_cd = 2.4
+    seg_flash = 0.0
+
+
+## Primer encuentro: a media vida huye a la sala siguiente (la puerta se abre).
+func _segador_flee() -> void:
+    seg_hp_floor = enemy_hp
+    banished[_room_key()] = true
+    seg_state = "acecho"
+    dissolve_fx.append({"pos": enemy_pos, "kind": "segador", "facing": enemy_facing, "frame": 2, "t": 0.0})
+    shake = maxf(shake, 0.2)
+    _sfx("latigo", -6.0, 0.7)
+    _say("El Segador recoge sus hilos y huye hacia el coro. La caza sigue.", 4.0)
+    _ally_say_random(["¡Se escapa! ¡Tras él!", "Está herido. Ahora o nunca.", "Lo he visto sangrar. Puede morir."])
+
+
+## Final del rayo desde «from» en «dir»: la primera pared o columna.
+func _thread_end(from: Vector2, dir: Vector2) -> Vector2:
+    var p := from
+    for i in range(220):
+        var nxt := p + dir * 5.0
+        if nxt.x < 63.0 or nxt.x > 895.0 or nxt.y < 155.0 or nxt.y > 552.0:
+            return p
+        for rect in obstacles:
+            if (rect as Rect2).has_point(nxt):
+                return p
+        p = nxt
+    return p
+
+
+func _on_thread(at: Vector2, extra: float = 0.0) -> bool:
+    var closest: Vector2 = Geometry2D.get_closest_point_to_segment(at, seg_from, seg_to)
+    return at.distance_to(closest) < SEG_BAND + extra
+
+
+func _update_segador(dt: float) -> void:
+    enemy_alert = true
+    seg_flash = maxf(0.0, seg_flash - dt)
+    var d: float = enemy_pos.distance_to(player_pos)
+    if enemy_stun > 0.0:
+        if seg_state == "tensa":
+            # Aturdirlo mientras tensa rompe el ataque.
+            seg_state = "acecho"
+            seg_cd = 1.4
+            _say("La onda corta sus hilos antes de que dispare.", 2.0)
+        return
+    match seg_state:
+        "acecho":
+            # Ronda a distancia, rápido; cambia de sentido si choca.
+            var to_p: Vector2 = (player_pos - enemy_pos).normalized()
+            if to_p == Vector2.ZERO:
+                to_p = Vector2.LEFT
+            var radial: float = clampf((d - SEG_RANGE) / 60.0, -1.0, 1.0)
+            var tangent := Vector2(-to_p.y, to_p.x) * seg_circle
+            var orbit: float = 0.9 if d < SEG_RANGE + 120.0 else 0.25 # lejos, primero se acerca
+            # Prueba la ruta ideal y, si choca, solo acercarse/alejarse o solo rodear.
+            var moved: bool = false
+            for v in [to_p * radial + tangent * orbit, to_p * signf(radial + 0.01), tangent, -tangent]:
+                var wanted: Vector2 = enemy_pos + (v as Vector2).normalized() * SEG_SPEED * dt
+                if (v as Vector2).length() > 0.01 and not _is_blocked(wanted):
+                    enemy_pos = wanted
+                    moved = true
+                    break
+            if not moved:
+                seg_circle = -seg_circle
+            seg_cd -= dt
+            if seg_cd <= 0.0 and d < 430.0:
+                var dir: Vector2 = (player_pos - enemy_pos).normalized()
+                if dir == Vector2.ZERO:
+                    dir = Vector2.LEFT
+                var end: Vector2 = _thread_end(enemy_pos, dir)
+                if end.distance_to(enemy_pos) < d + 10.0:
+                    # Una columna te cubre: sigue rondando hasta tener línea limpia.
+                    seg_cd = 0.25
+                    return
+                seg_state = "tensa"
+                seg_t = SEG_TENSE
+                seg_from = enemy_pos
+                seg_to = end
+                var reach: float = minf(seg_from.distance_to(player_pos) + SEG_OVERSHOOT, seg_from.distance_to(seg_to) - 26.0)
+                seg_dash_to = seg_from + dir * maxf(0.0, reach)
+                _sfx("hilo", -6.0)
+                for ally in allies:
+                    ally["react"] = randf_range(0.25, 1.15)
+        "tensa":
+            seg_t -= dt
+            if seg_t <= 0.0:
+                _segador_fire()
+        "engancha":
+            # Atraviesa la línea en un instante y queda clavado a sus hilos.
+            enemy_pos = enemy_pos.move_toward(seg_dash_to, 1600.0 * dt)
+            seg_t -= dt
+            if seg_t <= 0.0:
+                seg_state = "acecho"
+                seg_cd = randf_range(1.3, 2.2)
+                seg_circle = -1.0 if randf() < 0.5 else 1.0
+
+
+func _segador_fire() -> void:
+    seg_state = "engancha"
+    seg_t = SEG_HOOK
+    seg_flash = 0.18
+    shake = maxf(shake, 0.3)
+    _sfx("latigo", -3.0)
+    if _on_thread(player_pos):
+        if dash_left > 0.0:
+            float_fx.append({"pos": player_pos + Vector2(0, -60), "text": "ESQUIVA", "color": SOUL, "t": 0.0})
+        elif damage_cd <= 0.0:
+            hp -= SEG_DAMAGE
+            fear = minf(100.0, fear + 24.0)
+            damage_cd = 1.2
+            _say("El hilo te atraviesa. Sal de la línea antes de que dispare.", 3.0)
+            _on_hurt()
+    if allies_here:
+        for ally in allies:
+            if bool(ally["alive"]) and _on_thread(ally["pos"]):
+                _ally_die(ally)
+
+
+# --- Aliados ---------------------------------------------------------------
+func _allies_reset() -> void:
+    allies.clear()
+    allies_here = false
+    allies_rewarded = false
+    seg_hp_floor = -1.0
+
+
+func _allies_alive() -> int:
+    var n: int = 0
+    for ally in allies:
+        if bool(ally["alive"]):
+            n += 1
+    return n
+
+
+func _allies_enter_room() -> void:
+    if _has("aliados") and allies.is_empty():
+        for i in range(3):
+            allies.append({"name": ALLY_NAMES[i], "pos": Vector2.ZERO, "prev": Vector2.ZERO, "facing": 0,
+                "moving": false, "alive": true, "react": 0.0, "seed": 20 + i, "dead_key": "", "dead_pos": Vector2.ZERO,
+                "line": "", "line_t": 0.0})
+        if game_mode != "floor_intro":
+            _say("Tres peregrinos te esperaban. «Nadie sobrevive a esta caza solo».", 4.0)
+    # Te acompañan mientras sigas en el piso donde se unieron.
+    allies_here = not allies.is_empty() and not in_tutorial and _floor_has_trait("aliados")
+    if not allies_here:
+        return
+    for i in range(allies.size()):
+        var ally: Dictionary = allies[i]
+        var spot: Vector2 = player_pos + Vector2(-10.0 + float(i) * 6.0, -44.0 + float(i) * 44.0)
+        if _is_blocked(spot):
+            spot = player_pos + Vector2(24.0, float(i - 1) * 30.0)
+        ally["pos"] = spot
+        ally["prev"] = spot
+    if _has("caza") and _allies_alive() > 0:
+        _ally_say_random(["Mantente lejos de nosotros cuando tense los hilos.", "Lo que está detrás de ti también recibe el hilo.", "Que no nos use de escudo, ¿eh?"])
+    elif _has("recuento") and not allies_rewarded:
+        allies_rewarded = true
+        var alive: int = _allies_alive()
+        if alive > 0:
+            souls += alive * ALLY_SOULS
+            matches += 3
+            souls_flash = 0.8
+            _sfx("alma", -5.0)
+            _say("Sobrevivieron %d de 3. Te dan +%d almas y 3 fósforos: «Sin ti no lo contábamos»." % [alive, alive * ALLY_SOULS], 5.0)
+            _ally_say_random(["Seguiremos bajando. Quizá volvamos a vernos.", "Hasta el próximo piso. Si es que hay suelo."])
+        else:
+            _say("Nadie más llegó hasta aquí. El templo cobró su parte.", 4.5)
+            fear = minf(100.0, fear + 15.0)
+
+
+func _ally_say_random(lines: Array) -> void:
+    var alive: Array = allies.filter(func(a): return bool(a["alive"]))
+    if alive.is_empty() or not allies_here:
+        return
+    var who: Dictionary = alive[randi() % alive.size()]
+    who["line"] = lines[randi() % lines.size()]
+    who["line_t"] = 3.2
+
+
+func _ally_die(ally: Dictionary) -> void:
+    ally["alive"] = false
+    ally["dead_key"] = _room_key()
+    ally["dead_pos"] = ally["pos"]
+    fear = minf(100.0, fear + 12.0)
+    shake = maxf(shake, 0.35)
+    float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -60), "text": "%s HA MUERTO" % ally["name"], "color": RED, "t": 0.0})
+    _sfx("dano", -6.0, 0.8)
+    _ally_say_random(["¡%s! ¡No...!" % ally["name"], "Estaba justo detrás de ti...", "¡Apártate de la línea, maldita sea!"])
+
+
+func _update_allies(dt: float) -> void:
+    if not allies_here:
+        return
+    var tense: bool = _enemy_active() and _enemy_kind() == "segador" and seg_state == "tensa"
+    var back: Vector2 = -player_dir.normalized() if player_dir.length() > 0.1 else Vector2.LEFT
+    var side := Vector2(-back.y, back.x)
+    var idx: int = 0
+    for ally in allies:
+        ally["line_t"] = maxf(0.0, float(ally["line_t"]) - dt)
+        if not bool(ally["alive"]):
+            continue
+        var pos: Vector2 = ally["pos"]
+        var target: Vector2 = pos
+        var speed: float = 150.0
+        if tense:
+            ally["react"] = float(ally["react"]) - dt
+            if float(ally["react"]) <= 0.0 and _on_thread(pos, 14.0):
+                # Se aparta en perpendicular a la línea, hacia su lado.
+                var line_dir: Vector2 = (seg_to - seg_from).normalized()
+                var normal := Vector2(-line_dir.y, line_dir.x)
+                var closest: Vector2 = Geometry2D.get_closest_point_to_segment(pos, seg_from, seg_to)
+                if (pos - closest).dot(normal) < 0.0:
+                    normal = -normal
+                target = pos + normal * 60.0
+                speed = 215.0
+        else:
+            # Te siguen en abanico, un poco por detrás.
+            target = player_pos + back * 52.0 + side * float(idx - 1) * 38.0
+            if _is_blocked(target):
+                # Pegado a una pared: se reparten a tus lados.
+                target = player_pos + side * (float(idx) - 1.0) * 46.0 + Vector2(0.0, 34.0 if idx == 1 else 0.0)
+            if pos.distance_to(target) < 26.0:
+                target = pos
+            # No se amontonan unos sobre otros.
+            for other in allies:
+                if other != ally and bool(other["alive"]) and pos.distance_to(other["pos"]) < 24.0:
+                    var away: Vector2 = pos - Vector2(other["pos"])
+                    target += (away.normalized() if away.length() > 0.1 else Vector2(0, 1)) * 30.0
+        idx += 1
+        var step: Vector2 = pos.move_toward(target, speed * dt) - pos
+        var nx := Vector2(pos.x + step.x, pos.y)
+        if not _is_blocked(nx):
+            pos.x = nx.x
+        var ny := Vector2(pos.x, pos.y + step.y)
+        if not _is_blocked(ny):
+            pos.y = ny.y
+        var moved: Vector2 = pos - Vector2(ally["prev"])
+        ally["moving"] = moved.length() > 6.0 * dt
+        var look: Vector2 = moved if bool(ally["moving"]) else (player_pos - pos)
+        if look.length() > 0.5:
+            if absf(look.x) > absf(look.y):
+                ally["facing"] = 2 if look.x > 0.0 else 3
+            else:
+                ally["facing"] = 0 if look.y > 0.0 else 1
+        ally["prev"] = pos
+        ally["pos"] = pos
+
+
+func _draw_ally(i: int) -> void:
+    var ally: Dictionary = allies[i]
+    var sheet: Texture2D = art["enemy_peregrino"]
+    var frame: int = 2 + int(elapsed * 8.0 + float(i)) % 4 if bool(ally["moving"]) else int(elapsed * 2.0 + float(i)) % 2
+    var region := Rect2(float(frame) * ENEMY_CELL.x, float(ally["facing"]) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
+    var pos: Vector2 = ally["pos"]
+    var feet := Vector2(roundf(pos.x), roundf(pos.y + 4.0))
+    _draw_soft_shadow(pos + Vector2(0.0, 3.0), 12.0)
+    _draw_ellipse(pos + Vector2(0.0, 3.0), 17.0, 6.0, Color(0.45, 0.85, 0.6, 0.16))
+    draw_texture_rect_region(sheet, Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), region, ALLY_TINTS[i % ALLY_TINTS.size()])
+
+
+func _draw_ally_labels() -> void:
+    if not allies_here:
+        return
+    for ally in allies:
+        if not bool(ally["alive"]):
+            continue
+        var pos: Vector2 = ally["pos"]
+        _label_center(str(ally["name"]), pos + Vector2(0.0, -66.0), Color("#9fd8b0"))
+        if float(ally["line_t"]) > 0.0:
+            _label_center("«%s»" % ally["line"], pos + Vector2(0.0, -84.0), CREAM)
+
+
+## Hilos: línea de aviso mientras tensa, destello al disparar y el hilo
+## clavado mientras está enganchado. Se dibujan sobre la penumbra: el aviso
+## siempre se ve (juego limpio).
+func _draw_segador_threads() -> void:
+    if not (_enemy_active() and _enemy_kind() == "segador"):
+        return
+    if seg_state == "tensa":
+        var k: float = 1.0 - clampf(seg_t / SEG_TENSE, 0.0, 1.0)
+        var flicker: float = 0.75 + 0.25 * sin(elapsed * (20.0 + 30.0 * k))
+        var dir: Vector2 = (seg_to - seg_from).normalized()
+        var n := Vector2(-dir.y, dir.x) * SEG_BAND
+        draw_colored_polygon(PackedVector2Array([seg_from + n, seg_to + n, seg_to - n, seg_from - n]), Color(0.85, 0.1, 0.15, (0.06 + 0.12 * k) * flicker))
+        draw_line(seg_from + Vector2(0, -26), seg_to, Color(1.0, 0.25, 0.3, (0.35 + 0.6 * k) * flicker), 1.0 + 2.0 * k)
+        draw_line(seg_from, seg_to, Color(1.0, 0.3, 0.32, 0.25 + 0.4 * k), 1.0)
+        draw_circle(seg_to, 3.0 + 3.0 * k, Color(1.0, 0.3, 0.32, 0.7))
+    elif seg_state == "engancha":
+        var hand := enemy_pos + Vector2(0, -26)
+        var sway: float = sin(elapsed * 30.0) * 1.2
+        draw_line(hand, seg_to + Vector2(0, sway), Color(0.9, 0.15, 0.2, 0.95), 2.0)
+        draw_line(enemy_pos + Vector2(0, -20), seg_to + Vector2(0, -sway), Color(0.7, 0.1, 0.14, 0.8), 1.0)
+        draw_circle(seg_to, 4.0, Color(0.55, 0.05, 0.1, 0.9)) # clavado en la piedra
+        if seg_flash > 0.0:
+            var a: float = seg_flash / 0.18
+            draw_line(seg_from, seg_to, Color(1.0, 0.85, 0.85, a), 6.0 * a + 1.0)
+
+
+func _floor_has_trait(trait_name: String) -> bool:
+    for room in _floor()["rooms"]:
+        if trait_name in room["traits"]:
+            return true
+    return false
+
+
+func _hunt_mission_text() -> String:
+    var alive: int = _allies_alive()
+    if _has("caza") and _enemy_active():
+        match seg_state:
+            "tensa":
+                return "¡HILOS TENSOS! SAL DE LA LÍNEA (Y APARTA A LOS TUYOS)"
+            "engancha":
+                return "¡ENGANCHADO! GOLPÉALO AHORA"
+        return "CAZA: espera su disparo, luego golpea · aliados %d/3" % alive
+    if allies.is_empty() or not allies_here:
+        return ""
+    if _has("aliados"):
+        return "LA CACERÍA: aliados %d/3 · busca la puerta" % alive
+    if _has("recuento"):
+        return "SOBREVIVIERON %d DE 3" % alive
+    return ""
+
