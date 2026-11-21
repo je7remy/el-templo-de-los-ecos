@@ -52,26 +52,19 @@ func _run() -> void:
         _fail("La caida de la puerta no provoca derrota.")
         return
 
-    # Los tres refugios modifican realmente la partida.
-    mode.call("_start", 0)
-    if float(mode.get("income_rate")) != 3.0:
-        _fail("La ventaja economica del Umbral no se aplica.")
-        return
-    mode.call("_start", 1)
-    if float(mode.get("gate_max")) != 275.0:
-        _fail("La camara Claustro debe tener una puerta mas fuerte.")
-        return
-    mode.call("_start", 2)
-    if float(mode.get("sparks")) != 8.0:
-        _fail("El Archivo debe iniciar con ocho puntos de energia.")
-        return
+    # Un solo modo: cualquier llamada antigua a _start(n) da la misma partida.
+    for legacy in [0, 1, 2]:
+        mode.call("_start", legacy)
+        if float(mode.get("income_rate")) != 2.5 or float(mode.get("gate_max")) != 210.0 or float(mode.get("sparks")) != 4.0:
+            _fail("La Vigilia debe tener una sola configuracion fusionada.")
+            return
     mode.set("income", 1000.0)
     if not mode.call("_action", 5):
         _fail("No se puede instalar el generador.")
         return
     mode.call("_action", 0)
     mode.call("_advance", 6.0)
-    if float(mode.get("sparks")) <= 8.0:
+    if float(mode.get("sparks")) <= 4.0:
         _fail("El generador no produce energia mientras se descansa.")
         return
     if not mode.call("_action", 3):

@@ -5,7 +5,9 @@ Salida en audio/ (OGG Vorbis, requiere ffmpeg con libvorbis):
   musica_templo.ogg   ambiente del templo, bucle de 64 s sin cortes (estéreo)
   musica_tension.ogg  capa de tensión sincronizable: latido + cuerdas disonantes
   sfx_*.ogg           efectos: alma, daño, ojo, aviso, sello, puerta, conjuro,
-                      libro, linterna, muerte
+                      libro, linterna, muerte, fósforo, apagar, objeto, golpe,
+                      impacto, inmune, resonancia, destierro, interfaz, toque
+  sfx_paso_1..3.ogg   pisadas sobre losa (tres variaciones)
 
 Diseño: re menor / frigio. Acordes Dm, B♭, Gm y E♭ (el II♭ frigio da la
 inquietud). Todo LFO completa un número entero de ciclos en el bucle y la
@@ -343,6 +345,97 @@ def sfx_muerte() -> np.ndarray:
     return normalizar(reverb_simple(x + sub, 3.5, 0.5, 2500), 0.85)
 
 
+def _paso(semilla: int) -> np.ndarray:
+    """Pisada sobre losa: golpe sordo del talón y roce corto de la suela."""
+    r = np.random.default_rng(semilla)
+    t = t_(0.22)
+    talon = paso_bajo(r.standard_normal(len(t)), 420 + 60 * semilla) * env_ad(t, 0.002, 0.03)
+    roce = paso_banda(r.standard_normal(len(t)), 1500, 5000) * env_ad(np.maximum(t - 0.03, 0), 0.01, 0.04) * (t > 0.03) * 0.25
+    cuerpo = np.sin(2 * np.pi * (85 + 10 * semilla) * t) * env_ad(t, 0.002, 0.04) * 0.5
+    return normalizar(reverb_simple(talon + roce + cuerpo, 0.6, 0.18, 2500), 0.55)
+
+
+def sfx_fosforo() -> np.ndarray:
+    """Raspado del fósforo y la llama que prende."""
+    t = t_(0.9)
+    raspado = paso_banda(rng.standard_normal(len(t)), 2500, 9000) * env_ad(t, 0.01, 0.06) * 0.8
+    prende = paso_bajo(rng.standard_normal(len(t)), 900) * env_ad(np.maximum(t - 0.08, 0), 0.06, 0.25) * (t > 0.08)
+    crepita = (rng.random(len(t)) > 0.997).astype(float) * env_ad(t, 0.1, 0.4) * 0.6
+    return normalizar(reverb_simple(raspado + prende * 0.7 + crepita, 0.8, 0.2), 0.6)
+
+
+def sfx_apagar() -> np.ndarray:
+    """Soplo que apaga la antorcha."""
+    t = t_(0.5)
+    soplo = paso_banda(rng.standard_normal(len(t)), 300, 2500) * env_ad(t, 0.05, 0.12)
+    return normalizar(reverb_simple(soplo, 0.6, 0.2, 2000), 0.45)
+
+
+def sfx_objeto() -> np.ndarray:
+    """Recoger un objeto: roce de tela y un tintineo breve."""
+    t = t_(0.6)
+    tela = paso_banda(rng.standard_normal(len(t)), 800, 4000) * env_ad(t, 0.03, 0.08) * 0.5
+    tin = sum(np.sin(2 * np.pi * nota(n) * t) * env_ad(t, 0.004, 0.18) for n in ("A5", "E6")) * 0.25
+    return normalizar(reverb_simple(tela + tin, 0.8, 0.25, 6000), 0.55)
+
+
+def sfx_golpe() -> np.ndarray:
+    """Golpe de antorcha: silbido del aire y fuego que ruge."""
+    t = t_(0.4)
+    silbido = paso_banda(rng.standard_normal(len(t)), 600, 3500) * np.sin(np.pi * np.clip(t / 0.18, 0, 1)) * 0.7
+    fuego = paso_bajo(rng.standard_normal(len(t)), 500) * env_ad(t, 0.05, 0.12)
+    return normalizar(silbido + fuego * 0.6, 0.6)
+
+
+def sfx_impacto() -> np.ndarray:
+    """La entidad recibe daño: choque seco con chasquido de brasas."""
+    t = t_(0.5)
+    choque = np.sin(2 * np.pi * (70 + 160 * np.exp(-t / 0.03)) * t) * env_ad(t, 0.001, 0.09)
+    chasquido = paso_banda(rng.standard_normal(len(t)), 1500, 6000) * env_ad(t, 0.001, 0.05) * 0.6
+    return normalizar(reverb_simple(np.tanh((choque + chasquido) * 2.0), 0.8, 0.2), 0.75)
+
+
+def sfx_inmune() -> np.ndarray:
+    """El golpe rebota: tañido metálico apagado."""
+    t = t_(0.6)
+    f = nota("G4")
+    x = sum(a * np.sin(2 * np.pi * f * p * t) * np.exp(-t * 9 * p) for p, a in ((1, 1.0), (2.7, 0.5), (5.1, 0.3)))
+    return normalizar(reverb_simple(x, 0.8, 0.3, 3000), 0.55)
+
+
+def sfx_resonancia() -> np.ndarray:
+    """Onda de Resonancia: sub grave que barre hacia afuera y un coro breve."""
+    t = t_(1.4)
+    onda = np.sin(2 * np.pi * (110 - 50 * np.clip(t / 0.6, 0, 1)) * t) * env_ad(t, 0.01, 0.35)
+    coro_ = sum(np.sin(2 * np.pi * nota(n) * t) for n in ("D5", "A5", "D6")) * env_ad(t, 0.02, 0.4) * 0.2
+    aire = paso_banda(rng.standard_normal(len(t)), 200, 1800) * env_ad(t, 0.03, 0.25) * 0.4
+    return normalizar(reverb_simple(onda + coro_ + aire, 2.0, 0.4, 4000), 0.8)
+
+
+def sfx_destierro() -> np.ndarray:
+    """La entidad se disuelve: barrido descendente y polvo de ceniza."""
+    t = t_(2.0)
+    caida = np.exp(-t / 0.9)
+    tono = sum(np.sin(2 * np.pi * nota(n) * (0.5 + 0.5 * caida) * t) for n in ("D5", "F5", "A5")) * env_ad(t, 0.02, 0.7) * 0.3
+    polvo = paso_banda(rng.standard_normal(len(t)), 3000, 9000) * env_ad(t, 0.2, 0.6) * 0.25
+    return fundido_final(normalizar(reverb_simple(tono + polvo, 2.5, 0.45, 5000), 0.75), 0.3)
+
+
+def sfx_interfaz() -> np.ndarray:
+    """Abrir el inventario o el altar: roce de cuero y clic de broche."""
+    t = t_(0.35)
+    cuero = paso_banda(rng.standard_normal(len(t)), 500, 2500) * env_ad(t, 0.02, 0.07) * 0.6
+    clic = np.sin(2 * np.pi * 2400 * t) * np.exp(-np.maximum(t - 0.09, 0) / 0.008) * (t > 0.09) * 0.4
+    return normalizar(cuero + clic, 0.5)
+
+
+def sfx_toque() -> np.ndarray:
+    """Tocar piedra sin respuesta: golpecito apagado."""
+    t = t_(0.3)
+    x = paso_bajo(rng.standard_normal(len(t)), 900) * env_ad(t, 0.001, 0.025) + np.sin(2 * np.pi * 180 * t) * env_ad(t, 0.001, 0.04) * 0.4
+    return normalizar(reverb_simple(x, 0.5, 0.2, 2000), 0.4)
+
+
 def main() -> None:
     SALIDA.mkdir(exist_ok=True)
     guardar("musica_templo.ogg", musica_templo(), 3)
@@ -350,8 +443,14 @@ def main() -> None:
     for nombre, fn in (("sfx_alma", sfx_alma), ("sfx_dano", sfx_dano), ("sfx_ojo", sfx_ojo),
                        ("sfx_aviso", sfx_aviso), ("sfx_sello", sfx_sello), ("sfx_puerta", sfx_puerta),
                        ("sfx_conjuro", sfx_conjuro), ("sfx_libro", sfx_libro),
-                       ("sfx_linterna", sfx_linterna), ("sfx_muerte", sfx_muerte)):
+                       ("sfx_linterna", sfx_linterna), ("sfx_muerte", sfx_muerte),
+                       ("sfx_fosforo", sfx_fosforo), ("sfx_apagar", sfx_apagar), ("sfx_objeto", sfx_objeto),
+                       ("sfx_golpe", sfx_golpe), ("sfx_impacto", sfx_impacto), ("sfx_inmune", sfx_inmune),
+                       ("sfx_resonancia", sfx_resonancia), ("sfx_destierro", sfx_destierro),
+                       ("sfx_interfaz", sfx_interfaz), ("sfx_toque", sfx_toque)):
         guardar(f"{nombre}.ogg", fn(), 4)
+    for i in range(3):
+        guardar(f"sfx_paso_{i + 1}.ogg", _paso(i + 1), 3)
 
 
 if __name__ == "__main__":

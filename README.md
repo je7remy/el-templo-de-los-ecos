@@ -21,15 +21,17 @@
 
 - **Un piso de cinco salas**: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
 - **Tres entidades con reglas que se pueden aprender**, con arte propio en vista cenital y cuatro direcciones:
-  - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve.
-  - **Ghoul de brasas**: le atrae la luz de la linterna.
-  - **Hechicero del archivo**: lanza conjuros hacia la luz.
-- **Exploración e interacción**: almas que se recogen al tocarlas, el sello del Testigo, la carta del archivo, el altar del Mercader Silencioso y una habilidad experimental (Resonancia).
-- **Penumbra dinámica**: tu linterna, los braseros y las almas abren claros en la oscuridad; apagar la luz te esconde, pero también te ciega.
+  - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve. Solo recibe daño con el ojo cerrado.
+  - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
+  - **Hechicero del archivo**: lanza conjuros hacia la luz. Solo recibe daño mientras carga el conjuro.
+- **Antorcha e inventario**: despiertas a oscuras; en la primera sala encuentras madera y fósforos y se construye la antorcha. Encenderla gasta un fósforo (apagarla no); hay más cajas en las salas 3 y 4, y el altar vende la **Llama interior**, que la enciende sin gastar.
+- **Combate**: golpe de antorcha (clic o E) y **Resonancia** (Q), una onda visible que daña y aturde. Las entidades tienen barra de vida, avisan si son INMUNES o VULNERABLES y, a 0, se disuelven dejando almas. Vuelven si mueres.
+- **Exploración e interacción**: almas que se recogen al tocarlas, el sello del Testigo, la carta del archivo y el altar del Mercader Silencioso.
+- **Penumbra dinámica**: tu antorcha, los braseros y las almas abren claros en la oscuridad; apagarla te esconde, pero también te ciega.
 - **Peligro que se anuncia**: el ojo del Testigo tiembla antes de abrirse y el Hechicero carga su conjuro a la vista. Los golpes sacuden la pantalla y dan un breve margen de invulnerabilidad.
 - **Música y sonido originales** que reaccionan al miedo y a la persecución.
 - **Muerte 50/50**: el alma regresa (misma persona, con memoria y habilidades) o es absorbida y aparece un humano nuevo, sin recuerdos.
-- **Vigilia del Claustro**: modo alternativo de defensa con refugios, lecho, puerta, centinelas y oleadas hasta el amanecer.
+- **Vigilia del Claustro**: modo alternativo de defensa con lecho, puerta, centinelas y oleadas hasta el amanecer. Botones de imagen con su descripción al pasar el cursor.
 - **Salas editables en Godot**: arquitectura en `TileMapLayer`, objetos como `Sprite2D` con su colisión y marcadores para todas las posiciones de juego.
 - **Controles táctiles para Android** y **pruebas automatizadas** con Godot 4.3 en GitHub Actions.
 
@@ -42,11 +44,13 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | | |
 | --- | --- |
 | ![Menú principal](docs/galeria/01_menu.png) | ![Umbral del despertar](docs/galeria/02_umbral.png) |
-| **Menú principal.** Elige entre Explorar o Vigilia. | **I · Umbral del despertar.** Primeras reliquias de alma y una runa grabada en el suelo. |
+| **Menú principal.** Elige entre Explorar o Vigilia. | **I · Umbral del despertar.** Despiertas a oscuras: la madera y los fósforos brillan en el suelo. |
 | ![Claustro de las ofrendas con el Ghoul de brasas](docs/galeria/03_claustro_ghoul.png) | ![Altar del Mercader Silencioso](docs/galeria/07_altar.png) |
-| **II · Claustro de las ofrendas.** El Ghoul de brasas persigue tu luz. El altar está en el centro. | **El Mercader Silencioso.** Cambia almas por la Resonancia, que paraliza brevemente al Testigo. |
+| **II · Claustro de las ofrendas.** El Ghoul de brasas persigue tu luz. El altar está en el centro. | **El Mercader Silencioso.** Cambia almas por Resonancia o por la Llama interior. |
+| ![Golpe de antorcha contra el Ghoul](docs/galeria/12_combate.png) | ![Inventario](docs/galeria/13_inventario.png) |
+| **Combate.** El golpe de antorcha deja una estela de fuego; la barra indica la vida de la entidad. | **Inventario (I).** Iconos de objetos y habilidades con su descripción. |
 | ![Archivo de los ausentes con el Hechicero](docs/galeria/05_archivo.png) | ![Pórtico del siguiente piso](docs/galeria/06_portico.png) |
-| **IV · Archivo de los ausentes.** El libro se abre al leer la carta; el Hechicero responde a la linterna. | **V · Pórtico del siguiente piso.** «Esto no es una salida. Es una transición.» |
+| **IV · Archivo de los ausentes.** El libro se abre al leer la carta; el Hechicero responde a la antorcha. | **V · Pórtico del siguiente piso.** «Esto no es una salida. Es una transición.» |
 
 ### Vigilia del Claustro
 
@@ -74,7 +78,7 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 - **Ambiente del templo**: dron grave, coro sintético en re menor con un giro frigio (mi♭) que no termina de resolver, campanas lejanas y viento. Es un bucle de 64 s que empalma sin cortes.
 - **Capa de tensión**: latido y cuerdas disonantes en trémolo. Sube con el miedo, cuando una entidad te persigue o con el ojo del Testigo abierto, y baja al calmarse la situación.
-- **Efectos por evento**: alma, golpe, aviso y apertura del ojo, sello, puerta, conjuro, carta, linterna y muerte.
+- **Efectos por evento**: pasos sobre la losa (tres variaciones), alma, daño, aviso y apertura del ojo, sello, puerta, conjuro, carta, fósforo, apagar, recoger objeto, golpe de antorcha, impacto, inmune, Resonancia, destierro, interfaz y muerte.
 
 ## Jugar en Android
 
@@ -114,10 +118,12 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | Enter | Iniciar la exploración o reiniciar |
 | H | Abrir Vigilia del Claustro desde el menú |
 | W / A / S / D o flechas | Moverse |
-| E | Interactuar (sello, carta, altar, puertas). Las almas se recogen al tocarlas |
-| F | Encender o apagar la linterna |
+| E | Interactuar (sello, carta, altar, puertas). Si no hay nada cerca y la antorcha arde, golpear. Almas y objetos se recogen al tocarlos |
+| Clic izquierdo | Golpe de antorcha |
+| F | Encender (gasta un fósforo) o apagar la antorcha |
+| I o Tab | Inventario |
 | Espacio | Esquivar |
-| Q | Resonancia (después de adquirirla) |
+| Q | Resonancia: onda que daña y aturde (después de adquirirla) |
 | Esc | Volver al menú o cerrar un panel |
 | 1–8 en Vigilia | Descansar, construir, mejorar, reparar y activar tecnología |
 | P en Vigilia | Pausar o reanudar |
@@ -150,13 +156,14 @@ assets/                 Arte: escenario (Knowledge Temple), entidades, tiles, ob
   visual/enemies/       Entidades originales (Testigo, Ghoul de brasas, Hechicero)
   visual/tiles/         Atlas de la arquitectura de las salas
   visual/objetos/       Columnas, estatuas, braseros, mesa, sarcófago… por sala
+  visual/iconos/        Iconos de inventario, habilidades y botones de Vigilia
 audio/                  Música y efectos originales (OGG)
 rooms/                  Escenas editables de las cinco salas y su TileSet
 shaders/                Luz y tinte de cada sala
 scenes/                 Escena principal y Vigilia del Claustro
 scripts/                Lógica de juego en GDScript
 tests/                  Pruebas para Godot sin interfaz
-herramientas/           Validación, apertura en Fedora y generadores de salas, entidades y audio
+herramientas/           Validación, apertura en Fedora y generadores de salas, protagonista, entidades, iconos y audio
 docs/                   Diseño, licencias, guías, notas de versión y galería del README
 .github/workflows/      Integración continua y publicación de alpha
 project.godot           Configuración del motor
@@ -167,7 +174,8 @@ project.godot           Configuración del motor
 - **Versiones:** [registro de cambios](CHANGELOG.md) · [lanzamientos](https://github.com/je7remy/el-templo-de-los-ecos/releases).
 - **CI:** [verificación automática](https://github.com/je7remy/el-templo-de-los-ecos/actions/workflows/validar-godot.yml).
 - El arte de las entidades es original y funcional, pero todavía de **prototipo**; se puede retocar directamente en los PNG o con `herramientas/generar_enemigos.py`.
-- El protagonista usa un sprite provisional; Mark aún no está integrado.
+- El protagonista tiene arte original cenital (`herramientas/generar_protagonista.py`); Mark aún no está integrado como personaje con nombre.
+- Vida, daño y precios del combate son **provisionales** y deben ajustarse jugando.
 - Las pruebas automatizadas no sustituyen una partida manual, sobre todo en un teléfono Android real.
 
 ## Créditos y uso de los assets

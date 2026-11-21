@@ -26,8 +26,26 @@ const MONSTER_SHEETS := {
     "angel": preload("res://assets/visual/enemies/testigo.png"),
 }
 
-var phase: String = "selection" # selection, play, won, lost
-var chamber: int = 0
+var phase: String = "selection" # selection (portada), play, won, lost
+var chamber: int = 0 # se conserva por compatibilidad: ya hay un solo modo
+## Iconos originales (herramientas/generar_iconos.py) y descripción al pasar el cursor.
+const ICONS := {
+    "descansar": preload("res://assets/visual/iconos/descansar.png"),
+    "levantar": preload("res://assets/visual/iconos/levantar.png"),
+    "lecho": preload("res://assets/visual/iconos/lecho.png"),
+    "puerta": preload("res://assets/visual/iconos/puerta.png"),
+    "centinela": preload("res://assets/visual/iconos/centinela.png"),
+    "reparar": preload("res://assets/visual/iconos/reparar.png"),
+    "generador": preload("res://assets/visual/iconos/generador.png"),
+    "potenciar": preload("res://assets/visual/iconos/potenciar.png"),
+    "escudo": preload("res://assets/visual/iconos/escudo.png"),
+    "pausa": preload("res://assets/visual/iconos/pausa.png"),
+    "reanudar": preload("res://assets/visual/iconos/reanudar.png"),
+    "salir": preload("res://assets/visual/iconos/salir.png"),
+}
+const EXIT_RECT := Rect2(872, 22, 64, 64)
+var hover_pos: Vector2 = Vector2(-100, -100)
+var tooltip_left: float = 0.0 # en táctil, la descripción se ve un momento tras tocar
 var elapsed: float = 0.0
 var income: float = 22.0
 var income_rate: float = 2.0
@@ -89,7 +107,7 @@ func _ready() -> void:
         tension.volume_db = -60.0
         music.play()
         tension.play()
-        for key in ["alma", "dano", "sello", "puerta", "linterna", "muerte"]:
+        for key in ["alma", "dano", "sello", "puerta", "linterna", "muerte", "interfaz", "toque"]:
             sfx_streams[key] = load("res://audio/sfx_%s.ogg" % key)
     queue_redraw()
 
@@ -115,8 +133,10 @@ func _sfx(key: String, volume_db: float = -8.0, pitch: float = 1.0) -> void:
     chosen.pitch_scale = pitch * randf_range(0.96, 1.04)
     chosen.play()
 
-func _start(choice: int = 0) -> void:
-    chamber = clampi(choice, 0, 2)
+## Un solo modo: las ventajas de las antiguas tres cámaras se reparten.
+## El parámetro se ignora (se mantiene para no romper llamadas antiguas).
+func _start(_choice: int = 0) -> void:
+    chamber = 0
     phase = "play"
     elapsed = 0.0
     income = 30.0
@@ -130,12 +150,10 @@ func _start(choice: int = 0) -> void:
     sleeping = false
     bed_level = 1
     gate_level = 1
-    gate_max = 150.0 + (125.0 if chamber == 1 else 0.0)
+    gate_max = 210.0
     gate_hp = gate_max
-    if chamber == 0:
-        income_rate += 1.0
-    elif chamber == 2:
-        sparks = 8.0
+    income_rate = 2.5
+    sparks = 4.0
     wards = 0
     waves = 1
     slain = 0
@@ -202,7 +220,7 @@ func _action(choice: int) -> bool:
                 return false
             income -= cost
             bed_level += 1
-            income_rate = 1.0 + float(bed_level) + (1.0 if chamber == 0 else 0.0)
+            income_rate = 1.5 + float(bed_level)
             _say("Lecho mejorado: +%d ecos/s." % int(income_rate))
         2:
             var cost: float = 25.0 * float(gate_level)
@@ -254,13 +272,14 @@ func _action(choice: int) -> bool:
             _say("Escudo protector: 8 segundos de inmunidad al umbral.")
         _:
             return false
-    _sfx("sello" if choice == 3 else "linterna", -10.0, 1.3 if choice == 3 else 1.0)
+    _sfx("sello" if choice == 3 else "interfaz", -10.0, 1.3 if choice == 3 else 1.0)
     queue_redraw()
     return true
 
 func _process(delta: float) -> void:
     tick += delta
     info_time = maxf(0.0, info_time - delta)
+    tooltip_left = maxf(0.0, tooltip_left - delta)
     if phase == "play" and not paused:
         _advance(delta)
     # Tensión: sube cuando la entidad llega a la puerta y con la puerta dañada.
@@ -331,12 +350,15 @@ func _input(event: InputEvent) -> void:
     elif event is InputEventMouseButton:
         if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
             _tap(make_input_local(event).position)
+    elif event is InputEventMouseMotion:
+        hover_pos = make_input_local(event).position
+        tooltip_left = 0.0
     elif event is InputEventKey and event.pressed and not event.echo:
         var k: Key = event.keycode
         if k == KEY_ESCAPE:
             _leave()
         elif phase == "selection" and k in [KEY_ENTER, KEY_SPACE]:
-            _start(0)
+            _start()
         elif phase in ["won", "lost"] and k == KEY_ENTER:
             _start(chamber)
         elif phase == "play":
@@ -349,12 +371,14 @@ func _input(event: InputEvent) -> void:
     queue_redraw()
 
 func _tap(at: Vector2) -> void:
+    hover_pos = at
+    tooltip_left = 2.2
     if at.x > 847.0 and at.y < 92.0:
         _leave()
         return
     if phase == "selection":
         if at.y > 270.0 and at.y < 515.0:
-            _start(clampi(int(at.x / 320.0), 0, 2))
+            _start()
         return
     if phase in ["won", "lost"]:
         if at.y > 350.0:
@@ -386,11 +410,13 @@ func _draw() -> void:
     draw_rect(Rect2(0, 109, 960, 2), GOLD)
     _label("VIGILIA DEL CLAUSTRO", Vector2(24, 38), 28, MINT)
     _label("Una prueba de defensa en el templo • sin alterar la campaña", Vector2(24, 71), 13, BLUE)
-    _button(Rect2(849, 17, 91, 64), "SALIR", "")
+    _icon_button(EXIT_RECT, "salir", "", "SALIR", "Vuelve al menú del templo. ESC.")
     if phase == "selection":
         _draw_selection()
+        _draw_tooltip()
         return
     _draw_chamber()
+    _draw_tooltip()
     if paused and phase == "play":
         draw_rect(Rect2(160, 185, 640, 255), Color(0.025, 0.039, 0.060, 0.93))
         draw_rect(Rect2(160, 185, 640, 255), GOLD, false, 2)
@@ -404,16 +430,20 @@ func _draw() -> void:
         _center("TOCA PARA REINTENTAR • ESC PARA VOLVER", 416, 17, GOLD)
 
 func _draw_selection() -> void:
-    _center("ELIGE UNA CAMARA PARA PROTEGER", 206, 27, MINT)
-    _center("Descansa para ganar ecos. Refuerza la puerta. Despierta centinelas.", 247, 17, BLUE)
-    var names := ["UMBRAL", "CLAUSTRO", "ARCHIVO"]
-    var buffs := ["+1 eco/s al descansar", "+125 resistencia de puerta", "+8 energia inicial"]
-    for i in range(3):
-        var cell := Rect2(22.0 + i * 316.0, 300, 290, 178)
-        draw_rect(cell, Color(0.07, 0.12 + float(i) * 0.025, 0.15, 0.90))
-        draw_rect(cell, GOLD, false, 2)
-        _text_centered(names[i], cell, 25, MINT)
-        _text_centered(buffs[i], Rect2(cell.position.x, cell.position.y + 80, cell.size.x, 40), 14, BLUE)
+    _center("UNA NOCHE EN LA CÁMARA", 206, 27, MINT)
+    _center("Resiste %d segundos hasta el amanecer." % int(LENGTH), 247, 17, BLUE)
+    # Portada: un panel que se toca para empezar (misma zona táctil de antes).
+    var panel := Rect2(130, 280, 700, 225)
+    draw_rect(panel, Color(0.05, 0.09, 0.12, 0.92))
+    draw_rect(panel, GOLD, false, 2)
+    var steps := [["descansar", "DESCANSA", "para ganar ecos"], ["centinela", "DESPIERTA", "centinelas"], ["puerta", "REFUERZA", "el umbral"]]
+    for i in range(steps.size()):
+        var cx: float = panel.position.x + 120.0 + float(i) * 230.0
+        draw_texture_rect(ICONS[steps[i][0]], Rect2(cx - 32.0, 300, 64, 64), false)
+        _text_centered(steps[i][1], Rect2(cx - 110.0, 368, 220, 24), 17, MINT)
+        _text_centered(steps[i][2], Rect2(cx - 110.0, 392, 220, 22), 13, BLUE)
+    var pulse: float = 0.6 + 0.4 * sin(tick * 3.0)
+    _center("TOCA O PULSA ENTER PARA COMENZAR", 478, 18, Color(GOLD.r, GOLD.g, GOLD.b, pulse))
     _center("MEJOR PUNTAJE: %d  |  MAXIMA SUPERVIVENCIA: %d s" % [high_score, int(best_time)], 561, 15, GOLD)
 
 func _draw_chamber() -> void:
@@ -468,14 +498,24 @@ func _draw_chamber() -> void:
     draw_string(font, Vector2(560, 135), "REPELIDAS: %d  |  PUNTOS: %d" % [slain, slain * 50 + int(elapsed) * 3], HORIZONTAL_ALIGNMENT_RIGHT, 376.0, 13, BLUE)
     if info_time > 0.0:
         _tag(info, Vector2(CHAMBER.position.x + CHAMBER.size.x * 0.5, CHAMBER.end.y - 14), 12, GOLD)
-    var tech_names := ["GENERADOR", "POTENCIAR", "ESCUDO", "REANUDAR" if paused else "PAUSA"]
-    var tech_costs := ["%d ecos" % int(35.0 + generator_level * 25.0), "%d energia" % (6 * ward_power), "14 energia", "P"]
+    # Botones con icono: la zona táctil es la misma que antes.
+    var tech := [
+        ["generador", "%d ecos · 6" % int(35.0 + generator_level * 25.0), "GENERADOR  [6]", "Produce energía mientras descansas. Nivel %d/6." % generator_level],
+        ["potenciar", "%d energía · 7" % (6 * ward_power), "POTENCIAR  [7]", "Los centinelas golpean más fuerte. Poder %d/6." % ward_power],
+        ["escudo", "14 energía · 8", "ESCUDO  [8]", "La puerta no recibe daño durante 8 segundos."],
+        ["reanudar" if paused else "pausa", "P", "REANUDAR" if paused else "PAUSA", "Detiene o reanuda la noche."],
+    ]
     for i in range(4):
-        _button(Rect2(12 + i * 238.0, 490, 226, 60), tech_names[i], tech_costs[i])
-    var costs := ["ESPACIO", "%d ecos" % (18 * bed_level), "%d ecos" % (25 * gate_level), "%d ecos" % (22 + 20 * wards), "18 ecos"]
-    var names := ["DESCANSAR" if not sleeping else "LEVANTAR", "LECHO", "PUERTA", "CENTINELA", "REPARAR"]
+        _icon_button(Rect2(12 + i * 238.0, 490, 226, 60), tech[i][0], tech[i][1], tech[i][2], tech[i][3])
+    var base := [
+        ["levantar" if sleeping else "descansar", "ESPACIO · 1", "LEVANTARSE  [1]" if sleeping else "DESCANSAR  [1]", "Dormido en el lecho ganas ecos. Despierto, nada."],
+        ["lecho", "%d ecos · 2" % (18 * bed_level), "LECHO  [2]", "Mejora la cama: +1 eco por segundo al descansar. Nivel %d/8." % bed_level],
+        ["puerta", "%d ecos · 3" % (25 * gate_level), "PUERTA  [3]", "Refuerza el umbral: más resistencia y repara 120."],
+        ["centinela", "%d ecos · 4" % (22 + 20 * wards), "CENTINELA  [4]", "Despierta una estatua que ataca sola (%d/4)." % wards],
+        ["reparar", "18 ecos · 5", "REPARAR  [5]", "Restaura 85 de resistencia de la puerta."],
+    ]
     for idx in range(5):
-        _button(Rect2(12 + idx * 191, 558, 181, 69), names[idx], costs[idx])
+        _icon_button(Rect2(12 + idx * 191, 558, 181, 69), base[idx][0], base[idx][1], base[idx][2], base[idx][3])
 
 func _draw_floor_glow(center: Vector2, radius: float, color: Color, strength: float) -> void:
     draw_set_transform(center, 0.0, Vector2(1.0, 0.62))
@@ -587,12 +627,42 @@ func _draw_sentinel(p: Vector2) -> void:
     draw_polyline(PackedVector2Array([c + Vector2(0, -16), c + Vector2(9, -1), c + Vector2(0, 14), c + Vector2(-9, -1), c + Vector2(0, -16)]), Color("#e8fbff"), 1.0)
 
 
-func _button(rect: Rect2, heading: String, detail: String) -> void:
-    draw_rect(rect, Color("#172e39"))
-    draw_rect(rect, GOLD, false, 2)
-    _text_centered(heading, Rect2(rect.position.x, rect.position.y + 4, rect.size.x, 31), 15, MINT)
-    if not detail.is_empty():
-        _text_centered(detail, Rect2(rect.position.x, rect.position.y + 36, rect.size.x, 26), 12, GOLD)
+## Botón de imagen: icono grande y coste pequeño. El nombre y la descripción
+## aparecen al pasar el cursor por encima (o al tocarlo, un momento).
+var _tooltip: Array = [] # [rect, título, descripción] del botón señalado
+func _icon_button(rect: Rect2, icon: String, cost: String, heading: String, detail: String) -> void:
+    var hover: bool = rect.has_point(hover_pos)
+    draw_rect(rect, Color("#1d3a47") if hover else Color("#172e39"))
+    draw_rect(rect, Color("#f3d79d") if hover else GOLD, false, 2)
+    var side: float = minf(rect.size.y - (20.0 if cost != "" else 8.0), 48.0)
+    var icon_rect := Rect2(rect.get_center().x - side * 0.5, rect.position.y + 4.0, side, side)
+    draw_texture_rect(ICONS[icon], icon_rect, false)
+    if cost != "":
+        _text_centered(cost, Rect2(rect.position.x, rect.end.y - 21.0, rect.size.x, 16), 11, GOLD)
+    if hover:
+        _tooltip = [rect, heading, detail]
+
+
+func _draw_tooltip() -> void:
+    if _tooltip.is_empty():
+        return
+    var rect: Rect2 = _tooltip[0]
+    if not rect.has_point(hover_pos) or (tooltip_left <= 0.0 and DisplayServer.is_touchscreen_available()):
+        _tooltip = []
+        return
+    var title: String = _tooltip[1]
+    var desc: String = _tooltip[2]
+    var width: float = maxf(font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x, font.get_string_size(desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x) + 28.0
+    var x: float = clampf(rect.get_center().x - width * 0.5, 8.0, W - width - 8.0)
+    var box := Rect2(x, minf(rect.position.y, 490.0) - 62.0, width, 54.0) # sobre las dos filas
+    if box.position.y < 4.0:
+        box.position.y = rect.end.y + 8.0 # botones de arriba: la descripción va debajo
+    draw_rect(box, Color(0.03, 0.05, 0.07, 0.96))
+    draw_rect(box, GOLD, false, 1.0)
+    draw_string(font, box.position + Vector2(14, 22), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, MINT)
+    draw_string(font, box.position + Vector2(14, 43), desc, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, BLUE)
+    _tooltip = []
+
 
 ## Etiqueta centrada con fondo oscuro, legible sobre el suelo del templo.
 func _tag(text_value: String, center: Vector2, size: int, color: Color) -> void:

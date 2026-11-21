@@ -1,5 +1,33 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-20 · Antorcha, inventario y combate
+
+**Antorcha e inventario**
+- Se despierta a oscuras. En el Umbral hay **madera** y una caja de **5 fósforos**; con ambas cosas se construye la antorcha.
+- **F** enciende la antorcha (gasta 1 fósforo) o la apaga (gratis). Conserva su estado entre salas. Hay cajas de +3 fósforos en la Sala del Testigo y en el Archivo.
+- El altar vende **Llama interior** (10 almas): enciende la antorcha sin gastar fósforos. Se guarda y se pierde como Resonancia.
+- Inventario con iconos en la barra superior y panel con descripciones (**I** o Tab; en móvil, tocar la barra superior).
+
+**Combate**
+- Todas las entidades tienen **barra de vida** (Ghoul 60, Testigo 90, Hechicero 70; provisional) y reciben daño.
+- **Debilidades:** el Testigo solo con el ojo cerrado; el Hechicero solo mientras carga el conjuro (1 s visible); el Ghoul siempre. Sobre la entidad se lee INMUNE, VULNERABLE o ATURDIDO.
+- **Golpe de antorcha** (clic, o E sin nada cerca): arco de fuego, 18 de daño, recuperación 0,6 s.
+- **Resonancia** (Q): anillo visible que daña (30 + 10 por nivel) y aturde; recuperación 8 s.
+- A 0 de vida la entidad se **disuelve** y deja almas (+10). Vuelve si mueres.
+- Iconos de habilidades con su recuperación en la parte inferior derecha.
+
+**Vista cenital y arte**
+- Protagonista redibujado (`herramientas/generar_protagonista.py`): coronilla y hombros iluminados, cartera, bufanda animada; lleva la antorcha en la mano.
+- Entidades con más detalle: grietas, musgo, cadena y halo roto en el Testigo; chispas y hombros iluminados en el Ghoul; ribetes y runas en el Hechicero. Luz cenital en el contorno superior.
+- Salas con profundidad: cara del muro del fondo con luz arriba y sombra al pie, sombra proyectada sobre el suelo y remates iluminados en los demás muros.
+
+**Sonido**
+- Pasos (tres variaciones), fósforo, apagar, recoger objeto, golpe, impacto, inmune, Resonancia, destierro, interfaz y toque sin respuesta.
+
+**Vigilia**
+- Un solo modo (se fusionan las tres cámaras) con portada «toca para comenzar».
+- Botones de imagen (`herramientas/generar_iconos.py`) con su descripción al pasar el cursor o al tocarlos.
+
 ## En `main` (sin nuevo release) — 2026-11-20 · Almas por contacto, luz, avisos y audio original
 
 **Jugabilidad**

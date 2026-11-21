@@ -41,6 +41,41 @@ const ENEMY_CELL := Vector2(48.0, 64.0)
 const ENEMY_FEET_Y := 61.0
 ## Salas editables: TileMapLayer + objetos + marcadores + colisiones.
 ## Se generaron con herramientas/construir_salas.*; desde entonces se editan en Godot.
+## Inventario y habilidades: iconos originales (herramientas/generar_iconos.py).
+const ICONS := {
+    "madera": preload("res://assets/visual/iconos/madera.png"),
+    "fosforos": preload("res://assets/visual/iconos/fosforos.png"),
+    "antorcha": preload("res://assets/visual/iconos/antorcha.png"),
+    "antorcha_encendida": preload("res://assets/visual/iconos/antorcha_encendida.png"),
+    "llama_interior": preload("res://assets/visual/iconos/llama_interior.png"),
+    "resonancia": preload("res://assets/visual/iconos/resonancia.png"),
+    "golpe": preload("res://assets/visual/iconos/golpe.png"),
+    "alma": preload("res://assets/visual/iconos/alma.png"),
+}
+## Casillas del inventario: [clave, nombre, descripción].
+const INVENTORY_SLOTS := [
+    ["madera", "MADERA Y TELA", "El cuerpo de una antorcha. Con fósforos se construye sola."],
+    ["fosforos", "FÓSFOROS", "Encender la antorcha gasta uno. Apagarla es gratis."],
+    ["antorcha", "ANTORCHA", "F enciende o apaga. Encendida ilumina, atrae miradas y permite golpear."],
+    ["llama_interior", "LLAMA INTERIOR", "Habilidad del altar: enciendes la antorcha sin gastar fósforos."],
+    ["golpe", "GOLPE DE ANTORCHA", "Clic o E con la antorcha encendida: daño de fuego a corta distancia."],
+    ["resonancia", "RESONANCIA", "Q: una onda que daña y aturde a las entidades cercanas."],
+]
+## Objetos de cada sala: [clave, marcador en la escena, posición por defecto].
+const ROOM_ITEMS := {
+    0: [["madera", "Madera", Vector2(330, 445)], ["fosforos", "Fosforos", Vector2(600, 250)]],
+    2: [["fosforos", "Fosforos", Vector2(250, 470)]],
+    3: [["fosforos", "Fosforos", Vector2(230, 460)]],
+}
+const MATCHES_FIRST_BOX := 5
+const MATCHES_REFILL := 3
+## Vida de cada entidad por sala (PROVISIONAL, ajustar en pruebas de juego).
+const ENEMY_MAX_HP := [0.0, 60.0, 90.0, 70.0, 0.0]
+const WIZARD_CHARGE := 1.0 # segundos de carga visibles (y vulnerables) del conjuro
+const STRIKE_RANGE := 64.0
+const STRIKE_DAMAGE := 18.0
+const PULSE_RADIUS := 150.0
+const BANISH_SOULS := 10
 const ROOM_SCENES := [
     preload("res://rooms/sala_0.tscn"),
     preload("res://rooms/sala_1.tscn"),
@@ -118,7 +153,29 @@ var max_hp: float = 100.0
 var fear: float = 0.0
 var stamina: float = 100.0
 var souls: int = 0
-var torch_on: bool = true
+var torch_on: bool = false
+## Inventario de la partida (se pierde al empezar otra).
+var has_wood: bool = false
+var has_torch: bool = false
+var matches: int = 0
+var has_inner_flame: bool = false # habilidad del altar; se guarda como Resonancia
+var items_taken: Dictionary = {} # "sala:clave" -> true
+var room_items: Array = [] # {kind, pos}
+var inventory_sel: int = 0
+## Combate.
+var enemy_hp: float = 0.0
+var enemy_max: float = 1.0
+var banished: Dictionary = {} # sala -> true (desterrada en esta partida)
+var enemy_hit_t: float = 0.0
+var strike_cd: float = 0.0
+var strike_fx: float = 0.0
+var strike_dir: Vector2 = Vector2.RIGHT
+var pulse_fx: float = -1.0
+var float_fx: Array = [] # {pos, text, color, t}
+var dissolve_fx: Array = [] # {pos, kind, facing, frame, t}
+var drops: Array = [] # {pos}
+var step_t: float = 0.0
+var step_i: int = 0
 var dash_left: float = 0.0
 var dash_cd: float = 0.0
 var pulse_cd: float = 0.0
@@ -179,6 +236,13 @@ const SFX_PATHS := {
     "sello": "res://audio/sfx_sello.ogg", "puerta": "res://audio/sfx_puerta.ogg",
     "conjuro": "res://audio/sfx_conjuro.ogg", "libro": "res://audio/sfx_libro.ogg",
     "linterna": "res://audio/sfx_linterna.ogg", "muerte": "res://audio/sfx_muerte.ogg",
+    "fosforo": "res://audio/sfx_fosforo.ogg", "apagar": "res://audio/sfx_apagar.ogg",
+    "objeto": "res://audio/sfx_objeto.ogg", "golpe": "res://audio/sfx_golpe.ogg",
+    "impacto": "res://audio/sfx_impacto.ogg", "inmune": "res://audio/sfx_inmune.ogg",
+    "resonancia": "res://audio/sfx_resonancia.ogg", "destierro": "res://audio/sfx_destierro.ogg",
+    "interfaz": "res://audio/sfx_interfaz.ogg", "toque": "res://audio/sfx_toque.ogg",
+    "paso_1": "res://audio/sfx_paso_1.ogg", "paso_2": "res://audio/sfx_paso_2.ogg",
+    "paso_3": "res://audio/sfx_paso_3.ogg",
 }
 var music: AudioStreamPlayer
 var tension: AudioStreamPlayer
@@ -208,7 +272,7 @@ func _ready() -> void:
     tension = AudioStreamPlayer.new()
     add_child(music)
     add_child(tension)
-    for i in range(5):
+    for i in range(8):
         var player := AudioStreamPlayer.new()
         add_child(player)
         sfx_pool.append(player)
@@ -286,6 +350,7 @@ func _load_progress() -> void:
         new_humans = maxi(0, int(data.get("new_humans", 0)))
         reincarnations = maxi(0, int(data.get("reincarnations", 0)))
         has_pulse = bool(data.get("has_pulse", false))
+        has_inner_flame = bool(data.get("has_inner_flame", false))
         ability_level = maxi(0, int(data.get("ability_level", 0)))
         remembered_rule = bool(data.get("remembered_rule", false))
         deaths = maxi(0, int(data.get("deaths", 0)))
@@ -299,6 +364,7 @@ func _save_progress() -> void:
             "new_humans": new_humans,
             "reincarnations": reincarnations,
             "has_pulse": has_pulse,
+            "has_inner_flame": has_inner_flame,
             "ability_level": ability_level,
             "remembered_rule": remembered_rule,
             "deaths": deaths,
@@ -317,7 +383,14 @@ func _new_run() -> void:
     pulse_cd = 0.0
     damage_cd = 0.0
     elapsed = 0.0
-    torch_on = true
+    # Se empieza a oscuras: la antorcha se construye en la primera sala.
+    torch_on = false
+    has_wood = false
+    has_torch = false
+    matches = 0
+    items_taken.clear()
+    banished.clear()
+    strike_cd = 0.0
     seal_acquired = false
     observed_rule = remembered_rule
     game_mode = "play"
@@ -351,8 +424,23 @@ func _enter_room() -> void:
     letter_found = false
     collected = [false, false, false]
     ward_left = 0.0
-    torch_on = true
-    _say(ROOM_WHISPERS[current_room], 4.5)
+    # La antorcha conserva su estado al cruzar la puerta.
+    room_items.clear()
+    for entry in ROOM_ITEMS.get(current_room, []):
+        if not items_taken.has("%d:%s" % [current_room, entry[0]]):
+            room_items.append({"kind": entry[0], "pos": _marker(entry[1], entry[2])})
+    enemy_max = maxf(1.0, ENEMY_MAX_HP[current_room])
+    enemy_hp = enemy_max
+    enemy_hit_t = 0.0
+    pulse_fx = -1.0
+    strike_fx = 0.0
+    float_fx.clear()
+    dissolve_fx.clear()
+    drops.clear()
+    if current_room == 0 and not has_torch:
+        _say("Oscuridad. Busca madera y fósforos para hacer una antorcha.", 4.5)
+    else:
+        _say(ROOM_WHISPERS[current_room], 4.5)
 
 
 ## Instancia rooms/sala_N.tscn bajo el dibujo del juego y lee sus datos.
@@ -416,9 +504,18 @@ func _input(event: InputEvent) -> void:
         _mobile_update_axis(make_input_local(event).position)
         return
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        if game_mode == "title":
+        if game_mode in ["title", "inventory", "altar"]:
             _mobile_tap(make_input_local(event).position)
             return
+        if game_mode == "play" and not touch_enabled:
+            if not _torch_strike():
+                _say("Enciende la antorcha (F) para golpear con fuego.", 1.8)
+            return
+    elif event is InputEventMouseMotion and game_mode in ["inventory", "altar"]:
+        var slot: int = _inventory_slot_at(make_input_local(event).position) if game_mode == "inventory" else _altar_row_at(make_input_local(event).position)
+        if slot >= 0:
+            inventory_sel = slot
+        return
     if not (event is InputEventKey):
         return
     if not event.pressed or event.echo:
@@ -437,15 +534,27 @@ func _input(event: InputEvent) -> void:
     elif game_mode == "altar":
         if k == KEY_1:
             _buy_upgrade(1)
+        elif k == KEY_2:
+            _buy_upgrade(2)
         elif k == KEY_ESCAPE or k == KEY_E:
             game_mode = "play"
+            _sfx("interfaz", -12.0, 0.9)
+    elif game_mode == "inventory":
+        if k in [KEY_I, KEY_TAB, KEY_ESCAPE, KEY_E]:
+            _close_inventory()
+        elif k in [KEY_RIGHT, KEY_D]:
+            inventory_sel = (inventory_sel + 1) % INVENTORY_SLOTS.size()
+        elif k in [KEY_LEFT, KEY_A]:
+            inventory_sel = (inventory_sel + INVENTORY_SLOTS.size() - 1) % INVENTORY_SLOTS.size()
+        elif k in [KEY_DOWN, KEY_S, KEY_UP, KEY_W]:
+            inventory_sel = (inventory_sel + 3) % INVENTORY_SLOTS.size()
     elif game_mode == "play":
         if k == KEY_E:
             _interact()
         elif k == KEY_F:
-            torch_on = not torch_on
-            _sfx("linterna", -10.0)
-            _say("Linterna " + ("encendida" if torch_on else "apagada") + ".", 1.3)
+            _toggle_torch()
+        elif k == KEY_I or k == KEY_TAB:
+            _open_inventory()
         elif k == KEY_SPACE and dash_cd <= 0.0 and stamina >= 28.0:
             dash_left = 0.19
             dash_cd = 2.65
@@ -490,10 +599,20 @@ func _mobile_tap(at: Vector2) -> void:
         _new_run()
         return
     if game_mode == "altar":
-        if at.x < 615.0 and at.y > 264.0 and at.y < 430.0:
-            _buy_upgrade(1)
+        var row: int = _altar_row_at(at)
+        if row >= 0:
+            inventory_sel = row
+            _buy_upgrade(row + 1)
         else:
             game_mode = "play"
+            _sfx("interfaz", -12.0, 0.9)
+        return
+    if game_mode == "inventory":
+        var slot: int = _inventory_slot_at(at)
+        if slot >= 0:
+            inventory_sel = slot
+        else:
+            _close_inventory()
         return
     if game_mode != "play":
         return
@@ -502,12 +621,15 @@ func _mobile_tap(at: Vector2) -> void:
         mobile_axis = Vector2.ZERO
         mobile_finger = -1
         return
+    if at.y < 100.0 and at.x > 560.0:
+        # Tocar la zona del inventario de la barra superior lo abre.
+        _open_inventory()
+        return
     if at.y > 365.0 and at.x > 370.0:
         if at.x < 510.0:
             _interact()
         elif at.x < 660.0:
-            torch_on = not torch_on
-            _sfx("linterna", -10.0)
+            _toggle_torch()
         elif at.x < 790.0:
             if dash_cd <= 0.0 and stamina >= 28.0:
                 dash_left = 0.19
@@ -529,16 +651,24 @@ func _draw_mobile_controls() -> void:
     draw_circle(Vector2(135, 480) + mobile_axis * 48.0, 26.0, Color(0.62, 0.81, 0.83, 0.68))
     var positions := [Vector2(440, 478), Vector2(585, 478), Vector2(725, 478), Vector2(865, 478)]
     var labels := ["E", "F", "DASH", "Q"]
+    var icons := ["golpe" if has_torch and torch_on else "", "antorcha_encendida" if torch_on else "antorcha", "", "resonancia"]
     for i in range(4):
         var at: Vector2 = positions[i]
         draw_circle(at, 51.0, Color(0.09, 0.21, 0.27, 0.83))
         draw_arc(at, 51.0, 0.0, TAU, 36, SOUL, 2.0)
-        draw_string(font, at + Vector2(-47, 8), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 94, 23, CREAM)
+        if icons[i] != "" and (i != 1 or has_torch) and (i != 3 or has_pulse):
+            draw_texture_rect(ICONS[icons[i]], Rect2(at - Vector2(24, 30), Vector2(48, 48)), false, Color(1, 1, 1, 0.9))
+            draw_string(font, at + Vector2(-47, 38), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 94, 14, CREAM)
+        else:
+            draw_string(font, at + Vector2(-47, 8), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 94, 23, CREAM)
     draw_rect(Rect2(834, 16, 112, 72), Color(0.10, 0.22, 0.28, 0.85))
     draw_string(font, Vector2(840, 56), "MENÚ", HORIZONTAL_ALIGNMENT_CENTER, 100, 15, CREAM)
 
 
 func _buy_upgrade(choice: int) -> void:
+    if choice == 2:
+        _buy_inner_flame()
+        return
     if choice != 1:
         return
     if has_pulse:
@@ -557,6 +687,22 @@ func _buy_upgrade(choice: int) -> void:
     _say("Adquiriste Resonancia nivel 0. Pulsa Q para utilizarla.", 4.0)
 
 
+const INNER_FLAME_PRICE := 10
+func _buy_inner_flame() -> void:
+    if has_inner_flame:
+        _say("La llama interior ya arde en ti.")
+        return
+    if souls < INNER_FLAME_PRICE:
+        _say("Necesitas %d fragmentos de alma." % INNER_FLAME_PRICE)
+        _sfx("toque", -10.0)
+        return
+    souls -= INNER_FLAME_PRICE
+    has_inner_flame = true
+    _save_progress()
+    _sfx("fosforo", -6.0, 0.8)
+    _say("Adquiriste LLAMA INTERIOR: enciendes la antorcha sin fósforos.", 4.0)
+
+
 func _use_pulse() -> void:
     if not has_pulse:
         _say("Todavía no adquiriste Resonancia en el altar.", 2.0)
@@ -564,14 +710,212 @@ func _use_pulse() -> void:
     if pulse_cd > 0.0 or stamina < 24.0:
         _say("Resonancia necesita energía o tiempo de recuperación.", 2.0)
         return
-    pulse_cd = 11.0
+    pulse_cd = 8.0
     stamina -= 24.0
-    if current_room in [1, 2, 3] and player_pos.distance_to(enemy_pos) < 220.0:
+    pulse_fx = 0.0
+    _sfx("resonancia", -5.0)
+    if _enemy_active() and player_pos.distance_to(enemy_pos) < 220.0:
         enemy_stun = 1.6 + 0.5 * float(ability_level)
-        _say("La resonancia interrumpe brevemente a la criatura.", 2.2)
+        if player_pos.distance_to(enemy_pos) < PULSE_RADIUS + 12.0:
+            _damage_enemy(30.0 + 10.0 * float(ability_level))
+        else:
+            _say("La onda la aturde, pero está lejos para dañarla.", 2.2)
     else:
         _say("Una vibración recorre la piedra.", 1.6)
-    _sfx("sello", -8.0, 1.6)
+
+
+## Antorcha: F la enciende (gasta un fósforo salvo con Llama interior) o la apaga.
+func _toggle_torch() -> void:
+    if not has_torch:
+        if has_wood:
+            _say("Te faltan fósforos para prender la madera.", 2.2)
+        elif matches > 0:
+            _say("Tienes fósforos, pero nada que arda. Busca madera.", 2.2)
+        else:
+            _say("No llevas luz. Busca madera y fósforos.", 2.2)
+        _sfx("toque", -12.0)
+        return
+    if torch_on:
+        torch_on = false
+        _sfx("apagar", -9.0)
+        _say("Antorcha apagada.", 1.2)
+        return
+    if has_inner_flame:
+        torch_on = true
+        _sfx("fosforo", -8.0, 1.3)
+        _say("La llama interior prende la antorcha.", 1.6)
+        return
+    if matches <= 0:
+        _say("No te quedan fósforos. Búscalos o compra la Llama interior.", 2.8)
+        _sfx("toque", -10.0)
+        return
+    matches -= 1
+    torch_on = true
+    _sfx("fosforo", -7.0)
+    _say("Antorcha encendida. Fósforos: %d." % matches, 1.8)
+
+
+func _take_item(i: int) -> void:
+    var item: Dictionary = room_items[i]
+    var kind: String = item["kind"]
+    items_taken["%d:%s" % [current_room, kind]] = true
+    room_items.remove_at(i)
+    var label: String = ""
+    if kind == "madera":
+        has_wood = true
+        label = "+MADERA"
+        _say("Madera seca y una tira de tela: el cuerpo de una antorcha.", 3.0)
+    else:
+        var amount: int = MATCHES_FIRST_BOX if matches == 0 and not has_torch else MATCHES_REFILL
+        matches += amount
+        label = "+%d FÓSFOROS" % amount
+        _say("Caja de fósforos: +%d. Llevas %d." % [amount, matches], 3.0)
+    pickup_fx.append({"pos": item["pos"], "t": 0.0, "text": label, "color": Color("#f0c98a")})
+    _sfx("objeto", -6.0)
+    _try_craft()
+
+
+func _try_craft() -> void:
+    if has_torch or not has_wood or matches <= 0:
+        return
+    has_wood = false
+    has_torch = true
+    _sfx("interfaz", -8.0, 0.8)
+    _say("Construiste una ANTORCHA. Pulsa F para encenderla (gasta 1 fósforo).", 4.5)
+
+
+func _open_inventory() -> void:
+    if game_mode != "play":
+        return
+    game_mode = "inventory"
+    mobile_axis = Vector2.ZERO
+    mobile_finger = -1
+    # Selecciona el primer objeto que se tiene.
+    for i in range(INVENTORY_SLOTS.size()):
+        if _slot_owned(i):
+            inventory_sel = i
+            break
+    _sfx("interfaz", -9.0)
+
+
+func _close_inventory() -> void:
+    game_mode = "play"
+    _sfx("interfaz", -12.0, 0.9)
+
+
+func _slot_owned(i: int) -> bool:
+    match INVENTORY_SLOTS[i][0]:
+        "madera":
+            return has_wood
+        "fosforos":
+            return matches > 0
+        "antorcha":
+            return has_torch
+        "llama_interior":
+            return has_inner_flame
+        "golpe":
+            return has_torch
+        "resonancia":
+            return has_pulse
+    return false
+
+
+func _inventory_slot_rect(i: int) -> Rect2:
+    return Rect2(222.0 + float(i % 3) * 180.0, 214.0 + float(i / 3) * 120.0, 156.0, 104.0)
+
+
+func _inventory_slot_at(at: Vector2) -> int:
+    for i in range(INVENTORY_SLOTS.size()):
+        if _inventory_slot_rect(i).has_point(at):
+            return i
+    return -1
+
+
+func _altar_row_rect(i: int) -> Rect2:
+    return Rect2(190.0, 262.0 + float(i) * 96.0, 580.0, 86.0)
+
+
+func _altar_row_at(at: Vector2) -> int:
+    for i in range(2):
+        if _altar_row_rect(i).has_point(at):
+            return i
+    return -1
+
+
+# ---------------------------------------------------------------- COMBATE
+func _enemy_active() -> bool:
+    return current_room in [1, 2, 3] and not banished.has(current_room)
+
+
+func _enemy_kind() -> String:
+    return "ghoul" if current_room == 1 else ("testigo" if current_room == 2 else "hechicero")
+
+
+## Debilidades: el Testigo solo con el ojo cerrado; el Hechicero solo
+## mientras carga el conjuro; el Ghoul siempre.
+func _enemy_vulnerable() -> bool:
+    match current_room:
+        2:
+            return not watcher_open
+        3:
+            return enemy_alert and wizard_cast_cd < WIZARD_CHARGE
+    return true
+
+
+func _damage_enemy(amount: float) -> bool:
+    var head := enemy_pos + Vector2(randf_range(-6.0, 6.0) + 30.0, -48.0)
+    if not _enemy_vulnerable():
+        float_fx.append({"pos": head, "text": "INMUNE", "color": Color("#b4bba8"), "t": 0.0})
+        _sfx("inmune", -8.0)
+        if current_room == 2:
+            _say("Con el ojo abierto es piedra. Golpéalo cuando lo cierre.", 2.6)
+        else:
+            _say("Su escudo solo cae mientras carga el conjuro.", 2.6)
+        return false
+    enemy_hp -= amount
+    enemy_hit_t = 0.2
+    float_fx.append({"pos": head, "text": "-%d" % int(amount), "color": Color("#ffd36b"), "t": 0.0})
+    _sfx("impacto", -6.0)
+    if enemy_hp <= 0.0:
+        _banish_enemy()
+    return true
+
+
+## A 0 de vida la entidad se disuelve y suelta almas. Vuelve si mueres.
+func _banish_enemy() -> void:
+    var kind: String = _enemy_kind()
+    banished[current_room] = true
+    dissolve_fx.append({"pos": enemy_pos, "kind": kind, "facing": enemy_facing, "frame": _enemy_frame(kind), "t": 0.0})
+    drops.append({"pos": enemy_pos})
+    fireballs.clear()
+    enemy_stun = 0.0
+    enemy_alert = false
+    shake = maxf(shake, 0.25)
+    _sfx("destierro", -4.0)
+    _say("Entidad DESTERRADA. Recoge sus almas. Volverá si mueres.", 3.8)
+
+
+## Golpe de antorcha: arco de fuego delante del personaje.
+func _torch_strike() -> bool:
+    if not (has_torch and torch_on):
+        return false
+    if strike_cd > 0.0 or stamina < 10.0:
+        return true
+    strike_cd = 0.6
+    stamina -= 10.0
+    strike_fx = 0.25
+    strike_dir = player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT
+    visual_interaction_left = 0.24
+    _sfx("golpe", -7.0)
+    if _enemy_active():
+        var to := enemy_pos - player_pos
+        if to.length() < STRIKE_RANGE + 10.0 and (to.length() < 24.0 or to.normalized().dot(strike_dir) > 0.25):
+            if _damage_enemy(STRIKE_DAMAGE):
+                enemy_stun = maxf(enemy_stun, 0.3)
+                var pushed := enemy_pos + to.normalized() * 18.0
+                if not _is_blocked(pushed):
+                    enemy_pos = pushed
+    return true
 
 
 func _interact() -> void:
@@ -588,6 +932,8 @@ func _interact() -> void:
         return
     if current_room == 1 and player_pos.distance_to(altar_pos) < 64.0:
         game_mode = "altar"
+        inventory_sel = 0
+        _sfx("interfaz", -8.0)
         return
     if current_room == 3 and player_pos.distance_to(archive_pos) < 72.0:
         letter_found = true
@@ -605,6 +951,9 @@ func _interact() -> void:
         else:
             _say(_required_clue(), 3.2)
         return
+    if _torch_strike():
+        return
+    _sfx("toque", -10.0)
     _say("La piedra no responde a tu tacto.", 1.3)
 
 func _room_ready() -> bool:
@@ -647,6 +996,7 @@ func _lose_run() -> void:
         new_humans += 1
         identity_number += 1
         has_pulse = false
+        has_inner_flame = false
         ability_level = 0
         remembered_rule = false
         # Una persona nueva, sin la memoria de la anterior.
@@ -699,6 +1049,18 @@ func _process(delta: float) -> void:
     for fx in pickup_fx:
         fx["t"] = float(fx["t"]) + delta
     pickup_fx = pickup_fx.filter(func(fx): return float(fx["t"]) < 1.1)
+    for fx in float_fx:
+        fx["t"] = float(fx["t"]) + delta
+    float_fx = float_fx.filter(func(fx): return float(fx["t"]) < 0.9)
+    for fx in dissolve_fx:
+        fx["t"] = float(fx["t"]) + delta
+    dissolve_fx = dissolve_fx.filter(func(fx): return float(fx["t"]) < 1.4)
+    enemy_hit_t = maxf(0.0, enemy_hit_t - delta)
+    strike_fx = maxf(0.0, strike_fx - delta)
+    if pulse_fx >= 0.0:
+        pulse_fx += delta
+        if pulse_fx > 0.6:
+            pulse_fx = -1.0
     if game_mode == "play":
         _update_play(delta)
         _track_enemy_visual(delta)
@@ -713,6 +1075,7 @@ func _update_play(dt: float) -> void:
     room_elapsed += dt
     dash_cd = maxf(0.0, dash_cd - dt)
     pulse_cd = maxf(0.0, pulse_cd - dt)
+    strike_cd = maxf(0.0, strike_cd - dt)
     damage_cd = maxf(0.0, damage_cd - dt)
     dash_left = maxf(0.0, dash_left - dt)
     enemy_stun = maxf(0.0, enemy_stun - dt)
@@ -734,11 +1097,29 @@ func _update_play(dt: float) -> void:
         if (blocked_x or blocked_y) and bump_left <= 0.0:
             bump_left = 0.35
             bump_at = player_pos + Vector2(signf(move.x) * 10.0 if blocked_x else 0.0, 2.0)
+        # Pasos: tres pisadas que se alternan, más rápidas al esquivar.
+        step_t -= dt
+        if step_t <= 0.0:
+            step_t = 0.33 if dash_left <= 0.0 else 0.12
+            _sfx("paso_%d" % (step_i % 3 + 1), -17.0)
+            step_i += 1
+    else:
+        step_t = 0.06
 
     # Las almas se recogen al tocarlas.
     for i in range(relics.size()):
         if not collected[i] and player_pos.distance_to(relics[i]) < 30.0:
             _collect_relic(i)
+    for i in range(room_items.size() - 1, -1, -1):
+        if player_pos.distance_to(room_items[i]["pos"]) < 30.0:
+            _take_item(i)
+    for i in range(drops.size() - 1, -1, -1):
+        if player_pos.distance_to(drops[i]["pos"]) < 32.0:
+            souls += BANISH_SOULS
+            souls_flash = 0.8
+            pickup_fx.append({"pos": drops[i]["pos"], "t": 0.0, "text": "+%d" % BANISH_SOULS})
+            drops.remove_at(i)
+            _sfx("alma", -5.0)
 
     watcher_open = fmod(room_elapsed, 6.0) < 3.25
     if current_room == 2:
@@ -751,13 +1132,14 @@ func _update_play(dt: float) -> void:
             watcher_warned = false
             _sfx("ojo", -7.0)
         watcher_was_open = watcher_open
-    if current_room in [1, 2, 3]:
+    if _enemy_active():
         _update_enemy(dt)
         var near: float = player_pos.distance_to(enemy_pos)
         if near < 185.0:
             fear += dt * (8.0 if watcher_open else 2.0)
     else:
-        fear -= 4.0 * dt
+        # A oscuras el miedo se va más despacio.
+        fear -= (4.0 if torch_on else 1.2) * dt
     fear = clampf(fear, 0.0, 100.0)
     if fear >= 100.0:
         hp -= dt * 5.0
@@ -868,6 +1250,8 @@ func _draw() -> void:
         _draw_toast()
     if game_mode == "altar":
         _draw_altar_overlay()
+    elif game_mode == "inventory":
+        _draw_inventory_overlay()
     elif game_mode == "dead":
         _draw_end_overlay(false)
     elif game_mode == "victory":
@@ -884,6 +1268,7 @@ func _draw_background() -> void:
 
 func _draw_room() -> void:
     # El suelo y los muros los dibuja la escena de la sala (TileMapLayer).
+    _draw_room_depth()
     _draw_prop_shadows()
     # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
     _draw_visual_atmosphere()
@@ -895,15 +1280,61 @@ func _draw_room() -> void:
     for i in range(relics.size()):
         if not collected[i]:
             _draw_relic(relics[i], i)
+    for item in room_items:
+        _draw_item(item)
+    for i in range(drops.size()):
+        _draw_relic(drops[i]["pos"], 7 + i)
     _draw_depth_sorted()
+    _draw_dissolve_fx()
     if current_room == 3:
         _draw_fireballs()
     _draw_lighting()
+    _draw_strike_fx()
+    _draw_pulse_fx()
     _draw_pickup_fx()
+    _draw_float_fx()
     if damage_cd > 0.0:
         # Destello rojo que se apaga durante la invulnerabilidad.
         draw_rect(ARENA, Color(0.75, 0.08, 0.14, 0.16 * clampf(damage_cd / 1.5, 0.0, 1.0) ** 2))
     _draw_object_labels()
+
+
+## Profundidad cenital: la luz cae desde arriba. El muro del fondo muestra
+## su cara (más oscura abajo) y proyecta sombra sobre el suelo; los muros
+## laterales y el frontal se ven por su remate, con un borde iluminado.
+const WALL_BACK := Rect2(40, 122, 880, 36) # cara visible del muro del fondo
+const WALL_LEFT_X := 67.0
+const WALL_RIGHT_X := 893.0
+const WALL_FRONT_Y := 552.0
+func _draw_room_depth() -> void:
+    var shade := Color(0.01, 0.015, 0.03)
+    var floor_l: float = WALL_LEFT_X
+    var floor_r: float = WALL_RIGHT_X
+    # Cara del muro del fondo: luz arriba, sombra al pie.
+    _vgradient(Rect2(floor_l - 19.0, WALL_BACK.position.y, floor_r - floor_l + 38.0, WALL_BACK.size.y), Color(1.0, 0.95, 0.82, 0.07), Color(shade, 0.34))
+    draw_rect(Rect2(floor_l - 19.0, WALL_BACK.position.y, floor_r - floor_l + 38.0, 2.0), Color(0.85, 0.86, 0.74, 0.22))
+    # Sombra que el muro del fondo proyecta sobre el suelo.
+    _vgradient(Rect2(floor_l, WALL_BACK.end.y, floor_r - floor_l, 30.0), Color(shade, 0.42), Color(shade, 0.0))
+    # Muros laterales: remate iluminado y oclusión en la base.
+    for side in [-1.0, 1.0]:
+        var edge: float = floor_l if side < 0.0 else floor_r
+        var x0: float = edge if side < 0.0 else edge - 16.0
+        _hgradient(Rect2(x0, WALL_BACK.end.y, 16.0, WALL_FRONT_Y - WALL_BACK.end.y), Color(shade, 0.26 if side < 0.0 else 0.0), Color(shade, 0.0 if side < 0.0 else 0.26))
+        draw_rect(Rect2(edge - (2.0 if side < 0.0 else 0.0), WALL_BACK.position.y, 2.0, WALL_FRONT_Y - WALL_BACK.position.y + 23.0), Color(0.80, 0.82, 0.70, 0.16))
+    # Muro frontal: se ve desde arriba, así que solo su remate recibe luz.
+    _vgradient(Rect2(floor_l, WALL_FRONT_Y - 12.0, floor_r - floor_l, 12.0), Color(shade, 0.0), Color(shade, 0.18))
+    draw_rect(Rect2(floor_l - 19.0, WALL_FRONT_Y, floor_r - floor_l + 38.0, 2.0), Color(0.82, 0.84, 0.72, 0.24))
+    draw_rect(Rect2(floor_l - 19.0, WALL_FRONT_Y + 2.0, floor_r - floor_l + 38.0, 21.0), Color(shade, 0.22))
+
+
+func _vgradient(rect: Rect2, top: Color, bottom: Color) -> void:
+    draw_polygon(PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]),
+        PackedColorArray([top, top, bottom, bottom]))
+
+
+func _hgradient(rect: Rect2, left: Color, right: Color) -> void:
+    draw_polygon(PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]),
+        PackedColorArray([left, right, right, left]))
 
 
 ## [LUZ] Penumbra con luces dinámicas. Rejilla de vértices con oscuridad
@@ -914,7 +1345,12 @@ const LIGHT_CELL := 24.0
 const LIGHT_CELL_MOBILE := 32.0 # rejilla más gruesa en móvil: menos coste por fotograma
 func _lights() -> Array:
     var list: Array = [] # [pos, radio, intensidad]
-    list.append([player_pos + Vector2(0.0, -20.0), 205.0 if torch_on else 120.0, 1.0])
+    # Sin antorcha encendida solo se ve un círculo corto alrededor.
+    list.append([player_pos + Vector2(0.0, -20.0), 205.0 if torch_on else 110.0, 1.0 if torch_on else 0.85])
+    for item in room_items:
+        list.append([item["pos"], 62.0, 0.5])
+    for drop in drops:
+        list.append([drop["pos"], 80.0, 0.6])
     for prop in room_props:
         if prop["light"]:
             var rect: Rect2 = prop["rect"]
@@ -923,7 +1359,7 @@ func _lights() -> Array:
     for i in range(relics.size()):
         if not collected[i]:
             list.append([relics[i], 70.0, 0.55])
-    if current_room in [1, 2, 3]:
+    if _enemy_active():
         # Las amenazas siempre se distinguen (juego limpio); el Ghoul arde.
         list.append([enemy_pos + Vector2(0.0, -24.0), 120.0 if current_room == 1 else 70.0, 0.8 if current_room == 1 else 0.45])
     for ball in fireballs:
@@ -941,7 +1377,7 @@ func _draw_lighting() -> void:
         for r in range(4, 0, -1):
             draw_circle(player_pos + Vector2(0, -20), float(r) * 34.0, Color(1.0, 0.78, 0.45, 0.018))
     var lights: Array = _lights()
-    var base_dark: float = 0.50 if torch_on else 0.66
+    var base_dark: float = 0.50 if torch_on else 0.68
     var fear_edge: float = fear / 100.0 * 0.28
     var cell: float = LIGHT_CELL_MOBILE if touch_enabled else LIGHT_CELL
     var cols: int = int(ceil(ARENA.size.x / cell)) + 1
@@ -984,7 +1420,9 @@ func _draw_pickup_fx() -> void:
         for k in range(6):
             var ang: float = float(k) / 6.0 * TAU + t * 2.0
             draw_circle(p + Vector2(cos(ang), sin(ang) * 0.6) * (8.0 + t * 30.0) + Vector2(0, -10 - t * 14.0), 2.0 * a, Color(0.85, 0.97, 1.0, a))
-        draw_string(font, p + Vector2(-14, -30 - t * 26.0), "+7", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.75, 0.93, 1.0, a))
+        var label: String = fx.get("text", "+7")
+        var tone: Color = fx.get("color", Color(0.75, 0.93, 1.0))
+        draw_string(font, p + Vector2(-60, -30 - t * 26.0), label, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, Color(tone.r, tone.g, tone.b, a))
 
 
 ## Sombras de contacto de los objetos de la sala (antes horneadas en el PNG)
@@ -1006,7 +1444,7 @@ func _draw_prop_shadows() -> void:
 func _draw_depth_sorted() -> void:
     var items: Array = [] # [y_base, tipo, dato]
     items.append([player_pos.y, "player", null])
-    if current_room in [1, 2, 3]:
+    if _enemy_active():
         items.append([enemy_pos.y, "enemy", null])
     if current_room == 1:
         items.append([altar_pos.y + 22.0, "altar", null])
@@ -1041,9 +1479,8 @@ func _draw_object_labels() -> void:
         _label_center("LEER CARTA [E]", archive_pos + Vector2(0.0, 30.0), CREAM)
     if current_room == 2 and not seal_acquired:
         _label_center("SELLO [E]", seal_pos + Vector2(0.0, 56.0), Color("#e2c48a"))
-    if current_room in [1, 2, 3] and enemy_stun > 0.0:
-        var top: float = _enemy_rect().position.y
-        _label_center("ATURDIDO", Vector2(enemy_pos.x, top - 6.0), SOUL)
+    if _enemy_active():
+        _draw_enemy_health()
 
 
 func _label_center(msg: String, at: Vector2, color: Color) -> void:
@@ -1255,7 +1692,7 @@ func _enemy_frame(kind: String) -> int:
         "ghoul":
             return 2 + int(elapsed * 9.0) % 4 if enemy_moving else int(elapsed * 2.5) % 2
         _:
-            if enemy_alert and (wizard_cast_cd > 2.45 or wizard_cast_cd < 0.7): # carga o acaba de lanzar
+            if enemy_alert and (wizard_cast_cd > 2.45 or wizard_cast_cd < WIZARD_CHARGE): # carga o acaba de lanzar
                 return 6 + int(elapsed * 8.0) % 2
             return 2 + int(elapsed * 7.0) % 4 if enemy_moving else int(elapsed * 2.0) % 2
 
@@ -1280,16 +1717,114 @@ func _draw_enemy() -> void:
         # Las brasas iluminan el suelo a su alrededor.
         draw_circle(enemy_pos + Vector2(0.0, -30.0), 30.0, Color(1.0, 0.55, 0.2, 0.05 + 0.02 * sin(elapsed * 9.0)))
     var tint := Color(0.75, 0.85, 1.0, 1.0) if enemy_stun > 0.0 else Color.WHITE
+    if enemy_hit_t > 0.0 and int(enemy_hit_t * 30.0) % 2 == 0:
+        tint = Color(1.0, 0.42, 0.38, 1.0) # destello del golpe
     var dest := Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y)
     draw_texture_rect_region(sheet, dest, region, tint)
-    if kind == "hechicero" and enemy_alert and wizard_cast_cd < 0.7 and enemy_stun <= 0.0:
-        # Aviso justo: el orbe crece antes de lanzar el conjuro.
-        var k: float = 1.0 - wizard_cast_cd / 0.7
+    if kind == "hechicero" and enemy_alert and wizard_cast_cd < WIZARD_CHARGE:
+        # Aviso justo: el orbe crece antes de lanzar el conjuro (y es vulnerable).
+        var k: float = 1.0 - wizard_cast_cd / WIZARD_CHARGE
         # Donde el sprite sostiene el orbe: sobre la cabeza de frente, en la mano de lado.
         var hand: Vector2 = [Vector2(0, -57), Vector2(0, -57), Vector2(19, -49), Vector2(-19, -49)][enemy_facing]
         var orb := feet + hand
         draw_circle(orb, 5.0 + 9.0 * k, Color(1.0, 0.6, 0.25, 0.15 + 0.2 * k))
         draw_circle(orb, 1.5 + 3.0 * k, Color(1.0, 0.88, 0.6, 0.9))
+
+
+## Barra de vida y estado de la entidad: siempre sobre la escena.
+func _draw_enemy_health() -> void:
+    var top: float = _enemy_rect().position.y - (8.0 if current_room == 2 else 0.0)
+    var near: bool = player_pos.distance_to(enemy_pos) < 300.0
+    if enemy_hp >= enemy_max and not near:
+        return
+    var vulnerable: bool = _enemy_vulnerable()
+    var bar := Rect2(enemy_pos.x - 24.0, top - 12.0, 48.0, 6.0)
+    draw_rect(bar.grow(1.0), Color(0, 0, 0, 0.7))
+    draw_rect(bar, Color("#3a2328"))
+    var fill: Color = Color("#d1474f") if vulnerable else Color("#7d6f73")
+    draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(enemy_hp / enemy_max, 0.0, 1.0), bar.size.y)), fill)
+    var edge: Color = Color("#e3bd7b") if vulnerable else Color("#5b6266")
+    if vulnerable and current_room != 1:
+        edge.a = 0.6 + 0.4 * sin(elapsed * 10.0)
+    draw_rect(bar.grow(1.0), edge, false, 1.0)
+    var state: String = ""
+    var tone: Color = CREAM
+    if enemy_stun > 0.0:
+        state = "ATURDIDO"
+        tone = SOUL
+    elif current_room != 1:
+        state = "VULNERABLE" if vulnerable else "INMUNE"
+        tone = Color("#e3bd7b") if vulnerable else Color("#9aa19a")
+    if state != "":
+        _label_center(state, Vector2(enemy_pos.x, bar.position.y - 4.0), tone)
+
+
+## Entidad desterrada: el sprite se deshace hacia arriba en ceniza luminosa.
+func _draw_dissolve_fx() -> void:
+    for fx in dissolve_fx:
+        var t: float = float(fx["t"])
+        var k: float = clampf(t / 1.4, 0.0, 1.0)
+        var p: Vector2 = fx["pos"]
+        var sheet: Texture2D = art["enemy_" + str(fx["kind"])]
+        var region := Rect2(float(fx["frame"]) * ENEMY_CELL.x, float(fx["facing"]) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
+        var dest := Rect2(p.x - ENEMY_CELL.x * 0.5, p.y + 4.0 - ENEMY_FEET_Y - k * 18.0, ENEMY_CELL.x, ENEMY_CELL.y)
+        draw_texture_rect_region(sheet, dest, region, Color(0.75 + k, 0.9, 1.0, (1.0 - k) * 0.9))
+        for i in range(14):
+            var ang: float = float(i) * 2.4
+            var r: float = 6.0 + k * (22.0 + float(i % 4) * 6.0)
+            var q := p + Vector2(cos(ang) * r, -28.0 - k * (30.0 + float(i % 5) * 8.0) + sin(ang) * r * 0.4)
+            draw_circle(q, 2.2 * (1.0 - k) + 0.6, Color(0.75, 0.93, 1.0, (1.0 - k) * 0.9))
+
+
+## Estela de fuego del golpe de antorcha.
+func _draw_strike_fx() -> void:
+    if strike_fx <= 0.0:
+        return
+    var k: float = 1.0 - strike_fx / 0.25
+    var c := player_pos + Vector2(0.0, -20.0)
+    var mid: float = strike_dir.angle()
+    var a0: float = mid - 1.1
+    var a1: float = mid - 1.1 + 2.2 * minf(1.0, k * 1.6)
+    for i in range(3):
+        var r: float = 34.0 + float(i) * 9.0
+        var col: Color = [Color(1.0, 0.85, 0.42), Color(0.94, 0.54, 0.23), Color(0.76, 0.25, 0.18)][i]
+        col.a = (1.0 - k) * 0.85
+        draw_arc(c, r, a0, a1, 16, col, 5.0 - float(i))
+    var tip := c + Vector2.from_angle(a1) * 44.0
+    draw_circle(tip, 7.0 * (1.0 - k), Color(1.0, 0.82, 0.45, 0.7 * (1.0 - k)))
+
+
+## Onda de Resonancia: anillo que se expande hasta su alcance de daño.
+func _draw_pulse_fx() -> void:
+    if pulse_fx < 0.0:
+        return
+    var k: float = clampf(pulse_fx / 0.45, 0.0, 1.0)
+    var r: float = PULSE_RADIUS * (1.0 - pow(1.0 - k, 3.0))
+    var a: float = 1.0 - clampf(pulse_fx / 0.6, 0.0, 1.0)
+    draw_set_transform(player_pos + Vector2(0.0, -6.0), 0.0, Vector2(1.0, 0.6))
+    draw_arc(Vector2.ZERO, r, 0.0, TAU, 64, Color(0.75, 0.93, 1.0, a), 4.0)
+    draw_arc(Vector2.ZERO, r * 0.8, 0.0, TAU, 64, Color(0.56, 0.78, 0.84, a * 0.6), 2.0)
+    draw_circle(Vector2.ZERO, r, Color(0.56, 0.78, 0.84, a * 0.08))
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_float_fx() -> void:
+    for fx in float_fx:
+        var t: float = float(fx["t"])
+        var a: float = clampf(1.0 - t / 0.9, 0.0, 1.0)
+        var col: Color = fx["color"]
+        var p: Vector2 = fx["pos"] + Vector2(0.0, -t * 24.0)
+        draw_string(font, p + Vector2(-50, 1), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 100, 16, Color(0, 0, 0, a * 0.8))
+        draw_string(font, p + Vector2(-51, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 100, 16, Color(col.r, col.g, col.b, a))
+
+
+## Objeto recogible en el suelo: icono que flota sobre su sombra.
+func _draw_item(item: Dictionary) -> void:
+    var p: Vector2 = item["pos"]
+    var wave: float = sin(elapsed * 2.6 + p.x) * 2.5
+    _draw_soft_shadow(p + Vector2(0.0, 8.0), 11.0, 0.8)
+    draw_circle(p + Vector2(0.0, -8.0), 18.0, Color(0.95, 0.78, 0.45, 0.06 + 0.03 * sin(elapsed * 3.0)))
+    draw_texture_rect(ICONS[item["kind"]], Rect2(p + Vector2(-16.0, -26.0 + wave), Vector2(32.0, 32.0)), false)
 
 
 func _draw_fireballs() -> void:
@@ -1321,7 +1856,13 @@ func _draw_player() -> void:
         var location := Vector2(roundf(player_pos.x) - 20.0, roundf(player_pos.y) - 50.0)
         draw_ellipse_fake_shadow(player_pos)
         var blink: bool = damage_cd > 0.0 and int(elapsed * 14.0) % 2 == 0
+        # La antorcha va en la mano; de espaldas queda detrás del cuerpo.
+        var hand: Vector2 = player_pos + [Vector2(12, -18), Vector2(-12, -20), Vector2(9, -19), Vector2(-9, -19)][direction_index]
+        if has_torch and direction_index == 1 and game_mode != "dead":
+            _draw_hand_torch(hand)
         draw_texture_rect_region(art["visual_hero"], Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
+        if has_torch and direction_index != 1 and game_mode != "dead":
+            _draw_hand_torch(hand)
         if bump_left > 0.0:
             # Polvo del choque a ambos lados de los pies: el objeto es sólido.
             var t: float = 1.0 - bump_left / 0.35
@@ -1365,6 +1906,21 @@ func _draw_player() -> void:
         draw_arc(p, 29.0, 0.0, TAU, 28, RED, 2.0)
 
 
+func _draw_hand_torch(hand: Vector2) -> void:
+    var tip := hand + Vector2(0.0, -14.0)
+    draw_line(hand + Vector2(0.0, 4.0), tip, Color("#5c3a22"), 3.0)
+    draw_line(hand + Vector2(-1.0, 3.0), tip + Vector2(-1.0, 1.0), Color("#8a5a35"), 1.0)
+    draw_rect(Rect2(tip.x - 3.0, tip.y - 1.0, 6.0, 4.0), Color("#d9cfb0"))
+    if not torch_on:
+        draw_rect(Rect2(tip.x - 2.0, tip.y - 3.0, 4.0, 2.0), Color("#3a2f2a"))
+        return
+    var f: float = sin(elapsed * 17.0) * 1.2
+    draw_circle(tip + Vector2(0.0, -10.0), 16.0, Color(1.0, 0.7, 0.3, 0.10))
+    draw_colored_polygon(PackedVector2Array([tip + Vector2(-5, -1), tip + Vector2(5, -1), tip + Vector2(2, -9), tip + Vector2(f, -15), tip + Vector2(-3, -8)]), Color("#c2412f"))
+    draw_colored_polygon(PackedVector2Array([tip + Vector2(-3, -1), tip + Vector2(3, -1), tip + Vector2(f * 0.6, -11)]), Color("#f08a3a"))
+    draw_colored_polygon(PackedVector2Array([tip + Vector2(-1.5, -1), tip + Vector2(1.5, -1), tip + Vector2(0, -6)]), Color("#ffd36b"))
+
+
 func _draw_topbar() -> void:
     ## [VISUAL UPGRADE] HUD gótico: zonas despejadas y jerarquía legible.
     draw_rect(Rect2(0, 0, W, 103), Color("#0d1219"))
@@ -1383,8 +1939,19 @@ func _draw_topbar() -> void:
     _text("SALA %02d / 05" % (current_room + 1), Vector2(590, 43), 16, CREAM)
     var soul_color: Color = SOUL.lerp(Color.WHITE, clampf(souls_flash / 0.8, 0.0, 1.0))
     _text("ALMAS  %03d" % souls, Vector2(590, 70), 17 + int(round(souls_flash * 4.0)), soul_color)
-    _text("IDENTIDAD %03d" % identity_number, Vector2(781, 43), 13, CREAM)
-    _text("LINTERNA: ON" if torch_on else "LINTERNA: OFF", Vector2(781, 69), 12, SOUL if torch_on else RED)
+    _text("IDENTIDAD %03d" % identity_number, Vector2(781, 30), 12, Color("#a0b6b2"))
+    # Inventario rápido: antorcha (o madera), fósforos y llama interior.
+    var torch_icon: String = ("antorcha_encendida" if torch_on else "antorcha") if has_torch else "madera"
+    var slots := [[torch_icon, has_torch or has_wood, ""], ["fosforos", matches > 0 or has_torch, "%d" % matches], ["llama_interior", has_inner_flame, ""]]
+    for i in range(slots.size()):
+        var box := Rect2(781.0 + float(i) * 46.0, 40.0, 40.0, 40.0)
+        draw_rect(box, Color("#151c25"))
+        draw_rect(box, Color("#5b5444"), false, 1.0)
+        var owned: bool = slots[i][1]
+        draw_texture_rect(ICONS[slots[i][0]], Rect2(box.position + Vector2(4, 4), Vector2(32, 32)), false, Color(1, 1, 1, 1.0) if owned else Color(0.3, 0.3, 0.3, 0.45))
+        if owned and slots[i][2] != "":
+            draw_string(font, box.position + Vector2(2, 38), slots[i][2], HORIZONTAL_ALIGNMENT_RIGHT, 36, 13, CREAM if matches > 0 else RED)
+    _text("I  inventario", Vector2(781, 95), 10, Color("#978d77"))
 
 
 func _bar(rect: Rect2, fraction: float, color: Color) -> void:
@@ -1399,7 +1966,11 @@ func _draw_footer() -> void:
     draw_rect(Rect2(0, 575, W, 65), Color("#101720"))
     draw_rect(Rect2(0, 575, W, 2), Color("#8b795c"))
     var task: String = "MISIÓN: Recuperar el sello del Testigo"
-    if current_room == 1:
+    if current_room == 0 and not has_torch:
+        task = "OSCURIDAD: busca madera y fósforos"
+    elif current_room == 0 and not torch_on:
+        task = "PULSA F PARA ENCENDER LA ANTORCHA"
+    elif current_room == 1:
         task = "BRASAS: tu luz puede atraer algo"
     elif current_room == 3:
         task = "ARCHIVO: lee la carta, evita los conjuros"
@@ -1412,9 +1983,21 @@ func _draw_footer() -> void:
         task_color = RED
     draw_colored_polygon(PackedVector2Array([Vector2(26, 594), Vector2(31, 589), Vector2(36, 594), Vector2(31, 599)]), Color("#bb9e6d"))
     _text(task, Vector2(44, 600), 14, task_color)
-    var pulse_text: String = "RESONANCIA NIVEL %d" % ability_level if has_pulse else "RESONANCIA NO ADQUIRIDA"
-    draw_string(font, Vector2(560, 600), pulse_text, HORIZONTAL_ALIGNMENT_RIGHT, 374.0, 12, SOUL if has_pulse else Color("#7d8a8c"))
-    _text("WASD / FLECHAS  mover   ·   E  interactuar   ·   F  linterna   ·   ESPACIO  esquivar   ·   Q  resonancia   ·   ESC  menú", Vector2(26, 626), 12, Color("#a9a48f"))
+    # Habilidades con icono y recuperación (sombra que baja).
+    _draw_ability_icon(Rect2(846, 581, 34, 34), "golpe", has_torch and torch_on, strike_cd / 0.6, "E")
+    _draw_ability_icon(Rect2(890, 581, 34, 34), "resonancia", has_pulse, pulse_cd / 8.0, "Q")
+    _text("WASD mover  ·  E / CLIC interactuar o golpear  ·  F antorcha  ·  ESPACIO esquivar  ·  Q resonancia  ·  I inventario  ·  ESC menú", Vector2(26, 630), 11, Color("#a9a48f"))
+
+
+func _draw_ability_icon(box: Rect2, key: String, ready_to_use: bool, cooldown: float, hotkey: String) -> void:
+    draw_rect(box, Color("#151c25"))
+    draw_texture_rect(ICONS[key], box.grow(-1.0), false, Color.WHITE if ready_to_use else Color(0.35, 0.35, 0.35, 0.6))
+    if ready_to_use and cooldown > 0.0:
+        var h: float = box.size.y * clampf(cooldown, 0.0, 1.0)
+        draw_rect(Rect2(box.position.x, box.end.y - h, box.size.x, h), Color(0.02, 0.03, 0.05, 0.7))
+    draw_rect(box, Color("#c6aa6e") if ready_to_use and cooldown <= 0.0 else Color("#4d4a42"), false, 1.0)
+    draw_rect(Rect2(box.end.x - 11.0, box.end.y - 12.0, 11.0, 12.0), Color(0.03, 0.04, 0.06, 0.85))
+    draw_string(font, Vector2(box.end.x - 11.0, box.end.y - 2.0), hotkey, HORIZONTAL_ALIGNMENT_CENTER, 11, 10, CREAM)
 
 
 func _draw_toast() -> void:
@@ -1462,13 +2045,53 @@ func _draw_altar_overlay() -> void:
     _overlay()
     draw_rect(Rect2(164, 155, 632, 357), Color("#19202b"))
     draw_rect(Rect2(164, 155, 632, 357), Color("#8c8088"), false, 2)
-    _center("EL MERCADER SILENCIOSO", 205, 26, CREAM)
-    _center("'Todo préstamo tiene un dueño que no conoces.'", 240, 16, SOUL)
-    _text("[1] Resonancia (Q) · 14 almas", Vector2(204, 305), 19, CREAM)
-    _text("Permite paralizar brevemente al Testigo.", Vector2(204, 343), 15, CREAM)
-    _text("Estado: " + ("adquirida, nivel %d" % ability_level if has_pulse else "no adquirida"), Vector2(204, 386), 16, SOUL)
-    _text("ALMAS EN TU PODER: %d" % souls, Vector2(204, 441), 17, SOUL)
-    _text("E / ESC: salir", Vector2(613, 485), 15, CREAM)
+    _center("EL MERCADER SILENCIOSO", 200, 26, CREAM)
+    _center("'Todo préstamo tiene un dueño que no conoces.'", 232, 15, SOUL)
+    var offers := [
+        ["resonancia", "[1] RESONANCIA", "Onda (Q) que daña y aturde a las entidades cercanas.", 14, has_pulse, "NIVEL %d" % ability_level],
+        ["llama_interior", "[2] LLAMA INTERIOR", "Enciendes la antorcha sin gastar fósforos.", INNER_FLAME_PRICE, has_inner_flame, "ADQUIRIDA"],
+    ]
+    for i in range(offers.size()):
+        var row: Rect2 = _altar_row_rect(i)
+        var o: Array = offers[i]
+        var hover: bool = inventory_sel == i
+        draw_rect(row, Color("#202a36") if hover else Color("#1a222d"))
+        draw_rect(row, Color("#c6aa6e") if hover else Color("#4d4a42"), false, 1.0)
+        draw_texture_rect(ICONS[o[0]], Rect2(row.position + Vector2(12, 11), Vector2(64, 64)), false)
+        _text(o[1], row.position + Vector2(92, 32), 18, CREAM)
+        _text(o[2], row.position + Vector2(92, 60), 13, Color("#b9b29b"))
+        var right: String = o[5] if o[4] else "%d ALMAS" % o[3]
+        var tone: Color = SOUL if o[4] else (CREAM if souls >= o[3] else RED)
+        draw_string(font, row.position + Vector2(0, 32), right, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, 15, tone)
+    draw_texture_rect(ICONS["alma"], Rect2(196, 464, 26, 26), false)
+    _text("ALMAS: %d" % souls, Vector2(228, 484), 16, SOUL)
+    _text("E / ESC: salir", Vector2(640, 484), 14, CREAM)
+
+
+func _draw_inventory_overlay() -> void:
+    _overlay()
+    draw_rect(Rect2(196, 140, 568, 400), Color("#19202b"))
+    draw_rect(Rect2(196, 140, 568, 400), Color("#8c8088"), false, 2)
+    _center("INVENTARIO", 184, 24, CREAM)
+    for i in range(INVENTORY_SLOTS.size()):
+        var box: Rect2 = _inventory_slot_rect(i)
+        var owned: bool = _slot_owned(i)
+        var sel: bool = inventory_sel == i
+        draw_rect(box, Color("#222c39") if sel else Color("#151c25"))
+        draw_rect(box, Color("#c6aa6e") if sel else Color("#3f4448"), false, 2.0 if sel else 1.0)
+        var key: String = INVENTORY_SLOTS[i][0]
+        if key == "antorcha" and torch_on:
+            key = "antorcha_encendida"
+        draw_texture_rect(ICONS[key], Rect2(box.position + Vector2(46, 8), Vector2(64, 64)), false, Color.WHITE if owned else Color(0.12, 0.12, 0.14, 0.9))
+        var title: String = INVENTORY_SLOTS[i][1] if owned else "???"
+        if INVENTORY_SLOTS[i][0] == "fosforos" and owned:
+            title = "FÓSFOROS x%d" % matches
+        draw_string(font, box.position + Vector2(0, 92), title, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, 12, CREAM if owned else Color("#6d6a60"))
+    # Descripción de la casilla señalada (cursor, flechas o toque).
+    var desc: String = INVENTORY_SLOTS[inventory_sel][2] if _slot_owned(inventory_sel) else "Aún no lo tienes. Explora el templo."
+    draw_rect(Rect2(222, 458, 516, 40), Color("#101720"))
+    draw_string(font, Vector2(222, 483), desc, HORIZONTAL_ALIGNMENT_CENTER, 516, 13, SOUL if _slot_owned(inventory_sel) else Color("#8a8778"))
+    _center("I / ESC: cerrar", 524, 12, Color("#978d77"))
 
 func _draw_end_overlay(win: bool) -> void:
     _overlay()

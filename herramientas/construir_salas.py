@@ -55,10 +55,11 @@ MARCADORES = {
     "Reliquia1": (280, 245), "Reliquia2": (500, 465), "Reliquia3": (725, 230),
 }
 MARCADORES_SALA = {
-    0: {},
+    # Madera y Fosforos: objetos del inventario (antorcha y recargas).
+    0: {"Madera": (330, 445), "Fosforos": (600, 250)},
     1: {"Enemigo": (772, 472), "Altar": (488, 318)},
-    2: {"Enemigo": (765, 358), "Sello": (704, 343), "Ojo": (690, 143)},
-    3: {"Enemigo": (773, 354), "Libro": (497, 310), "Lectura": (497, 362)},
+    2: {"Enemigo": (765, 358), "Sello": (704, 343), "Ojo": (690, 143), "Fosforos": (250, 470)},
+    3: {"Enemigo": (773, 354), "Libro": (497, 310), "Lectura": (497, 362), "Fosforos": (230, 460)},
     4: {},
 }
 COLISIONES = {
