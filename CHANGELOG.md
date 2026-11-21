@@ -1,5 +1,26 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Piso VI: La Ofrenda
+
+Piso de respiro, sin entidades. Cuatro salas: Atrio de los Guías, Puesto del Mercader, Refectorio Vacío y Escalera del Séptimo.
+- **Guiar al grupo** (Atrio): Irene, Teo y Bas piden que los guíes; Saúl va con ellos si lo salvaste en el Piso V. Habla con Irene para aceptar (misión opcional). Te siguen por el piso y, si llegan contigo a la escalera, te dan 3 almas cada uno y quedan guardados para el Piso VII.
+- **El Mercader Silencioso** (sprite original: figura alta encapuchada, sin rostro). Puesto completo junto a su cuenco: **pan de ceniza** (vida, vigor y 10 de vida máxima perdida), **fósforos ×3**, **Brazalete de bronce** (+10 % al golpe) y **Amuleto de hueso** (+10 % a la recarga del vigor). Los dos objetos se guardan con el progreso y aparecen en el perfil.
+- **Regla del manto**: se paga primero y no se toca. Algo brilla bajo su manto; meter la mano cuesta 25 de vida máxima en esta vida. Si guías al grupo, Teo lo intenta al entrar y lo paga.
+- **Refectorio Vacío**: un mendrugo de pan (+40 de vida) y la verdad del piso: el miedo y la desesperanza alimentan algo.
+- **Eco Huesos firmes**: una vez por piso, un golpe mortal te deja con 1 de vida.
+- Iconos nuevos: Huesos firmes, pan, brazalete y amuleto. Las etiquetas «[E]» de los objetos muestran el botón del mando cuando lo usas.
+- Valores provisionales (precios, vida máxima perdida, almas del grupo).
+
+## En `main` (sin nuevo release) — 2026-11-21 · Mando de Xbox y similares
+
+- **Soporte de mando** (Xbox 360, Xbox One/Series, PlayStation, Switch Pro y otros que reconoce Godot): stick o cruceta para moverse, A interactuar/golpear, RT golpe, B o LT esquivar, X antorcha, Y Resonancia, LB perfil, RB habilidades, START pausa.
+- Todos los menús se recorren con la cruceta o el stick (con repetición al mantener): inicio, pisos, pausa, configuración (LB/RB cambian de pestaña), altar, perfil, diálogos (A avanza, Y salta) y resumen del piso.
+- **Nombre con mando**: la cruceta mueve un recuadro por las letras en pantalla; A escribe, X borra, Y elige un nombre al azar y START sigue.
+- Los textos de ayuda (HUD, tutorial, habilidades, menú) muestran los botones del mando cuando es lo último que usaste, y las teclas cuando vuelves al teclado.
+- Aviso al conectar o desconectar el mando; si se desconecta en plena partida, el juego se pausa.
+- **Vigilia**: la cruceta elige la acción, A la usa y B sale.
+- Esquema del mando en *Configuración > Controles* y en el README.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Piso V: El Laberinto de los Mastines
 
 Cuatro salas: Corredor de los Relicarios, Galería del Manto, Perrera de Bronce y Canales de Almas.

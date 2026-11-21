@@ -11,7 +11,7 @@
 
 **El Templo de los Ecos** es un juego independiente de terror psicológico y cósmico, supervivencia y elementos roguelite, desarrollado en **Godot Engine 4** con **GDScript**. El jugador explora un templo cuyo funcionamiento desconoce. Cada entidad obedece reglas propias, y entenderlas vale tanto como cualquier habilidad.
 
-> **Estado:** prototipo con cinco pisos jugables. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
+> **Estado:** prototipo con seis pisos jugables. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
 
 ![Sala del Testigo: el ojo del muro está abierto y el Testigo vigila el sello](docs/galeria/04_testigo.png)
 
@@ -20,17 +20,18 @@
 ## ¿Qué incluye el prototipo?
 
 - **Tu personaje**: antes de la primera exploración eliges nombre (teclado o letras en pantalla) y género (masculino o femenino, cada uno con su sprite y su retrato). El nombre aparece en el HUD, el perfil y el menú; se puede cambiar desde el menú (C).
-- **Cinco pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
+- **Seis pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
   - **Piso I · El Despertar**, cinco salas: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
   - **Piso II · Los Peregrinos**, cuatro salas con las primeras grietas del templo. Un Peregrino se ofrece a reunir almas contigo… y en la mayoría de las vidas te traiciona al llegar a la Cripta del Reparto. Tiene indicios: se queda a tu espalda y miente sobre cuántas almas lleva. Si lo atacas primero y era sincero, lo pagas.
   - **Piso III · La Cacería**, cuatro salas. El templo ordena cazar al **Segador de Hilos** con tres peregrinos aliados. Antes de atacar tensa una línea roja: lo que esté sobre ella (tú o tus aliados, también los que van detrás de ti) recibe el hilo. Después queda enganchado y solo entonces se le puede herir. A media vida huye a la sala siguiente; la puerta no se abre mientras viva.
+  - **Piso IV · El Claustro Enraizado**, cuatro salas. Las enredaderas secas arden y el fuego se propaga; las Tejedoras de Raíz apenas notan los golpes: hay que atraerlas al fuego. Raíces vivas tapan la puerta del Atrio.
+  - **Piso V · El Laberinto de los Mastines**, cuatro salas con muros de laberinto. Los mastines de bronce son inmunes pero temen al fuego, y la antorcha se consume. Puedes rescatar a un peregrino atrapado y obtener la Máscara de Porcelana, que convierte la Resonancia en Rugido.
+  - **Piso VI · La Ofrenda**, cuatro salas sin entidades (piso de respiro). Un grupo de peregrinos pide que lo guíes (Saúl va con ellos si lo salvaste). El **Mercader Silencioso** abre su puesto: pan, fósforos y objetos con porcentajes. Se paga primero y **nunca se mete la mano bajo su manto**: quien lo hace pierde vida máxima en esa vida.
 - **Herencia del primer juego**: alimañas que mueren de un esquive y salen de nidos, tu cuerpo de la vida anterior en la sala donde caíste, transiciones con máscara, resumen al superar cada piso, sonidos de Kenney con variantes, cursor propio y créditos.
 - **Dirección de arte gótica**: rótulos con tipografía gótica de píxel, interfaz oscura con dorado envejecido, bloom, niebla, haces de luz, partículas y fundidos. **Menú de pisos** para volver a cualquier piso alcanzado.
 - **Diálogos, misiones y trampas**: conversaciones que avanzan con clic, misiones con premio en las salas con monstruo, pinchos con aviso e inscripciones de lore. La vida se recupera poco a poco y esquivar funciona aunque estés quieto. Pantalla de habilidades con la tecla K.
-  - **Piso IV · El Claustro Enraizado**, cuatro salas. Las enredaderas secas arden y el fuego se propaga; las Tejedoras de Raíz apenas notan los golpes: hay que atraerlas al fuego. Raíces vivas tapan la puerta del Atrio.
-  - **Piso V · El Laberinto de los Mastines**, cuatro salas con muros de laberinto. Los mastines de bronce son inmunes pero temen al fuego, y la antorcha se consume. Puedes rescatar a un peregrino atrapado y obtener la Máscara de Porcelana, que convierte la Resonancia en Rugido.
 - **Morir no cuesta progreso (temporal, modo de pruebas)**: te levantas en la entrada de la misma sala con almas, objetos, habilidades y Ecos. Se desactiva con `MUERTE_SIN_PERDIDA` en `scripts/main.gd`.
-- **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría, Reflejos). Se conservan si tu alma regresa y se pierden si es absorbida.
+- **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría, Reflejos, Piel curtida, Paso ligero y Huesos firmes). Se conservan si tu alma regresa y se pierden si es absorbida.
 - **Tres entidades con reglas que se pueden aprender**, con arte propio en vista cenital y cuatro direcciones:
   - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve. Solo recibe daño con el ojo cerrado.
   - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
@@ -75,6 +76,10 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Menú.** Rótulo gótico, paneles oscuros con dorado envejecido. | **Pisos.** Los diez pisos del templo; se puede volver a cualquiera ya alcanzado. |
 | ![Nave del Agua con niebla y haces de luz](docs/galeria/26_arte_nave.png) | ![Muerte](docs/galeria/27_arte_muerte.png) |
 | **Atmósfera.** Haces de luz, niebla baja, polvo, bloom y viñeta. | **Muerte.** El alma se desprende; te levantas en una columna de luz. |
+| ![Atrio de los Guías](docs/galeria/36_piso6_guias.png) | ![Puesto del Mercader](docs/galeria/37_piso6_mercader.png) |
+| **Piso VI.** Un grupo de peregrinos espera a que aceptes guiarlo. | **El Mercader Silencioso.** El cuenco de las ofrendas y algo que brilla bajo el manto. |
+| ![El puesto](docs/galeria/38_piso6_puesto.png) | ![Mando en la configuración](docs/galeria/39_mando_ajustes.png) |
+| **El puesto.** Se paga primero: pan, fósforos, brazalete y amuleto. | **Mando.** Esquema de Xbox en *Configuración > Controles*. |
 | ![Galería del Manto](docs/galeria/34_piso5_galeria.png) | ![Canales de Almas](docs/galeria/35_piso5_canales.png) |
 | **Piso V.** Muros de laberinto, mastines que no se acercan a la luz y un peregrino atrapado. | **Canales de Almas.** La Máscara de Porcelana y los surcos por donde corren las almas. |
 | ![Atrio de las Raíces](docs/galeria/31_piso4_atrio_antes.png) | ![Tejedora de Raíz ardiendo](docs/galeria/32_piso4_tejedora.png) |
@@ -159,13 +164,31 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | F | Encender (gasta un fósforo) o apagar la antorcha |
 | I o Tab | Perfil (en móvil, tocar el retrato) |
 | ESC | Pausa (en móvil, el botón de pausa) |
-
-Todas las teclas se pueden cambiar en *Configuración > Controles*; las flechas siempre mueven.
 | Espacio | Esquivar |
 | Q | Resonancia: onda que daña y aturde (después de adquirirla) |
-| Esc | Volver al menú o cerrar un panel |
+| K | Habilidades |
 | 1–8 en Vigilia | Descansar, construir, mejorar, reparar y activar tecnología |
 | P en Vigilia | Pausar o reanudar |
+
+Todas las teclas se pueden cambiar en *Configuración > Controles*; las flechas siempre mueven.
+
+### Mando (Xbox 360, Xbox One/Series, PlayStation, Switch Pro y similares)
+
+Basta con conectarlo; el juego avisa al detectarlo y cambia los textos de ayuda a los botones del mando. Los nombres son los de Xbox: en PlayStation, A = ✕, B = ○, X = □, Y = △.
+
+| Botón | En la partida | En los menús |
+| --- | --- | --- |
+| Stick izquierdo / cruceta | Moverse | Recorrer opciones |
+| A | Interactuar o golpear | Aceptar |
+| RT | Golpe de antorcha | — |
+| B / LT | Esquivar | Volver |
+| X | Encender o apagar la antorcha | Borrar letra (nombre) |
+| Y | Resonancia | Nombre al azar · Pisos (menú) |
+| LB / SELECT | Perfil | Pestañas (configuración) · SELECT abre la configuración en el menú |
+| RB | Habilidades | Pestañas · Vigilia (menú) |
+| START | Pausa | Aceptar · Seguir (nombre) |
+
+En la Vigilia, la cruceta elige la acción, A la usa y B sale. El esquema del mando es fijo; las teclas se reasignan con el teclado. Si el mando se desconecta durante la partida, el juego se pausa.
 
 **Recorrido:** Umbral del despertar → Claustro de las ofrendas → Sala del Testigo → Archivo de los ausentes → Pórtico del siguiente piso. Algunas reglas de las entidades todavía son provisionales.
 
