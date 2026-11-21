@@ -15,7 +15,7 @@ Los recursos integrados forman parte del proyecto jugable; no deben extraerse y 
 
 ## GothicVania Church Pack — Luis Zuno (Ansimuz)
 
-- **Uso:** sprites y fotogramas originales de **Angel, Burning Ghoul, Skeleton Wizard** y proyectiles en `assets/gothic_enemies/`.
+- **Uso:** los proyectiles de fuego del Hechicero. Los sprites de **Angel, Burning Ghoul y Skeleton Wizard** de `assets/gothic_enemies/` se conservan como respaldo; las entidades del juego son ahora arte original (`assets/visual/enemies/`).
 - **Autor:** Luis Zuno (**Ansimuz**).
 - **Páginas oficiales:** https://ansimuz.itch.io/gothicvania-church-pack y https://opengameart.org/content/gothicvania-church-pack
 - OpenGameArt identifica la publicación de este pack bajo **CC0**, con atribución voluntaria. El paquete aportado también incluía `assets/gothic_enemies/LICENSE-GOTHICVANIA.txt`.
