@@ -373,6 +373,33 @@ def eco_piel() -> Image.Image:
     return i.fin()
 
 
+def mascara() -> Image.Image:
+    """Máscara de Porcelana del Piso V: agrietada, con cuencas vacías."""
+    i = Icono()
+    i.e(6, 3, 26, 29, c("#e8e2d4"))
+    i.e(17, 4, 26, 28, c("#b3ab9a"))
+    i.r(9, 11, 13, 14, c("#2a2224"))
+    i.r(19, 11, 23, 14, c("#2a2224"))
+    i.ln([(15, 3), (17, 10), (14, 17), (16, 24)], c("#2a2224"))
+    i.ln([(11, 22), (21, 22)], c("#6e665a"))
+    i.px(11, 15, c("#9e1f2a"))
+    i.ln([(11, 15), (11, 18)], c("#9e1f2a"))
+    return i.fin()
+
+
+def eco_paso() -> Image.Image:
+    """Piso V: huellas ligeras con estela."""
+    i = Icono()
+    for k, (x, y) in enumerate(((7, 20), (17, 10))):
+        col = c("#8fd8e8") if k else c("#5f8a96")
+        i.e(x, y, x + 7, y + 9, col)
+        for t in range(3):
+            i.e(x + t * 3 - 1, y - 4, x + t * 3 + 1, y - 2, col)
+    i.ln([(3, 28), (11, 28)], c("#e3bd7b"))
+    i.ln([(14, 18), (25, 18)], c("#e3bd7b"))
+    return i.fin()
+
+
 def habilidades() -> Image.Image:
     """Grimorio abierto con una runa encendida: la pantalla de habilidades."""
     i = Icono()
@@ -439,7 +466,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
 }
 
 

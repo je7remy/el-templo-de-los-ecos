@@ -39,6 +39,8 @@ FRAMES = {
     "segador": 8,
     # Tejedora de Raíz (Piso IV). 0-1 reposo, 2-5 andar, 6 alzar garras, 7 zarpazo.
     "tejedora": 8,
+    # Mastín de Relicario (Piso V). 0-1 reposo, 2-5 correr, 6 gruñir, 7 morder.
+    "mastin": 8,
 }
 
 
@@ -724,7 +726,90 @@ def tejedora(direccion: int, frame: int) -> Image.Image:
     return l.contorno()
 
 
-DIBUJAR = {"testigo": testigo, "ghoul": ghoul, "hechicero": hechicero, "peregrino": peregrino, "segador": segador, "tejedora": tejedora}
+# --------------------------------------------------------------------------
+# MASTÍN DE RELICARIO — Piso V: perro guardián de bronce con máscara de
+# porcelana agrietada. No siente dolor; solo le frena el fuego.
+# --------------------------------------------------------------------------
+BRONCE = c("#8a6a3a")
+BRONCE_SOMBRA = c("#5a4424")
+BRONCE_LUZ = c("#c49a58")
+VERDIN = c("#4f7a6a")
+PORCELANA = c("#e8e2d4")
+PORCELANA_SOMBRA = c("#b3ab9a")
+GRIETA = c("#2a2224")
+BABA = c("#9e1f2a")
+
+
+def mascara_porcelana(l, cx, cy, abierta, perfil=False):
+    if perfil:
+        l.poly([(cx - 5, cy - 5), (cx + 6, cy - 3), (cx + 9, cy + 2), (cx + 6, cy + 5), (cx - 5, cy + 5)], PORCELANA)
+        l.linea([(cx - 5, cy + 4), (cx + 6, cy + 4)], PORCELANA_SOMBRA)
+        l.rect(cx + 1, cy - 2, cx + 3, cy, GRIETA)  # cuenca
+        l.linea([(cx - 2, cy - 5), (cx, cy - 1), (cx - 1, cy + 3)], GRIETA)
+        if abierta:
+            l.poly([(cx + 3, cy + 5), (cx + 9, cy + 4), (cx + 8, cy + 8), (cx + 3, cy + 7)], BABA)
+        return
+    l.elipse(cx - 7, cy - 7, cx + 7, cy + 7, PORCELANA)
+    l.elipse(cx + 1, cy - 6, cx + 7, cy + 7, PORCELANA_SOMBRA)
+    l.rect(cx - 5, cy - 3, cx - 2, cy - 1, GRIETA)
+    l.rect(cx + 2, cy - 3, cx + 5, cy - 1, GRIETA)
+    l.linea([(cx - 1, cy - 7), (cx + 1, cy - 2), (cx - 1, cy + 2)], GRIETA)
+    if abierta:
+        l.rect(cx - 4, cy + 3, cx + 4, cy + 7, BABA)
+        for x in (cx - 3, cx - 1, cx + 1, cx + 3):
+            l.px(x, cy + 3, PORCELANA)
+    else:
+        l.linea([(cx - 3, cy + 4), (cx + 3, cy + 4)], GRIETA)
+
+
+def mastin(direccion: int, frame: int) -> Image.Image:
+    l = Lienzo()
+    correr = 2 <= frame <= 5
+    paso = [0, 1, 0, -1][(frame - 2) % 4] if correr else 0
+    resp = 0 if correr or frame >= 6 else frame % 2
+    grune = frame == 6
+    muerde = frame == 7
+    cx = 24
+    if direccion in (0, 1):
+        lomo = 47 + resp + (1 if grune else 0)
+        # Patas cortas y recias, separadas: cuerpo bajo y ancho.
+        for lado, fase in ((-1, paso), (1, -paso)):
+            x = cx + lado * 8
+            l.linea([(x, lomo + 4), (x + fase, PIE)], BRONCE_SOMBRA if lado > 0 else BRONCE, 4)
+            l.rect(x - 3 + fase, PIE - 1, x + 3 + fase, PIE, BRONCE_SOMBRA)
+        l.elipse(cx - 13, lomo - 7, cx + 13, lomo + 8, BRONCE)
+        l.elipse(cx + 3, lomo - 5, cx + 13, lomo + 8, BRONCE_SOMBRA)
+        l.rect(cx - 9, lomo - 2, cx - 6, lomo + 1, VERDIN)
+        for i in range(3):  # placas del pecho
+            l.linea([(cx - 6, lomo + 1 + i * 3), (cx + 6, lomo + 1 + i * 3)], BRONCE_LUZ if direccion == 0 else BRONCE_SOMBRA)
+        if direccion == 0:
+            for lado in (-1, 1):  # orejas de bronce
+                l.poly([(cx + lado * 5, lomo - 14), (cx + lado * 9, lomo - 20), (cx + lado * 8, lomo - 11)], BRONCE_SOMBRA)
+            mascara_porcelana(l, cx, lomo - 7 + (3 if muerde else 0), grune or muerde)
+        else:
+            l.elipse(cx - 6, lomo - 13, cx + 6, lomo - 4, BRONCE_SOMBRA)  # nuca
+            l.linea([(cx, lomo + 2), (cx + 2, lomo - 4), (cx + 6, lomo - 6)], BRONCE_LUZ, 2)  # cola
+    else:
+        # Perfil derecho: cuerpo alargado, cabeza a la derecha.
+        lomo = 47 + resp
+        alarga = 3 if muerde else 0
+        for i, (x, fase) in enumerate(((cx - 9, paso), (cx - 5, -paso), (cx + 5, -paso), (cx + 9, paso))):
+            col = BRONCE_SOMBRA if i % 2 else BRONCE
+            l.linea([(x, lomo + 3), (x + fase * 3, lomo + 8), (x + fase * 2, PIE)], col, 3)
+        l.elipse(cx - 13, lomo - 7, cx + 11 + alarga, lomo + 6, BRONCE)
+        l.elipse(cx - 13, lomo - 1, cx + 11 + alarga, lomo + 6, BRONCE_SOMBRA)
+        for x in range(cx - 9, cx + 9, 4):
+            l.linea([(x, lomo - 6), (x + 1, lomo - 2)], BRONCE_LUZ)  # costillas de placas
+        l.rect(cx - 4, lomo - 4, cx - 1, lomo - 2, VERDIN)
+        l.linea([(cx - 13, lomo - 4), (cx - 18, lomo - 9 - resp), (cx - 20, lomo - 8)], BRONCE_SOMBRA, 2)  # cola
+        hy = lomo - 9 + (3 if grune else 0)
+        hx = cx + 14 + alarga
+        l.poly([(hx - 6, hy - 6), (hx - 2, hy - 12), (hx, hy - 6)], BRONCE_SOMBRA)  # oreja
+        mascara_porcelana(l, hx, hy, grune or muerde, perfil=True)
+    return l.contorno()
+
+
+DIBUJAR = {"testigo": testigo, "ghoul": ghoul, "hechicero": hechicero, "peregrino": peregrino, "segador": segador, "tejedora": tejedora, "mastin": mastin}
 
 
 def hoja(nombre: str) -> Image.Image:

@@ -494,6 +494,15 @@ def sfx_raices() -> np.ndarray:
     return normalizar(reverb_simple((cruje * 0.6 + gemido) * env_ad(t, 0.05, 0.6), 1.0, 0.3, 4000), 0.65)
 
 
+def sfx_grunido() -> np.ndarray:
+    """Mastín de Relicario: gruñido grave con resonancia metálica de bronce."""
+    t = t_(1.1)
+    f = 62 + 8 * np.sin(2 * np.pi * 5.5 * t)
+    gru = saw(f, t) * (0.6 + 0.4 * np.sin(2 * np.pi * 23 * t)) * env_ad(t, 0.08, 0.8)
+    bronce = np.sin(2 * np.pi * 410 * t) * 0.12 * env_ad(t, 0.01, 0.6)
+    return normalizar(reverb_simple(paso_bajo(gru, 900) + bronce, 1.1, 0.25, 3000), 0.7)
+
+
 def main() -> None:
     SALIDA.mkdir(exist_ok=True)
     guardar("musica_templo.ogg", musica_templo(), 3)
@@ -507,7 +516,7 @@ def main() -> None:
                        ("sfx_resonancia", sfx_resonancia), ("sfx_destierro", sfx_destierro),
                        ("sfx_interfaz", sfx_interfaz), ("sfx_toque", sfx_toque),
                        ("sfx_cuchillo", sfx_cuchillo), ("sfx_hilo", sfx_hilo), ("sfx_latigo", sfx_latigo),
-                       ("sfx_pinchos", sfx_pinchos), ("sfx_fuego", sfx_fuego), ("sfx_raices", sfx_raices)):
+                       ("sfx_pinchos", sfx_pinchos), ("sfx_fuego", sfx_fuego), ("sfx_raices", sfx_raices), ("sfx_grunido", sfx_grunido)):
         guardar(f"{nombre}.ogg", fn(), 4)
     for i in range(3):
         guardar(f"sfx_paso_{i + 1}.ogg", _paso(i + 1), 3)

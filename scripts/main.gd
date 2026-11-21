@@ -25,6 +25,11 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ##           Misión de la sala: si es obligatoria, la puerta no se abre sin ella.
 ##   traps (opcional): posiciones de trampas de pinchos (ciclo con aviso).
 ##   inscription (opcional): [posición, texto] que se lee al acercarse ({yo} = tu nombre).
+##   walls (opcional): muros bajos (Rect2) que forman el laberinto; bloquean el paso.
+##   hounds (opcional): dónde aparecen los Mastines de Relicario.
+##   rescue / mask / channels (opcionales): peregrino atrapado, Máscara de
+##           Porcelana y canales de almas del Piso V.
+##   Piso con "fuel": la antorcha se consume en esos segundos por fósforo.
 ##   vines (opcional): tramos de enredadera seca que arden y propagan el fuego.
 ##           Rasgo "raices_puerta": raíces vivas tapan la puerta; solo arden
 ##           si les llega el fuego de las secas.
@@ -117,6 +122,34 @@ const FLOORS := [
              "inscription": [Vector2(480, 350), "Cientos de nombres de quienes volvieron. Entre ellos, recién grabado, reconoces el tuyo: {yo}."]},
         ],
     },
+    {
+        # Inspiración: el laberinto de los leones enmascarados, demasiado fuertes para ese piso.
+        "number": "V", "title": "EL LABERINTO DE LOS MASTINES", "state": "SE OYEN UÑAS DE BRONCE", "wear": 1.6,
+        "eco": "paso", "fuel": 25.0,
+        "rooms": [
+            {"scene": 0, "name": "V-1 · CORREDOR DE LOS RELICARIOS", "enemy": "", "traits": [],
+             "whisper": "Uñas de bronce sobre la piedra. No te acerques a oscuras.",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
+             "walls": [Rect2(250, 384, 180, 16), Rect2(552, 170, 16, 120), Rect2(612, 420, 16, 132)],
+             "hounds": [Vector2(480, 470), Vector2(720, 200)]},
+            {"scene": 1, "name": "V-2 · GALERÍA DEL MANTO", "enemy": "", "traits": [],
+             "whisper": "Alguien grita entre los muros. Los perros también lo oyen.", "items": [],
+             "walls": [Rect2(150, 420, 200, 16), Rect2(560, 420, 220, 16), Rect2(400, 170, 16, 90), Rect2(620, 480, 16, 72)],
+             "hounds": [Vector2(300, 300), Vector2(800, 520)], "rescue": Vector2(700, 470),
+             "mission": {"goal": "rescatar", "required": false, "reward": 10, "text": "Corta el manto del peregrino atrapado"}},
+            {"scene": 3, "name": "V-3 · PERRERA DE BRONCE", "enemy": "", "traits": ["almas"],
+             "whisper": "Huesos roídos. Aquí comen los mastines.",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
+             "walls": [Rect2(160, 460, 16, 92), Rect2(784, 460, 16, 92), Rect2(380, 180, 200, 16)],
+             "hounds": [Vector2(480, 470), Vector2(150, 300), Vector2(820, 250)]},
+            {"scene": 2, "name": "V-4 · CANALES DE ALMAS", "enemy": "", "traits": [],
+             "whisper": "Surcos en el suelo. Algo azul corre por ellos, hacia abajo.", "items": [],
+             "walls": [Rect2(300, 440, 16, 112), Rect2(644, 440, 16, 112)],
+             "hounds": [Vector2(800, 470)], "mask": Vector2(480, 300),
+             "channels": [[Vector2(140, 520), Vector2(840, 520)], [Vector2(480, 330), Vector2(480, 520)], [Vector2(140, 200), Vector2(140, 520)]],
+             "mission": {"goal": "mascara", "required": true, "reward": 8, "text": "Toma la Máscara de Porcelana"}},
+        ],
+    },
 ]
 
 const RELICS := [
@@ -153,6 +186,8 @@ const ICONS := {
     "eco_nuca": preload("res://assets/visual/iconos/eco_nuca.png"),
     "eco_reflejos": preload("res://assets/visual/iconos/eco_reflejos.png"),
     "eco_piel": preload("res://assets/visual/iconos/eco_piel.png"),
+    "eco_paso": preload("res://assets/visual/iconos/eco_paso.png"),
+    "mascara": preload("res://assets/visual/iconos/mascara.png"),
     "habilidades": preload("res://assets/visual/iconos/habilidades.png"),
     "pinchos": preload("res://assets/visual/iconos/pinchos.png"),
     "calavera": preload("res://assets/visual/iconos/calavera.png"),
@@ -193,6 +228,7 @@ const ECOS := {
     "nuca": ["NUCA FRÍA", "Sientes cuando alguien con malas intenciones queda a tu espalda."],
     "reflejos": ["REFLEJOS", "Esquivar cuesta un 40 % menos de vigor."],
     "piel": ["PIEL CURTIDA", "Recibes un 25 % menos de daño."],
+    "paso": ["PASO LIGERO", "Te mueves un 5 % más rápido."],
 }
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
@@ -425,6 +461,7 @@ const SFX_PATHS := {
     "hilo": "res://audio/sfx_hilo.ogg", "latigo": "res://audio/sfx_latigo.ogg",
     "pinchos": "res://audio/sfx_pinchos.ogg",
     "fuego": "res://audio/sfx_fuego.ogg", "raices": "res://audio/sfx_raices.ogg",
+    "grunido": "res://audio/sfx_grunido.ogg",
 }
 ## Sonidos de Kenney (CC0) traídos del primer juego del autor: cada grupo
 ## tiene varias tomas y se elige una al azar con un tono algo distinto.
@@ -590,6 +627,9 @@ func _load_progress() -> void:
         player_name = _clean_name(str(data.get("player_name", "")))
         player_gender = "femenino" if str(data.get("player_gender", "")) == "femenino" else "masculino"
         max_floor = maxi(0, int(data.get("max_floor", 0)))
+        has_mask = bool(data.get("has_mask", false))
+        var saved_rescued = data.get("rescued", [])
+        rescued = (saved_rescued as Array).map(func(e): return str(e)) if saved_rescued is Array else []
 
 func _save_progress() -> void:
     var file := FileAccess.open(_save_path(), FileAccess.WRITE)
@@ -607,7 +647,9 @@ func _save_progress() -> void:
             "cleared": cleared,
             "player_name": player_name,
             "player_gender": player_gender,
-            "max_floor": max_floor
+            "max_floor": max_floor,
+            "has_mask": has_mask,
+            "rescued": rescued
         }))
 
 
@@ -642,6 +684,7 @@ func _new_run() -> void:
     missions_done.clear()
     talks_seen.clear()
     life_corpse = {}
+    rescue_state = ""
     floor_t0 = Time.get_ticks_msec()
     floor_souls0 = 0
     floor_deaths = 0
@@ -718,6 +761,7 @@ func _enter_room() -> void:
     _load_traps()
     _load_critters()
     _load_vines()
+    _load_labyrinth()
     door_state = "unknown"
     if game_mode == "floor_intro":
         toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
@@ -1146,11 +1190,17 @@ func _use_pulse() -> void:
     stamina -= RESONANCE_COST
     pulse_fx = 0.0
     _sfx("resonancia", -5.0)
+    if has_mask:
+        _sfx("grunido", -4.0, 1.4) # Rugido: la máscara amplifica la onda
+    for h in hounds:
+        if player_pos.distance_to(h["pos"]) < _pulse_radius() + 12.0:
+            h["flee"] = 5.0 if has_mask else 3.0
+            float_fx.append({"pos": Vector2(h["pos"]) + Vector2(0, -50), "text": "HUYE", "color": SOUL, "t": 0.0})
     if _pilgrim_present() and pilgrim_state != "dead" and player_pos.distance_to(pilgrim_pos) < PULSE_RADIUS + 12.0:
         pilgrim_stun = 1.4
         _damage_pilgrim(30.0 + 10.0 * float(ability_level))
     for cr in critters:
-        if bool(cr["alive"]) and player_pos.distance_to(cr["pos"]) < PULSE_RADIUS + 12.0:
+        if bool(cr["alive"]) and player_pos.distance_to(cr["pos"]) < _pulse_radius() + 12.0:
             _critter_die(cr)
     if _enemy_active() and player_pos.distance_to(enemy_pos) < 220.0:
         enemy_stun = 1.6 + 0.5 * float(ability_level)
@@ -1178,6 +1228,7 @@ func _toggle_torch() -> void:
         _sfx("apagar", -9.0)
         _say("Antorcha apagada.", 1.2)
         return
+    torch_fuel = float(_floor().get("fuel", 0.0))
     if has_inner_flame:
         torch_on = true
         _sfx("fosforo", -8.0, 1.3)
@@ -1402,6 +1453,7 @@ func _torch_strike() -> bool:
             if not _is_blocked(shove):
                 pilgrim_pos = shove
     _try_ignite(player_pos + strike_dir * 28.0)
+    _strike_hounds_and_rescue()
     for cr in critters:
         if bool(cr["alive"]):
             var to_c: Vector2 = Vector2(cr["pos"]) - player_pos
@@ -1552,6 +1604,7 @@ func _after_floor_summary() -> void:
 func _on_floor_start() -> void:
     _pilgrim_reset()
     _allies_reset()
+    rescue_state = "atrapado" if _floor_has_trait_key("rescue") else ""
     floor_t0 = Time.get_ticks_msec()
     floor_souls0 = souls
     floor_deaths = 0
@@ -1691,7 +1744,7 @@ func _update_play(dt: float) -> void:
     player_moving = move.length_squared() > 0.001
     if player_moving:
         player_dir = move
-    var speed: float = 157.0 if dash_left <= 0.0 else 480.0
+    var speed: float = (157.0 * (1.05 if ecos.has("paso") else 1.0)) if dash_left <= 0.0 else 480.0
     if player_moving:
         var nx := Vector2(player_pos.x + move.x * speed * dt, player_pos.y)
         var blocked_x: bool = absf(move.x) > 0.3 and _hits_obstacle(nx)
@@ -1760,6 +1813,8 @@ func _update_play(dt: float) -> void:
         hp -= dt * 5.0
     _update_traps(dt)
     _update_fire(dt)
+    _update_hounds(dt)
+    _update_labyrinth(dt)
     _update_critters(dt)
     _update_life_corpse()
     _update_door_celebration()
@@ -1939,6 +1994,8 @@ func _draw_room() -> void:
     _draw_inscription_plaque()
     _draw_traps()
     _draw_vines()
+    _draw_channels_ground()
+    _draw_mask_item()
     if _has("sello"):
         _draw_seal(seal_pos)
     if _enemy_kind() == "testigo" and _enemy_active():
@@ -1965,6 +2022,7 @@ func _draw_room() -> void:
     _draw_lighting()
     _draw_flames()
     _draw_tejedora_fire()
+    _draw_labyrinth_glow()
     _draw_critter_eyes()
     _draw_light_rays()
     _draw_fog()
@@ -2154,6 +2212,12 @@ func _draw_depth_sorted() -> void:
         items.append([DUMMY_POS.y, "dummy", null])
     for i in range(critters.size()):
         items.append([Vector2(critters[i]["pos"]).y - (8.0 if not bool(critters[i]["alive"]) else 0.0), "critter", i])
+    for i in range(hounds.size()):
+        items.append([Vector2(hounds[i]["pos"]).y, "hound", i])
+    for i in range(maze_walls.size()):
+        items.append([(maze_walls[i] as Rect2).end.y, "wall", i])
+    if _room().has("rescue") and rescue_state != "":
+        items.append([Vector2(_room()["rescue"]).y, "rescue", null])
     if _has("archivo"):
         items.append([book_pos.y + 37.0, "book", null]) # justo después de la mesa
     for i in range(room_props.size()):
@@ -2173,6 +2237,12 @@ func _draw_depth_sorted() -> void:
                 _draw_dummy()
             "critter":
                 _draw_critter(item[2])
+            "hound":
+                _draw_hound(item[2])
+            "wall":
+                _draw_maze_wall(item[2])
+            "rescue":
+                _draw_rescue()
             "altar":
                 _draw_altar(altar_pos)
             "book":
@@ -2194,6 +2264,7 @@ func _draw_object_labels() -> void:
         _draw_enemy_health()
     _draw_ally_labels()
     _draw_inscription_text()
+    _draw_rescue_label()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
 
@@ -2530,7 +2601,7 @@ func _draw_pulse_fx() -> void:
     if pulse_fx < 0.0:
         return
     var k: float = clampf(pulse_fx / 0.45, 0.0, 1.0)
-    var r: float = PULSE_RADIUS * (1.0 - pow(1.0 - k, 3.0))
+    var r: float = _pulse_radius() * (1.0 - pow(1.0 - k, 3.0))
     var a: float = 1.0 - clampf(pulse_fx / 0.6, 0.0, 1.0)
     draw_set_transform(player_pos + Vector2(0.0, -6.0), 0.0, Vector2(1.0, 0.6))
     draw_arc(Vector2.ZERO, r, 0.0, TAU, 64, Color(0.75, 0.93, 1.0, a), 4.0)
@@ -2714,9 +2785,15 @@ func _draw_floor_banner() -> void:
     var banner := Rect2(336, 6, 288, 58)
     _panel(banner)
     var floor_label: String = _floor()["title"] if in_tutorial else "PISO %s · %s" % [_floor()["number"], _floor()["title"]]
-    _title_text(_tc(floor_label), Vector2(banner.position.x, 27), 24, UI_GOLD, banner.size.x)
+    var banner_title: String = _tc(floor_label)
+    var state_line: String = _floor()["state"]
+    if title_font != null and title_font.get_string_size(banner_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x > banner.size.x - 12.0:
+        # Título largo: el número en gótica y el nombre del piso abajo, en pequeño.
+        banner_title = _tc(floor_label.get_slice(" · ", 0))
+        state_line = floor_label.get_slice(" · ", 1)
+    _title_text(banner_title, Vector2(banner.position.x, 27), 24, UI_GOLD, banner.size.x)
     _text_outline(_room()["name"], Vector2(banner.position.x, 44), 14, CREAM, banner.size.x)
-    _text_outline(_floor()["state"], Vector2(banner.position.x, 58), 10, Color("#8a8574"), banner.size.x)
+    _text_outline(state_line, Vector2(banner.position.x, 58), 10, Color("#8a8574"), banner.size.x)
     # Almas: icono y número que destella al recoger.
     var souls_box := Rect2(420, 68, 120, 34)
     _panel(souls_box)
@@ -2864,6 +2941,7 @@ func _draw_weapon_panel() -> void:
     var ammo_col: Color = SOUL if has_inner_flame else (Color("#f0c98a") if matches > 0 else RED)
     draw_texture_rect(ICONS["llama_interior" if has_inner_flame else "fosforos"], Rect2(648, 608, 20, 20), false)
     _text_outline(ammo, Vector2(672, 624), 12, ammo_col)
+    _draw_torch_fuel()
     _draw_ability_icon(Rect2(780, 583, 48, 48), "vigor", true, _vigor_wait(_dash_cost()), _short_key("esquivar"))
     _draw_ability_icon(Rect2(838, 583, 48, 48), "golpe", has_torch and torch_on, maxf(strike_cd / 0.6, _vigor_wait(10.0)), _short_key("interactuar"))
     _draw_ability_icon(Rect2(896, 583, 48, 48), "resonancia", has_pulse, _vigor_wait(RESONANCE_COST), _short_key("resonancia"))
@@ -5299,6 +5377,11 @@ const ROOM_TALKS := {
         ["ODÓN", "Cuando dispara se queda clavado a sus hilos. Ese es el momento de golpear."],
         ["CIRO", "Y que la línea no nos pille a nosotros, por favor."],
     ],
+    "4:0": [
+        ["{yo}", "Ladridos sin aliento... Son de bronce. Los golpes no les harán nada."],
+        ["{yo}", "Pero se apartan de la luz. Mientras la antorcha arda, no se acercarán."],
+        ["{yo}", "Y aquí la antorcha se consume. Tengo que medir los fósforos."],
+    ],
     "3:0": [
         ["{yo}", "Raíces secas por todas partes. Una chispa y esto arde entero."],
         ["{yo}", "Y las de la puerta están vivas... habrá que hacerles llegar el fuego."],
@@ -5444,8 +5527,8 @@ func _ability_rows() -> Array:
     return [
         ["golpe", "GOLPE DE ANTORCHA", Ajustes.nombre_tecla("interactuar") + " / CLIC",
             "Arco de fuego a corta distancia. Daño %d. Necesita la antorcha encendida." % int(STRIKE_DAMAGE), has_torch, "10 vigor"],
-        ["resonancia", "RESONANCIA · NIVEL %d" % ability_level, Ajustes.nombre_tecla("resonancia"),
-            "Onda que aturde a las entidades cercanas y les hace %d de daño." % int(30.0 + 10.0 * float(ability_level)), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
+        ["resonancia", ("RUGIDO" if has_mask else "RESONANCIA") + " · NIVEL %d" % ability_level, Ajustes.nombre_tecla("resonancia"),
+            ("Con la Máscara de Porcelana la onda llega más lejos y espanta a los mastines 5 s. " if has_mask else "") + "Aturde a las entidades cercanas y les hace %d de daño." % int(30.0 + 10.0 * float(ability_level)), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
         ["vigor", "ESQUIVAR", Ajustes.nombre_tecla("esquivar"),
             "Impulso hacia donde te mueves o, quieto, hacia donde miras. Pasas por encima de las trampas.", true, "%d vigor · se recarga con la barra" % int(_dash_cost())],
         ["llama_interior", "LLAMA INTERIOR", "PASIVA",
@@ -5874,6 +5957,7 @@ const FLOOR_TRUTHS := [
     "Las almas se pueden robar. El templo te enfrenta con los demás.",
     "La caza también es una ofrenda. Algo se alimenta de cada muerte.",
     "Otros también vuelven. Sus nombres están en el muro, y entre ellos, el tuyo.",
+    "Las almas no se pierden: corren por canales hacia abajo. El templo las recoge.",
 ]
 var critters: Array = [] # {pos, a, b, to_b, alive, dead_t, respawn, flip, bite_cd}
 var life_corpse: Dictionary = {}
@@ -6449,3 +6533,288 @@ func _draw_tejedora_fire() -> void:
             var h: float = 22.0 + 10.0 * sin(elapsed * 15.0 + float(k) * 1.7)
             var base: float = enemy_pos.y - 14.0 - float(k % 2) * 16.0
             draw_colored_polygon(PackedVector2Array([Vector2(x - 5, base), Vector2(x + 5, base), Vector2(x, base - h)]), Color(1.0, 0.45, 0.1, 0.8))
+
+
+# ------------------------------------------------------------ PISO V · EL LABERINTO DE LOS MASTINES
+## Mastines de Relicario: perros de bronce con máscara de porcelana. Son
+## inmunes y no sienten dolor, pero temen al fuego: con la antorcha
+## encendida no se acercan a menos de dos casillas; a oscuras, cargan y
+## muerden. En este piso la antorcha se consume (25 s por fósforo). Un golpe
+## de antorcha o la Resonancia los espanta. Valores PROVISIONALES.
+const HOUND_SPEED := 70.0
+const HOUND_CHARGE := 165.0
+const HOUND_KEEP := 100.0 # distancia que guardan ante el fuego (≈ dos casillas)
+const HOUND_SIGHT := 290.0
+const HOUND_BITE := 20.0
+const HOUND_TEX := preload("res://assets/visual/enemies/mastin.png")
+var hounds: Array = [] # {pos, prev, home, wander, wander_t, flee, bite_cd, bite_t, facing, moving, growl_t, detour, detour_t}
+var maze_walls: Array = []
+var torch_fuel: float = 0.0
+var has_mask: bool = false
+var rescued: Array = [] # aliados salvados (para el Piso X)
+var rescue_state: String = "" # "" | atrapado | libre
+
+
+func _pulse_radius() -> float:
+    return PULSE_RADIUS * (1.5 if has_mask else 1.0)
+
+
+func _floor_has_trait_key(key: String) -> bool:
+    for room in _floor()["rooms"]:
+        if (room as Dictionary).has(key):
+            return true
+    return false
+
+
+func _load_labyrinth() -> void:
+    maze_walls.clear()
+    for w in _room().get("walls", []):
+        maze_walls.append(w)
+        obstacles.append(w) # el laberinto bloquea el paso como cualquier columna
+    hounds.clear()
+    if in_tutorial:
+        return
+    for at in _room().get("hounds", []):
+        hounds.append({"pos": at, "prev": at, "home": at, "wander": at, "wander_t": 0.0, "flee": 0.0, "bite_cd": 0.0,
+            "bite_t": 0.0, "facing": 0, "moving": false, "growl_t": randf_range(1.0, 3.0), "detour": Vector2.ZERO, "detour_t": 0.0})
+    if torch_on and float(_floor().get("fuel", 0.0)) > 0.0 and torch_fuel <= 0.0:
+        torch_fuel = float(_floor()["fuel"])
+
+
+## La antorcha se consume en los pisos con «fuel».
+func _update_labyrinth(dt: float) -> void:
+    _check_mask_pickup()
+    var fuel_max: float = float(_floor().get("fuel", 0.0))
+    if fuel_max <= 0.0 or not torch_on:
+        return
+    torch_fuel -= dt
+    if torch_fuel <= 0.0:
+        torch_on = false
+        _sfx("apagar", -6.0)
+        _say("La antorcha se ha consumido. Vuelve a encenderla (gasta un fósforo).", 3.0)
+
+
+func _hound_move(h: Dictionary, dir: Vector2, speed: float, dt: float) -> void:
+    if dir.length() < 0.01:
+        return
+    if float(h["detour_t"]) > 0.0:
+        h["detour_t"] = float(h["detour_t"]) - dt
+        dir = h["detour"]
+    var pos: Vector2 = h["pos"]
+    var nxt: Vector2 = pos + dir.normalized() * speed * dt
+    if not _is_blocked(nxt):
+        h["pos"] = nxt
+        return
+    var perp := Vector2(-dir.y, dir.x).normalized()
+    for cand in [perp, -perp, -dir.normalized()]:
+        var try_pos: Vector2 = pos + (cand as Vector2) * speed * dt
+        if not _is_blocked(try_pos):
+            h["pos"] = try_pos
+            h["detour"] = cand
+            h["detour_t"] = 0.6
+            return
+
+
+func _update_hounds(dt: float) -> void:
+    for h in hounds:
+        var pos: Vector2 = h["pos"]
+        var d: float = pos.distance_to(player_pos)
+        var away: Vector2 = (pos - player_pos).normalized() if d > 0.1 else Vector2.RIGHT
+        h["bite_cd"] = maxf(0.0, float(h["bite_cd"]) - dt)
+        h["bite_t"] = maxf(0.0, float(h["bite_t"]) - dt)
+        if float(h["flee"]) > 0.0:
+            h["flee"] = float(h["flee"]) - dt
+            _hound_move(h, away, 150.0, dt)
+        elif d < HOUND_SIGHT:
+            if torch_on:
+                # Temen al fuego: guardan distancia y rondan gruñendo.
+                if d < HOUND_KEEP:
+                    _hound_move(h, away, 120.0, dt)
+                else:
+                    _hound_move(h, Vector2(-away.y, away.x), 45.0, dt)
+                h["growl_t"] = float(h["growl_t"]) - dt
+                if float(h["growl_t"]) <= 0.0 and d < 180.0:
+                    h["growl_t"] = randf_range(2.5, 4.5)
+                    _sfx("grunido", -10.0, randf_range(0.9, 1.1))
+            else:
+                _hound_move(h, -away, HOUND_CHARGE, dt)
+                if d < 26.0 and float(h["bite_cd"]) <= 0.0:
+                    h["bite_cd"] = 1.2
+                    h["bite_t"] = 0.25
+                    h["flee"] = 0.5 # muerde y se aparta un instante
+                    if dash_left <= 0.0 and damage_cd <= 0.0:
+                        hp -= HOUND_BITE
+                        fear = minf(100.0, fear + 14.0)
+                        damage_cd = 0.8
+                        _on_hurt()
+                        _sfx("grunido", -4.0, 1.3)
+        else:
+            h["wander_t"] = float(h["wander_t"]) - dt
+            if float(h["wander_t"]) <= 0.0:
+                h["wander_t"] = randf_range(1.5, 3.0)
+                h["wander"] = Vector2(h["home"]) + Vector2(randf_range(-70, 70), randf_range(-50, 50))
+            if pos.distance_to(h["wander"]) > 6.0:
+                _hound_move(h, Vector2(h["wander"]) - pos, HOUND_SPEED, dt)
+        var moved: Vector2 = Vector2(h["pos"]) - Vector2(h["prev"])
+        h["moving"] = moved.length() > 5.0 * dt
+        var look: Vector2 = moved if bool(h["moving"]) else (player_pos - Vector2(h["pos"]))
+        if look.length() > 0.5:
+            if absf(look.x) > absf(look.y):
+                h["facing"] = 2 if look.x > 0.0 else 3
+            else:
+                h["facing"] = 0 if look.y > 0.0 else 1
+        h["prev"] = h["pos"]
+
+
+func _strike_hounds_and_rescue() -> void:
+    for h in hounds:
+        var to_h: Vector2 = Vector2(h["pos"]) - player_pos
+        if to_h.length() < STRIKE_RANGE + 14.0 and (to_h.length() < 26.0 or to_h.normalized().dot(strike_dir) > 0.2):
+            h["flee"] = 1.4
+            h["pos"] = Vector2(h["pos"]) + to_h.normalized() * 18.0 if not _is_blocked(Vector2(h["pos"]) + to_h.normalized() * 18.0) else h["pos"]
+            float_fx.append({"pos": Vector2(h["pos"]) + Vector2(0, -50), "text": "INMUNE", "color": Color("#b4bba8"), "t": 0.0})
+            _sfx("k_metal", -10.0, 0.8)
+    if _room().has("rescue") and rescue_state == "atrapado" and player_pos.distance_to(_room()["rescue"]) < STRIKE_RANGE + 20.0:
+        _free_rescue()
+
+
+func _free_rescue() -> void:
+    rescue_state = "libre"
+    if not rescued.has("SAÚL"):
+        rescued.append("SAÚL")
+    matches += 2
+    _complete_mission()
+    _save_progress()
+    _emit(Vector2(_room()["rescue"]) + Vector2(0, -20), 16, Color(0.56, 0.86, 0.95), 15.0, 60.0, 1.0, 2.0, -40.0, Vector2.UP, 1.0, true)
+    _dialog([["SAÚL", "¡Gracias! El manto se me enganchó en la reja y los perros me olían..."],
+        ["SAÚL", "Toma, dos fósforos. Y escucha: con la luz encendida no se acercan. A oscuras no tienen piedad."],
+        ["SAÚL", "Me llamo Saúl. Si sigo vivo más abajo, no lo olvidaré."]])
+
+
+func _check_mask_pickup() -> void:
+    if not _room().has("mask") or has_mask:
+        return
+    if player_pos.distance_to(_room()["mask"]) < 28.0:
+        has_mask = true
+        _complete_mission()
+        _save_progress()
+        _sfx("k_campana", -8.0, 0.7)
+        _emit(Vector2(_room()["mask"]) + Vector2(0, -14), 24, Color(0.95, 0.92, 0.85), 15.0, 70.0, 1.2, 2.0, -40.0, Vector2.UP, 1.1, true)
+        _dialog([[_hero_name(), "Una máscara de porcelana, como las de los perros. Al ponérmela, mi Resonancia ruge."],
+            [_hero_name(), "Ahora la onda llega más lejos, y los mastines huyen de ella."]])
+
+
+func _draw_hound(i: int) -> void:
+    var h: Dictionary = hounds[i]
+    var frame: int
+    if float(h["bite_t"]) > 0.0:
+        frame = 7
+    elif torch_on and player_pos.distance_to(h["pos"]) < 180.0 and not bool(h["moving"]):
+        frame = 6 # gruñe ante el fuego
+    elif bool(h["moving"]):
+        frame = 2 + int(elapsed * 11.0 + float(i)) % 4
+    else:
+        frame = int(elapsed * 2.0 + float(i)) % 2
+    var pos: Vector2 = Vector2(h["pos"]).round()
+    _draw_soft_shadow(pos + Vector2(0, 3), 15.0)
+    var region := Rect2(float(frame) * ENEMY_CELL.x, float(h["facing"]) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
+    draw_texture_rect_region(HOUND_TEX, Rect2(pos.x - ENEMY_CELL.x * 0.5, pos.y + 4.0 - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), region)
+
+
+## Muro bajo del laberinto: cara superior clara, frente de sillares y musgo.
+func _draw_maze_wall(i: int) -> void:
+    var r: Rect2 = maze_walls[i]
+    var lift: float = 22.0
+    var top := Rect2(r.position.x, r.position.y - lift, r.size.x, r.size.y)
+    var front := Rect2(r.position.x, r.position.y - lift + r.size.y, r.size.x, lift)
+    draw_rect(Rect2(r.position + Vector2(3, 4), r.size), Color(0, 0, 0, 0.35)) # sombra
+    draw_rect(front, Color("#2c2a2e"))
+    var row: int = 0
+    var y: float = front.position.y
+    while y < front.end.y - 1.0:
+        var off: float = 0.0 if row % 2 == 0 else 7.0
+        var x: float = front.position.x - off
+        while x < front.end.x:
+            var bx: float = maxf(x, front.position.x)
+            var bw: float = minf(x + 14.0, front.end.x) - bx
+            if bw > 1.0:
+                draw_rect(Rect2(bx + 0.5, y + 0.5, bw - 1.0, 6.0), Color("#3a373c") if (row + int(x)) % 3 else Color("#343136"))
+            x += 14.0
+        y += 7.0
+        row += 1
+    draw_rect(top, Color("#55505a"))
+    draw_rect(Rect2(top.position, Vector2(top.size.x, 2)), Color("#6d6772"))
+    draw_rect(Rect2(front.position.x, front.end.y - 3.0, front.size.x, 3), Color("#3f5236", 0.8)) # musgo
+    draw_rect(Rect2(top.position.x, top.position.y, top.size.x, top.size.y + lift), Color(0, 0, 0, 0.55), false, 1.0)
+
+
+func _draw_rescue() -> void:
+    var at: Vector2 = _room()["rescue"]
+    var sheet: Texture2D = art["enemy_peregrino"]
+    var free: bool = rescue_state == "libre"
+    var frame: int = int(elapsed * 2.0) % 2 if free else (6 if int(elapsed * 3.0) % 3 == 0 else 0)
+    _draw_soft_shadow(at + Vector2(0, 3), 12.0)
+    draw_texture_rect_region(sheet, Rect2(at.x - ENEMY_CELL.x * 0.5, at.y + 4.0 - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y),
+        Rect2(float(frame) * ENEMY_CELL.x, 0, ENEMY_CELL.x, ENEMY_CELL.y), Color(0.95, 0.9, 1.0))
+    if not free:
+        # Reja caída que le atrapa el manto.
+        var g := Rect2(at.x - 22.0, at.y - 18.0, 44.0, 20.0)
+        for k in range(6):
+            draw_line(Vector2(g.position.x + float(k) * 8.0 + 2.0, g.position.y), Vector2(g.position.x + float(k) * 8.0 - 4.0, g.end.y), Color("#5b5f63"), 2.0)
+        draw_line(g.position, Vector2(g.end.x, g.position.y + 4.0), Color("#7a7f84"), 2.0)
+
+
+func _draw_rescue_label() -> void:
+    if not _room().has("rescue") or rescue_state == "":
+        return
+    var at: Vector2 = _room()["rescue"]
+    if rescue_state == "atrapado":
+        _label_center("ATRAPADO · golpea la reja", at + Vector2(0, -70), Color("#e3bd7b"))
+        if player_pos.distance_to(at) < 200.0 and int(elapsed) % 4 == 0:
+            _label_center("«¡Ayuda! ¡Mi manto!»", at + Vector2(0, -88), CREAM)
+    else:
+        _label_center("SAÚL", at + Vector2(0, -70), Color("#9fd8b0"))
+
+
+func _draw_mask_item() -> void:
+    if not _room().has("mask") or has_mask:
+        return
+    var at: Vector2 = _room()["mask"]
+    draw_rect(Rect2(at.x - 16.0, at.y - 4.0, 32, 10), Color("#4a4540"))
+    draw_rect(Rect2(at.x - 16.0, at.y - 4.0, 32, 2), Color("#6d6772"))
+    var bob: float = sin(elapsed * 2.0) * 2.0
+    draw_texture_rect(ICONS["mascara"], Rect2(at + Vector2(-14, -32 + bob), Vector2(28, 28)), false)
+
+
+## Canales del suelo: surcos oscuros por donde corren motas de alma.
+func _draw_channels_ground() -> void:
+    for ch in _room().get("channels", []):
+        draw_line(ch[0], ch[1], Color(0.04, 0.05, 0.07, 0.85), 6.0)
+        draw_line(ch[0], ch[1], Color(0.25, 0.5, 0.6, 0.25), 2.0)
+
+
+func _draw_labyrinth_glow() -> void:
+    for ch in _room().get("channels", []):
+        var a: Vector2 = ch[0]
+        var b: Vector2 = ch[1]
+        var n: int = int(a.distance_to(b) / 40.0)
+        for k in range(n):
+            var t: float = fmod(elapsed * 0.25 + float(k) / float(maxi(1, n)), 1.0)
+            var p: Vector2 = a.lerp(b, t)
+            draw_circle(p, 4.0, Color(0.56, 0.86, 0.95, 0.12))
+            draw_rect(Rect2(p.round() - Vector2(1, 1), Vector2(2, 2)), Color(0.75, 0.95, 1.0, 0.8))
+    # Las máscaras de porcelana reflejan la luz: se ven en la penumbra.
+    for h in hounds:
+        var head: Vector2 = Vector2(h["pos"]) + Vector2(10.0 if int(h["facing"]) == 2 else (-10.0 if int(h["facing"]) == 3 else 0.0), -20.0)
+        draw_circle(head, 4.0, Color(0.95, 0.92, 0.85, 0.12))
+        draw_rect(Rect2(head.round() - Vector2(1, 1), Vector2(2, 2)), Color(0.95, 0.92, 0.85, 0.55))
+
+
+func _draw_torch_fuel() -> void:
+    var fuel_max: float = float(_floor().get("fuel", 0.0))
+    if fuel_max <= 0.0 or not has_torch:
+        return
+    var bar := Rect2(596, 628, 44, 4)
+    draw_rect(bar, Color(0, 0, 0, 0.7))
+    var k: float = clampf(torch_fuel / fuel_max, 0.0, 1.0) if torch_on else 0.0
+    draw_rect(Rect2(bar.position, Vector2(bar.size.x * k, bar.size.y)), Color("#ff9a3c") if k > 0.25 else Color("#d1474f"))

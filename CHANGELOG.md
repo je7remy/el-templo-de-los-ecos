@@ -1,5 +1,19 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Piso V: El Laberinto de los Mastines
+
+Cuatro salas: Corredor de los Relicarios, Galería del Manto, Perrera de Bronce y Canales de Almas.
+- **Laberinto**: muros bajos de sillares con musgo (campo `walls` de cada sala) que bloquean el paso y forman corredores.
+- **Mastines de Relicario** (sprite original: bronce y máscara de porcelana agrietada): son inmunes y no sienten dolor. **Temen al fuego**: con la antorcha encendida guardan dos casillas de distancia y rondan gruñendo; a oscuras cargan y muerden (20). Un golpe de antorcha los aparta y la Resonancia los hace huir. Sus máscaras reflejan la luz y se ven en la penumbra.
+- **La antorcha se consume** en este piso: 25 s por fósforo, con una barra bajo el arma. Al apagarse hay que volver a encenderla.
+- **Peregrino atrapado** (Galería del Manto): su manto quedó bajo una reja. Golpéala para liberarlo: Saúl te da dos fósforos y queda guardado entre los aliados salvados, para el Piso X. Misión opcional.
+- **Máscara de Porcelana** (Canales de Almas): misión obligatoria. Convierte tu Resonancia en **Rugido**: más alcance y espanta a los mastines 5 s. Se guarda con el progreso.
+- **Canales de almas** en el suelo por donde corren motas azules: la verdad del piso es que las almas no se pierden, el templo las recoge.
+- **Eco Paso ligero**: +5 % de velocidad.
+- Sonido nuevo: gruñido con resonancia de bronce.
+- Los títulos de piso largos ya no se cortan en el cartel.
+
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Piso IV: El Claustro Enraizado
 
 Cuatro salas: Atrio de las Raíces, Claustro Enraizado, Jardín de Ceniza y Muro de los Nombres.
