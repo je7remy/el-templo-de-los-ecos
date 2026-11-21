@@ -355,7 +355,14 @@ func _run_checks() -> void:
     if game.get("game_mode") != "floors":
         _fail("Se puede entrar en un piso que aún no existe.")
         return
+    # En la CI no hay partida guardada: sin nombre, elegir piso abre la creación.
+    game.set("player_name", "")
     game.call("_choose_floor", 1)
+    if game.get("game_mode") != "create" or str(game.get("create_then")) != "piso:1":
+        _fail("Elegir piso sin personaje no abre la creación.")
+        return
+    game.set("create_buf", "PRUEBA")
+    game.call("_create_finish")
     if game.get("game_mode") != "floor_intro" or int(game.get("current_floor")) != 1 or not bool(game.get("has_torch")):
         _fail("Elegir el Piso II no empieza allí con la antorcha.")
         return
