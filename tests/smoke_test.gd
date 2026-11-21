@@ -29,9 +29,52 @@ func _run_checks() -> void:
             return
     print("OK: texturas de Knowledge Temple y enemigos GothicVania cargadas.")
 
-    if game.get("game_mode") != "title":
-        _fail("El juego no inicia en el menu.")
+    # Arranque: pantalla de inicio → acuerdo (primera vez) → menú.
+    if game.get("game_mode") != "splash":
+        _fail("El juego no arranca en la pantalla de inicio.")
         return
+    game.call("_splash_continue")
+    if game.get("game_mode") == "eula":
+        game.call("_accept_eula")
+    if game.get("game_mode") != "title":
+        _fail("Tras la pantalla de inicio no aparece el menú.")
+        return
+    # Configuración: se abre desde el menú y vuelve a él.
+    game.call("_open_settings", "title")
+    game.call("_settings_key", KEY_ESCAPE)
+    if game.get("game_mode") != "title":
+        _fail("Configuración no vuelve al menú.")
+        return
+    # Tutorial: muñeco, pasos y salida al Piso I.
+    game.call("_start_tutorial")
+    if not bool(game.get("in_tutorial")) or game.get("game_mode") != "play":
+        _fail("El tutorial no empieza.")
+        return
+    game.set("tutorial_step", 4)
+    game.set("has_torch", true)
+    game.set("torch_on", true)
+    game.set("stamina", 100.0)
+    game.set("player_pos", Vector2(game.get("DUMMY_POS")) + Vector2(-40, 0))
+    game.set("player_dir", Vector2.RIGHT)
+    game.call("_torch_strike")
+    if int(game.get("dummy_hits")) != 1:
+        _fail("El golpe no alcanza al muñeco del tutorial.")
+        return
+    # Pausa desde el juego y vuelta.
+    game.call("_open_pause")
+    if game.get("game_mode") != "pause":
+        _fail("No se puede pausar el juego.")
+        return
+    game.call("_pause_key", KEY_ESCAPE)
+    if game.get("game_mode") != "play" or not bool(game.get("tut_paused")):
+        _fail("La pausa no vuelve al juego.")
+        return
+    game.call("_end_tutorial")
+    if bool(game.get("in_tutorial")) or int(game.get("current_floor")) != 0:
+        _fail("Al terminar el tutorial no se entra en el Piso I.")
+        return
+    print("OK: inicio, acuerdo, configuración, tutorial y pausa.")
+    game.set("game_mode", "title")
     game.call("_new_run")
     if game.get("game_mode") != "play":
         _fail("No se pudo iniciar una partida.")

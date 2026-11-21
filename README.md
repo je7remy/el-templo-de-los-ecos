@@ -27,6 +27,8 @@
   - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve. Solo recibe daño con el ojo cerrado.
   - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
   - **Hechicero del archivo**: lanza conjuros hacia la luz. Solo recibe daño mientras carga el conjuro.
+- **Inicio, intro y tutorial**: pantalla «haz clic para continuar» con el engranaje de configuración abajo a la izquierda; acuerdo de usuario la primera vez; intro breve (saltable) y una sala de práctica con 8 pasos guiados (mover, esquivar, recoger un alma, encender la antorcha, golpear un muñeco, abrir el perfil, pausar y cruzar la puerta). Se puede repetir desde Configuración.
+- **Pausa y configuración**: ESC pausa la partida (continuar, configuración, perfil, saltar tutorial, volver al inicio). Configuración con Sonido (general, música, efectos, silencio), Controles (todas las teclas reasignables y modo táctil), Idioma (español / inglés en los menús) y Privacidad (acuerdo, política y borrar mis datos).
 - **Estilo roguelike de acción**: HUD de paneles biselados con el retrato de Mark (con sangre cuando está herido), barras de vida, vigor y miedo con icono y números, minimapa del piso, contador de almas, panel de arma con su munición (fósforos) y habilidades redondas con su recuperación. Tipografía pixel (Pixelify Sans, OFL) y salas con restos, sangre, velas, estandartes y cadenas.
 - **Perfil del jugador (I)**: retrato, estadísticas de la partida y de tus vidas, equipo y mochila, y los Ecos despertados.
 - **Antorcha y mochila**: despiertas a oscuras; en la primera sala encuentras madera y fósforos y se construye la antorcha. Encenderla gasta un fósforo (apagarla no); hay más cajas en las salas 3 y 4, y el altar vende la **Llama interior**, que la enciende sin gastar.
@@ -57,6 +59,10 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Combate.** El golpe de antorcha deja una estela de fuego; la barra indica la vida de la entidad. | **Perfil (I).** Retrato, estadísticas, equipo, mochila y Ecos. |
 | ![Entrada al Piso II](docs/galeria/14_piso2_entrada.png) | ![El Peregrino traiciona en la Cripta del Reparto](docs/galeria/15_peregrino.png) |
 | **Entrada al Piso II.** Solo un fragmento de la sala: lo demás se descubre al entrar. | **La Cosecha.** «Lo siento. Las almas no alcanzan para dos.» |
+| ![Pantalla de inicio](docs/galeria/16_inicio.png) | ![Configuración: controles](docs/galeria/17_configuracion.png) |
+| **Inicio.** Haz clic para continuar; el engranaje abre la configuración. | **Configuración.** Sonido, controles reasignables, idioma y privacidad. |
+| ![Tutorial](docs/galeria/18_tutorial.png) | ![Pausa](docs/galeria/19_pausa.png) |
+| **Tutorial.** Sala de práctica con pasos guiados y un muñeco de entrenamiento. | **Pausa.** Continuar, configuración, perfil o volver al inicio. |
 | ![Archivo de los ausentes con el Hechicero](docs/galeria/05_archivo.png) | ![Pórtico del siguiente piso](docs/galeria/06_portico.png) |
 | **IV · Archivo de los ausentes.** El libro se abre al leer la carta; el Hechicero responde a la antorcha. | **V · Pórtico del siguiente piso.** «Esto no es una salida. Es una transición.» |
 
@@ -130,6 +136,9 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | Clic izquierdo | Golpe de antorcha |
 | F | Encender (gasta un fósforo) o apagar la antorcha |
 | I o Tab | Perfil (en móvil, tocar el retrato) |
+| ESC | Pausa (en móvil, el botón de pausa) |
+
+Todas las teclas se pueden cambiar en *Configuración > Controles*; las flechas siempre mueven.
 | Espacio | Esquivar |
 | Q | Resonancia: onda que daña y aturde (después de adquirirla) |
 | Esc | Volver al menú o cerrar un panel |
@@ -188,6 +197,10 @@ project.godot           Configuración del motor
 - El protagonista tiene arte original cenital (`herramientas/generar_protagonista.py`); Mark aún no está integrado como personaje con nombre.
 - Vida, daño y precios del combate son **provisionales** y deben ajustarse jugando.
 - Las pruebas automatizadas no sustituyen una partida manual, sobre todo en un teléfono Android real.
+
+## Acuerdo de usuario y privacidad
+
+El juego muestra un acuerdo de usuario la primera vez y no recoge datos personales: solo guarda progreso y ajustes en el equipo. Los textos completos están en [`docs/legal/`](docs/legal/) y son **borradores** pendientes de revisión legal antes de vender el juego.
 
 ## Créditos y uso de los assets
 

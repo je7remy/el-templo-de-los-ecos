@@ -7,6 +7,19 @@ func _run() -> void:
     var a: PackedScene = load("res://scenes/main.tscn")
     var game: Node = a.instantiate()
     root.add_child(game)
+    # Primer toque: la pantalla de inicio da paso al menú (y al acuerdo la primera vez).
+    game.call("_mobile_touch", 1, Vector2(480, 300), true)
+    game.call("_mobile_touch", 1, Vector2(480, 300), false)
+    if game.get("game_mode") == "eula":
+        game.call("_mobile_touch", 1, Vector2(300, 399), true) # ACEPTAR
+        game.call("_mobile_touch", 1, Vector2(300, 399), false)
+    if game.get("game_mode") != "title":
+        _fail("Tocar la pantalla de inicio no lleva al menú.")
+        return
+    # Sin intro ni tutorial para ir directo a la campaña.
+    var Ajustes = load("res://scripts/ajustes.gd")
+    Ajustes.poner("intro_vista", true)
+    Ajustes.poner("tutorial_hecho", true)
     game.call("_mobile_touch", 1, Vector2(220, 490), true)
     if game.get("game_mode") != "play":
         _fail("Toque de inicio en la campaña no funciona.")

@@ -88,6 +88,7 @@ const ICONS := {
     "eco_nuca": preload("res://assets/visual/iconos/eco_nuca.png"),
     "calavera": preload("res://assets/visual/iconos/calavera.png"),
     "pausa": preload("res://assets/visual/iconos/pausa.png"),
+    "engranaje": preload("res://assets/visual/iconos/engranaje.png"),
 }
 ## Retrato de Mark para el HUD y el perfil (herramientas/generar_retrato.py).
 const DEFENSE_ICONS := {"descansar": preload("res://assets/visual/iconos/descansar.png")}
@@ -345,7 +346,6 @@ var watcher_warned: bool = false
 
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    touch_enabled = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
     # Tipografía pixel (Pixelify Sans, OFL), sin suavizado para que encaje con el pixel art.
     font = PIXEL_FONT
     if font is FontFile:
@@ -354,6 +354,10 @@ func _ready() -> void:
         ff.hinting = TextServer.HINTING_NONE
         ff.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
     randomize()
+    Ajustes.cargar()
+    _apply_touch_setting()
+    # Al abrir el juego se ve la pantalla de inicio; al volver de la Vigilia, el menú.
+    game_mode = "title" if Engine.has_meta("splash_visto") else "splash"
     _load_progress()
     _load_art()
     _load_room_scene() # sala 1 como fondo del menú
@@ -366,8 +370,13 @@ func _ready() -> void:
     add_child(tension)
     for i in range(8):
         var player := AudioStreamPlayer.new()
+        player.bus = "Efectos"
         add_child(player)
         sfx_pool.append(player)
+    # Buses de Música y Efectos con los volúmenes de Configuración.
+    Ajustes.preparar_buses()
+    music.bus = "Musica"
+    tension.bus = "Musica"
     if audio_available:
         var templo: AudioStreamOggVorbis = load("res://audio/musica_templo.ogg")
         var capa: AudioStreamOggVorbis = load("res://audio/musica_tension.ogg")
@@ -469,7 +478,7 @@ func _save_progress() -> void:
 
 ## --- Datos del piso y de la sala actuales -------------------------------
 func _floor() -> Dictionary:
-    return FLOORS[current_floor]
+    return TUTORIAL_FLOOR if in_tutorial else FLOORS[current_floor]
 
 
 func _room() -> Dictionary:
@@ -489,6 +498,7 @@ func _has(trait_name: String) -> bool:
 
 
 func _new_run() -> void:
+    in_tutorial = false
     current_floor = 0
     current_room = 0
     pilgrim_state = "none"
@@ -628,29 +638,66 @@ func _input(event: InputEvent) -> void:
     elif event is InputEventScreenDrag and event.index == mobile_finger:
         _mobile_update_axis(make_input_local(event).position)
         return
+    elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+        dragging_slider = ""
+        return
+    elif event is InputEventMouseMotion:
+        ui_hover = make_input_local(event).position
+        if game_mode == "settings" and dragging_slider != "" and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+            for w in _settings_widgets():
+                if w["kind"] == "slider" and w["id"] == dragging_slider:
+                    _set_slider(w, ui_hover.x)
+        if game_mode in ["inventory", "altar"]:
+            var slot_h: int = _inventory_slot_at(ui_hover) if game_mode == "inventory" else _altar_row_at(ui_hover)
+            if slot_h >= 0:
+                inventory_sel = slot_h
+        if game_mode == "pause":
+            for i in range(_pause_options().size()):
+                if _pause_rect(i).has_point(ui_hover):
+                    pause_sel = i
+        queue_redraw()
+        return
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        if game_mode in ["title", "inventory", "altar", "floor_intro"]:
+        if game_mode in ["title", "inventory", "altar", "floor_intro", "splash", "eula", "intro", "pause", "settings"]:
             _mobile_tap(make_input_local(event).position)
             return
         if game_mode == "play" and not touch_enabled:
             if not _torch_strike():
                 _say("Enciende la antorcha (F) para golpear con fuego.", 1.8)
             return
-    elif event is InputEventMouseMotion and game_mode in ["inventory", "altar"]:
-        var slot: int = _inventory_slot_at(make_input_local(event).position) if game_mode == "inventory" else _altar_row_at(make_input_local(event).position)
-        if slot >= 0:
-            inventory_sel = slot
-        return
     if not (event is InputEventKey):
         return
     if not event.pressed or event.echo:
         return
     var k: Key = event.keycode
+    if game_mode == "settings":
+        _settings_key(k)
+        queue_redraw()
+        return
+    if game_mode == "splash":
+        _splash_continue()
+        return
+    if game_mode == "eula":
+        if k in [KEY_ENTER, KEY_KP_ENTER]:
+            _accept_eula()
+        return
+    if game_mode == "intro":
+        if k == KEY_ESCAPE:
+            _end_intro()
+        elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E]:
+            _intro_next()
+        return
+    if game_mode == "pause":
+        _pause_key(k)
+        queue_redraw()
+        return
     if game_mode == "title":
         if k == KEY_ENTER or k == KEY_KP_ENTER:
-            _new_run()
+            _start_explore()
         elif k == KEY_H:
             _open_defense()
+        elif k == KEY_ESCAPE:
+            game_mode = "splash"
     elif game_mode == "floor_intro":
         if k in [KEY_ENTER, KEY_KP_ENTER, KEY_E, KEY_SPACE]:
             _enter_floor()
@@ -668,7 +715,7 @@ func _input(event: InputEvent) -> void:
             game_mode = "play"
             _sfx("interfaz", -12.0, 0.9)
     elif game_mode == "inventory":
-        if k in [KEY_I, KEY_TAB, KEY_ESCAPE, KEY_E]:
+        if k in [_key("perfil"), KEY_TAB, KEY_ESCAPE, KEY_E]:
             _close_inventory()
         elif k in [KEY_RIGHT, KEY_D]:
             inventory_sel = (inventory_sel + 1) % INVENTORY_SLOTS.size()
@@ -677,21 +724,21 @@ func _input(event: InputEvent) -> void:
         elif k in [KEY_DOWN, KEY_S, KEY_UP, KEY_W]:
             inventory_sel = (inventory_sel + 3) % INVENTORY_SLOTS.size()
     elif game_mode == "play":
-        if k == KEY_E:
+        # Teclas reasignables desde Configuración > Controles.
+        if k == _key("interactuar"):
             _interact()
-        elif k == KEY_F:
+        elif k == _key("antorcha"):
             _toggle_torch()
-        elif k == KEY_I or k == KEY_TAB:
+        elif k == _key("perfil") or k == KEY_TAB:
             _open_inventory()
-        elif k == KEY_SPACE and dash_cd <= 0.0 and stamina >= 28.0:
+        elif k == _key("esquivar") and dash_cd <= 0.0 and stamina >= 28.0:
             dash_left = 0.19
             dash_cd = 2.65
             stamina -= 28.0
-        elif k == KEY_Q:
+        elif k == _key("resonancia"):
             _use_pulse()
-        elif k == KEY_ESCAPE:
-            game_mode = "title"
-            _say("La partida se interrumpió. No ganaste nuevas almas.", 3.0)
+        elif k == _key("pausa") or k == KEY_ESCAPE:
+            _open_pause()
     queue_redraw()
 
 
@@ -717,11 +764,45 @@ func _mobile_update_axis(at: Vector2) -> void:
     queue_redraw()
 
 func _mobile_tap(at: Vector2) -> void:
+    ui_hover = at
+    if game_mode == "settings":
+        _settings_click(at)
+        return
+    if game_mode == "splash":
+        if GEAR_RECT.has_point(at):
+            _open_settings("splash")
+        else:
+            _splash_continue()
+        return
+    if game_mode == "eula":
+        for b in _eula_buttons():
+            if (b["rect"] as Rect2).has_point(at):
+                match b["id"]:
+                    "aceptar":
+                        _accept_eula()
+                    "leer":
+                        _open_settings("eula")
+                        settings_tab = 3
+                        legal_page = "acuerdo"
+                    "salir":
+                        get_tree().quit()
+        return
+    if game_mode == "intro":
+        _intro_next()
+        return
+    if game_mode == "pause":
+        for i in range(_pause_options().size()):
+            if _pause_rect(i).has_point(at):
+                _pause_choose(i)
+                return
+        return
     if game_mode == "title":
-        if at.x >= 480.0 and at.y > 415.0:
+        if GEAR_RECT.has_point(at):
+            _open_settings("title")
+        elif at.x >= 480.0 and at.y > 415.0:
             _open_defense()
         else:
-            _new_run()
+            _start_explore()
         return
     if game_mode == "dead" or game_mode == "victory":
         _new_run()
@@ -748,7 +829,7 @@ func _mobile_tap(at: Vector2) -> void:
     if game_mode != "play":
         return
     if at.x > 890.0 and at.y < 64.0:
-        game_mode = "title" # botón de pausa del minimapa
+        _open_pause() # botón de pausa del minimapa
         mobile_axis = Vector2.ZERO
         mobile_finger = -1
         return
@@ -940,6 +1021,8 @@ func _open_inventory() -> void:
 
 func _close_inventory() -> void:
     game_mode = "play"
+    if in_tutorial:
+        tut_profile = true
     _sfx("interfaz", -12.0, 0.9)
 
 
@@ -1047,6 +1130,13 @@ func _torch_strike() -> bool:
     strike_dir = player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT
     visual_interaction_left = 0.24
     _sfx("golpe", -7.0)
+    if in_tutorial:
+        var to_d := DUMMY_POS - player_pos
+        if to_d.length() < STRIKE_RANGE + 14.0 and (to_d.length() < 26.0 or to_d.normalized().dot(strike_dir) > 0.2):
+            dummy_hits += 1
+            dummy_shake = 0.25
+            float_fx.append({"pos": DUMMY_POS + Vector2(26, -60), "text": "-%d" % int(STRIKE_DAMAGE), "color": Color("#ffd36b"), "t": 0.0})
+            _sfx("impacto", -8.0, 1.2)
     if _pilgrim_present() and pilgrim_state != "dead":
         var to_p := pilgrim_pos - player_pos
         if to_p.length() < STRIKE_RANGE + 10.0 and (to_p.length() < 24.0 or to_p.normalized().dot(strike_dir) > 0.25):
@@ -1121,6 +1211,8 @@ func _check_door_touch(dt: float) -> void:
 
 
 func _room_ready() -> bool:
+    if in_tutorial:
+        return tutorial_step >= TUTORIAL_LAST
     # Una misión principal en el primer piso: recuperar el sello del Testigo.
     if _has("sello") and not seal_acquired:
         return false
@@ -1152,6 +1244,9 @@ func _relic_count() -> int:
 
 ## Última puerta del piso: Eco de recompensa y, si hay otro piso, su pantalla de entrada.
 func _finish_floor() -> void:
+    if in_tutorial:
+        _end_tutorial()
+        return
     var eco: String = str(_floor().get("eco", ""))
     floor_intro_eco = ""
     if eco != "" and not ecos.has(eco):
@@ -1211,13 +1306,14 @@ func _say(message: String, duration: float = 2.8) -> void:
 
 func _controls_axis() -> Vector2:
     var v := Vector2.ZERO
-    if Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+    # Movimiento reasignable; las flechas funcionan siempre.
+    if Input.is_key_pressed(_key("arriba")) or Input.is_key_pressed(KEY_UP):
         v.y -= 1.0
-    if Input.is_physical_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+    if Input.is_key_pressed(_key("abajo")) or Input.is_key_pressed(KEY_DOWN):
         v.y += 1.0
-    if Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+    if Input.is_key_pressed(_key("izquierda")) or Input.is_key_pressed(KEY_LEFT):
         v.x -= 1.0
-    if Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+    if Input.is_key_pressed(_key("derecha")) or Input.is_key_pressed(KEY_RIGHT):
         v.x += 1.0
     return (v + mobile_axis).limit_length(1.0)
 
@@ -1312,6 +1408,7 @@ func _update_play(dt: float) -> void:
     for i in range(room_items.size() - 1, -1, -1):
         if player_pos.distance_to(room_items[i]["pos"]) < 30.0:
             _take_item(i)
+    _update_tutorial(dt)
     _check_door_touch(dt)
     if game_mode != "play":
         return # se ganó la partida al cruzar la última puerta
@@ -1438,14 +1535,25 @@ func _draw() -> void:
     # El fondo lo pone la escena de la sala (está por debajo).
     if room_node == null:
         draw_rect(Rect2(0, 0, W, H), BG)
-    elif game_mode == "title":
+    elif game_mode in ["title", "splash", "eula"] or (game_mode == "settings" and settings_return in ["title", "splash"]):
         # En el menú se ve la sala completa, con sus objetos, detrás del panel.
         var objetos: Node = room_node.get_node_or_null("Objetos")
         if objetos != null:
             (objetos as CanvasItem).visible = true
     _draw_background()
-    if game_mode == "title":
-        _draw_title()
+    var screen: String = settings_return if game_mode == "settings" else game_mode
+    if screen == "intro":
+        _draw_intro()
+        return
+    if screen in ["title", "splash", "eula"]:
+        if screen == "title":
+            _draw_title()
+        elif screen == "splash":
+            _draw_splash()
+        else:
+            _draw_eula()
+        if game_mode == "settings":
+            _draw_settings()
         return
     _draw_room()
     _draw_topbar()
@@ -1462,6 +1570,11 @@ func _draw() -> void:
         _draw_end_overlay(true)
     elif game_mode == "floor_intro":
         _draw_floor_intro()
+    elif game_mode == "pause":
+        _draw_pause()
+    elif game_mode == "settings":
+        _draw_settings()
+    _draw_tutorial_overlay()
     _draw_mobile_controls()
 
 
@@ -1669,6 +1782,8 @@ func _draw_depth_sorted() -> void:
         items.append([pilgrim_pos.y, "pilgrim", null])
     if _has("altar"):
         items.append([altar_pos.y + 22.0, "altar", null])
+    if in_tutorial:
+        items.append([DUMMY_POS.y, "dummy", null])
     if _has("archivo"):
         items.append([book_pos.y + 37.0, "book", null]) # justo después de la mesa
     for i in range(room_props.size()):
@@ -1682,6 +1797,8 @@ func _draw_depth_sorted() -> void:
                 _draw_enemy()
             "pilgrim":
                 _draw_pilgrim()
+            "dummy":
+                _draw_dummy()
             "altar":
                 _draw_altar(altar_pos)
             "book":
@@ -2204,7 +2321,8 @@ func _draw_player_panel() -> void:
 func _draw_floor_banner() -> void:
     var banner := Rect2(336, 6, 288, 58)
     _panel(banner)
-    _text_outline("PISO %s · %s" % [_floor()["number"], _floor()["title"]], Vector2(banner.position.x, 25), 13, UI_GOLD, banner.size.x)
+    var floor_label: String = _floor()["title"] if in_tutorial else "PISO %s · %s" % [_floor()["number"], _floor()["title"]]
+    _text_outline(floor_label, Vector2(banner.position.x, 25), 13, UI_GOLD, banner.size.x)
     _text_outline(_room()["name"], Vector2(banner.position.x, 44), 14, CREAM, banner.size.x)
     _text_outline(_floor()["state"], Vector2(banner.position.x, 58), 10, Color("#8a8574"), banner.size.x)
     # Almas: icono y número que destella al recoger.
@@ -2315,7 +2433,11 @@ func _draw_footer() -> void:
     draw_colored_polygon(PackedVector2Array([Vector2(22, 597), Vector2(28, 591), Vector2(34, 597), Vector2(28, 603)]), UI_GOLD)
     _text_outline(task, Vector2(42, 603), 15, task_color)
     if not touch_enabled:
-        _text_outline("WASD mover · E/CLIC golpear · F antorcha · ESPACIO esquivar · Q resonancia · I perfil · ESC menú", Vector2(12, 632), 11, Color("#8d8877"))
+        var n := func(a: String) -> String: return Ajustes.nombre_tecla(a)
+        var hint: String = "%s%s%s%s mover · %s/CLIC golpear · %s antorcha · %s esquivar · %s resonancia · %s perfil · %s pausa" % [
+            n.call("arriba"), n.call("izquierda"), n.call("abajo"), n.call("derecha"), n.call("interactuar"), n.call("antorcha"),
+            n.call("esquivar"), n.call("resonancia"), n.call("perfil"), n.call("pausa")]
+        _text_outline(hint, Vector2(12, 632), 11, Color("#8d8877"))
     _draw_weapon_panel()
 
 
@@ -2340,6 +2462,8 @@ func _draw_weapon_panel() -> void:
 
 ## Objetivo de la sala para el pie de pantalla.
 func _mission_text() -> String:
+    if in_tutorial:
+        return _tutorial_text(tutorial_step)
     if _has("tutorial") and not has_torch:
         return "OSCURIDAD: busca madera y fósforos"
     if _has("tutorial") and not torch_on:
@@ -2423,6 +2547,9 @@ func _draw_title() -> void:
     # Ficha rápida del personaje.
     draw_texture_rect(PORTRAIT, Rect2(171, 494, 48, 48), false)
     _text_outline("MARK · ID %03d   |   RETORNOS %d   |   ABSORCIONES %d" % [identity_number, reincarnations, new_humans], Vector2(149, 548), 12, CREAM, main.size.x)
+    var hot: bool = GEAR_RECT.has_point(ui_hover)
+    _panel(GEAR_RECT, Color("#222c39") if hot else Color("#141922"), UI_GOLD if hot else UI_LIGHT)
+    draw_texture_rect(ICONS["engranaje"], Rect2(GEAR_RECT.position + Vector2(10, 10), Vector2(32, 32)), false)
     if toast_left > 0:
         _draw_toast()
 
@@ -3017,3 +3144,781 @@ func _draw_decor() -> void:
         if d[0] == "velas":
             var c: Vector2 = Vector2(d[1]) + Vector2(11, 6)
             draw_circle(c, 14.0, Color(1.0, 0.7, 0.3, 0.05 + 0.03 * sin(elapsed * 9.0 + c.x)))
+
+
+# ============================================================ INICIO, AJUSTES, INTRO, TUTORIAL Y PAUSA
+## Textos de las pantallas nuevas en español e inglés ([es, en]).
+## (El resto del juego sigue en español: la traducción completa está pendiente.)
+const T := {
+    "continuar": ["HAZ CLIC PARA CONTINUAR", "CLICK TO CONTINUE"],
+    "continuar_tactil": ["TOCA PARA CONTINUAR", "TAP TO CONTINUE"],
+    "subtitulo": ["Un roguelike de terror en un templo que se alimenta de ti.", "A horror roguelike in a temple that feeds on you."],
+    "ajustes": ["CONFIGURACIÓN", "SETTINGS"],
+    "sonido": ["SONIDO", "SOUND"],
+    "controles": ["CONTROLES", "CONTROLS"],
+    "idioma": ["IDIOMA", "LANGUAGE"],
+    "privacidad": ["PRIVACIDAD", "PRIVACY"],
+    "vol_general": ["Volumen general", "Master volume"],
+    "vol_musica": ["Música", "Music"],
+    "vol_efectos": ["Efectos", "Effects"],
+    "silencio": ["Silenciar todo", "Mute all"],
+    "si": ["SÍ", "ON"],
+    "no": ["NO", "OFF"],
+    "tactil": ["Controles táctiles", "Touch controls"],
+    "auto": ["AUTO", "AUTO"],
+    "siempre": ["SIEMPRE", "ALWAYS"],
+    "nunca": ["NUNCA", "NEVER"],
+    "restablecer": ["Restablecer teclas", "Reset keys"],
+    "repetir_tutorial": ["Repetir el tutorial", "Replay tutorial"],
+    "ver_intro": ["Ver la intro", "Watch the intro"],
+    "pulsa_tecla": ["Pulsa una tecla… (ESC cancela)", "Press a key… (ESC cancels)"],
+    "clic_cambiar": ["Haz clic en una acción para cambiar su tecla. Las flechas siempre mueven.", "Click an action to change its key. Arrow keys always move."],
+    "nota_idioma": ["La traducción al inglés cubre los menús nuevos; el resto llegará más adelante.", "English covers the new menus; the rest of the game is still in Spanish."],
+    "volver": ["VOLVER", "BACK"],
+    "acuerdo": ["Acuerdo de usuario", "User agreement"],
+    "politica": ["Política de privacidad", "Privacy policy"],
+    "borrar": ["Borrar mis datos", "Delete my data"],
+    "borrar_seguro": ["¿Seguro? Haz clic otra vez", "Sure? Click again"],
+    "borrado": ["Datos borrados.", "Data deleted."],
+    "privacidad_resumen": ["Este juego no recoge ni envía datos personales. Solo guarda tu progreso y tus ajustes en este equipo.", "This game does not collect or send personal data. It only stores your progress and settings on this device."],
+    "privacidad_ruta": ["Archivos: progreso (%s) y ajustes (%s).", "Files: progress (%s) and settings (%s)."],
+    "acuerdo_titulo": ["ANTES DE ENTRAR", "BEFORE YOU ENTER"],
+    "acuerdo_texto": [
+        "El Templo de los Ecos es una demo en desarrollo con terror, sangre y violencia. Juegas bajo tu responsabilidad. El juego no recoge datos personales: solo guarda tu progreso y tus ajustes en este equipo. Puedes leer el acuerdo completo y borrar tus datos en Configuración > Privacidad.",
+        "The Temple of Echoes is a demo in development with horror, blood and violence. You play at your own risk. The game does not collect personal data: it only stores your progress and settings on this device. You can read the full agreement and delete your data in Settings > Privacy.",
+    ],
+    "aceptar": ["ACEPTAR Y ENTRAR", "ACCEPT AND ENTER"],
+    "leer": ["LEER COMPLETO", "READ IN FULL"],
+    "salir_juego": ["SALIR", "QUIT"],
+    "pausa": ["PAUSA", "PAUSED"],
+    "reanudar": ["CONTINUAR", "RESUME"],
+    "perfil": ["PERFIL", "PROFILE"],
+    "saltar_tutorial": ["SALTAR TUTORIAL", "SKIP TUTORIAL"],
+    "volver_inicio": ["VOLVER AL INICIO", "BACK TO START SCREEN"],
+    "aviso_abandono": ["La partida se abandonará. No ganarás almas.", "The run will be abandoned. No souls are kept."],
+    "saltar": ["ESC: saltar", "ESC: skip"],
+    "siguiente": ["CLIC / ENTER: seguir", "CLICK / ENTER: next"],
+    "tutorial": ["TUTORIAL", "TUTORIAL"],
+}
+## Acuerdo de usuario y privacidad (resumen en el juego; texto completo en docs/legal/).
+## BORRADOR: no es asesoramiento legal; revisar antes de vender el juego.
+const LEGAL := {
+    "acuerdo": [
+        ["1. Licencia. Puedes jugar esta copia para uso personal. No puedes revender, redistribuir ni descompilar el juego salvo lo que permita la ley.", "1. License. You may play this copy for personal use. You may not resell, redistribute or decompile the game except as the law allows."],
+        ["2. Contenido. Incluye terror, sangre, violencia y temas perturbadores. No recomendado para menores.", "2. Content. It includes horror, blood, violence and disturbing themes. Not recommended for minors."],
+        ["3. Demo en desarrollo. Puede contener errores; el progreso puede perderse entre versiones.", "3. Demo in development. It may contain bugs; progress may be lost between versions."],
+        ["4. Sin garantía. Se ofrece «tal cual», sin garantías, en la medida que permita la ley.", "4. No warranty. It is provided \"as is\", without warranties, to the extent the law allows."],
+        ["5. Terceros. La tipografía Pixelify Sans se usa bajo la licencia SIL OFL 1.1.", "5. Third parties. The Pixelify Sans font is used under the SIL OFL 1.1 license."],
+    ],
+    "politica": [
+        ["Qué guarda: tu progreso (almas, identidad, habilidades, Ecos) y tus ajustes (volumen, teclas, idioma, si aceptaste este acuerdo).", "What is stored: your progress (souls, identity, abilities, Echoes) and your settings (volume, keys, language, whether you accepted this agreement)."],
+        ["Dónde: solo en este equipo, en la carpeta de datos del juego. Nada se envía por internet.", "Where: only on this device, in the game's data folder. Nothing is sent over the internet."],
+        ["Qué no hace: no hay cuentas, ni publicidad, ni estadísticas, ni seguimiento.", "What it does not do: no accounts, no ads, no analytics, no tracking."],
+        ["Tus derechos: puedes borrar todos tus datos desde Configuración > Privacidad > Borrar mis datos.", "Your rights: you can delete all your data from Settings > Privacy > Delete my data."],
+    ],
+}
+const Ajustes := preload("res://scripts/ajustes.gd")
+const GEAR_RECT := Rect2(16, 572, 52, 52)
+const SETTINGS_PANEL := Rect2(100, 60, 760, 520)
+var settings_tab: int = 0
+var settings_sel: int = 0
+var settings_return: String = "splash"
+var rebinding: String = ""
+var dragging_slider: String = ""
+var confirm_delete: bool = false
+var legal_page: String = ""
+var pause_sel: int = 0
+var ui_hover: Vector2 = Vector2(-100, -100)
+var intro_slide: int = 0
+var intro_t: float = 0.0
+var intro_then: String = "tutorial"
+## Tutorial: una sala de práctica antes del Piso I.
+const TUTORIAL_FLOOR := {
+    "number": "0", "title": "PRÓLOGO", "state": "SALA DE PRÁCTICA", "wear": 0.0, "eco": "",
+    "rooms": [
+        {"scene": 0, "name": "PRÓLOGO · SALA DE PRÁCTICA", "enemy": "", "traits": ["practica"],
+         "whisper": "Aprende a moverte antes de que el templo te enseñe a su manera.", "items": []},
+    ],
+}
+const DUMMY_POS := Vector2(480, 300)
+var in_tutorial: bool = false
+var tutorial_step: int = 0
+var tut_moved: float = 0.0
+var tut_prev: Vector2 = Vector2.ZERO
+var tut_dashed: bool = false
+var tut_profile: bool = false
+var tut_paused: bool = false
+var dummy_hits: int = 0
+var dummy_shake: float = 0.0
+
+
+func _t(key: String) -> String:
+    var pair: Array = T.get(key, [key, key])
+    return pair[1] if Ajustes.obtener("idioma") == "en" else pair[0]
+
+
+func _lang_pick(pair: Array) -> String:
+    return pair[1] if Ajustes.obtener("idioma") == "en" else pair[0]
+
+
+func _key(action: String) -> int:
+    return Ajustes.tecla(action)
+
+
+func _apply_touch_setting() -> void:
+    match str(Ajustes.obtener("tactil")):
+        "siempre":
+            touch_enabled = true
+        "nunca":
+            touch_enabled = false
+        _:
+            touch_enabled = DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
+
+
+# ------------------------------------------------------------ PANTALLA DE INICIO
+func _splash_continue() -> void:
+    Engine.set_meta("splash_visto", true)
+    _sfx("interfaz", -8.0, 0.8)
+    game_mode = "title" if bool(Ajustes.obtener("acuerdo_aceptado")) else "eula"
+
+
+func _accept_eula() -> void:
+    Ajustes.poner("acuerdo_aceptado", true)
+    Ajustes.poner("acuerdo_version", 1)
+    game_mode = "title"
+    _sfx("sello", -10.0, 1.2)
+
+
+func _back_to_splash() -> void:
+    in_tutorial = false
+    game_mode = "splash"
+    mobile_axis = Vector2.ZERO
+    mobile_finger = -1
+    current_floor = 0
+    current_room = 0
+    _enter_room() # la sala del Umbral vuelve como fondo
+
+
+func _draw_splash() -> void:
+    # El templo detrás, casi a oscuras, con niebla que respira.
+    draw_rect(Rect2(0, 0, W, H), Color(0.01, 0.012, 0.02, 0.82))
+    for i in range(9):
+        var x: float = fmod(float(i) * 137.0 + elapsed * (6.0 + float(i % 3) * 3.0), W + 300.0) - 150.0
+        var y: float = 470.0 + float(i % 4) * 34.0 + sin(elapsed * 0.5 + float(i)) * 10.0
+        var rad: float = 90.0 + float(i % 3) * 30.0
+        for k in range(4): # bordes suaves: discos concéntricos muy tenues
+            draw_circle(Vector2(x, y), rad * (1.0 - float(k) * 0.22), Color(0.55, 0.65, 0.68, 0.007))
+    var glow: float = 0.5 + 0.5 * sin(elapsed * 1.4)
+    draw_circle(Vector2(480, 205), 120.0 + glow * 8.0, Color(0.45, 0.75, 0.85, 0.05))
+    draw_texture_rect(BRAND_ICON, Rect2(424, 118, 112, 112), false)
+    _text_outline("EL TEMPLO", Vector2(0, 300), 56, CREAM, W)
+    _text_outline("DE LOS ECOS", Vector2(0, 358), 60, SOUL, W)
+    _text_outline(_t("subtitulo"), Vector2(0, 392), 15, Color("#b9b29b"), W)
+    var pulse: float = 0.35 + 0.65 * (0.5 + 0.5 * sin(elapsed * 3.2))
+    _text_outline(_t("continuar_tactil") if touch_enabled else _t("continuar"), Vector2(0, 478), 24, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, pulse), W)
+    # Engranaje de configuración, abajo a la izquierda.
+    var hot: bool = GEAR_RECT.has_point(ui_hover)
+    _panel(GEAR_RECT, Color("#222c39") if hot else Color("#141922"), UI_GOLD if hot else UI_LIGHT)
+    var spin: float = elapsed * (1.5 if hot else 0.3)
+    draw_set_transform(GEAR_RECT.get_center(), spin, Vector2.ONE)
+    draw_texture_rect(ICONS["engranaje"], Rect2(Vector2(-16, -16), Vector2(32, 32)), false)
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    if hot:
+        _text_outline(_t("ajustes"), Vector2(78, 604), 14, CREAM)
+    _text_outline("v0.9 · demo", Vector2(820, 630), 11, Color("#6d6a60"))
+
+
+func _draw_eula() -> void:
+    draw_rect(Rect2(0, 0, W, H), Color(0.01, 0.012, 0.02, 0.88))
+    var panel := Rect2(150, 150, 660, 300)
+    _panel(panel, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
+    _text_outline(_t("acuerdo_titulo"), Vector2(panel.position.x, 196), 26, CREAM, panel.size.x)
+    _draw_text_block(_t("acuerdo_texto"), Rect2(186, 222, 588, 120), 15, Color("#d0c8b0"))
+    for b in _eula_buttons():
+        _ui_button(b["rect"], _t(b["label"]), b["id"] == "aceptar")
+
+
+func _eula_buttons() -> Array:
+    return [
+        {"id": "aceptar", "label": "aceptar", "rect": Rect2(180, 374, 250, 50)},
+        {"id": "leer", "label": "leer", "rect": Rect2(446, 374, 180, 50)},
+        {"id": "salir", "label": "salir_juego", "rect": Rect2(642, 374, 136, 50)},
+    ]
+
+
+## Texto con saltos de línea automáticos dentro de un rectángulo.
+func _draw_text_block(text: String, box: Rect2, size: int, color: Color) -> float:
+    var words: PackedStringArray = text.split(" ")
+    var line: String = ""
+    var y: float = box.position.y + float(size)
+    for w in words:
+        var test: String = w if line == "" else line + " " + w
+        if font.get_string_size(test, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > box.size.x and line != "":
+            draw_string(font, Vector2(box.position.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+            y += float(size) + 7.0
+            line = w
+        else:
+            line = test
+    if line != "":
+        draw_string(font, Vector2(box.position.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+    return y
+
+
+## Botón de interfaz con bisel; resaltado al pasar el cursor.
+func _ui_button(rect: Rect2, label: String, primary: bool = false, selected: bool = false) -> void:
+    var hot: bool = rect.has_point(ui_hover) or selected
+    var fill: Color = Color("#1d4a4f") if primary else Color("#1a1f2a")
+    if hot:
+        fill = fill.lightened(0.15)
+    _panel(rect, fill, UI_GOLD if hot else (SOUL if primary else UI_LIGHT))
+    _text_outline(label, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.5 + 6.0), 16, CREAM, rect.size.x)
+
+
+# ------------------------------------------------------------ CONFIGURACIÓN
+func _open_settings(from_mode: String) -> void:
+    settings_return = from_mode
+    game_mode = "settings"
+    settings_tab = 0
+    settings_sel = 0
+    rebinding = ""
+    confirm_delete = false
+    legal_page = ""
+    _sfx("interfaz", -8.0)
+
+
+func _close_settings() -> void:
+    rebinding = ""
+    legal_page = ""
+    game_mode = settings_return
+    _sfx("interfaz", -12.0, 0.9)
+
+
+## Lista de controles de la pestaña actual: se usa para dibujar y para la entrada.
+func _settings_widgets() -> Array:
+    var list: Array = []
+    var tabs := ["sonido", "controles", "idioma", "privacidad"]
+    for i in range(tabs.size()):
+        list.append({"kind": "tab", "id": i, "label": _t(tabs[i]), "rect": Rect2(118.0 + float(i) * 182.0, 112.0, 174.0, 40.0)})
+    if legal_page != "":
+        list.append({"kind": "button", "id": "cerrar_legal", "label": _t("volver"), "rect": Rect2(660, 520, 180, 44)})
+        return list
+    match settings_tab:
+        0:
+            var rows := [["slider", "volumen_general", "vol_general"], ["slider", "volumen_musica", "vol_musica"], ["slider", "volumen_efectos", "vol_efectos"], ["toggle", "silencio", "silencio"]]
+            for i in range(rows.size()):
+                list.append({"kind": rows[i][0], "id": rows[i][1], "label": _t(rows[i][2]), "rect": Rect2(140, 182.0 + float(i) * 70.0, 680, 54)})
+        1:
+            for i in range(Ajustes.ORDEN.size()):
+                var action: String = Ajustes.ORDEN[i]
+                var col: int = i / 5
+                list.append({"kind": "key", "id": action, "label": _lang_pick(Ajustes.ACCIONES[action]),
+                    "rect": Rect2(130.0 + float(col) * 356.0, 186.0 + float(i % 5) * 44.0, 344, 38)})
+            list.append({"kind": "choice", "id": "tactil", "label": _t("tactil"), "rect": Rect2(130, 418, 700, 40)})
+            list.append({"kind": "button", "id": "restablecer", "label": _t("restablecer"), "rect": Rect2(130, 470, 224, 42)})
+            list.append({"kind": "button", "id": "repetir_tutorial", "label": _t("repetir_tutorial"), "rect": Rect2(368, 470, 224, 42)})
+            list.append({"kind": "button", "id": "ver_intro", "label": _t("ver_intro"), "rect": Rect2(606, 470, 224, 42)})
+        2:
+            list.append({"kind": "lang", "id": "es", "label": "ESPAÑOL", "rect": Rect2(250, 200, 460, 56)})
+            list.append({"kind": "lang", "id": "en", "label": "ENGLISH", "rect": Rect2(250, 268, 460, 56)})
+        3:
+            list.append({"kind": "button", "id": "acuerdo", "label": _t("acuerdo"), "rect": Rect2(140, 330, 330, 46)})
+            list.append({"kind": "button", "id": "politica", "label": _t("politica"), "rect": Rect2(490, 330, 330, 46)})
+            list.append({"kind": "button", "id": "borrar", "label": _t("borrar_seguro") if confirm_delete else _t("borrar"), "rect": Rect2(140, 392, 330, 46)})
+    list.append({"kind": "button", "id": "volver", "label": _t("volver"), "rect": Rect2(660, 520, 180, 44)})
+    return list
+
+
+func _settings_focusable() -> Array:
+    return _settings_widgets().filter(func(w): return w["kind"] != "tab")
+
+
+func _draw_settings() -> void:
+    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.82))
+    _panel(SETTINGS_PANEL, Color(0.05, 0.06, 0.08, 0.98), UI_GOLD)
+    _panel(Rect2(380, 48, 200, 30), Color("#2a1d22"), UI_GOLD)
+    _text_outline(_t("ajustes"), Vector2(380, 69), 16, CREAM, 200.0)
+    var focus: Array = _settings_focusable()
+    var focused: Dictionary = focus[clampi(settings_sel, 0, focus.size() - 1)] if not focus.is_empty() else {}
+    for w in _settings_widgets():
+        var r: Rect2 = w["rect"]
+        var hot: bool = r.has_point(ui_hover) or (not focused.is_empty() and str(w["id"]) == str(focused["id"]) and w["kind"] == focused["kind"])
+        match w["kind"]:
+            "tab":
+                var on: bool = int(w["id"]) == settings_tab
+                _panel(r, Color("#2a1d22") if on else Color("#141922"), UI_GOLD if on or hot else UI_EDGE)
+                _text_outline(w["label"], Vector2(r.position.x, r.position.y + 26.0), 15, CREAM if on else Color("#9a957f"), r.size.x)
+            "slider":
+                _panel(r, Color("#1a1f2a") if hot else Color("#11151c"), UI_GOLD if hot else UI_EDGE)
+                _text_outline(w["label"], Vector2(r.position.x + 18.0, r.position.y + 33.0), 15, CREAM)
+                var v: float = float(Ajustes.obtener(w["id"]))
+                _px_bar(_slider_track(r), v, SOUL, "%d%%" % int(round(v * 100.0)))
+            "toggle":
+                _panel(r, Color("#1a1f2a") if hot else Color("#11151c"), UI_GOLD if hot else UI_EDGE)
+                _text_outline(w["label"], Vector2(r.position.x + 18.0, r.position.y + 33.0), 15, CREAM)
+                var on2: bool = bool(Ajustes.obtener(w["id"]))
+                var pill := Rect2(r.end.x - 110.0, r.position.y + 10.0, 92, 34)
+                _panel(pill, Color("#5a1f26") if on2 else Color("#1d3a2c"), UI_LIGHT)
+                _text_outline(_t("si") if on2 else _t("no"), Vector2(pill.position.x, pill.position.y + 23.0), 14, CREAM, pill.size.x)
+            "key":
+                var waiting: bool = rebinding == str(w["id"])
+                _panel(r, Color("#2a1d22") if waiting else (Color("#1a1f2a") if hot else Color("#11151c")), UI_GOLD if hot or waiting else UI_EDGE)
+                _text_outline(w["label"], Vector2(r.position.x + 12.0, r.position.y + 25.0), 13, CREAM)
+                var cap := Rect2(r.end.x - 118.0, r.position.y + 5.0, 110, 28)
+                _panel(cap, Color("#232836"), UI_GOLD if waiting else UI_LIGHT)
+                _text_outline("…" if waiting else Ajustes.nombre_tecla(w["id"]), Vector2(cap.position.x, cap.position.y + 20.0), 13, UI_GOLD if waiting else CREAM, cap.size.x)
+            "choice":
+                _panel(r, Color("#1a1f2a") if hot else Color("#11151c"), UI_GOLD if hot else UI_EDGE)
+                _text_outline(w["label"], Vector2(r.position.x + 12.0, r.position.y + 26.0), 14, CREAM)
+                var opts := ["auto", "siempre", "nunca"]
+                for i in range(3):
+                    var o := _choice_rect(r, i)
+                    var sel: bool = str(Ajustes.obtener("tactil")) == opts[i]
+                    _panel(o, Color("#1d4a4f") if sel else Color("#141922"), SOUL if sel else UI_EDGE)
+                    _text_outline(_t(opts[i]), Vector2(o.position.x, o.position.y + 21.0), 13, CREAM, o.size.x)
+            "lang":
+                var sel2: bool = str(Ajustes.obtener("idioma")) == str(w["id"])
+                _panel(r, Color("#1d4a4f") if sel2 else (Color("#1a1f2a") if hot else Color("#11151c")), SOUL if sel2 else (UI_GOLD if hot else UI_EDGE))
+                _text_outline(("● " if sel2 else "○ ") + w["label"], Vector2(r.position.x, r.position.y + 36.0), 20, CREAM, r.size.x)
+            "button":
+                _ui_button(r, w["label"], str(w["id"]) == "volver", hot)
+    # Textos propios de cada pestaña.
+    if legal_page != "":
+        _text_outline(_t(legal_page), Vector2(140, 192), 18, UI_GOLD)
+        var y: float = 210.0
+        for para in LEGAL[legal_page]:
+            y = _draw_text_block(_lang_pick(para), Rect2(140, y, 680, 60), 13, Color("#d0c8b0")) + 14.0
+        _text_outline("BORRADOR · no es asesoramiento legal" if Ajustes.obtener("idioma") == "es" else "DRAFT · not legal advice", Vector2(140, 548), 11, Color("#8a8574"))
+        return
+    match settings_tab:
+        1:
+            _text_outline(_t("pulsa_tecla") if rebinding != "" else _t("clic_cambiar"), Vector2(130, 176 - 4), 12, UI_GOLD if rebinding != "" else Color("#9a957f"))
+        2:
+            _draw_text_block(_t("nota_idioma"), Rect2(250, 350, 460, 60), 13, Color("#9a957f"))
+        3:
+            _draw_text_block(_t("privacidad_resumen"), Rect2(140, 178, 680, 60), 15, Color("#d0c8b0"))
+            _draw_text_block(_t("privacidad_ruta") % [SAVE_PATH, Ajustes.RUTA], Rect2(140, 262, 680, 40), 12, Color("#9a957f"))
+            if confirm_delete:
+                _text_outline("Se borrará el progreso y los ajustes." if Ajustes.obtener("idioma") == "es" else "Progress and settings will be deleted.", Vector2(490, 420), 12, RED)
+
+
+func _slider_track(r: Rect2) -> Rect2:
+    return Rect2(r.position.x + 300.0, r.position.y + 15.0, r.size.x - 320.0, 24.0)
+
+
+func _choice_rect(r: Rect2, i: int) -> Rect2:
+    return Rect2(r.end.x - 360.0 + float(i) * 120.0, r.position.y + 5.0, 112, 30)
+
+
+func _settings_click(at: Vector2) -> void:
+    for w in _settings_widgets():
+        if not (w["rect"] as Rect2).has_point(at):
+            continue
+        _settings_activate(w, at)
+        return
+
+
+func _settings_activate(w: Dictionary, at: Vector2 = Vector2(-1, -1)) -> void:
+    match w["kind"]:
+        "tab":
+            settings_tab = int(w["id"])
+            settings_sel = 0
+            confirm_delete = false
+            rebinding = ""
+            _sfx("interfaz", -12.0, 1.1)
+        "slider":
+            dragging_slider = w["id"]
+            if at.x >= 0.0:
+                _set_slider(w, at.x)
+        "toggle":
+            Ajustes.poner(w["id"], not bool(Ajustes.obtener(w["id"])))
+            Ajustes.aplicar_audio()
+            _sfx("toque", -8.0)
+        "key":
+            rebinding = w["id"]
+        "choice":
+            var opts := ["auto", "siempre", "nunca"]
+            var idx: int = opts.find(str(Ajustes.obtener("tactil")))
+            if at.x >= 0.0:
+                for i in range(3):
+                    if _choice_rect(w["rect"], i).has_point(at):
+                        idx = i
+            else:
+                idx = (idx + 1) % 3
+            Ajustes.poner("tactil", opts[idx])
+            _apply_touch_setting()
+        "lang":
+            Ajustes.poner("idioma", w["id"])
+            _sfx("interfaz", -10.0)
+        "button":
+            match w["id"]:
+                "volver":
+                    _close_settings()
+                "cerrar_legal":
+                    legal_page = ""
+                "acuerdo", "politica":
+                    legal_page = w["id"]
+                "restablecer":
+                    Ajustes.restablecer_teclas()
+                    _sfx("interfaz", -8.0)
+                "repetir_tutorial":
+                    Ajustes.poner("tutorial_hecho", false)
+                    _start_tutorial()
+                "ver_intro":
+                    _start_intro("title" if settings_return in ["splash", "title"] else "title")
+                "borrar":
+                    if confirm_delete:
+                        Ajustes.borrar_todo(SAVE_PATH)
+                        Ajustes.aplicar_audio()
+                        _reset_progress_vars()
+                        confirm_delete = false
+                        _say(_t("borrado"), 2.5)
+                        _back_to_splash()
+                    else:
+                        confirm_delete = true
+
+
+func _set_slider(w: Dictionary, x: float) -> void:
+    var track: Rect2 = _slider_track(w["rect"])
+    var v: float = clampf((x - track.position.x) / track.size.x, 0.0, 1.0)
+    Ajustes.datos[w["id"]] = snappedf(v, 0.05)
+    Ajustes.aplicar_audio()
+
+
+func _settings_key(k: int) -> void:
+    if rebinding != "":
+        if k != KEY_ESCAPE:
+            Ajustes.asignar_tecla(rebinding, k)
+            _sfx("interfaz", -8.0, 1.2)
+        rebinding = ""
+        return
+    var focus: Array = _settings_focusable()
+    if k == KEY_ESCAPE:
+        if legal_page != "":
+            legal_page = ""
+        else:
+            _close_settings()
+        return
+    if focus.is_empty():
+        return
+    settings_sel = clampi(settings_sel, 0, focus.size() - 1)
+    var w: Dictionary = focus[settings_sel]
+    if k in [KEY_DOWN, KEY_S]:
+        settings_sel = (settings_sel + 1) % focus.size()
+    elif k in [KEY_UP, KEY_W]:
+        settings_sel = (settings_sel + focus.size() - 1) % focus.size()
+    elif k in [KEY_LEFT, KEY_RIGHT, KEY_A, KEY_D]:
+        var dir: float = -1.0 if k in [KEY_LEFT, KEY_A] else 1.0
+        if w["kind"] == "slider":
+            Ajustes.datos[w["id"]] = clampf(float(Ajustes.obtener(w["id"])) + 0.05 * dir, 0.0, 1.0)
+            Ajustes.aplicar_audio()
+        elif w["kind"] == "choice":
+            _settings_activate(w)
+        else:
+            settings_tab = (settings_tab + (1 if dir > 0.0 else 3)) % 4
+            settings_sel = 0
+    elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+        _settings_activate(w)
+    elif k == KEY_TAB:
+        settings_tab = (settings_tab + 1) % 4
+        settings_sel = 0
+
+
+func _reset_progress_vars() -> void:
+    identity_number = 1
+    new_humans = 0
+    reincarnations = 0
+    deaths = 0
+    cleared = 0
+    has_pulse = false
+    has_inner_flame = false
+    ability_level = 0
+    ecos.clear()
+    remembered_rule = false
+
+
+# ------------------------------------------------------------ PAUSA
+func _open_pause() -> void:
+    if game_mode != "play":
+        return
+    game_mode = "pause"
+    pause_sel = 0
+    mobile_axis = Vector2.ZERO
+    mobile_finger = -1
+    _sfx("interfaz", -8.0, 0.8)
+
+
+func _pause_options() -> Array:
+    var opts := ["reanudar", "ajustes", "perfil"]
+    if in_tutorial:
+        opts.append("saltar_tutorial")
+    opts.append("volver_inicio")
+    return opts
+
+
+func _pause_rect(i: int) -> Rect2:
+    return Rect2(330, 210.0 + float(i) * 62.0, 300, 50)
+
+
+func _pause_choose(i: int) -> void:
+    match _pause_options()[i]:
+        "reanudar":
+            game_mode = "play"
+            if in_tutorial:
+                tut_paused = true
+            _sfx("interfaz", -12.0, 0.9)
+        "ajustes":
+            _open_settings("pause")
+        "perfil":
+            game_mode = "play"
+            _open_inventory()
+        "saltar_tutorial":
+            _end_tutorial()
+        "volver_inicio":
+            _back_to_splash()
+
+
+func _draw_pause() -> void:
+    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.7))
+    var opts: Array = _pause_options()
+    var panel := Rect2(300, 130, 360, 90.0 + float(opts.size()) * 62.0)
+    _panel(panel, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
+    _text_outline(_t("pausa"), Vector2(panel.position.x, 180), 30, CREAM, panel.size.x)
+    for i in range(opts.size()):
+        _ui_button(_pause_rect(i), _t(opts[i]), i == 0, i == pause_sel)
+    if opts[pause_sel] == "volver_inicio":
+        _text_outline(_t("aviso_abandono"), Vector2(0, panel.end.y + 24.0), 13, RED, W)
+
+
+func _pause_key(k: int) -> void:
+    var n: int = _pause_options().size()
+    if k == KEY_ESCAPE or k == _key("pausa"):
+        _pause_choose(0)
+    elif k in [KEY_DOWN, KEY_S]:
+        pause_sel = (pause_sel + 1) % n
+    elif k in [KEY_UP, KEY_W]:
+        pause_sel = (pause_sel + n - 1) % n
+    elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E]:
+        _pause_choose(pause_sel)
+
+
+# ------------------------------------------------------------ INTRO
+## Diapositivas: [texto ES, texto EN, escena]. Escenas: despertar, templo, ojo, almas, descenso.
+const INTRO := [
+    ["Despiertas sobre piedra fría. No recuerdas cómo llegaste.", "You wake on cold stone. You don't remember how you got here.", "despertar"],
+    ["Un templo. Columnas que no reconoces. Ecos de pasos que no son tuyos.", "A temple. Columns you don't recognize. Echoes of footsteps that aren't yours.", "templo"],
+    ["Algo aquí te observa. Y se alimenta de tu miedo.", "Something here is watching you. And it feeds on your fear.", "ojo"],
+    ["Otros llegaron antes. Lo que dejaron atrás todavía brilla.", "Others came before. What they left behind still glows.", "almas"],
+    ["Encuentra la luz. Desciende. No confíes en nadie.", "Find the light. Descend. Trust no one.", "descenso"],
+]
+
+
+func _start_explore() -> void:
+    if not bool(Ajustes.obtener("intro_vista")):
+        _start_intro("tutorial")
+    elif not bool(Ajustes.obtener("tutorial_hecho")):
+        _start_tutorial()
+    else:
+        _new_run()
+
+
+func _start_intro(then: String) -> void:
+    intro_then = then
+    intro_slide = 0
+    intro_t = 0.0
+    game_mode = "intro"
+    _sfx("ojo", -14.0, 0.7)
+
+
+func _intro_next() -> void:
+    var full_len: int = _lang_pick(INTRO[intro_slide]).length()
+    if int(intro_t * 38.0) < full_len:
+        intro_t = float(full_len) / 38.0 + 0.01 # muestra el texto completo
+        return
+    intro_slide += 1
+    intro_t = 0.0
+    if intro_slide >= INTRO.size():
+        _end_intro()
+    else:
+        _sfx("toque", -16.0, 0.7)
+
+
+func _end_intro() -> void:
+    Ajustes.poner("intro_vista", true)
+    if intro_then == "tutorial" and not bool(Ajustes.obtener("tutorial_hecho")):
+        _start_tutorial()
+    elif intro_then == "tutorial":
+        _new_run()
+    else:
+        game_mode = "title"
+
+
+func _draw_intro() -> void:
+    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 1.0))
+    var slide: Array = INTRO[clampi(intro_slide, 0, INTRO.size() - 1)]
+    var fade: float = clampf(intro_t * 1.5, 0.0, 1.0)
+    var c := Vector2(480, 270)
+    match slide[2]:
+        "despertar":
+            # Mark tendido en un círculo de luz mortecina.
+            draw_circle(c + Vector2(0, 30), 120.0, Color(0.35, 0.45, 0.5, 0.10 * fade))
+            var region := Rect2(8.0 * 40.0, 0.0, 40.0, 56.0)
+            draw_texture_rect_region(art["visual_hero"], Rect2(c + Vector2(-60, -50), Vector2(120, 168)), region, Color(1, 1, 1, fade))
+        "templo":
+            draw_set_transform(Vector2(-240, -160) * fade * 0.05, 0.0, Vector2.ONE)
+            for k in range(4):
+                var x: float = 230.0 + float(k) * 170.0
+                draw_rect(Rect2(x, 150, 28, 260), Color(0.25, 0.3, 0.28, 0.6 * fade))
+                draw_rect(Rect2(x - 8, 140, 44, 14), Color(0.35, 0.4, 0.36, 0.6 * fade))
+            draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        "ojo":
+            var open_k: float = clampf(intro_t * 0.8, 0.0, 1.0)
+            draw_set_transform(c, 0.0, Vector2(1.0, 0.15 + 0.85 * open_k))
+            draw_circle(Vector2.ZERO, 110.0, Color(0.85, 0.82, 0.74, fade))
+            draw_circle(Vector2.ZERO, 58.0, Color(0.42, 0.24, 0.57, fade))
+            draw_circle(Vector2.ZERO, 26.0, Color(0.05, 0.03, 0.07, fade))
+            draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+            for k in range(6):
+                var a: float = float(k) * 1.05
+                draw_line(c + Vector2.from_angle(a) * 80.0, c + Vector2.from_angle(a + 0.2) * 108.0, Color(0.76, 0.23, 0.25, 0.7 * fade), 2.0)
+        "almas":
+            for k in range(3):
+                var p := c + Vector2(-160.0 + float(k) * 160.0, 40.0)
+                _draw_corpse(p, k)
+                draw_circle(p + Vector2(0, -26), 30.0, Color(0.56, 0.78, 0.84, 0.15 * fade))
+                draw_texture_rect(ICONS["alma"], Rect2(p + Vector2(-16, -46 + sin(elapsed * 2.0 + float(k)) * 4.0), Vector2(32, 32)), false, Color(1, 1, 1, fade))
+        "descenso":
+            for k in range(6):
+                var w: float = 300.0 - float(k) * 44.0
+                draw_rect(Rect2(480.0 - w * 0.5, 140.0 + float(k) * 34.0, w, 26), Color(0.20, 0.24, 0.24, (0.7 - float(k) * 0.1) * fade))
+            draw_circle(Vector2(480, 380), 14.0, Color(1.0, 0.7, 0.3, 0.5 + 0.3 * sin(elapsed * 9.0)))
+    # Texto que se escribe letra a letra.
+    var text: String = _lang_pick(slide)
+    var shown: String = text.substr(0, int(intro_t * 38.0))
+    _text_outline(shown, Vector2(0, 500), 20, CREAM, W)
+    for k in range(INTRO.size()):
+        draw_rect(Rect2(430.0 + float(k) * 22.0, 540, 14, 4), UI_GOLD if k <= intro_slide else Color("#2a2e38"))
+    _text_outline(_t("siguiente"), Vector2(24, 622), 12, Color("#8a8574"))
+    _text_outline(_t("saltar"), Vector2(820, 622), 12, Color("#8a8574"))
+
+
+# ------------------------------------------------------------ TUTORIAL
+## Pasos: [texto ES, texto EN]. Las teclas se escriben según la configuración.
+func _tutorial_text(step: int) -> String:
+    var es := [
+        "Muévete con %s %s %s %s o las flechas" % [Ajustes.nombre_tecla("arriba"), Ajustes.nombre_tecla("izquierda"), Ajustes.nombre_tecla("abajo"), Ajustes.nombre_tecla("derecha")],
+        "Esquiva con %s: te hace invulnerable un instante" % Ajustes.nombre_tecla("esquivar"),
+        "Recoge un alma: basta con tocarla",
+        "Pulsa %s para encender la antorcha (gasta un fósforo)" % Ajustes.nombre_tecla("antorcha"),
+        "Golpea al muñeco 3 veces con CLIC o %s" % Ajustes.nombre_tecla("interactuar"),
+        "Abre tu perfil con %s y vuelve a cerrarlo" % Ajustes.nombre_tecla("perfil"),
+        "Pausa el juego con %s y continúa" % Ajustes.nombre_tecla("pausa"),
+        "¡Listo! Cruza la puerta para entrar en el templo",
+    ]
+    var en := [
+        "Move with %s %s %s %s or the arrow keys" % [Ajustes.nombre_tecla("arriba"), Ajustes.nombre_tecla("izquierda"), Ajustes.nombre_tecla("abajo"), Ajustes.nombre_tecla("derecha")],
+        "Dodge with %s: you are invulnerable for an instant" % Ajustes.nombre_tecla("esquivar"),
+        "Collect a soul: just touch it",
+        "Press %s to light the torch (uses a match)" % Ajustes.nombre_tecla("antorcha"),
+        "Hit the dummy 3 times with CLICK or %s" % Ajustes.nombre_tecla("interactuar"),
+        "Open your profile with %s and close it again" % Ajustes.nombre_tecla("perfil"),
+        "Pause the game with %s and resume" % Ajustes.nombre_tecla("pausa"),
+        "Done! Cross the door to enter the temple",
+    ]
+    if touch_enabled:
+        es[0] = "Muévete con el joystick de la izquierda"
+        en[0] = "Move with the joystick on the left"
+        es[1] = "Esquiva con el botón DASH"
+        en[1] = "Dodge with the DASH button"
+        es[3] = "Toca el botón de la antorcha para encenderla"
+        en[3] = "Tap the torch button to light it"
+        es[4] = "Golpea al muñeco 3 veces con el botón E"
+        en[4] = "Hit the dummy 3 times with the E button"
+        es[5] = "Toca tu retrato para abrir el perfil y ciérralo"
+        en[5] = "Tap your portrait to open the profile, then close it"
+        es[6] = "Toca el botón de pausa y continúa"
+        en[6] = "Tap the pause button and resume"
+    return (en if Ajustes.obtener("idioma") == "en" else es)[clampi(step, 0, es.size() - 1)]
+
+
+const TUTORIAL_LAST := 7
+
+
+func _start_tutorial() -> void:
+    _new_run()
+    in_tutorial = true
+    tutorial_step = 0
+    tut_moved = 0.0
+    tut_dashed = false
+    tut_profile = false
+    tut_paused = false
+    dummy_hits = 0
+    current_floor = 0
+    current_room = 0
+    _enter_room()
+    tut_prev = player_pos
+    game_mode = "play"
+
+
+func _end_tutorial() -> void:
+    Ajustes.poner("tutorial_hecho", true)
+    in_tutorial = false
+    _new_run()
+    _say("PISO I · EL DESPERTAR. A partir de aquí, nadie te guía.", 4.0)
+
+
+func _update_tutorial(dt: float) -> void:
+    if not in_tutorial:
+        return
+    dummy_shake = maxf(0.0, dummy_shake - dt)
+    tut_moved += player_pos.distance_to(tut_prev)
+    tut_prev = player_pos
+    if dash_left > 0.0:
+        tut_dashed = true
+    var done: bool = false
+    match tutorial_step:
+        0:
+            done = tut_moved > 120.0
+        1:
+            done = tut_dashed
+        2:
+            done = collected.has(true)
+        3:
+            done = torch_on
+        4:
+            done = dummy_hits >= 3
+        5:
+            done = tut_profile
+        6:
+            done = tut_paused
+    if done and tutorial_step < TUTORIAL_LAST:
+        tutorial_step += 1
+        _sfx("alma", -8.0, 1.3)
+        if tutorial_step == 3:
+            has_torch = true
+            matches = maxi(matches, 3)
+            _say("Toma una antorcha de práctica." if Ajustes.obtener("idioma") == "es" else "Take a practice torch.", 2.5)
+
+
+func _draw_tutorial_overlay() -> void:
+    if not in_tutorial or game_mode != "play":
+        return
+    var box := Rect2(230, 146, 500, 52)
+    var pulse: float = 0.5 + 0.5 * sin(elapsed * 4.0)
+    _panel(box, Color(0.05, 0.06, 0.08, 0.93), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.7 + 0.3 * pulse))
+    _text_outline("%s %d/%d" % [_t("tutorial"), mini(tutorial_step + 1, TUTORIAL_LAST + 1), TUTORIAL_LAST + 1], Vector2(box.position.x, box.position.y + 18.0), 11, UI_GOLD, box.size.x)
+    _text_outline(_tutorial_text(tutorial_step), Vector2(box.position.x, box.position.y + 40.0), 15, CREAM, box.size.x)
+
+
+## Muñeco de entrenamiento: poste y saco relleno de paja, con diana pintada.
+func _draw_dummy() -> void:
+    var p := DUMMY_POS + Vector2(sin(elapsed * 50.0) * 3.0 * dummy_shake * 4.0, 0.0)
+    _draw_soft_shadow(DUMMY_POS + Vector2(0, 3), 14.0)
+    draw_rect(Rect2(p.x - 2.0, p.y - 40.0, 4, 42), Color("#5c3a22"))
+    draw_rect(Rect2(p.x - 16.0, p.y - 34.0, 32, 6), Color("#5c3a22"))
+    draw_rect(Rect2(p.x - 11.0, p.y - 50.0, 22, 26), Color("#b89a5e"))
+    draw_rect(Rect2(p.x - 11.0, p.y - 50.0, 22, 4), Color("#d8bd80"))
+    draw_circle(p + Vector2(0, -60), 9.0, Color("#b89a5e"))
+    draw_circle(p + Vector2(0, -37), 6.0, Color("#8a1620"))
+    draw_circle(p + Vector2(0, -37), 3.0, Color("#e2dccb"))
+    for k in range(dummy_hits):
+        draw_rect(Rect2(p.x - 8.0 + float(k) * 6.0, p.y - 46.0, 3, 3), Color("#3a2f2a"))

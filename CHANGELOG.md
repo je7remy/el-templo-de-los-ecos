@@ -1,5 +1,20 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Inicio, configuración, intro, tutorial y pausa
+
+- **Pantalla de inicio** al abrir el juego: «Haz clic para continuar» (o toca), con el engranaje de **Configuración** abajo a la izquierda. Al volver de la Vigilia se va directo al menú.
+- **Acuerdo de usuario** la primera vez (aceptar, leer completo o salir). Textos en borrador en `docs/legal/`.
+- **Configuración** (desde el inicio, el menú o la pausa; ratón, teclado o táctil):
+  - **Sonido:** volumen general, música y efectos (buses de audio propios) y silenciar.
+  - **Controles:** las 10 acciones son reasignables (si una tecla ya estaba en uso, se intercambian); restablecer; controles táctiles Auto / Siempre / Nunca; repetir el tutorial y ver la intro.
+  - **Idioma:** español / inglés. El inglés cubre por ahora los menús nuevos.
+  - **Privacidad:** qué se guarda y dónde, acuerdo de usuario, política de privacidad y «Borrar mis datos» (con confirmación).
+  - Los ajustes se guardan en `user://ajustes.cfg` (`scripts/ajustes.gd`), aparte del progreso.
+- **Intro** de cinco escenas con texto que se escribe solo (clic para avanzar, ESC para saltar). Se ve la primera vez que exploras.
+- **Tutorial**: sala de práctica antes del Piso I con 8 pasos guiados y un muñeco de entrenamiento. Los textos usan las teclas configuradas (o los botones táctiles). Al cruzar la puerta empieza el Piso I limpio.
+- **Pausa** con ESC o el botón de pausa: continuar, configuración, perfil, saltar tutorial y volver a la pantalla de inicio (abandona la partida).
+- Pruebas: arranque inicio → acuerdo → menú, configuración, tutorial (golpe al muñeco), pausa y salida al Piso I.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Estilo roguelike de acción
 
 **HUD** (paneles biselados flotantes, como en los roguelike de acción tipo Soul Knight)
