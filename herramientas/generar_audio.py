@@ -464,6 +464,15 @@ def sfx_latigo() -> np.ndarray:
     return normalizar(reverb_simple(chasquido + silbido + vibra, 1.1, 0.3, 5000), 0.8)
 
 
+def sfx_pinchos() -> np.ndarray:
+    """Trampa: chasquido del mecanismo y hierro que sale del suelo."""
+    t = t_(0.6)
+    clic = paso_banda(rng.standard_normal(len(t)), 1500, 6000) * env_ad(t, 0.001, 0.02) * 0.6
+    hierro = sum(np.sin(2 * np.pi * f * t) * a for f, a in ((1830, 0.3), (2710, 0.2), (3950, 0.12))) * env_ad(np.maximum(t - 0.04, 0), 0.004, 0.22) * (t > 0.04)
+    roce = paso_banda(rng.standard_normal(len(t)), 3000, 9000) * env_ad(np.maximum(t - 0.04, 0), 0.01, 0.08) * (t > 0.04) * 0.4
+    return normalizar(reverb_simple(clic + hierro + roce, 0.9, 0.25, 6000), 0.6)
+
+
 def main() -> None:
     SALIDA.mkdir(exist_ok=True)
     guardar("musica_templo.ogg", musica_templo(), 3)
@@ -476,7 +485,8 @@ def main() -> None:
                        ("sfx_golpe", sfx_golpe), ("sfx_impacto", sfx_impacto), ("sfx_inmune", sfx_inmune),
                        ("sfx_resonancia", sfx_resonancia), ("sfx_destierro", sfx_destierro),
                        ("sfx_interfaz", sfx_interfaz), ("sfx_toque", sfx_toque),
-                       ("sfx_cuchillo", sfx_cuchillo), ("sfx_hilo", sfx_hilo), ("sfx_latigo", sfx_latigo)):
+                       ("sfx_cuchillo", sfx_cuchillo), ("sfx_hilo", sfx_hilo), ("sfx_latigo", sfx_latigo),
+                       ("sfx_pinchos", sfx_pinchos)):
         guardar(f"{nombre}.ogg", fn(), 4)
     for i in range(3):
         guardar(f"sfx_paso_{i + 1}.ogg", _paso(i + 1), 3)

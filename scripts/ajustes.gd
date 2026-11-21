@@ -19,9 +19,10 @@ const ACCIONES := {
     "esquivar": ["Esquivar", "Dodge", KEY_SPACE],
     "resonancia": ["Resonancia", "Resonance", KEY_Q],
     "perfil": ["Perfil", "Profile", KEY_I],
+    "habilidades": ["Habilidades", "Abilities", KEY_K],
     "pausa": ["Pausa", "Pause", KEY_ESCAPE],
 }
-const ORDEN := ["arriba", "abajo", "izquierda", "derecha", "interactuar", "antorcha", "esquivar", "resonancia", "perfil", "pausa"]
+const ORDEN := ["arriba", "abajo", "izquierda", "derecha", "interactuar", "antorcha", "esquivar", "resonancia", "perfil", "habilidades", "pausa"]
 
 static var datos: Dictionary = {}
 static var cargado: bool = false
