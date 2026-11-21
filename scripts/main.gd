@@ -160,7 +160,7 @@ const FOG_TEX := preload("res://assets/visual/fx/niebla.png")
 const ECOS := {
     "respiracion": ["RESPIRACIÓN CONTENIDA", "El miedo sube un 25 % más despacio."],
     "nuca": ["NUCA FRÍA", "Sientes cuando alguien con malas intenciones queda a tu espalda."],
-    "reflejos": ["REFLEJOS", "Esquivar se recarga un 40 % antes."],
+    "reflejos": ["REFLEJOS", "Esquivar cuesta un 40 % menos de vigor."],
 }
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
@@ -1055,11 +1055,11 @@ func _use_pulse() -> void:
     if not has_pulse:
         _say("Todavía no adquiriste Resonancia en el altar.", 2.0)
         return
-    if pulse_cd > 0.0 or stamina < 24.0:
-        _say("Resonancia necesita energía o tiempo de recuperación.", 2.0)
+    if pulse_cd > 0.0 or stamina < RESONANCE_COST:
+        _say("Resonancia necesita vigor: espera a que la barra se llene.", 2.0)
         return
-    pulse_cd = 8.0
-    stamina -= 24.0
+    pulse_cd = ABILITY_LOCK # se recarga con la barra de vigor, no con un reloj aparte
+    stamina -= RESONANCE_COST
     pulse_fx = 0.0
     _sfx("resonancia", -5.0)
     if _pilgrim_present() and pilgrim_state != "dead" and player_pos.distance_to(pilgrim_pos) < PULSE_RADIUS + 12.0:
@@ -1560,7 +1560,7 @@ func _update_play(dt: float) -> void:
     damage_cd = maxf(0.0, damage_cd - dt)
     dash_left = maxf(0.0, dash_left - dt)
     enemy_stun = maxf(0.0, enemy_stun - dt)
-    stamina = minf(100.0, stamina + 16.0 * dt)
+    stamina = minf(100.0, stamina + STAMINA_REGEN * dt)
     var move: Vector2 = _controls_axis()
     if dash_left > 0.0:
         move = dash_dir # el impulso sigue su dirección aunque sueltes las teclas
@@ -2705,8 +2705,9 @@ func _draw_weapon_panel() -> void:
     var ammo_col: Color = SOUL if has_inner_flame else (Color("#f0c98a") if matches > 0 else RED)
     draw_texture_rect(ICONS["llama_interior" if has_inner_flame else "fosforos"], Rect2(648, 608, 20, 20), false)
     _text_outline(ammo, Vector2(672, 624), 12, ammo_col)
-    _draw_ability_icon(Rect2(838, 583, 48, 48), "golpe", has_torch and torch_on, strike_cd / 0.6, "E")
-    _draw_ability_icon(Rect2(896, 583, 48, 48), "resonancia", has_pulse, pulse_cd / 8.0, "Q")
+    _draw_ability_icon(Rect2(780, 583, 48, 48), "vigor", true, _vigor_wait(_dash_cost()), _short_key("esquivar"))
+    _draw_ability_icon(Rect2(838, 583, 48, 48), "golpe", has_torch and torch_on, maxf(strike_cd / 0.6, _vigor_wait(10.0)), _short_key("interactuar"))
+    _draw_ability_icon(Rect2(896, 583, 48, 48), "resonancia", has_pulse, _vigor_wait(RESONANCE_COST), _short_key("resonancia"))
 
 
 ## Objetivo de la sala para el pie de pantalla.
@@ -4537,8 +4538,32 @@ var allies_here: bool = false
 var allies_rewarded: bool = false
 
 
+## Esquivar y Resonancia se recargan al ritmo de la barra de vigor: están
+## listas en cuanto la barra vuelve a cubrir su coste.
+const STAMINA_REGEN := 16.0 # vigor por segundo
+const RESONANCE_COST := 40.0
+const ABILITY_LOCK := 0.25 # evita dobles pulsaciones accidentales
+
+
+func _dash_cost() -> float:
+    return DASH_COST * (0.6 if ecos.has("reflejos") else 1.0) # Reflejos: esquivar cuesta menos
+
+
+## Segundos que tarda la barra en recuperar un coste desde vacío (para textos).
 func _dash_cooldown() -> float:
-    return 2.65 * (0.6 if ecos.has("reflejos") else 1.0)
+    return _dash_cost() / STAMINA_REGEN
+
+
+## Fracción que falta para poder usar algo que cuesta «cost» de vigor (0 = listo).
+func _vigor_wait(cost: float) -> float:
+    return clampf((cost - stamina) / cost, 0.0, 1.0)
+
+
+func _short_key(action: String) -> String:
+    var k: String = Ajustes.nombre_tecla(action)
+    if k in ["ESPACIO", "SPACE"]:
+        return "SP"
+    return k.substr(0, 2) if k.length() > 2 else k
 
 
 func _segador_enter_room() -> void:
@@ -4908,13 +4933,13 @@ var talks_seen: Dictionary = {}
 
 
 func _start_dash() -> void:
-    if dash_cd > 0.0 or stamina < DASH_COST or game_mode != "play":
+    if dash_cd > 0.0 or stamina < _dash_cost() or game_mode != "play":
         return
     var move: Vector2 = _controls_axis()
     dash_dir = move.normalized() if move.length() > 0.1 else (player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT)
     dash_left = DASH_TIME
-    dash_cd = _dash_cooldown()
-    stamina -= DASH_COST
+    dash_cd = ABILITY_LOCK
+    stamina -= _dash_cost()
     _emit(player_pos, 12, Color(0.62, 0.57, 0.5, 0.6), 30.0, 90.0, 0.55, 3.0, -20.0, -dash_dir, 1.1)
     _emit(player_pos + Vector2(0, -24), 8, Color(0.56, 0.78, 0.84, 0.7), 20.0, 60.0, 0.4, 2.0, 0.0, -dash_dir, 0.6, true)
     _sfx("toque", -14.0, 1.6)
@@ -5235,9 +5260,9 @@ func _ability_rows() -> Array:
         ["golpe", "GOLPE DE ANTORCHA", Ajustes.nombre_tecla("interactuar") + " / CLIC",
             "Arco de fuego a corta distancia. Daño %d. Necesita la antorcha encendida." % int(STRIKE_DAMAGE), has_torch, "10 vigor"],
         ["resonancia", "RESONANCIA · NIVEL %d" % ability_level, Ajustes.nombre_tecla("resonancia"),
-            "Onda que aturde a las entidades cercanas y les hace %d de daño." % int(30.0 + 10.0 * float(ability_level)), has_pulse, "24 vigor · 8 s"],
+            "Onda que aturde a las entidades cercanas y les hace %d de daño." % int(30.0 + 10.0 * float(ability_level)), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
         ["vigor", "ESQUIVAR", Ajustes.nombre_tecla("esquivar"),
-            "Impulso hacia donde te mueves o, quieto, hacia donde miras. Pasas por encima de las trampas.", true, "%d vigor · %.1f s" % [int(DASH_COST), _dash_cooldown()]],
+            "Impulso hacia donde te mueves o, quieto, hacia donde miras. Pasas por encima de las trampas.", true, "%d vigor · se recarga con la barra" % int(_dash_cost())],
         ["llama_interior", "LLAMA INTERIOR", "PASIVA",
             "Enciendes la antorcha sin gastar fósforos.", has_inner_flame, "altar"],
         ["corazon", "RESPIRO", "PASIVA",

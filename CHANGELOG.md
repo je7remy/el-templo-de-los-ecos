@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Esquivar y Resonancia se recargan con el vigor
+
+- Esquivar y Resonancia ya no tienen un reloj de recarga propio: están listas en cuanto la barra de vigor cubre su coste (el vigor se llena a 16 por segundo). Esquivar cuesta 28 (unos 1,75 s de barra) y Resonancia 40 (unos 2,5 s); antes, 2,65 s y 8 s.
+- En el panel del arma hay un botón de Esquivar junto al golpe y Resonancia; los tres muestran como un reloj el vigor que les falta. Las letras de los botones siguen las teclas configuradas.
+- El Eco Reflejos ahora abarata Esquivar un 40 % (antes acortaba su recarga).
+
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Etapa 2: dirección de arte y menú de pisos
 
 **Menú de pisos** (botón PISOS del menú o tecla P): los diez pisos del diseño como tarjetas con su número gótico, nombre, Eco y estado (superado, disponible, sin alcanzar, en las profundidades). Se puede empezar directamente en cualquier piso ya alcanzado, con antorcha y fósforos. El piso más profundo alcanzado se guarda (las partidas antiguas lo deducen de sus Ecos).
