@@ -1,6 +1,11 @@
 extends SceneTree
 ## Comprobacion de grafica original de marca cargable por Godot.
 func _initialize() -> void:
+    # Modo de prueba: archivos propios y limpios; tu partida y tus ajustes no se tocan.
+    Engine.set_meta("modo_prueba", true)
+    for f in ["user://prueba_progreso.json", "user://prueba_ajustes.cfg", "user://prueba_vigilia.json"]:
+        if FileAccess.file_exists(f):
+            DirAccess.remove_absolute(ProjectSettings.globalize_path(f))
     call_deferred("_run")
 
 func _run() -> void:

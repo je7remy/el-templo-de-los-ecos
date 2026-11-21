@@ -8,6 +8,8 @@ const W: float = 960.0
 const H: float = 640.0
 const ARENA: Rect2 = Rect2(40.0, 122.0, 880.0, 458.0)
 const SAVE_PATH: String = "user://templo_personaje_v03.json"
+## Las pruebas automáticas guardan aparte: nunca pisan tu partida real.
+const SAVE_PATH_TEST: String = "user://prueba_progreso.json"
 const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ## PISOS (docs: «DISEÑO DE 10 PISOS»). Cada sala usa una escena
 ## rooms/sala_N.tscn y declara qué contiene: entidad, rasgos (altar, sello,
@@ -538,9 +540,9 @@ func _update_audio(delta: float) -> void:
 
 
 func _load_progress() -> void:
-    if not FileAccess.file_exists(SAVE_PATH):
+    if not FileAccess.file_exists(_save_path()):
         return
-    var data = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+    var data = JSON.parse_string(FileAccess.get_file_as_string(_save_path()))
     if data is Dictionary:
         identity_number = maxi(1, int(data.get("identity_number", 1)))
         new_humans = maxi(0, int(data.get("new_humans", 0)))
@@ -558,7 +560,7 @@ func _load_progress() -> void:
         max_floor = maxi(0, int(data.get("max_floor", 0)))
 
 func _save_progress() -> void:
-    var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+    var file := FileAccess.open(_save_path(), FileAccess.WRITE)
     if file != null:
         file.store_string(JSON.stringify({
             "identity_number": identity_number,
@@ -3900,7 +3902,7 @@ func _draw_settings() -> void:
             _draw_text_block(_t("nota_idioma"), Rect2(250, 350, 460, 60), 13, Color("#9a957f"))
         3:
             _draw_text_block(_t("privacidad_resumen"), Rect2(140, 178, 680, 60), 15, Color("#d0c8b0"))
-            _draw_text_block(_t("privacidad_ruta") % [SAVE_PATH, Ajustes.RUTA], Rect2(140, 262, 680, 40), 12, Color("#9a957f"))
+            _draw_text_block(_t("privacidad_ruta") % [_save_path(), Ajustes.ruta()], Rect2(140, 262, 680, 40), 12, Color("#9a957f"))
             if confirm_delete:
                 _text_outline("Se borrará el progreso y los ajustes." if Ajustes.obtener("idioma") == "es" else "Progress and settings will be deleted.", Vector2(490, 420), 12, RED)
 
@@ -3973,7 +3975,7 @@ func _settings_activate(w: Dictionary, at: Vector2 = Vector2(-1, -1)) -> void:
                     _start_intro("title" if settings_return in ["splash", "title"] else "title")
                 "borrar":
                     if confirm_delete:
-                        Ajustes.borrar_todo(SAVE_PATH)
+                        Ajustes.borrar_todo(_save_path())
                         Ajustes.aplicar_audio()
                         _reset_progress_vars()
                         confirm_delete = false
@@ -6069,4 +6071,8 @@ func _draw_critter_eyes() -> void:
         var blink: float = 0.0 if int(elapsed * 1.3 + float(i) * 0.7) % 5 == 0 and fmod(elapsed * 1.3, 1.0) < 0.12 else 1.0
         draw_circle(eye, 5.0, Color(1.0, 0.15, 0.15, 0.12 * blink))
         draw_rect(Rect2(eye - Vector2(1, 1), Vector2(2, 2)), Color(1.0, 0.3, 0.3, 0.9 * blink))
+
+
+func _save_path() -> String:
+    return SAVE_PATH_TEST if Engine.has_meta("modo_prueba") else SAVE_PATH
 
