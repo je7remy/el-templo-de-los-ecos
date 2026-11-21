@@ -580,6 +580,73 @@ func _run_checks() -> void:
     print("OK: Piso V, mastines, antorcha que se consume, rescate y Máscara.")
     game.set("current_floor", 0)
 
+    # Mando (Xbox 360 y similares): los botones hacen lo mismo que las teclas.
+    game.set("current_room", 0)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("has_torch", true)
+    game.set("torch_on", false)
+    game.set("matches", 3)
+    _pad(game, JOY_BUTTON_X)
+    if not bool(game.get("torch_on")) or game.call("_key_label", "antorcha") != "X":
+        _fail("El botón X del mando no enciende la antorcha.")
+        return
+    _pad(game, JOY_BUTTON_START)
+    _pad(game, JOY_BUTTON_DPAD_DOWN)
+    if game.get("game_mode") != "pause" or int(game.get("pause_sel")) != 1:
+        _fail("START no pausa o la cruceta no mueve el menú de pausa.")
+        return
+    _pad(game, JOY_BUTTON_B)
+    _pad(game, JOY_BUTTON_LEFT_SHOULDER)
+    if game.get("game_mode") != "inventory":
+        _fail("B no cierra la pausa o LB no abre el perfil.")
+        return
+    _pad(game, JOY_BUTTON_B)
+    _pad(game, JOY_BUTTON_RIGHT_SHOULDER)
+    if game.get("game_mode") != "abilities":
+        _fail("RB no abre las habilidades.")
+        return
+    _pad(game, JOY_BUTTON_B)
+    game.set("stamina", 100.0)
+    _pad_axis(game, JOY_AXIS_TRIGGER_LEFT, 1.0)
+    _pad_axis(game, JOY_AXIS_TRIGGER_LEFT, 0.0)
+    if game.get("game_mode") != "play" or float(game.get("dash_left")) <= 0.0:
+        _fail("LT no esquiva.")
+        return
+    game.call("_start_creation", "title")
+    game.set("create_buf", "")
+    _pad(game, JOY_BUTTON_Y)
+    var pad_name: String = str(game.get("create_buf"))
+    _pad(game, JOY_BUTTON_X)
+    _pad(game, JOY_BUTTON_DPAD_RIGHT)
+    _pad(game, JOY_BUTTON_A)
+    if pad_name == "" or str(game.get("create_buf")).length() != pad_name.length() or not str(game.get("create_buf")).ends_with("B"):
+        _fail("El teclado en pantalla no responde al mando.")
+        return
+    _pad(game, JOY_BUTTON_START)
+    var gender_before: int = int(game.get("create_gender"))
+    _pad(game, JOY_BUTTON_DPAD_RIGHT)
+    if int(game.get("create_step")) != 1 or int(game.get("create_gender")) == gender_before:
+        _fail("START no pasa al género o la cruceta no lo cambia.")
+        return
+    _pad(game, JOY_BUTTON_B)
+    _pad(game, JOY_BUTTON_BACK)
+    _pad(game, JOY_BUTTON_BACK)
+    if game.get("game_mode") != "settings":
+        _fail("SELECT no abre la configuración desde el menú.")
+        return
+    _pad_axis(game, JOY_AXIS_LEFT_Y, 1.0)
+    _pad_axis(game, JOY_AXIS_LEFT_Y, 0.0)
+    if int(game.get("settings_sel")) != 1:
+        _fail("El stick no recorre los menús.")
+        return
+    _pad(game, JOY_BUTTON_B)
+    game.set("pad_active", false)
+    game.set("torch_on", false)
+    game.set("game_mode", "play")
+    print("OK: mando de Xbox y similares en el juego y los menús.")
+
     game.set("current_room", 2)
     game.call("_enter_room")
     game.call("_dialog_skip") # las conversaciones se leen con clic
@@ -635,3 +702,17 @@ func _run_checks() -> void:
 func _fail(message: String) -> void:
     push_error(message)
     quit(1)
+
+
+func _pad(game: Node, button: int) -> void:
+    var e := InputEventJoypadButton.new()
+    e.button_index = button
+    e.pressed = true
+    game.call("_input", e)
+
+
+func _pad_axis(game: Node, axis: int, value: float) -> void:
+    var e := InputEventJoypadMotion.new()
+    e.axis = axis
+    e.axis_value = value
+    game.call("_input", e)

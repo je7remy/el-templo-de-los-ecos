@@ -516,6 +516,8 @@ func _ready() -> void:
     _setup_transition()
     _setup_cursor()
     _apply_window_mode()
+    Input.joy_connection_changed.connect(_on_joy_connection)
+    pad_active = not Input.get_connected_joypads().is_empty()
     _init_motes()
     # No iniciar AudioServer en tests sin pantalla: no hay salida de sonido.
     # En juego normal mantener audio ambiental y efectos completos.
@@ -829,6 +831,15 @@ func _marker(marker_name: String, fallback: Vector2) -> Vector2:
 
 
 func _input(event: InputEvent) -> void:
+    if event is InputEventJoypadButton:
+        if event.pressed:
+            _pad_button(event.button_index)
+        return
+    elif event is InputEventJoypadMotion:
+        _pad_motion(event.axis, event.axis_value)
+        return
+    if event is InputEventKey or event is InputEventMouseButton:
+        pad_active = false
     if event is InputEventScreenTouch:
         var point: Vector2 = make_input_local(event).position
         _mobile_touch(event.index, point, event.pressed)
@@ -973,6 +984,286 @@ func _input(event: InputEvent) -> void:
             _use_pulse()
         elif k == _key("pausa") or k == KEY_ESCAPE:
             _open_pause()
+    queue_redraw()
+
+
+# ------------------------------------------------------------ MANDO
+## Mando de Xbox 360 / Xbox One / PlayStation / Switch (Godot usa la base de
+## SDL, así que los botones se nombran por posición: A abajo, B derecha, X
+## izquierda, Y arriba). Cada botón se traduce a la tecla que ya entiende el
+## menú o la acción; así todo el juego funciona igual con teclado o mando.
+const PAD_DEADZONE := 0.24
+const PAD_MENU_ON := 0.6
+const PAD_MENU_OFF := 0.35
+const PAD_REPEAT_FIRST := 0.38
+const PAD_REPEAT := 0.14
+var pad_active: bool = false
+var pad_trigger: Dictionary = {}
+var pad_menu_dir: Vector2i = Vector2i.ZERO
+var pad_repeat_left: float = 0.0
+var pad_stick: Vector2 = Vector2.ZERO
+var pad_name_sel: int = 0
+
+
+func _pad_key(k: Key) -> void:
+    var ev := InputEventKey.new()
+    ev.keycode = k
+    ev.physical_keycode = k
+    ev.pressed = true
+    _input(ev)
+    pad_active = true
+
+
+func _pad_dir_key(dir: Vector2i) -> Key:
+    if dir.y < 0:
+        return KEY_UP
+    if dir.y > 0:
+        return KEY_DOWN
+    return KEY_LEFT if dir.x < 0 else KEY_RIGHT
+
+
+func _pad_button(b: int) -> void:
+    pad_active = true
+    var dpad := {JOY_BUTTON_DPAD_UP: Vector2i(0, -1), JOY_BUTTON_DPAD_DOWN: Vector2i(0, 1),
+        JOY_BUTTON_DPAD_LEFT: Vector2i(-1, 0), JOY_BUTTON_DPAD_RIGHT: Vector2i(1, 0)}
+    if game_mode == "settings" and rebinding != "":
+        # Las teclas se reasignan con teclado; el mando tiene su esquema fijo.
+        rebinding = ""
+        _say(_t("mando_reasignar"), 2.4)
+        queue_redraw()
+        return
+    if game_mode == "create" and create_step == 0:
+        _pad_create_name(b, dpad)
+        return
+    if game_mode == "play":
+        match b:
+            JOY_BUTTON_A:
+                _pad_key(_key("interactuar"))
+            JOY_BUTTON_B:
+                _pad_key(_key("esquivar"))
+            JOY_BUTTON_X:
+                _pad_key(_key("antorcha"))
+            JOY_BUTTON_Y:
+                _pad_key(_key("resonancia"))
+            JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK:
+                _pad_key(_key("perfil"))
+            JOY_BUTTON_RIGHT_SHOULDER:
+                _pad_key(_key("habilidades"))
+            JOY_BUTTON_START:
+                _pad_key(KEY_ESCAPE)
+        return
+    if dpad.has(b):
+        _pad_menu_step(dpad[b])
+        return
+    match game_mode:
+        "dialog":
+            if b in [JOY_BUTTON_A, JOY_BUTTON_B]:
+                _pad_key(KEY_ENTER)
+            elif b in [JOY_BUTTON_Y, JOY_BUTTON_START]:
+                _pad_key(KEY_ESCAPE)
+            return
+        "title":
+            match b:
+                JOY_BUTTON_A, JOY_BUTTON_START:
+                    _pad_key(KEY_ENTER)
+                JOY_BUTTON_X:
+                    _pad_key(KEY_C)
+                JOY_BUTTON_Y:
+                    _pad_key(KEY_P)
+                JOY_BUTTON_RIGHT_SHOULDER:
+                    _pad_key(KEY_H)
+                JOY_BUTTON_BACK:
+                    _open_settings("title")
+                    queue_redraw()
+                JOY_BUTTON_B:
+                    _pad_key(KEY_ESCAPE)
+            return
+        "altar":
+            match b:
+                JOY_BUTTON_A:
+                    _buy_upgrade(inventory_sel + 1)
+                    queue_redraw()
+                JOY_BUTTON_X:
+                    _pad_key(KEY_1)
+                JOY_BUTTON_Y:
+                    _pad_key(KEY_2)
+                JOY_BUTTON_B, JOY_BUTTON_START:
+                    _pad_key(KEY_ESCAPE)
+            return
+        "inventory":
+            match b:
+                JOY_BUTTON_RIGHT_SHOULDER:
+                    _pad_key(_key("habilidades"))
+                JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK, JOY_BUTTON_START:
+                    _pad_key(KEY_ESCAPE)
+            return
+        "abilities":
+            if b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_START]:
+                _pad_key(KEY_ESCAPE)
+            return
+        "settings":
+            if b in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER] and legal_page == "":
+                settings_tab = (settings_tab + (1 if b == JOY_BUTTON_RIGHT_SHOULDER else 3)) % 4
+                settings_sel = 0
+                _sfx("toque", -14.0, 1.0)
+                queue_redraw()
+                return
+    match b:
+        JOY_BUTTON_A, JOY_BUTTON_START:
+            _pad_key(KEY_ENTER)
+        JOY_BUTTON_B, JOY_BUTTON_BACK:
+            _pad_key(KEY_ESCAPE)
+
+
+func _pad_menu_step(dir: Vector2i) -> void:
+    if game_mode == "create" and create_step == 0:
+        _pad_name_move(dir)
+    elif game_mode == "altar":
+        inventory_sel = clampi(inventory_sel + dir.y + dir.x, 0, 1)
+        queue_redraw()
+    else:
+        _pad_key(_pad_dir_key(dir))
+
+
+## Teclado en pantalla para el nombre: la cruceta mueve un recuadro sobre las
+## teclas (se reutiliza el resaltado de «cursor encima»).
+func _pad_create_name(b: int, dpad: Dictionary) -> void:
+    var keys: Array = _create_name_keys()
+    pad_name_sel = clampi(pad_name_sel, 0, keys.size() - 1)
+    if dpad.has(b):
+        _pad_name_move(dpad[b])
+        return
+    match b:
+        JOY_BUTTON_A:
+            _create_tap((keys[pad_name_sel][0] as Rect2).get_center())
+        JOY_BUTTON_X:
+            _create_tap(_pad_name_key_rect("borrar").get_center())
+        JOY_BUTTON_Y:
+            _create_tap(_pad_name_key_rect("azar").get_center())
+        JOY_BUTTON_START:
+            _create_next()
+        JOY_BUTTON_B, JOY_BUTTON_BACK:
+            if create_buf != "" and b == JOY_BUTTON_B:
+                _create_tap(_pad_name_key_rect("borrar").get_center())
+            else:
+                _create_back()
+    _pad_name_hover()
+    queue_redraw()
+
+
+func _pad_name_key_rect(action: String) -> Rect2:
+    for key in _create_name_keys():
+        if str(key[1]) == action:
+            return key[0]
+    return Rect2()
+
+
+## Mueve la selección a la tecla más cercana en esa dirección.
+func _pad_name_move(dir: Vector2i) -> void:
+    var keys: Array = _create_name_keys()
+    pad_name_sel = clampi(pad_name_sel, 0, keys.size() - 1)
+    var from: Vector2 = (keys[pad_name_sel][0] as Rect2).get_center()
+    var best: int = -1
+    var best_score: float = INF
+    for i in range(keys.size()):
+        var d: Vector2 = (keys[i][0] as Rect2).get_center() - from
+        var along: float = d.x * dir.x + d.y * dir.y
+        if i == pad_name_sel or along < 8.0:
+            continue
+        var across: float = absf(d.x * dir.y) + absf(d.y * dir.x)
+        var score: float = along + across * 2.0
+        if score < best_score:
+            best_score = score
+            best = i
+    if best >= 0:
+        pad_name_sel = best
+        _sfx("toque", -18.0, 1.3)
+    _pad_name_hover()
+    queue_redraw()
+
+
+func _pad_name_hover() -> void:
+    if game_mode == "create" and create_step == 0:
+        ui_hover = (_create_name_keys()[clampi(pad_name_sel, 0, _create_name_keys().size() - 1)][0] as Rect2).get_center()
+
+
+func _pad_motion(axis: int, value: float) -> void:
+    if axis == JOY_AXIS_TRIGGER_LEFT or axis == JOY_AXIS_TRIGGER_RIGHT:
+        var was: bool = bool(pad_trigger.get(axis, false))
+        var now: bool = value > (0.3 if was else 0.55)
+        pad_trigger[axis] = now
+        if now and not was:
+            pad_active = true
+            if game_mode == "play":
+                if axis == JOY_AXIS_TRIGGER_RIGHT:
+                    if not _torch_strike():
+                        _say(_t("mando_golpe"), 1.8)
+                else:
+                    _start_dash()
+                queue_redraw()
+        return
+    if axis == JOY_AXIS_LEFT_X:
+        pad_stick.x = value
+    elif axis == JOY_AXIS_LEFT_Y:
+        pad_stick.y = value
+    else:
+        return
+    if pad_stick.length() > PAD_DEADZONE:
+        pad_active = true
+    if game_mode == "play":
+        pad_menu_dir = Vector2i.ZERO
+        return
+    # En los menús el stick funciona como la cruceta, con repetición al mantener.
+    var dir := Vector2i.ZERO
+    var limit: float = PAD_MENU_OFF if pad_menu_dir != Vector2i.ZERO else PAD_MENU_ON
+    if maxf(absf(pad_stick.x), absf(pad_stick.y)) > limit:
+        dir = Vector2i(signi(roundi(pad_stick.x)) if absf(pad_stick.x) > absf(pad_stick.y) else 0,
+            signi(roundi(pad_stick.y)) if absf(pad_stick.y) >= absf(pad_stick.x) else 0)
+    if dir != pad_menu_dir:
+        pad_menu_dir = dir
+        if dir != Vector2i.ZERO:
+            pad_repeat_left = PAD_REPEAT_FIRST
+            _pad_menu_step(dir)
+
+
+func _update_pad_repeat(delta: float) -> void:
+    if pad_menu_dir == Vector2i.ZERO or game_mode == "play":
+        return
+    pad_repeat_left -= delta
+    if pad_repeat_left <= 0.0:
+        pad_repeat_left = PAD_REPEAT
+        _pad_menu_step(pad_menu_dir)
+
+
+## Stick izquierdo y cruceta de todos los mandos conectados, con zona muerta.
+func _pad_axis() -> Vector2:
+    var total := Vector2.ZERO
+    for device in Input.get_connected_joypads():
+        var v := Vector2(Input.get_joy_axis(device, JOY_AXIS_LEFT_X), Input.get_joy_axis(device, JOY_AXIS_LEFT_Y))
+        if v.length() < PAD_DEADZONE:
+            v = Vector2.ZERO
+        else:
+            v = v.normalized() * inverse_lerp(PAD_DEADZONE, 1.0, minf(v.length(), 1.0))
+        if Input.is_joy_button_pressed(device, JOY_BUTTON_DPAD_UP):
+            v.y -= 1.0
+        if Input.is_joy_button_pressed(device, JOY_BUTTON_DPAD_DOWN):
+            v.y += 1.0
+        if Input.is_joy_button_pressed(device, JOY_BUTTON_DPAD_LEFT):
+            v.x -= 1.0
+        if Input.is_joy_button_pressed(device, JOY_BUTTON_DPAD_RIGHT):
+            v.x += 1.0
+        total += v
+    return total
+
+
+func _on_joy_connection(device: int, connected: bool) -> void:
+    if connected:
+        pad_active = true
+        _say(_t("mando_conectado") % Input.get_joy_name(device), 2.6)
+    else:
+        _say(_t("mando_desconectado"), 2.6)
+        if game_mode == "play":
+            _open_pause() # como en consola: si se desconecta, el juego se detiene
     queue_redraw()
 
 
@@ -1673,7 +1964,7 @@ func _controls_axis() -> Vector2:
         v.x -= 1.0
     if Input.is_key_pressed(_key("derecha")) or Input.is_key_pressed(KEY_RIGHT):
         v.x += 1.0
-    return (v + mobile_axis).limit_length(1.0)
+    return (v + mobile_axis + _pad_axis()).limit_length(1.0)
 
 
 ## Choca con un objeto de la sala (no con los muros): para el polvo del impacto.
@@ -1695,6 +1986,7 @@ func _is_blocked(at: Vector2) -> bool:
 
 func _process(delta: float) -> void:
     elapsed += delta
+    _update_pad_repeat(delta)
     toast_left = maxf(0.0, toast_left - delta)
     visual_interaction_left = maxf(0.0, visual_interaction_left - delta)
     bump_left = maxf(0.0, bump_left - delta)
@@ -2918,8 +3210,8 @@ func _draw_footer() -> void:
     draw_colored_polygon(PackedVector2Array([Vector2(22, 597), Vector2(28, 591), Vector2(34, 597), Vector2(28, 603)]), UI_GOLD)
     _text_outline(task, Vector2(42, 603), 15, task_color)
     if not touch_enabled:
-        var n := func(a: String) -> String: return Ajustes.nombre_tecla(a)
-        var hint: String = "%s%s%s%s mover · %s/CLIC golpear · %s antorcha · %s esquivar · %s resonancia · %s perfil · %s habilidades · %s pausa" % [
+        var n := func(a: String) -> String: return _key_label(a)
+        var hint: String = _t("mando_hud") if pad_active else "%s%s%s%s mover · %s/CLIC golpear · %s antorcha · %s esquivar · %s resonancia · %s perfil · %s habilidades · %s pausa" % [
             n.call("arriba"), n.call("izquierda"), n.call("abajo"), n.call("derecha"), n.call("interactuar"), n.call("antorcha"),
             n.call("esquivar"), n.call("resonancia"), n.call("perfil"), n.call("habilidades"), n.call("pausa")]
         _text_outline(hint, Vector2(12, 632), 10, Color("#8d8877"))
@@ -3037,7 +3329,7 @@ func _draw_title() -> void:
     _big_button(EXPLORE_BTN, "EXPLORAR", "antorcha_encendida", Color("#1d3a40"), SOUL)
     _big_button(FLOORS_BTN, "PISOS", "calavera", Color("#3b2550"), Color("#a988d0"))
     _big_button(VIGIL_BTN, "VIGILIA", "descansar", Color("#43301a"), UI_GOLD)
-    _text_outline("ENTER  explorar   ·   P  pisos   ·   H  vigilia", Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
+    _text_outline(_t("mando_titulo") if pad_active else "ENTER  explorar   ·   P  pisos   ·   H  vigilia", Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
     # Ficha rápida del personaje.
     if player_name != "":
         draw_texture_rect(_portrait(false), Rect2(171, 510, 40, 40), false)
@@ -3161,7 +3453,7 @@ func _draw_inventory_overlay() -> void:
     var hot_ab: bool = PROFILE_ABIL_BTN.has_point(ui_hover)
     _panel(PROFILE_ABIL_BTN, Color("#241a30") if hot_ab else Color("#141922"), UI_GOLD)
     draw_texture_rect(ICONS["habilidades"], Rect2(PROFILE_ABIL_BTN.position + Vector2(8, 10), Vector2(24, 24)), false)
-    _text_outline("HABILIDADES (%s)" % Ajustes.nombre_tecla("habilidades"), Vector2(PROFILE_ABIL_BTN.position.x + 36.0, PROFILE_ABIL_BTN.position.y + 27.0), 12, CREAM)
+    _text_outline("HABILIDADES (%s)" % _key_label("habilidades"), Vector2(PROFILE_ABIL_BTN.position.x + 36.0, PROFILE_ABIL_BTN.position.y + 27.0), 12, CREAM)
     # --- Descripción de la casilla señalada (cursor, flechas o toque).
     var desc_box := Rect2(372, 454, 496, 76)
     _panel(desc_box, Color("#0f1218"))
@@ -3680,6 +3972,8 @@ const T := {
     "pj_nombre": ["¿CÓMO TE LLAMAS?", "WHAT IS YOUR NAME?"],
     "pj_nombre_ayuda": ["Escribe o toca las letras  ·  ENTER seguir  ·  ESC volver", "Type or tap the letters  ·  ENTER next  ·  ESC back"],
     "pj_genero": ["ELIGE TU GÉNERO", "CHOOSE YOUR GENDER"],
+    "pj_nombre_mando": ["Cruceta elegir  ·  A letra  ·  X borrar  ·  Y al azar  ·  START seguir  ·  B volver", "D-pad choose  ·  A letter  ·  X delete  ·  Y random  ·  START next  ·  B back"],
+    "pj_genero_mando": ["Cruceta elegir  ·  A comenzar  ·  B atrás", "D-pad choose  ·  A start  ·  B back"],
     "pj_genero_ayuda": ["A / D elegir  ·  ENTER comenzar  ·  ESC atrás", "A / D choose  ·  ENTER start  ·  ESC back"],
     "pj_te_llamas": ["Te llamas %s.", "Your name is %s."],
     "pj_masculino": ["MASCULINO", "MALE"],
@@ -3712,6 +4006,18 @@ const T := {
     "repetir_tutorial": ["Repetir el tutorial", "Replay tutorial"],
     "ver_intro": ["Ver la intro", "Watch the intro"],
     "pulsa_tecla": ["Pulsa una tecla… (ESC cancela)", "Press a key… (ESC cancels)"],
+    "mando_reasignar": ["El mando tiene un esquema fijo; reasigna con el teclado.", "The gamepad layout is fixed; rebind with the keyboard."],
+    "mando_golpe": ["Enciende la antorcha (X) para golpear con fuego.", "Light the torch (X) to strike with fire."],
+    "mando_conectado": ["Mando conectado: %s", "Gamepad connected: %s"],
+    "mando_desconectado": ["Mando desconectado.", "Gamepad disconnected."],
+    "mando_hud": ["STICK mover · A/RT golpear · X antorcha · B/LT esquivar · Y resonancia · LB perfil · RB habilidades · START pausa",
+        "STICK move · A/RT strike · X torch · B/LT dodge · Y resonance · LB profile · RB abilities · START pause"],
+    "mando_esquema": ["MANDO: stick/cruceta mover · A usar/golpear · RT golpear · B/LT esquivar · X antorcha · Y resonancia",
+        "GAMEPAD: stick/D-pad move · A use/strike · RT strike · B/LT dodge · X torch · Y resonance"],
+    "mando_esquema2": ["LB perfil · RB habilidades · START pausa · en menús: A aceptar, B volver, LB/RB pestañas",
+        "LB profile · RB abilities · START pause · in menus: A accept, B back, LB/RB tabs"],
+    "mando_titulo": ["A  explorar   ·   Y  pisos   ·   X  personaje   ·   RB  vigilia   ·   SELECT  ajustes",
+        "A  explore   ·   Y  floors   ·   X  character   ·   RB  vigil   ·   SELECT  settings"],
     "clic_cambiar": ["Haz clic en una acción para cambiar su tecla. Las flechas siempre mueven.", "Click an action to change its key. Arrow keys always move."],
     "nota_idioma": ["La traducción al inglés cubre los menús nuevos; el resto llegará más adelante.", "English covers the new menus; the rest of the game is still in Spanish."],
     "volver": ["VOLVER", "BACK"],
@@ -4047,6 +4353,8 @@ func _draw_settings() -> void:
     match settings_tab:
         1:
             _text_outline(_t("pulsa_tecla") if rebinding != "" else _t("clic_cambiar"), Vector2(130, 176 - 4), 12, UI_GOLD if rebinding != "" else Color("#9a957f"))
+            _text_outline(_t("mando_esquema"), Vector2(118, 538), 11, SOUL)
+            _text_outline(_t("mando_esquema2"), Vector2(118, 556), 11, SOUL)
         2:
             _draw_text_block(_t("nota_idioma"), Rect2(250, 350, 460, 60), 13, Color("#9a957f"))
         3:
@@ -4366,25 +4674,30 @@ func _draw_intro() -> void:
 ## Pasos: [texto ES, texto EN]. Las teclas se escriben según la configuración.
 func _tutorial_text(step: int) -> String:
     var es := [
-        "Muévete con %s %s %s %s o las flechas" % [Ajustes.nombre_tecla("arriba"), Ajustes.nombre_tecla("izquierda"), Ajustes.nombre_tecla("abajo"), Ajustes.nombre_tecla("derecha")],
-        "Esquiva con %s: te hace invulnerable un instante" % Ajustes.nombre_tecla("esquivar"),
+        "Muévete con %s %s %s %s o las flechas" % [_key_label("arriba"), _key_label("izquierda"), _key_label("abajo"), _key_label("derecha")],
+        "Esquiva con %s: te hace invulnerable un instante" % _key_label("esquivar"),
         "Recoge un alma: basta con tocarla",
-        "Pulsa %s para encender la antorcha (gasta un fósforo)" % Ajustes.nombre_tecla("antorcha"),
-        "Golpea al muñeco 3 veces con CLIC o %s" % Ajustes.nombre_tecla("interactuar"),
-        "Abre tu perfil con %s y vuelve a cerrarlo" % Ajustes.nombre_tecla("perfil"),
-        "Pausa el juego con %s y continúa" % Ajustes.nombre_tecla("pausa"),
+        "Pulsa %s para encender la antorcha (gasta un fósforo)" % _key_label("antorcha"),
+        "Golpea al muñeco 3 veces con CLIC o %s" % _key_label("interactuar"),
+        "Abre tu perfil con %s y vuelve a cerrarlo" % _key_label("perfil"),
+        "Pausa el juego con %s y continúa" % _key_label("pausa"),
         "¡Listo! Cruza la puerta para entrar en el templo",
     ]
     var en := [
-        "Move with %s %s %s %s or the arrow keys" % [Ajustes.nombre_tecla("arriba"), Ajustes.nombre_tecla("izquierda"), Ajustes.nombre_tecla("abajo"), Ajustes.nombre_tecla("derecha")],
-        "Dodge with %s: you are invulnerable for an instant" % Ajustes.nombre_tecla("esquivar"),
+        "Move with %s %s %s %s or the arrow keys" % [_key_label("arriba"), _key_label("izquierda"), _key_label("abajo"), _key_label("derecha")],
+        "Dodge with %s: you are invulnerable for an instant" % _key_label("esquivar"),
         "Collect a soul: just touch it",
-        "Press %s to light the torch (uses a match)" % Ajustes.nombre_tecla("antorcha"),
-        "Hit the dummy 3 times with CLICK or %s" % Ajustes.nombre_tecla("interactuar"),
-        "Open your profile with %s and close it again" % Ajustes.nombre_tecla("perfil"),
-        "Pause the game with %s and resume" % Ajustes.nombre_tecla("pausa"),
+        "Press %s to light the torch (uses a match)" % _key_label("antorcha"),
+        "Hit the dummy 3 times with CLICK or %s" % _key_label("interactuar"),
+        "Open your profile with %s and close it again" % _key_label("perfil"),
+        "Pause the game with %s and resume" % _key_label("pausa"),
         "Done! Cross the door to enter the temple",
     ]
+    if pad_active:
+        es[0] = "Muévete con el stick izquierdo o la cruceta"
+        en[0] = "Move with the left stick or the D-pad"
+        es[4] = "Golpea al muñeco 3 veces con A o RT"
+        en[4] = "Hit the dummy 3 times with A or RT"
     if touch_enabled:
         es[0] = "Muévete con el joystick de la izquierda"
         en[0] = "Move with the joystick on the left"
@@ -4533,6 +4846,9 @@ func _start_creation(then: String) -> void:
     create_buf = player_name
     create_gender = 1 if player_gender == "femenino" else 0
     game_mode = "create"
+    pad_name_sel = 0
+    if pad_active:
+        _pad_name_hover()
     _sfx("interfaz", -8.0, 0.9)
 
 
@@ -4696,7 +5012,7 @@ func _draw_creation() -> void:
                     _create_key_button(key[0], _t("pj_siguiente") + " »", 17, true)
                 _:
                     _create_key_button(key[0], action, 20)
-        _text_outline(_t("pj_nombre_ayuda"), Vector2(150, 520), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
+        _text_outline(_t("pj_nombre_mando" if pad_active else "pj_nombre_ayuda"), Vector2(150, 520), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
     else:
         _text_outline(_t("pj_genero"), Vector2(150, 162), 30, CREAM, CREATE_PANEL.size.x)
         _text_outline(_t("pj_te_llamas") % _clean_name(create_buf), Vector2(150, 186), 14, SOUL, CREATE_PANEL.size.x)
@@ -4723,7 +5039,7 @@ func _draw_creation() -> void:
         for b in _create_step2_buttons():
             var is_go: bool = b[1] == "comenzar"
             _create_key_button(b[0], (_t("pj_comenzar") + " »") if is_go else ("« " + _t("pj_atras")), 18, is_go)
-        _text_outline(_t("pj_genero_ayuda"), Vector2(150, 530), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
+        _text_outline(_t("pj_genero_mando" if pad_active else "pj_genero_ayuda"), Vector2(150, 530), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
     if toast_left > 0.0:
         _draw_toast()
 
@@ -4808,8 +5124,20 @@ func _vigor_wait(cost: float) -> float:
     return clampf((cost - stamina) / cost, 0.0, 1.0)
 
 
+## Nombre del botón o tecla de una acción, según lo último que se usó.
+const PAD_LABELS := {"arriba": "STICK", "abajo": "STICK", "izquierda": "STICK", "derecha": "STICK",
+    "interactuar": "A", "antorcha": "X", "esquivar": "B", "resonancia": "Y", "perfil": "LB",
+    "habilidades": "RB", "pausa": "START"}
+
+
+func _key_label(action: String) -> String:
+    if pad_active and PAD_LABELS.has(action):
+        return PAD_LABELS[action]
+    return Ajustes.nombre_tecla(action)
+
+
 func _short_key(action: String) -> String:
-    var k: String = Ajustes.nombre_tecla(action)
+    var k: String = _key_label(action)
     if k in ["ESPACIO", "SPACE"]:
         return "SP"
     return k.substr(0, 2) if k.length() > 2 else k
@@ -5525,11 +5853,11 @@ func _close_abilities() -> void:
 ## [icono, nombre, tecla, descripción, la tienes, coste]
 func _ability_rows() -> Array:
     return [
-        ["golpe", "GOLPE DE ANTORCHA", Ajustes.nombre_tecla("interactuar") + " / CLIC",
+        ["golpe", "GOLPE DE ANTORCHA", _key_label("interactuar") + (" / RT" if pad_active else " / CLIC"),
             "Arco de fuego a corta distancia. Daño %d. Necesita la antorcha encendida." % int(STRIKE_DAMAGE), has_torch, "10 vigor"],
-        ["resonancia", ("RUGIDO" if has_mask else "RESONANCIA") + " · NIVEL %d" % ability_level, Ajustes.nombre_tecla("resonancia"),
+        ["resonancia", ("RUGIDO" if has_mask else "RESONANCIA") + " · NIVEL %d" % ability_level, _key_label("resonancia"),
             ("Con la Máscara de Porcelana la onda llega más lejos y espanta a los mastines 5 s. " if has_mask else "") + "Aturde a las entidades cercanas y les hace %d de daño." % int(30.0 + 10.0 * float(ability_level)), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
-        ["vigor", "ESQUIVAR", Ajustes.nombre_tecla("esquivar"),
+        ["vigor", "ESQUIVAR", _key_label("esquivar"),
             "Impulso hacia donde te mueves o, quieto, hacia donde miras. Pasas por encima de las trampas.", true, "%d vigor · se recarga con la barra" % int(_dash_cost())],
         ["llama_interior", "LLAMA INTERIOR", "PASIVA",
             "Enciendes la antorcha sin gastar fósforos.", has_inner_flame, "altar"],
@@ -5571,7 +5899,7 @@ func _draw_abilities() -> void:
         _text_outline(ECOS[keys[i]][0] if has_it else "ECO SIN DESPERTAR", Vector2(e.position.x + 52.0, e.position.y + 22.0), 12, SOUL if has_it else Color("#5d5a52"))
         draw_multiline_string(font, e.position + Vector2(52, 40), ECOS[keys[i]][1] if has_it else "Supera el piso %s para despertarlo." % _eco_floor(str(keys[i])), HORIZONTAL_ALIGNMENT_LEFT, e.size.x - 60.0, 10, 2, Color("#9a957f"))
     _text_outline("Se acumulan sin límite: una por cada piso superado.", Vector2(540, 102.0 + float(keys.size()) * 70.0 + 14.0), 11, Color("#8a8574"))
-    _text_outline("%s / ESC: cerrar" % Ajustes.nombre_tecla("habilidades"), Vector2(96, 574), 12, Color("#8a8574"), 768.0)
+    _text_outline("%s / ESC: cerrar" % _key_label("habilidades"), Vector2(96, 574), 12, Color("#8a8574"), 768.0)
 
 
 func _eco_floor(key: String) -> String:

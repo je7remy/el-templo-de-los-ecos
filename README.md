@@ -159,13 +159,31 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | F | Encender (gasta un fósforo) o apagar la antorcha |
 | I o Tab | Perfil (en móvil, tocar el retrato) |
 | ESC | Pausa (en móvil, el botón de pausa) |
-
-Todas las teclas se pueden cambiar en *Configuración > Controles*; las flechas siempre mueven.
 | Espacio | Esquivar |
 | Q | Resonancia: onda que daña y aturde (después de adquirirla) |
-| Esc | Volver al menú o cerrar un panel |
+| K | Habilidades |
 | 1–8 en Vigilia | Descansar, construir, mejorar, reparar y activar tecnología |
 | P en Vigilia | Pausar o reanudar |
+
+Todas las teclas se pueden cambiar en *Configuración > Controles*; las flechas siempre mueven.
+
+### Mando (Xbox 360, Xbox One/Series, PlayStation, Switch Pro y similares)
+
+Basta con conectarlo; el juego avisa al detectarlo y cambia los textos de ayuda a los botones del mando. Los nombres son los de Xbox: en PlayStation, A = ✕, B = ○, X = □, Y = △.
+
+| Botón | En la partida | En los menús |
+| --- | --- | --- |
+| Stick izquierdo / cruceta | Moverse | Recorrer opciones |
+| A | Interactuar o golpear | Aceptar |
+| RT | Golpe de antorcha | — |
+| B / LT | Esquivar | Volver |
+| X | Encender o apagar la antorcha | Borrar letra (nombre) |
+| Y | Resonancia | Nombre al azar · Pisos (menú) |
+| LB / SELECT | Perfil | Pestañas (configuración) · SELECT abre la configuración en el menú |
+| RB | Habilidades | Pestañas · Vigilia (menú) |
+| START | Pausa | Aceptar · Seguir (nombre) |
+
+En la Vigilia, la cruceta elige la acción, A la usa y B sale. El esquema del mando es fijo; las teclas se reasignan con el teclado. Si el mando se desconecta durante la partida, el juego se pausa.
 
 **Recorrido:** Umbral del despertar → Claustro de las ofrendas → Sala del Testigo → Archivo de los ausentes → Pórtico del siguiente piso. Algunas reglas de las entidades todavía son provisionales.
 

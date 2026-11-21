@@ -357,7 +357,58 @@ func _advance(dt: float) -> void:
                 _sfx("muerte", -4.0)
                 _say("La puerta ha cedido. La vigilia ha terminado.")
 
+## Mando: la cruceta (o el stick) elige una acción, A la usa, B sale.
+var pad_sel: int = 0
+var pad_stick_dir: int = 0
+
+
+func _pad_action_center(i: int) -> Vector2:
+    if i < 5:
+        return Vector2(i * 192.0 + 96.0, 596.0)
+    return Vector2((i - 5) * 240.0 + 120.0, 520.0)
+
+
+func _pad_move(step: int) -> void:
+    pad_sel = (pad_sel + step + 8) % 8
+    hover_pos = _pad_action_center(pad_sel)
+    tooltip_left = 2.2
+
+
+func _pad_key(k: Key) -> void:
+    var ev := InputEventKey.new()
+    ev.keycode = k
+    ev.pressed = true
+    _input(ev)
+
+
 func _input(event: InputEvent) -> void:
+    if event is InputEventJoypadButton and event.pressed:
+        match event.button_index:
+            JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_UP:
+                _pad_move(-1)
+            JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN:
+                _pad_move(1)
+            JOY_BUTTON_A, JOY_BUTTON_START:
+                if phase == "play":
+                    _action(pad_sel)
+                else:
+                    _pad_key(KEY_ENTER)
+            JOY_BUTTON_Y:
+                if phase == "play":
+                    _action(0)
+            JOY_BUTTON_B, JOY_BUTTON_BACK:
+                _leave()
+                return
+        queue_redraw()
+        return
+    if event is InputEventJoypadMotion and event.axis == JOY_AXIS_LEFT_X:
+        var d: int = 0 if absf(event.axis_value) < 0.5 else signi(roundi(event.axis_value))
+        if d != pad_stick_dir:
+            pad_stick_dir = d
+            if d != 0:
+                _pad_move(d)
+                queue_redraw()
+        return
     if event is InputEventScreenTouch:
         if event.pressed:
             _tap(make_input_local(event).position)
