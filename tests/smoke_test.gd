@@ -690,15 +690,16 @@ func _run_checks() -> void:
         _fail("El Brazalete de bronce no se compra, no se cobra primero o se vende dos veces.")
         return
     game.call("_shop_key", KEY_ESCAPE)
+    var mh0: float = float(game.get("max_hp"))
     game.set("player_pos", game.call("_merchant_hem"))
     game.call("_interact")
     game.call("_dialog_skip")
     game.set("game_mode", "play")
-    if not bool(game.get("hand_lost")) or float(game.get("max_hp")) != 75.0:
+    if not bool(game.get("hand_lost")) or float(game.get("max_hp")) != mh0 - 25.0:
         _fail("Meter la mano bajo el manto no cuesta vida máxima.")
         return
     game.call("_shop_buy", 0)
-    if float(game.get("max_hp")) != 85.0 or float(game.get("hp")) != 85.0:
+    if float(game.get("max_hp")) != mh0 - 15.0 or float(game.get("hp")) != mh0 - 15.0:
         _fail("El pan del Mercader no devuelve vida máxima.")
         return
     (game.get("ecos") as Array).append("huesos")
@@ -717,12 +718,103 @@ func _run_checks() -> void:
     (game.get("trinkets") as Array).clear()
     (game.get("guided") as Array).clear()
     game.set("hand_lost", false)
-    game.set("max_hp", 100.0)
-    game.set("hp", 100.0)
+    game.set("max_hp", game.call("_base_max_hp"))
+    game.set("hp", game.get("max_hp"))
     game.call("_on_floor_start")
     game.set("current_floor", 0)
     game.set("game_mode", "play")
     print("OK: Piso VI, guiar al grupo, Mercader, regla del manto y Huesos firmes.")
+
+    # Niveles: la experiencia sube de nivel y mejora las estadísticas.
+    game.set("player_level", 1)
+    game.set("xp", 0)
+    game.set("max_hp", game.call("_base_max_hp"))
+    var dmg1: float = float(game.call("_strike_damage"))
+    var hp1: float = float(game.get("max_hp"))
+    game.call("_gain_xp", int(game.call("_xp_needed", 1)) + 5)
+    if int(game.get("player_level")) != 2 or int(game.get("xp")) != 5 or float(game.get("max_hp")) <= hp1 \
+            or float(game.call("_strike_damage")) <= dmg1 or float(game.get("hp")) != float(game.get("max_hp")):
+        _fail("Subir de nivel no mejora vida, daño o no cura.")
+        return
+    print("OK: niveles, experiencia y estadísticas.")
+
+    # Piso VII: la mirada. Darle la espalda la provoca; aguantarla abre la puerta.
+    game.set("guided", ["IRENE", "BAS"])
+    game.set("current_floor", 6)
+    game.set("current_room", 0)
+    game.call("_on_floor_start")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    if (game.get("allies") as Array).size() != 2 or not bool(game.get("guiding")):
+        _fail("Los peregrinos guiados en el Piso VI no bajan contigo al VII.")
+        return
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    if not bool(game.get("gaze_active")) or bool(game.call("_room_ready")):
+        _fail("La Sala de la Mirada no tiene a la Vigía o abre sin aguantar su mirada.")
+        return
+    game.set("player_pos", Vector2(480, 470))
+    game.set("dash_left", 0.0)
+    game.set("player_dir", (Vector2(game.get("gaze_pos")) - Vector2(480, 470)).normalized())
+    for k in range(50):
+        game.set("player_dir", (Vector2(game.get("gaze_pos")) - Vector2(480, 470)).normalized())
+        game.call("_update_gaze", 0.1)
+    if float(game.get("gaze_t")) < 4.0 or game.get("gaze_state") != "mira":
+        _fail("Mirarla no cuenta tiempo o la provoca sin motivo.")
+        return
+    for k in range(10):
+        game.set("player_dir", -(Vector2(game.get("gaze_pos")) - Vector2(480, 470)).normalized())
+        game.call("_update_gaze", 0.1)
+    if not (game.get("gaze_state") in ["aviso", "golpe"]):
+        _fail("Darle la espalda no la provoca.")
+        return
+    game.set("gaze_state", "mira")
+    game.set("gaze_away_t", 0.0)
+    game.set("gaze_t", float(game.get("gaze_need")) * 0.5)
+    game.set("gaze_panic_done", false)
+    game.set("player_dir", (Vector2(game.get("gaze_pos")) - Vector2(480, 470)).normalized())
+    game.call("_update_gaze", 0.01)
+    var panicked: Dictionary = {}
+    for a in game.get("allies"):
+        if float(a["panic"]) > 0.0:
+            panicked = a
+    if panicked.is_empty():
+        _fail("Ningún peregrino entra en pánico durante la mirada.")
+        return
+    game.set("player_pos", Vector2(panicked["pos"]) + Vector2(30, 0))
+    game.call("_interact")
+    if float(panicked["panic"]) > 0.0:
+        _fail("No se puede calmar al peregrino en pánico.")
+        return
+    game.set("gaze_t", float(game.get("gaze_need")) - 0.01)
+    game.set("player_pos", Vector2(480, 470))
+    game.set("player_dir", (Vector2(game.get("gaze_pos")) - Vector2(480, 470)).normalized())
+    game.call("_update_gaze", 0.1)
+    if game.get("gaze_state") != "vencida" or not bool(game.call("_room_ready")):
+        _fail("Aguantar su mirada no abre la puerta.")
+        return
+    game.set("current_room", 3)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    if (game.get("guided") as Array).size() != 2:
+        _fail("Los supervivientes del Piso VII no quedan guardados.")
+        return
+    (game.get("ecos") as Array).append("serena")
+    game.set("game_mode", "play")
+    game.set("fear", 100.0)
+    game.set("hp", 50.0)
+    game.call("_update_play", 0.1)
+    (game.get("ecos") as Array).erase("serena")
+    if float(game.get("hp")) < 50.0:
+        _fail("Con Mente serena el miedo al máximo sigue haciendo daño.")
+        return
+    (game.get("guided") as Array).clear()
+    game.call("_on_floor_start")
+    game.set("current_floor", 0)
+    game.set("game_mode", "play")
+    print("OK: Piso VII, la mirada, provocar, calmar a los guiados y Mente serena.")
 
     game.set("current_room", 2)
     game.call("_enter_room")

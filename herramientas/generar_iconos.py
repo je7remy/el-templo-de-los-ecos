@@ -412,6 +412,18 @@ def eco_huesos() -> Image.Image:
     return i.fin()
 
 
+def eco_serena() -> Image.Image:
+    """Piso VII: ojo cerrado y en calma, con una lágrima que no cae."""
+    i = Icono()
+    i.e(3, 9, 29, 25, c("#3b2550"))
+    i.arco(16, 12, 11, 20, 160, c("#d8cdb0"), 2)
+    for x in (9, 13, 19, 23):
+        i.ln([(x, 22), (x - (1 if x < 16 else -1), 26)], c("#d8cdb0"))
+    i.e(14, 4, 18, 9, c("#8fc7d7"))
+    i.px(15, 5, c("#e8fbff"))
+    return i.fin()
+
+
 def pan() -> Image.Image:
     """Pan de ceniza del Mercader: corteza gris con miga clara."""
     i = Icono()
@@ -514,7 +526,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "eco_serena": eco_serena, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
 }
 
 

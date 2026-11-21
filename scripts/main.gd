@@ -173,6 +173,28 @@ const FLOORS := [
              "whisper": "Peldaños que bajan hacia un silencio que mira.", "items": []},
         ],
     },
+    {
+        # Inspiración: la sala de la mirada; mueren quienes gritan o se adelantan.
+        "number": "VII", "title": "LA QUE NO APARTA LA VISTA", "state": "ALGO TE MIRA SIN PARPADEAR", "wear": 1.9,
+        "eco": "serena", "followers": true,
+        "rooms": [
+            {"scene": 0, "name": "VII-1 · ANTESALA DE LOS OJOS", "enemy": "", "traits": [],
+             "whisper": "Las estatuas tienen los ojos arrancados. Alguien los coleccionó.",
+             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
+             "inscription": [Vector2(480, 470), "Mírala. No corras. No le des la espalda. Quien grita, se queda."]},
+            {"scene": 2, "name": "VII-2 · SALA DE LA MIRADA", "enemy": "", "traits": [],
+             "whisper": "Un yelmo flota en la penumbra. Debajo, una hilera de ojos se abre.", "items": [],
+             "gaze": 45.0,
+             "mission": {"goal": "mirada", "required": true, "reward": 10, "text": "Aguanta su mirada 45 s"}},
+            {"scene": 1, "name": "VII-3 · CORO DE LOS CIEGOS", "enemy": "", "traits": ["almas"],
+             "whisper": "Hay almas en el suelo. Para recogerlas tendrás que moverte sin dejar de mirarla.",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
+             "gaze": 60.0,
+             "mission": {"goal": "mirada", "required": true, "reward": 14, "text": "Aguanta su mirada 60 s"}},
+            {"scene": 4, "name": "VII-4 · UMBRAL DEL OCTAVO", "enemy": "", "traits": ["recuento_guias"],
+             "whisper": "Detrás, los ojos se cierran. Delante, el templo empieza a cambiar.", "items": []},
+        ],
+    },
 ]
 
 const RELICS := [
@@ -212,6 +234,7 @@ const ICONS := {
     "eco_paso": preload("res://assets/visual/iconos/eco_paso.png"),
     "mascara": preload("res://assets/visual/iconos/mascara.png"),
     "eco_huesos": preload("res://assets/visual/iconos/eco_huesos.png"),
+    "eco_serena": preload("res://assets/visual/iconos/eco_serena.png"),
     "pan": preload("res://assets/visual/iconos/pan.png"),
     "brazalete": preload("res://assets/visual/iconos/brazalete.png"),
     "amuleto": preload("res://assets/visual/iconos/amuleto.png"),
@@ -257,6 +280,7 @@ const ECOS := {
     "piel": ["PIEL CURTIDA", "Recibes un 25 % menos de daño."],
     "paso": ["PASO LIGERO", "Te mueves un 5 % más rápido."],
     "huesos": ["HUESOS FIRMES", "Una vez por piso, un golpe mortal te deja con 1 de vida."],
+    "serena": ["MENTE SERENA", "El miedo al máximo ya no te hace daño."],
 }
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
@@ -660,6 +684,8 @@ func _load_progress() -> void:
         has_mask = bool(data.get("has_mask", false))
         var saved_rescued = data.get("rescued", [])
         rescued = (saved_rescued as Array).map(func(e): return str(e)) if saved_rescued is Array else []
+        player_level = clampi(int(data.get("player_level", 1)), 1, LEVEL_MAX)
+        xp = maxi(0, int(data.get("xp", 0)))
         var saved_guided = data.get("guided", [])
         guided = (saved_guided as Array).map(func(e): return str(e)) if saved_guided is Array else []
         var saved_trinkets = data.get("trinkets", [])
@@ -685,6 +711,8 @@ func _save_progress() -> void:
             "has_mask": has_mask,
             "rescued": rescued,
             "guided": guided,
+            "player_level": player_level,
+            "xp": xp,
             "trinkets": trinkets
         }))
 
@@ -729,7 +757,7 @@ func _new_run() -> void:
     floor_critters = 0
     dialog_queue.clear()
     souls = 0
-    max_hp = 100.0
+    max_hp = _base_max_hp()
     hp = max_hp
     fear = 0.0
     stamina = 100.0
@@ -801,6 +829,7 @@ func _enter_room() -> void:
     _load_vines()
     _load_labyrinth()
     _load_merchant()
+    _load_gaze()
     door_state = "unknown"
     if game_mode == "floor_intro":
         toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
@@ -1321,17 +1350,21 @@ func _mobile_touch(finger: int, at: Vector2, pressed: bool) -> void:
         if finger == mobile_finger:
             mobile_finger = -1
             mobile_axis = Vector2.ZERO
+            joy_center = JOY_HOME
         queue_redraw()
         return
-    if game_mode == "play" and at.x <= 325.0 and at.y >= 367.0:
+    if game_mode == "play" and at.x <= JOY_ZONE_X and at.y >= JOY_ZONE_Y:
         mobile_finger = finger
+        # Joystick flotante: si el dedo cae lejos de la base, la base va al dedo.
+        if at.distance_to(joy_center) > JOY_RADIUS + 10.0:
+            joy_center = Vector2(clampf(at.x, 90.0, JOY_ZONE_X - 40.0), clampf(at.y, JOY_ZONE_Y + 50.0, 560.0))
         _mobile_update_axis(at)
     else:
         _mobile_tap(at)
     queue_redraw()
 
 func _mobile_update_axis(at: Vector2) -> void:
-    mobile_axis = ((at - Vector2(135.0, 480.0)) / 68.0).limit_length(1.0)
+    mobile_axis = ((at - joy_center) / 68.0).limit_length(1.0)
     queue_redraw()
 
 func _mobile_tap(at: Vector2) -> void:
@@ -1442,14 +1475,14 @@ func _mobile_tap(at: Vector2) -> void:
         # Tocar el retrato abre el perfil.
         _open_inventory()
         return
-    if at.y > 365.0 and at.x > 370.0:
-        if at.x < 510.0:
+    match _touch_button_at(at):
+        "accion":
             _interact()
-        elif at.x < 660.0:
+        "antorcha":
             _toggle_torch()
-        elif at.x < 790.0:
+        "esquivar":
             _start_dash()
-        else:
+        "resonancia":
             _use_pulse()
     queue_redraw()
 
@@ -1458,28 +1491,53 @@ func _draw_mobile_controls() -> void:
         return
     if game_mode != "play":
         return
-    # Joystick virtual: el dedo en la izquierda define un vector en vez de
-    # modificar las teclas reales de escritorio o la IA original.
-    # Joystick y botones con los controles en pantalla de Kenney (CC0), los
-    # mismos del primer juego del autor, teñidos con la paleta del templo.
-    var base_c := Vector2(135, 480)
-    draw_texture_rect(JOY_BASE_TEX, Rect2(base_c - Vector2(76, 76), Vector2(152, 152)), false, Color(0.75, 0.68, 0.8, 0.75))
-    draw_texture_rect(BUTTON_TEX, Rect2(base_c + mobile_axis * 48.0 - Vector2(30, 30), Vector2(60, 60)), false, Color(0.62, 0.81, 0.83, 0.85))
-    var positions := [Vector2(440, 478), Vector2(585, 478), Vector2(725, 478), Vector2(865, 478)]
-    var labels := ["E", "F", "DASH", "Q"]
-    var icons := ["golpe" if has_torch and torch_on else "", "antorcha_encendida" if torch_on else "antorcha", "vigor", "resonancia"]
-    var waits := [_vigor_wait(10.0), 0.0, _vigor_wait(_dash_cost()), _vigor_wait(RESONANCE_COST)]
-    for i in range(4):
-        var at: Vector2 = positions[i]
-        var ready_b: bool = float(waits[i]) <= 0.0
-        draw_texture_rect(BUTTON_TEX, Rect2(at - Vector2(54, 54), Vector2(108, 108)), false, Color(0.85, 0.75, 0.6, 0.8) if ready_b else Color(0.45, 0.42, 0.48, 0.7))
-        if not ready_b:
-            draw_arc(at, 46.0, -PI * 0.5, -PI * 0.5 + TAU * (1.0 - float(waits[i])), 32, SOUL, 3.0)
-        if icons[i] != "" and (i != 1 or has_torch) and (i != 3 or has_pulse):
-            draw_texture_rect(ICONS[icons[i]], Rect2(at - Vector2(22, 28), Vector2(44, 44)), false, Color(1, 1, 1, 0.92 if ready_b else 0.5))
-            draw_string(font, at + Vector2(-47, 36), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 94, 13, CREAM)
-        else:
-            draw_string(font, at + Vector2(-47, 8), labels[i], HORIZONTAL_ALIGNMENT_CENTER, 94, 23, CREAM)
+    # Joystick flotante a la izquierda y botones agrupados a la derecha, al
+    # alcance del pulgar (controles de Kenney, CC0, teñidos con la paleta).
+    var idle: bool = mobile_finger < 0
+    draw_texture_rect(JOY_BASE_TEX, Rect2(joy_center - Vector2(76, 76), Vector2(152, 152)), false, Color(0.75, 0.68, 0.8, 0.35 if idle else 0.7))
+    draw_texture_rect(BUTTON_TEX, Rect2(joy_center + mobile_axis * 48.0 - Vector2(30, 30), Vector2(60, 60)), false, Color(0.62, 0.81, 0.83, 0.5 if idle else 0.85))
+    var ctx: Array = _touch_context()
+    for id in TOUCH_BUTTONS:
+        var at: Vector2 = TOUCH_BUTTONS[id][0]
+        var r: float = TOUCH_BUTTONS[id][1]
+        if id == "resonancia" and not has_pulse:
+            continue
+        var wait: float = 0.0
+        var icon: String = ""
+        var label: String = ""
+        match id:
+            "accion":
+                label = ctx[0]
+                icon = ctx[1]
+                if ctx[2]:
+                    wait = _vigor_wait(10.0)
+            "antorcha":
+                label = "APAGAR" if torch_on else "LUZ"
+                icon = "antorcha_encendida" if torch_on else "antorcha"
+            "esquivar":
+                label = "ESQUIVA"
+                icon = "vigor"
+                wait = _vigor_wait(_dash_cost())
+            "resonancia":
+                label = "RUGIDO" if has_mask else "ONDA"
+                icon = "resonancia"
+                wait = _vigor_wait(RESONANCE_COST)
+        var ready_b: bool = wait <= 0.0 and (id != "antorcha" or has_torch)
+        var tint := Color(0.85, 0.75, 0.6, 0.72) if ready_b else Color(0.45, 0.42, 0.48, 0.55)
+        if id == "accion" and ctx[3]:
+            tint = Color(1.0, 0.85, 0.5, 0.85 + 0.15 * sin(elapsed * 5.0)) # hay algo con qué interactuar
+        draw_texture_rect(BUTTON_TEX, Rect2(at - Vector2(r, r), Vector2(r * 2.0, r * 2.0)), false, tint)
+        if not ready_b and wait > 0.0:
+            draw_arc(at, r - 6.0, -PI * 0.5, -PI * 0.5 + TAU * (1.0 - wait), 32, SOUL, 3.0)
+        var isz: float = r * 0.8
+        if icon != "" and ICONS.has(icon):
+            draw_texture_rect(ICONS[icon], Rect2(at - Vector2(isz * 0.5, isz * 0.62), Vector2(isz, isz)), false, Color(1, 1, 1, 0.95 if ready_b else 0.5))
+        _text_outline(label, Vector2(at.x - r, at.y + r * 0.62), 13 if id == "accion" else 11, CREAM, r * 2.0)
+        if id == "antorcha" and has_torch and not has_inner_flame:
+            var tag := Rect2(at + Vector2(r * 0.35, -r - 4.0), Vector2(30, 18))
+            _panel(tag, Color("#2a1d22"), UI_GOLD)
+            _text_outline("×%d" % matches, Vector2(tag.position.x, tag.position.y + 14.0), 11, CREAM, tag.size.x)
+
 
 func _buy_upgrade(choice: int) -> void:
     if choice == 2:
@@ -1538,14 +1596,14 @@ func _use_pulse() -> void:
             float_fx.append({"pos": Vector2(h["pos"]) + Vector2(0, -50), "text": "HUYE", "color": SOUL, "t": 0.0})
     if _pilgrim_present() and pilgrim_state != "dead" and player_pos.distance_to(pilgrim_pos) < PULSE_RADIUS + 12.0:
         pilgrim_stun = 1.4
-        _damage_pilgrim(30.0 + 10.0 * float(ability_level))
+        _damage_pilgrim(_pulse_damage())
     for cr in critters:
         if bool(cr["alive"]) and player_pos.distance_to(cr["pos"]) < _pulse_radius() + 12.0:
             _critter_die(cr)
     if _enemy_active() and player_pos.distance_to(enemy_pos) < 220.0:
         enemy_stun = 1.6 + 0.5 * float(ability_level)
         if player_pos.distance_to(enemy_pos) < PULSE_RADIUS + 12.0:
-            _damage_enemy(30.0 + 10.0 * float(ability_level))
+            _damage_enemy(_pulse_damage())
         else:
             _say("La onda la aturde, pero está lejos para dañarla.", 2.2)
     else:
@@ -1683,7 +1741,7 @@ func _inventory_slot_at(at: Vector2) -> int:
 
 
 func _profile_eco_rect(i: int) -> Rect2:
-    return Rect2(372.0 + float(i) * 54.0, 380.0, 48.0, 48.0)
+    return Rect2(372.0 + float(i) * 49.0, 382.0, 44.0, 44.0) # caben los diez Ecos
 
 
 func _altar_row_rect(i: int) -> Rect2:
@@ -1763,6 +1821,7 @@ func _banish_enemy() -> void:
         seg_hp_floor = 0.0
     dissolve_fx.append({"pos": enemy_pos, "kind": kind, "facing": enemy_facing, "frame": _enemy_frame(kind), "t": 0.0})
     drops.append({"pos": enemy_pos})
+    _gain_xp(XP_BANISH)
     fireballs.clear()
     enemy_stun = 0.0
     enemy_alert = false
@@ -1827,6 +1886,8 @@ func _interact() -> void:
         _save_progress()
         _say("SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
         _sfx("sello", -4.0)
+        return
+    if _calm_ally():
         return
     if _offering_interact():
         return
@@ -1927,6 +1988,7 @@ func _finish_floor() -> void:
     if eco != "" and not ecos.has(eco):
         ecos.append(eco)
         floor_intro_eco = eco
+    _gain_xp(XP_FLOOR)
     _save_progress()
     # Resumen del piso (idea de la pantalla «nivel completado» del primer juego).
     _open_floor_summary(eco)
@@ -1954,6 +2016,7 @@ func _on_floor_start() -> void:
     _allies_reset()
     bones_used = false
     guiding = false
+    guides_rewarded = false
     rescue_state = "atrapado" if _floor_has_trait_key("rescue") else ""
     floor_t0 = Time.get_ticks_msec()
     floor_souls0 = souls
@@ -2001,6 +2064,8 @@ func _lose_run() -> void:
         ecos.clear()
         ability_level = 0
         remembered_rule = false
+        player_level = 1 # otra persona: empieza de cero
+        xp = 0
         # Una persona nueva, sin la memoria de la anterior.
     _save_progress()
     game_mode = "dead"
@@ -2046,6 +2111,7 @@ func _is_blocked(at: Vector2) -> bool:
 func _process(delta: float) -> void:
     elapsed += delta
     _update_pad_repeat(delta)
+    _update_level_fx(delta)
     toast_left = maxf(0.0, toast_left - delta)
     visual_interaction_left = maxf(0.0, visual_interaction_left - delta)
     bump_left = maxf(0.0, bump_left - delta)
@@ -2160,7 +2226,7 @@ func _update_play(dt: float) -> void:
         # A oscuras el miedo se va más despacio.
         fear -= (4.0 if torch_on else 1.2) * dt
     fear = clampf(fear, 0.0, 100.0)
-    if fear >= 100.0:
+    if fear >= 100.0 and not ecos.has("serena"):
         hp -= dt * 5.0
     _update_traps(dt)
     _update_fire(dt)
@@ -2171,6 +2237,7 @@ func _update_play(dt: float) -> void:
     _update_door_celebration()
     _update_regen(dt)
     _update_offering(dt)
+    _update_gaze(dt)
     if hp <= 0.0 and ecos.has("huesos") and not bones_used:
         _bones_hold()
     if hp <= 0.0:
@@ -2182,6 +2249,7 @@ func _collect_relic(i: int) -> void:
     fear = maxf(0.0, fear - 8.0)
     souls_flash = 0.8
     pickup_fx.append({"pos": relics[i], "t": 0.0})
+    _gain_xp(XP_RELIC)
     _sfx("k_vidrio", -15.0, 1.35)
     _emit(relics[i] + Vector2(0, -16), 18, Color(0.56, 0.86, 0.95), 15.0, 60.0, 1.1, 2.0, -40.0, Vector2.UP, 1.0, true)
     _say("Fragmento reunido: +7 almas. Es la moneda del templo.", 2.5)
@@ -2302,6 +2370,7 @@ func _draw() -> void:
     if toast_left > 0.0:
         _draw_toast()
     _draw_mission_banner()
+    _draw_level_banner()
     _draw_room_souls_counter()
     _draw_room_fade()
     if game_mode == "altar":
@@ -2577,6 +2646,8 @@ func _draw_depth_sorted() -> void:
         items.append([Vector2(_room()["rescue"]).y, "rescue", null])
     if _room().has("merchant"):
         items.append([Vector2(_room()["merchant"]).y, "merchant", null])
+    if gaze_active:
+        items.append([gaze_pos.y, "vigia", null])
     if _has("archivo"):
         items.append([book_pos.y + 37.0, "book", null]) # justo después de la mesa
     for i in range(room_props.size()):
@@ -2604,6 +2675,8 @@ func _draw_depth_sorted() -> void:
                 _draw_rescue()
             "merchant":
                 _draw_merchant()
+            "vigia":
+                _draw_vigia()
             "altar":
                 _draw_altar(altar_pos)
             "book":
@@ -2616,23 +2689,24 @@ func _draw_depth_sorted() -> void:
 func _draw_object_labels() -> void:
     # Etiquetas por encima de todo para que nunca queden tapadas.
     if _has("altar") and player_pos.distance_to(altar_pos) < 150.0:
-        _label_center("INTERCAMBIO [%s]" % _key_label("interactuar"), altar_pos + Vector2(0.0, 46.0), CREAM)
+        _label_center(_prompt("INTERCAMBIO"), altar_pos + Vector2(0.0, 46.0), CREAM)
     if _has("archivo") and not letter_found and player_pos.distance_to(archive_pos) < 150.0:
-        _label_center("LEER CARTA [%s]" % _key_label("interactuar"), archive_pos + Vector2(0.0, 30.0), CREAM)
+        _label_center(_prompt("LEER CARTA"), archive_pos + Vector2(0.0, 30.0), CREAM)
     if _has("sello") and not seal_acquired:
-        _label_center("SELLO [%s]" % _key_label("interactuar"), seal_pos + Vector2(0.0, 56.0), Color("#e2c48a"))
+        _label_center(_prompt("SELLO"), seal_pos + Vector2(0.0, 56.0), Color("#e2c48a"))
     if _enemy_active():
         _draw_enemy_health()
     _draw_ally_labels()
     _draw_inscription_text()
     _draw_rescue_label()
     _draw_offering_labels()
+    _draw_gaze_hud()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
 
 
 func _label_center(msg: String, at: Vector2, color: Color) -> void:
-    var size: int = 12
+    var size: int = 14 if touch_enabled else 12
     var width: float = font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
     var box := Rect2(at.x - width * 0.5 - 6.0, at.y - 12.0, width + 12.0, 17.0)
     draw_rect(box, Color(0.03, 0.05, 0.06, 0.72))
@@ -3126,6 +3200,13 @@ func _draw_player_panel() -> void:
     # Placa con el nombre bajo el retrato.
     _panel(Rect2(16, 82, 72, 17), Color("#2a1d22"), UI_GOLD)
     _text_outline(_hero_name(), Vector2(16, 95), 12, CREAM, 72.0)
+    # Nivel: placa en la esquina del retrato y barra de experiencia.
+    var badge := Rect2(10, 6, 34, 18)
+    _panel(badge, Color("#3b2550"), UI_GOLD)
+    _text_outline("NV%d" % player_level, Vector2(badge.position.x, badge.position.y + 14.0), 11, CREAM, badge.size.x)
+    var xpbar := Rect2(122, 94, 196, 4)
+    draw_rect(xpbar, Color(0, 0, 0, 0.7))
+    draw_rect(Rect2(xpbar.position, Vector2(xpbar.size.x * _xp_fraction(), xpbar.size.y)), Color("#c9a25e").lerp(Color.WHITE, 0.4 * level_flash))
     var bars := [
         ["corazon", hp, max_hp, BAR_HP, "%d/%d" % [int(ceil(hp)), int(max_hp)]],
         ["vigor", stamina, 100.0, BAR_VIGOR, "%d/100" % int(stamina)],
@@ -3290,6 +3371,8 @@ func _draw_footer() -> void:
 
 ## Arma equipada (la antorcha) con su «munición» y las habilidades.
 func _draw_weapon_panel() -> void:
+    if touch_enabled and game_mode == "play":
+        return # en móvil esa información está en los botones
     var panel := Rect2(586, 578, 366, 58)
     _panel(panel)
     var slot := Rect2(594, 583, 48, 48)
@@ -3374,7 +3457,7 @@ func _draw_ability_icon(box: Rect2, key: String, ready_to_use: bool, cooldown: f
 func _draw_toast() -> void:
     ## Mensaje flotante bajo el HUD, centrado y con desvanecimiento.
     var alpha: float = clampf(toast_left * 3.0, 0.0, 1.0)
-    var size: int = 14
+    var size: int = 16 if touch_enabled else 14
     var width: float = minf(font.get_string_size(toast, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 40.0, W - 40.0)
     var box := Rect2(roundf((W - width) * 0.5), 110.0, width, 28.0)
     _panel(box, Color(0.035, 0.045, 0.06, 0.94 * alpha), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.8 * alpha))
@@ -3399,7 +3482,7 @@ func _draw_title() -> void:
     _big_button(EXPLORE_BTN, "EXPLORAR", "antorcha_encendida", Color("#1d3a40"), SOUL)
     _big_button(FLOORS_BTN, "PISOS", "calavera", Color("#3b2550"), Color("#a988d0"))
     _big_button(VIGIL_BTN, "VIGILIA", "descansar", Color("#43301a"), UI_GOLD)
-    _text_outline(_t("mando_titulo") if pad_active else "ENTER  explorar   ·   P  pisos   ·   H  vigilia", Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
+    _text_outline(_hint("ENTER  explorar   ·   P  pisos   ·   H  vigilia", "Toca un botón para empezar", _t("mando_titulo")), Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
     # Ficha rápida del personaje.
     if player_name != "":
         draw_texture_rect(_portrait(false), Rect2(171, 510, 40, 40), false)
@@ -3456,7 +3539,7 @@ func _draw_altar_overlay() -> void:
         draw_string(font, row.position + Vector2(0, 32), right, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, 15, tone)
     draw_texture_rect(ICONS["alma"], Rect2(196, 464, 26, 26), false)
     _text("ALMAS: %d" % souls, Vector2(228, 484), 16, SOUL)
-    _text("E / ESC: salir", Vector2(640, 484), 14, CREAM)
+    _text(_hint("E / ESC: salir", "Toca fuera para salir", "B: salir"), Vector2(600, 484), 14, CREAM)
 
 
 func _draw_inventory_overlay() -> void:
@@ -3477,17 +3560,20 @@ func _draw_inventory_overlay() -> void:
     _text_outline("PISO %s · SALA %d" % [_floor()["number"], current_room + 1], Vector2(252, 158), 13, UI_GOLD)
     var fate: String = "Recuerda sus vidas" if reincarnations > 0 else "Primera vida"
     _text_outline(fate, Vector2(252, 180), 12, Color("#8a8574"))
+    _text_outline("NIVEL %d" % player_level, Vector2(252, 204), 14, UI_GOLD)
+    var xp_label: String = "MÁXIMO" if player_level >= LEVEL_MAX else "%d/%d XP" % [xp, _xp_needed(player_level)]
+    _px_bar(Rect2(252, 210, 108, 14), _xp_fraction(), Color("#c9a25e"), xp_label)
     _px_bar(Rect2(102, 236, 238, 18), hp / max_hp, BAR_HP, "VIDA %d/%d" % [int(ceil(hp)), int(max_hp)])
     _px_bar(Rect2(102, 258, 238, 18), stamina / 100.0, BAR_VIGOR, "VIGOR %d" % int(stamina))
     _px_bar(Rect2(102, 280, 238, 18), fear / 100.0, BAR_FEAR, "MIEDO %d%%" % int(fear))
     var stats := [
         ["Daño del golpe", "%d" % int(_strike_damage())],
-        ["Daño de Resonancia", ("%d" % int(30.0 + 10.0 * float(ability_level))) if has_pulse else "—"],
+        ["Daño de Resonancia", ("%d" % int(_pulse_damage())) if has_pulse else "—"],
         ["Almas", "%d" % souls],
         ["Muertes", "%d" % deaths],
         ["Retornos", "%d" % reincarnations],
-        ["Absorciones", "%d" % new_humans],
         ["Pisos superados", "%d" % cleared],
+        ["Vida máxima", "%d" % int(max_hp)],
         ["Objetos", ", ".join(trinkets.map(func(t): return "Brazalete" if t == "brazalete" else "Amuleto")) if not trinkets.is_empty() else "—"],
     ]
     _panel(Rect2(96, 310, 250, 268), Color("#0f1218"))
@@ -3520,11 +3606,11 @@ func _draw_inventory_overlay() -> void:
         var has_it: bool = ecos.has(keys[i])
         var sel_e: bool = inventory_sel == 100 + i
         _panel(r, Color("#222c39") if sel_e else Color("#141922"), UI_GOLD if sel_e else (Color("#3b6f7d") if has_it else UI_EDGE))
-        draw_texture_rect(ICONS["eco_" + str(keys[i])], Rect2(r.position + Vector2(8, 8), Vector2(32, 32)), false, Color.WHITE if has_it else Color(0.15, 0.15, 0.18, 0.9))
+        draw_texture_rect(ICONS["eco_" + str(keys[i])], Rect2(r.position + Vector2(6, 6), Vector2(32, 32)), false, Color.WHITE if has_it else Color(0.15, 0.15, 0.18, 0.9))
     var hot_ab: bool = PROFILE_ABIL_BTN.has_point(ui_hover)
     _panel(PROFILE_ABIL_BTN, Color("#241a30") if hot_ab else Color("#141922"), UI_GOLD)
     draw_texture_rect(ICONS["habilidades"], Rect2(PROFILE_ABIL_BTN.position + Vector2(8, 10), Vector2(24, 24)), false)
-    _text_outline("HABILIDADES (%s)" % _key_label("habilidades"), Vector2(PROFILE_ABIL_BTN.position.x + 36.0, PROFILE_ABIL_BTN.position.y + 27.0), 12, CREAM)
+    _text_outline("HABILIDADES" if touch_enabled and not pad_active else "HABILIDADES (%s)" % _key_label("habilidades"), Vector2(PROFILE_ABIL_BTN.position.x + 36.0, PROFILE_ABIL_BTN.position.y + 26.0), 12, CREAM)
     # --- Descripción de la casilla señalada (cursor, flechas o toque).
     var desc_box := Rect2(372, 454, 496, 76)
     _panel(desc_box, Color("#0f1218"))
@@ -3537,7 +3623,7 @@ func _draw_inventory_overlay() -> void:
         var owned_sel: bool = _slot_owned(inventory_sel)
         _text_outline(INVENTORY_SLOTS[inventory_sel][1] if owned_sel else "???", Vector2(388, 478), 15, CREAM if owned_sel else Color("#6d6a60"))
         draw_string(font, Vector2(388, 502), INVENTORY_SLOTS[inventory_sel][2] if owned_sel else "Aún no lo tienes. Explora el templo.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, SOUL if owned_sel else Color("#8a8778"))
-    _text_outline("I / ESC: cerrar", Vector2(372, 566), 12, Color("#8a8574"), 496.0)
+    _text_outline(_hint("I / ESC: cerrar", "Toca fuera para cerrar", "B: cerrar"), Vector2(372, 564), 12, Color("#8a8574"), 320.0)
 
 
 ## Pantalla de entrada al piso (GDD §7): solo una vista parcial del interior,
@@ -3565,7 +3651,7 @@ func _draw_floor_intro() -> void:
         _center("ECO ADQUIRIDO: %s" % eco[0], 486, 16, SOUL)
         _center(eco[1], 510, 14, Color("#b9b29b"))
     var pulse: float = 0.6 + 0.4 * sin(elapsed * 3.0)
-    _center("ENTRAR  ·  ENTER / TOCA", 560, 18, Color(0.89, 0.74, 0.48, pulse))
+    _center(_hint("ENTRAR  ·  ENTER", "TOCA PARA ENTRAR", "ENTRAR  ·  A"), 560, 18, Color(0.89, 0.74, 0.48, pulse))
 
 
 func _draw_end_overlay(win: bool) -> void:
@@ -3574,26 +3660,26 @@ func _draw_end_overlay(win: bool) -> void:
         _center("PISO %s SUPERADO" % _floor()["number"], 230, 33, SOUL)
         _center("No has escapado. El siguiente nivel sigue oculto.", 280, 18, CREAM)
         _center("El templo conserva su apariencia. Nada es lo que parece.", 318, 16, CREAM)
-        _center("ENTER: repetir prueba  ·  ESC: menú", 418, 18, CREAM)
+        _center(_hint("ENTER: repetir prueba  ·  ESC: menú", "Toca para repetir la prueba", "A: repetir prueba  ·  B: menú"), 418, 18, CREAM)
     elif soul_fate == "persistencia":
         _death_vignette()
         _title_text("%s ha caído" % _tc(_hero_name()), Vector2(0, 240), 48, Color("#d0475a"), W)
         _center("El templo todavía no te reclama.", 278, 18, CREAM)
         _center("Conservas almas, objetos, habilidades y ecos.", 318, 17, CREAM)
         _center("(Modo de pruebas: la muerte no cuesta progreso.)", 352, 15, Color("#9fb3b3"))
-        _center("ENTER: levantarte en la entrada de la sala  ·  ESC: menú", 418, 18, CREAM)
+        _center(_hint("ENTER: levantarte en la entrada de la sala  ·  ESC: menú", "Toca para levantarte en la entrada de la sala", "A: levantarte  ·  B: menú"), 418, 18, CREAM)
     elif soul_fate == "retorno":
         _center("TU ALMA HA REGRESADO", 230, 30, SOUL)
         _center("Resultado aleatorio de la muerte: reencarnación (50 %).", 278, 18, CREAM)
         _center("Eres la misma persona. Conservas memoria y habilidades.", 318, 17, CREAM)
         _center("Los niveles de habilidad regresaron a cero.", 352, 17, CREAM)
-        _center("ENTER: reaparecer al inicio  ·  ESC: menú", 418, 18, CREAM)
+        _center(_hint("ENTER: reaparecer al inicio  ·  ESC: menú", "Toca para reaparecer al inicio", "A: reaparecer  ·  B: menú"), 418, 18, CREAM)
     else:
         _center("ALMA ABSORBIDA", 230, 32, RED)
         _center("Resultado aleatorio: absorción definitiva (50 %).", 278, 18, CREAM)
         _center("La persona anterior ha dejado de existir.", 318, 17, CREAM)
         _center("Un nuevo humano ocupará el lugar, sin sus recuerdos.", 352, 17, CREAM)
-        _center("ENTER: iniciar nueva identidad  ·  ESC: menú", 418, 18, CREAM)
+        _center(_hint("ENTER: iniciar nueva identidad  ·  ESC: menú", "Toca para iniciar una nueva identidad", "A: nueva identidad  ·  B: menú"), 418, 18, CREAM)
 
 
 func _overlay() -> void:
@@ -4045,6 +4131,8 @@ const T := {
     "pj_genero": ["ELIGE TU GÉNERO", "CHOOSE YOUR GENDER"],
     "pj_nombre_mando": ["Cruceta elegir  ·  A letra  ·  X borrar  ·  Y al azar  ·  START seguir  ·  B volver", "D-pad choose  ·  A letter  ·  X delete  ·  Y random  ·  START next  ·  B back"],
     "pj_genero_mando": ["Cruceta elegir  ·  A comenzar  ·  B atrás", "D-pad choose  ·  A start  ·  B back"],
+    "pj_nombre_tactil": ["Toca las letras (o AL AZAR) y luego SIGUIENTE", "Tap the letters (or RANDOM) and then NEXT"],
+    "pj_genero_tactil": ["Toca tu personaje y luego COMENZAR", "Tap your character and then START"],
     "pj_genero_ayuda": ["A / D elegir  ·  ENTER comenzar  ·  ESC atrás", "A / D choose  ·  ENTER start  ·  ESC back"],
     "pj_te_llamas": ["Te llamas %s.", "Your name is %s."],
     "pj_masculino": ["MASCULINO", "MALE"],
@@ -4560,6 +4648,8 @@ func _settings_key(k: int) -> void:
 
 
 func _reset_progress_vars() -> void:
+    player_level = 1
+    xp = 0
     identity_number = 1
     new_humans = 0
     reincarnations = 0
@@ -5083,7 +5173,7 @@ func _draw_creation() -> void:
                     _create_key_button(key[0], _t("pj_siguiente") + " »", 17, true)
                 _:
                     _create_key_button(key[0], action, 20)
-        _text_outline(_t("pj_nombre_mando" if pad_active else "pj_nombre_ayuda"), Vector2(150, 520), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
+        _text_outline(_t(_hint("pj_nombre_ayuda", "pj_nombre_tactil", "pj_nombre_mando")), Vector2(150, 520), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
     else:
         _text_outline(_t("pj_genero"), Vector2(150, 162), 30, CREAM, CREATE_PANEL.size.x)
         _text_outline(_t("pj_te_llamas") % _clean_name(create_buf), Vector2(150, 186), 14, SOUL, CREATE_PANEL.size.x)
@@ -5110,7 +5200,7 @@ func _draw_creation() -> void:
         for b in _create_step2_buttons():
             var is_go: bool = b[1] == "comenzar"
             _create_key_button(b[0], (_t("pj_comenzar") + " »") if is_go else ("« " + _t("pj_atras")), 18, is_go)
-        _text_outline(_t("pj_genero_mando" if pad_active else "pj_genero_ayuda"), Vector2(150, 530), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
+        _text_outline(_t(_hint("pj_genero_ayuda", "pj_genero_tactil", "pj_genero_mando")), Vector2(150, 530), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
     if toast_left > 0.0:
         _draw_toast()
 
@@ -5433,6 +5523,11 @@ func _update_allies(dt: float) -> void:
         var speed: float = 150.0
         if bool(ally.get("waiting", false)):
             target = pos # esperan junto a la estatua a que aceptes guiarlos
+        elif bool(ally.get("flee", false)):
+            target = door_pos # rompe la regla: echa a correr
+            speed = 210.0
+        elif float(ally.get("panic", 0.0)) > 0.0:
+            target = pos + Vector2(randf_range(-2, 2), 0) # tiembla sin moverse
         elif tense:
             ally["react"] = float(ally["react"]) - dt
             if float(ally["react"]) <= 0.0 and _on_thread(pos, 14.0):
@@ -5499,6 +5594,9 @@ func _draw_ally_labels() -> void:
         _label_center(str(ally["name"]) + (" · SIN MANO" if bool(ally.get("maimed", false)) else ""), pos + Vector2(0.0, -66.0), Color("#d1747b") if bool(ally.get("maimed", false)) else Color("#9fd8b0"))
         if float(ally["line_t"]) > 0.0:
             _label_center("«%s»" % ally["line"], pos + Vector2(0.0, -84.0), CREAM)
+        if float(ally.get("panic", 0.0)) > 0.0:
+            var blink: bool = int(elapsed * 5.0) % 2 == 0
+            _label_center(_prompt("¡CÁLMALO!"), pos + Vector2(0.0, -102.0), Color("#ff6b6b") if blink else Color("#ffd36b"))
 
 
 ## Hilos: línea de aviso mientras tensa, destello al disparar y el hilo
@@ -5555,7 +5653,7 @@ func _hunt_mission_text() -> String:
 
 # ------------------------------------------------------------ JUGABILIDAD (etapa 1)
 const ABIL_BTN := Rect2(898, 62, 46, 36) # botón del HUD: pantalla de habilidades
-const PROFILE_ABIL_BTN := Rect2(706, 380, 162, 48)
+const PROFILE_ABIL_BTN := Rect2(706, 538, 162, 42)
 ## Regeneración: tras REGEN_WAIT s sin recibir daño, la vida vuelve poco a poco.
 const REGEN_WAIT := 4.0
 const REGEN_RATE := 2.0 # vida por segundo
@@ -5742,6 +5840,7 @@ func _complete_mission() -> void:
     souls_flash = 0.8
     mission_banner = "MISIÓN CUMPLIDA · %s · +%d almas" % [m["text"], reward]
     mission_banner_t = 3.2
+    _gain_xp(XP_MISSION + reward)
     _sfx("sello", -6.0, 1.2)
 
 
@@ -5806,6 +5905,17 @@ const ROOM_TALKS := {
         ["BAS", "Contigo delante, quizá lleguemos."],
         ["SAÚL", "Te debía una. Ahora te debo dos."],
     ],
+    "6:0": [
+        ["{yo}", "Ojos arrancados en cada estatua... Lo que vive aquí no soporta que la ignoren.", "solo"],
+        ["IRENE", "Mira la inscripción. «No corras, no le des la espalda.»"],
+        ["BAS", "¿Y si nos mira a nosotros?"],
+        ["{yo}", "Entonces la miráis vosotros también. Pase lo que pase, nadie corre.", "grupo"],
+        ["SAÚL", "Contigo delante no correré. Lo prometo."],
+    ],
+    "6:1": [
+        ["{yo}", "Ahí está. Si me doy la vuelta o echo a correr, viene a por mí.", "solo"],
+        ["IRENE", "No le quitéis los ojos de encima. Ni un segundo."],
+    ],
     "3:0": [
         ["{yo}", "Raíces secas por todas partes. Una chispa y esto arde entero."],
         ["{yo}", "Y las de la puerta están vivas... habrá que hacerles llegar el fuego."],
@@ -5832,7 +5942,9 @@ func _room_talk() -> void:
             continue
         if (who in ALLY_NAMES or who in GUIDE_NAMES or who == "SAÚL") and not _ally_alive_named(who):
             continue
-        if who == "{yo}" and line.size() > 2 and str(line[2]) == "solo" and guiding:
+        if line.size() > 2 and str(line[2]) == "solo" and guiding:
+            continue
+        if line.size() > 2 and str(line[2]) == "grupo" and not guiding:
             continue
         lines.append([who, line[1]])
     _dialog(lines)
@@ -5923,7 +6035,7 @@ func _draw_dialog() -> void:
     draw_multiline_string(font, box.position + Vector2(24, 44), shown, HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 48.0, 18, 3, CREAM)
     if int(dialog_chars) >= text.length():
         var pulse: float = 0.5 + 0.5 * sin(elapsed * 5.0)
-        var more: String = "»  clic / E" if dialog_queue.size() > 1 else "»  clic / E para cerrar"
+        var more: String = ("»  " + _hint("clic / E", "toca", "A")) if dialog_queue.size() > 1 else ("»  " + _hint("clic / E", "toca", "A") + " para cerrar")
         _text_outline(more, Vector2(box.end.x - 230.0, box.end.y - 12.0), 12, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.5 + 0.5 * pulse), 210.0)
     _skip_button(SKIP_BTN)
 
@@ -5954,7 +6066,7 @@ func _ability_rows() -> Array:
         ["golpe", "GOLPE DE ANTORCHA", _key_label("interactuar") + (" / RT" if pad_active else " / CLIC"),
             "Arco de fuego a corta distancia. Daño %d. Necesita la antorcha encendida." % int(_strike_damage()), has_torch, "10 vigor"],
         ["resonancia", ("RUGIDO" if has_mask else "RESONANCIA") + " · NIVEL %d" % ability_level, _key_label("resonancia"),
-            ("Con la Máscara de Porcelana la onda llega más lejos y espanta a los mastines 5 s. " if has_mask else "") + "Aturde a las entidades cercanas y les hace %d de daño." % int(30.0 + 10.0 * float(ability_level)), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
+            ("Con la Máscara de Porcelana la onda llega más lejos y espanta a los mastines 5 s. " if has_mask else "") + "Aturde a las entidades cercanas y les hace %d de daño." % int(_pulse_damage()), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
         ["vigor", "ESQUIVAR", _key_label("esquivar"),
             "Impulso hacia donde te mueves o, quieto, hacia donde miras. Pasas por encima de las trampas.", true, "%d vigor · se recarga con la barra" % int(_dash_cost())],
         ["llama_interior", "LLAMA INTERIOR", "PASIVA",
@@ -5997,7 +6109,7 @@ func _draw_abilities() -> void:
         _text_outline(ECOS[keys[i]][0] if has_it else "ECO SIN DESPERTAR", Vector2(e.position.x + 52.0, e.position.y + 22.0), 12, SOUL if has_it else Color("#5d5a52"))
         draw_multiline_string(font, e.position + Vector2(52, 40), ECOS[keys[i]][1] if has_it else "Supera el piso %s para despertarlo." % _eco_floor(str(keys[i])), HORIZONTAL_ALIGNMENT_LEFT, e.size.x - 60.0, 10, 2, Color("#9a957f"))
     _text_outline("Se acumulan sin límite: una por cada piso superado.", Vector2(540, 102.0 + float(keys.size()) * 70.0 + 14.0), 11, Color("#8a8574"))
-    _text_outline("%s / ESC: cerrar" % _key_label("habilidades"), Vector2(96, 574), 12, Color("#8a8574"), 768.0)
+    _text_outline(_hint("%s / ESC: cerrar" % _key_label("habilidades"), "Toca para cerrar", "B: cerrar"), Vector2(96, 574), 12, Color("#8a8574"), 768.0)
 
 
 func _eco_floor(key: String) -> String:
@@ -6346,7 +6458,7 @@ func _draw_floors() -> void:
     var playable_sel: bool = floors_sel < FLOORS.size() and floors_sel <= unlocked
     _ui_button(Rect2(104, 516, 180, 40), "« VOLVER")
     _ui_button(Rect2(676, 516, 180, 40), "DESCENDER »" if playable_sel else "BLOQUEADO", playable_sel)
-    _text_outline("Flechas elegir · ENTER descender · ESC volver", Vector2(80, 541), 12, Color("#8a8574"), panel.size.x)
+    _text_outline(_hint("Flechas elegir · ENTER descender · ESC volver", "Toca un piso y luego DESCENDER", "Cruceta elegir · A descender · B volver"), Vector2(80, 541), 12, Color("#8a8574"), panel.size.x)
     if toast_left > 0.0:
         _draw_toast()
 
@@ -6385,6 +6497,7 @@ const FLOOR_TRUTHS := [
     "Otros también vuelven. Sus nombres están en el muro, y entre ellos, el tuyo.",
     "Las almas no se pierden: corren por canales hacia abajo. El templo las recoge.",
     "El miedo y la desesperanza alimentan algo. Por eso el templo te deja descansar: para que vuelvas a esperar.",
+    "Ella no caza: vigila. El templo quiere que veas morir a los demás; el miedo ajeno también alimenta.",
 ]
 var critters: Array = [] # {pos, a, b, to_b, alive, dead_t, respawn, flip, bite_cd}
 var life_corpse: Dictionary = {}
@@ -6457,6 +6570,7 @@ func _critter_die(cr: Dictionary) -> void:
     souls += 1
     souls_flash = 0.4
     floor_critters += 1
+    _gain_xp(XP_CRITTER)
     var at: Vector2 = cr["pos"]
     _emit(at + Vector2(0, -6), 10, Color(0.55, 0.06, 0.1), 30.0, 110.0, 0.6, 2.0, 260.0, Vector2.UP, 1.4)
     _emit(at + Vector2(0, -10), 6, Color(0.56, 0.86, 0.95), 10.0, 40.0, 0.9, 2.0, -40.0, Vector2.UP, 0.8, true)
@@ -6554,7 +6668,7 @@ func _open_floor_summary(eco: String) -> void:
     var secs: int = int((Time.get_ticks_msec() - floor_t0) / 1000)
     summary = {"floor": _floor()["number"], "title": _floor()["title"], "time": "%d:%02d" % [secs / 60, secs % 60],
         "souls": souls - floor_souls0, "deaths": floor_deaths, "missions": "%d / %d" % [done, total] if total > 0 else "—",
-        "critters": floor_critters, "allies": ("%d / 3" % _allies_alive()) if _floor_has_trait("aliados") else (("%d / %d" % [_allies_alive(), allies.size()]) if guiding else "—"),
+        "critters": floor_critters, "allies": ("%d / 3" % _allies_alive()) if _floor_has_trait("aliados") else (("%d / %d" % [_allies_alive(), allies.size()]) if guiding and not allies.is_empty() else "—"),
         "eco": eco, "truth": FLOOR_TRUTHS[current_floor] if current_floor < FLOOR_TRUTHS.size() else ""}
     game_mode = "floor_summary"
     _sfx("k_campana", -8.0, 0.9)
@@ -6585,7 +6699,7 @@ func _draw_floor_summary() -> void:
         _text_outline("VERDAD REVELADA", Vector2(230, 476), 11, UI_GOLD)
         draw_multiline_string(font, Vector2(230, 496), "«%s»" % summary["truth"], HORIZONTAL_ALIGNMENT_LEFT, 500.0, 15, 2, CREAM)
     var pulse: float = 0.5 + 0.5 * sin(elapsed * 4.0)
-    _text_outline("ENTER / clic: seguir descendiendo", Vector2(170, 552), 13, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.5 + 0.5 * pulse), panel.size.x)
+    _text_outline(_hint("ENTER / clic: seguir descendiendo", "Toca para seguir descendiendo", "A: seguir descendiendo"), Vector2(170, 552), 13, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.5 + 0.5 * pulse), panel.size.x)
 
 
 # --- Transiciones con máscara -----------------------------------------------------
@@ -7277,11 +7391,15 @@ var guides_rewarded: bool = false
 
 
 func _strike_damage() -> float:
-    return STRIKE_DAMAGE * (1.1 if trinkets.has("brazalete") else 1.0)
+    return STRIKE_DAMAGE * (1.1 if trinkets.has("brazalete") else 1.0) * _level_power()
 
 
 func _stamina_regen() -> float:
-    return STAMINA_REGEN * (1.1 if trinkets.has("amuleto") else 1.0)
+    return STAMINA_REGEN * (1.1 if trinkets.has("amuleto") else 1.0) * (1.0 + LEVEL_VIGOR * float(player_level - 1))
+
+
+func _pulse_damage() -> float:
+    return (30.0 + 10.0 * float(ability_level)) * _level_power()
 
 
 ## Huesos firmes: una vez por piso, el golpe mortal te deja con 1 de vida.
@@ -7299,6 +7417,24 @@ func _bones_hold() -> void:
 func _guides_enter_room() -> void:
     if in_tutorial:
         return
+    if bool(_floor().get("followers", false)) and allies.is_empty() and not guided.is_empty() and current_room == 0:
+        guiding = true
+        for i in range(guided.size()):
+            allies.append({"name": guided[i], "pos": player_pos, "prev": player_pos, "facing": 0,
+                "moving": false, "alive": true, "react": 0.0, "seed": 60 + i, "dead_key": "", "dead_pos": Vector2.ZERO,
+                "line": "", "line_t": 0.0, "waiting": false, "maimed": str(guided[i]) == "TEO", "panic": 0.0, "flee": false})
+    if _has("recuento_guias") and guiding and not guides_rewarded:
+        guides_rewarded = true
+        var alive_n: int = _allies_alive()
+        guided = allies.filter(func(a): return bool(a["alive"])).map(func(a): return str(a["name"]))
+        souls += alive_n * GUIDE_SOULS
+        souls_flash = 0.8
+        _save_progress()
+        if alive_n > 0:
+            _say("Sobrevivieron %d. «No miramos atrás, como dijiste.» +%d almas." % [alive_n, alive_n * GUIDE_SOULS], 4.5)
+        else:
+            _say("Nadie más llegó. Ella se quedó con todos.", 4.5)
+            fear = minf(100.0, fear + 15.0)
     if _has("guias") and allies.is_empty():
         guiding = false
         guides_rewarded = false
@@ -7458,7 +7594,7 @@ func _shop_buy(i: int) -> bool:
     souls -= price
     match str(item[0]):
         "pan":
-            max_hp = minf(100.0, max_hp + 10.0)
+            max_hp = minf(_base_max_hp(), max_hp + 10.0)
             hp = max_hp
             stamina = 100.0
         "fosforos":
@@ -7493,7 +7629,7 @@ func _draw_shop() -> void:
     draw_texture_rect(ICONS["alma"], Rect2(180, 512, 26, 26), false)
     _text("ALMAS: %d" % souls, Vector2(212, 532), 16, SOUL)
     _text("VIDA MÁXIMA: %d" % int(max_hp), Vector2(360, 532), 14, RED if hand_lost else CREAM)
-    var hint: String = "A comprar · B salir" if pad_active else "ENTER comprar · ESC salir"
+    var hint: String = _hint("ENTER comprar · ESC salir", "Toca un objeto para comprarlo · fuera para salir", "A comprar · B salir")
     draw_string(font, Vector2(180, 532), hint, HORIZONTAL_ALIGNMENT_RIGHT, 600, 14, CREAM)
     if toast_left > 0.0:
         _draw_toast()
@@ -7527,15 +7663,424 @@ func _draw_merchant_glow() -> void:
 
 
 func _draw_offering_labels() -> void:
-    var key: String = _key_label("interactuar")
     if _has("guias") and not guiding:
         for ally in allies:
             if str(ally["name"]) == "IRENE":
-                _label_center("GUIAR AL GRUPO [%s]" % key, Vector2(ally["pos"]) + Vector2(0, -84), Color("#e3bd7b"))
+                _label_center(_prompt("GUIAR AL GRUPO"), Vector2(ally["pos"]) + Vector2(0, -84), Color("#e3bd7b"))
     if not _room().has("merchant"):
         return
     var m: Vector2 = _room()["merchant"]
     if player_pos.distance_to(m) < 170.0:
-        _label_center("OFRENDA [%s]" % key, m + Vector2(0, 60), CREAM)
+        _label_center(_prompt("OFRENDA"), m + Vector2(0, 60), CREAM)
     if player_pos.distance_to(_merchant_hem()) < 44.0:
-        _label_center("¿METER LA MANO BAJO EL MANTO? [%s]" % key, _merchant_hem() + Vector2(0, -60), Color("#d1747b"))
+        _label_center(_prompt("¿METER LA MANO BAJO EL MANTO?"), _merchant_hem() + Vector2(0, -60), Color("#d1747b"))
+
+
+# ------------------------------------------------------------ NIVELES DEL PERSONAJE
+## Experiencia por lo que haces (almas, alimañas, entidades desterradas,
+## misiones y pisos). Cada nivel sube la vida máxima, el daño (golpe y
+## Resonancia) y la recarga del vigor, y te cura. Se guarda con el progreso;
+## si el alma es absorbida, la persona nueva empieza en el nivel 1.
+## Valores PROVISIONALES.
+const LEVEL_MAX := 20
+const LEVEL_HP := 6.0 # vida máxima por nivel
+const LEVEL_POWER := 0.04 # daño por nivel (+4 %)
+const LEVEL_VIGOR := 0.03 # recarga del vigor por nivel (+3 %)
+const XP_RELIC := 2
+const XP_CRITTER := 3
+const XP_BANISH := 25
+const XP_MISSION := 8
+const XP_FLOOR := 30
+var player_level: int = 1
+var xp: int = 0
+var level_flash: float = 0.0
+var level_banner_t: float = 0.0
+
+
+func _xp_needed(level: int) -> int:
+    return 30 + 20 * (level - 1)
+
+
+func _xp_fraction() -> float:
+    if player_level >= LEVEL_MAX:
+        return 1.0
+    return clampf(float(xp) / float(_xp_needed(player_level)), 0.0, 1.0)
+
+
+func _base_max_hp() -> float:
+    return 100.0 + LEVEL_HP * float(player_level - 1)
+
+
+func _level_power() -> float:
+    return 1.0 + LEVEL_POWER * float(player_level - 1)
+
+
+func _gain_xp(amount: int) -> void:
+    if amount <= 0 or in_tutorial or player_level >= LEVEL_MAX:
+        return
+    xp += amount
+    var ups: int = 0
+    while player_level < LEVEL_MAX and xp >= _xp_needed(player_level):
+        xp -= _xp_needed(player_level)
+        player_level += 1
+        ups += 1
+    if player_level >= LEVEL_MAX:
+        xp = 0
+    if ups > 0:
+        _level_up(ups)
+
+
+func _level_up(ups: int) -> void:
+    # La vida máxima crece lo mismo aunque la hayas perdido bajo el manto.
+    max_hp += LEVEL_HP * float(ups)
+    hp = max_hp
+    level_flash = 1.0
+    level_banner_t = 3.4
+    _save_progress()
+    _sfx("sello", -5.0, 1.3)
+    _sfx("k_campana", -9.0, 1.4)
+    _emit(player_pos + Vector2(0, -24), 40, Color(0.95, 0.8, 0.45), 30.0, 120.0, 1.3, 2.0, -60.0, Vector2.UP, 1.2, true)
+
+
+func _update_level_fx(dt: float) -> void:
+    level_flash = maxf(0.0, level_flash - dt * 1.5)
+    level_banner_t = maxf(0.0, level_banner_t - dt)
+
+
+func _draw_level_banner() -> void:
+    if level_banner_t <= 0.0:
+        return
+    var a: float = clampf(level_banner_t * 2.0, 0.0, 1.0) * clampf((3.4 - level_banner_t) * 4.0, 0.0, 1.0)
+    var box := Rect2(270, 236, 420, 74)
+    _panel(box, Color(0.1, 0.06, 0.12, 0.94 * a), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, a))
+    _title_text("Nivel %d" % player_level, Vector2(box.position.x, box.position.y + 38.0), 36, Color(1.0, 0.9, 0.6, a), box.size.x)
+    _text_outline("+%d VIDA MÁX · +%d %% DAÑO · +%d %% VIGOR" % [int(LEVEL_HP), int(LEVEL_POWER * 100.0), int(LEVEL_VIGOR * 100.0)],
+        Vector2(box.position.x, box.position.y + 62.0), 13, Color(CREAM.r, CREAM.g, CREAM.b, a), box.size.x)
+
+
+# ------------------------------------------------------------ PISO VII · LA QUE NO APARTA LA VISTA
+## Una figura con yelmo y ojos en el pecho que rodea la sala. Solo ataca si
+## la provocas: darle la espalda más de un instante o esquivar (correr). Para
+## que la puerta se abra hay que aguantar su mirada el tiempo de la sala.
+## Te provoca con amagos y ruidos a tu espalda; los peregrinos que guías
+## pueden entrar en pánico: si no los calmas a tiempo, echan a correr y ella
+## se los lleva. No se la puede herir. Valores PROVISIONALES.
+const VIGIA_TEX := preload("res://assets/visual/enemies/vigia.png")
+const VIGIA_CELL := Vector2(64, 96)
+const VIGIA_BASE := 92.0
+const GAZE_CENTER := Vector2(480, 350)
+const GAZE_RADIUS := Vector2(250, 130)
+const GAZE_GRACE := 0.7 # segundos de espalda que tolera
+const GAZE_FACING := -0.2 # producto escalar mínimo para «mirarla»
+const GAZE_WINDUP := 0.55
+const GAZE_DAMAGE := 30.0
+const GAZE_PENALTY := 6.0 # segundos de mirada que pierdes si la provocas
+const GAZE_PANIC := 4.0 # tiempo para calmar a un peregrino
+var gaze_active: bool = false
+var gaze_pos: Vector2 = Vector2.ZERO
+var gaze_angle: float = 0.0
+var gaze_t: float = 0.0
+var gaze_need: float = 0.0
+var gaze_state: String = "mira" # mira | aviso | golpe | caza | vencida
+var gaze_state_t: float = 0.0
+var gaze_away_t: float = 0.0
+var gaze_target: Vector2 = Vector2.ZERO
+var gaze_feint_t: float = 0.0
+var gaze_feint: float = 0.0
+var gaze_noise_t: float = 0.0
+var gaze_noise: Dictionary = {}
+var gaze_panic_done: bool = false
+var gaze_prey: Dictionary = {}
+
+
+func _load_gaze() -> void:
+    gaze_active = false
+    if in_tutorial or not _room().has("gaze"):
+        return
+    gaze_need = float(_room()["gaze"])
+    if missions_done.has(_room_key()):
+        return # ya la venciste en esta sala
+    gaze_active = true
+    gaze_state = "mira"
+    gaze_t = 0.0
+    gaze_away_t = 0.0
+    gaze_angle = -0.4
+    gaze_pos = _gaze_orbit()
+    gaze_feint_t = randf_range(5.0, 8.0)
+    gaze_noise_t = randf_range(7.0, 10.0)
+    gaze_noise = {}
+    gaze_panic_done = false
+    gaze_prey = {}
+
+
+func _gaze_orbit() -> Vector2:
+    return GAZE_CENTER + Vector2(cos(gaze_angle) * GAZE_RADIUS.x, sin(gaze_angle) * GAZE_RADIUS.y)
+
+
+## ¿La está mirando? Basta con no darle la espalda.
+func _gaze_facing() -> bool:
+    var to_her: Vector2 = gaze_pos - player_pos
+    if to_her.length() < 1.0 or player_dir.length() < 0.1:
+        return true
+    return player_dir.normalized().dot(to_her.normalized()) > GAZE_FACING
+
+
+func _update_gaze(dt: float) -> void:
+    if not gaze_active:
+        return
+    gaze_state_t = maxf(0.0, gaze_state_t - dt)
+    if gaze_state == "vencida":
+        return
+    fear = minf(100.0, fear + dt * 2.5)
+    var facing: bool = _gaze_facing()
+    match gaze_state:
+        "mira":
+            gaze_angle += dt * 0.22
+            var orbit: Vector2 = _gaze_orbit()
+            gaze_feint = maxf(0.0, gaze_feint - dt)
+            var lunge: Vector2 = (player_pos - orbit).normalized() * 70.0 * sin(PI * gaze_feint / 0.5) if gaze_feint > 0.0 else Vector2.ZERO
+            gaze_pos = gaze_pos.move_toward(orbit + lunge, 260.0 * dt)
+            gaze_away_t = gaze_away_t + dt if not facing else maxf(0.0, gaze_away_t - dt * 2.0)
+            if gaze_state_t <= 0.0 and (gaze_away_t > GAZE_GRACE or dash_left > 0.0):
+                _gaze_provoke("¡Le diste la espalda!" if dash_left <= 0.0 else "¡Corriste!")
+                return
+            if facing:
+                gaze_t += dt
+            # Amagos: se lanza sin aviso rojo y vuelve. Esquivar la provoca.
+            gaze_feint_t -= dt
+            if gaze_feint_t <= 0.0:
+                gaze_feint_t = randf_range(6.0, 9.0)
+                gaze_feint = 0.5
+                _sfx("latigo", -12.0, 0.7)
+            # Ruidos a tu espalda para que te des la vuelta.
+            gaze_noise_t -= dt
+            if gaze_noise_t <= 0.0:
+                gaze_noise_t = randf_range(8.0, 12.0)
+                var behind: Vector2 = player_pos - (gaze_pos - player_pos).normalized() * 110.0
+                gaze_noise = {"pos": behind, "t": 1.6}
+                _sfx("k_piedra", -6.0, 0.6)
+                _emit(behind, 10, Color(0.55, 0.5, 0.45, 0.6), 10.0, 50.0, 0.7, 2.0, 60.0, Vector2.UP, 1.4)
+            # Pánico de un peregrino a mitad de la prueba.
+            if not gaze_panic_done and gaze_t > gaze_need * 0.4 and guiding:
+                gaze_panic_done = true
+                _gaze_panic()
+            _update_panic(dt)
+            if gaze_t >= gaze_need:
+                _gaze_defeat()
+        "aviso":
+            if gaze_state_t <= 0.0:
+                gaze_state = "golpe"
+                gaze_state_t = 0.8
+                gaze_target = player_pos
+                _sfx("latigo", -4.0, 0.9)
+        "golpe":
+            gaze_pos = gaze_pos.move_toward(gaze_target, 560.0 * dt)
+            if gaze_pos.distance_to(player_pos) < 34.0 and damage_cd <= 0.0 and dash_left <= 0.0:
+                hp -= GAZE_DAMAGE * (0.75 if ecos.has("piel") else 1.0)
+                fear = minf(100.0, fear + 20.0)
+                damage_cd = 1.0
+                shake = maxf(shake, 0.5)
+                _on_hurt()
+                _sfx("dano", -4.0, 0.8)
+                gaze_state_t = 0.0
+            if gaze_state_t <= 0.0 or gaze_pos.distance_to(gaze_target) < 4.0:
+                gaze_state = "mira"
+                gaze_away_t = 0.0
+                gaze_state_t = 0.8 # respiro: el esquive con el que la evitaste no cuenta
+        "caza":
+            if gaze_prey.is_empty() or not bool(gaze_prey["alive"]):
+                gaze_state = "mira"
+                return
+            gaze_pos = gaze_pos.move_toward(gaze_prey["pos"], 520.0 * dt)
+            if gaze_pos.distance_to(gaze_prey["pos"]) < 30.0:
+                gaze_prey["flee"] = false
+                _ally_die(gaze_prey)
+                _emit(Vector2(gaze_prey["pos"]) + Vector2(0, -20), 30, Color(0.6, 0.05, 0.1), 40.0, 160.0, 0.9, 3.0, 300.0, Vector2.UP, 1.6)
+                gaze_prey = {}
+                gaze_state = "mira"
+    if not gaze_noise.is_empty():
+        gaze_noise["t"] = float(gaze_noise["t"]) - dt
+        if float(gaze_noise["t"]) <= 0.0:
+            gaze_noise = {}
+
+
+func _gaze_provoke(reason: String) -> void:
+    gaze_state = "aviso"
+    gaze_state_t = GAZE_WINDUP
+    gaze_away_t = 0.0
+    gaze_t = maxf(0.0, gaze_t - GAZE_PENALTY)
+    _sfx("ojo", -4.0, 0.8)
+    _sfx("aviso", -6.0, 0.9)
+    float_fx.append({"pos": player_pos + Vector2(0, -64), "text": reason.to_upper(), "color": RED, "t": 0.0})
+
+
+func _gaze_defeat() -> void:
+    gaze_state = "vencida"
+    gaze_noise = {}
+    for ally in allies:
+        ally["panic"] = 0.0
+    _complete_mission()
+    _sfx("k_campana", -6.0, 0.6)
+    _emit(gaze_pos + Vector2(0, -50), 30, Color(0.85, 0.85, 0.9), 15.0, 60.0, 1.4, 2.0, -30.0, Vector2.UP, 1.2, true)
+    _say("Los ojos de su pecho se cierran uno a uno. Ya no te mira.", 4.0)
+
+
+func _gaze_panic() -> void:
+    var alive: Array = allies.filter(func(a): return bool(a["alive"]))
+    if alive.is_empty():
+        return
+    var who: Dictionary = alive[randi() % alive.size()]
+    who["panic"] = GAZE_PANIC
+    who["line"] = "¡No puedo más! ¡Me voy de aquí!"
+    who["line_t"] = GAZE_PANIC
+    _sfx("aviso", -8.0, 1.3)
+
+
+func _update_panic(dt: float) -> void:
+    for ally in allies:
+        var p: float = float(ally.get("panic", 0.0))
+        if p <= 0.0 or not bool(ally["alive"]):
+            continue
+        p -= dt
+        ally["panic"] = p
+        if p <= 0.0:
+            # No llegaste a tiempo: corre, y ella va a por él.
+            ally["flee"] = true
+            ally["line"] = "¡AAAH!"
+            ally["line_t"] = 1.5
+            gaze_prey = ally
+            gaze_state = "caza"
+            _sfx("dano", -8.0, 1.4)
+
+
+## E / A junto a un peregrino en pánico: lo calmas.
+func _calm_ally() -> bool:
+    for ally in allies:
+        if float(ally.get("panic", 0.0)) > 0.0 and bool(ally["alive"]) and player_pos.distance_to(ally["pos"]) < 80.0:
+            ally["panic"] = 0.0
+            ally["line"] = "...Vale. Vale. No corro."
+            ally["line_t"] = 2.5
+            float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -60), "text": "CALMADO", "color": Color("#9fd8b0"), "t": 0.0})
+            _gain_xp(10)
+            _sfx("k_campana", -12.0, 1.3)
+            return true
+    return false
+
+
+func _draw_vigia() -> void:
+    var frame: int = int(elapsed * 1.5) % 2
+    if gaze_state == "aviso" or gaze_state == "caza":
+        frame = 2
+    elif gaze_state == "golpe" or gaze_feint > 0.0:
+        frame = 3
+    var tint := Color(1, 1, 1, 0.45) if gaze_state == "vencida" else Color.WHITE
+    var bob: float = sin(elapsed * 2.0) * 2.0
+    _draw_soft_shadow(gaze_pos + Vector2(0, 4), 18.0, 0.6)
+    draw_texture_rect_region(VIGIA_TEX, Rect2(gaze_pos.x - VIGIA_CELL.x * 0.5, gaze_pos.y + 2.0 + bob - VIGIA_BASE, VIGIA_CELL.x, VIGIA_CELL.y),
+        Rect2(float(frame) * VIGIA_CELL.x, 0, VIGIA_CELL.x, VIGIA_CELL.y), tint)
+
+
+## Medidor de la mirada, aviso de espalda, flecha hacia ella y ruidos.
+func _draw_gaze_hud() -> void:
+    if not gaze_active:
+        return
+    # Sus ojos brillan en la penumbra.
+    if gaze_state != "vencida":
+        var chest: Vector2 = gaze_pos + Vector2(0, -50)
+        draw_circle(chest, 12.0, Color(1.0, 0.3, 0.3, 0.12) if gaze_state in ["aviso", "golpe", "caza"] else Color(0.95, 0.92, 0.85, 0.07))
+    if not gaze_noise.is_empty():
+        var a: float = clampf(float(gaze_noise["t"]), 0.0, 1.0)
+        _label_center("¿...?", Vector2(gaze_noise["pos"]) + Vector2(0, -20), Color(CREAM.r, CREAM.g, CREAM.b, a))
+    if gaze_state == "vencida":
+        return
+    var box := Rect2(300, 116, 360, 34)
+    _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_CRIMSON if gaze_away_t > 0.0 else UI_GOLD)
+    var k: float = clampf(gaze_t / maxf(1.0, gaze_need), 0.0, 1.0)
+    var bar := Rect2(box.position + Vector2(8, 20), Vector2(box.size.x - 16.0, 8))
+    draw_rect(bar, Color(0, 0, 0, 0.7))
+    draw_rect(Rect2(bar.position, Vector2(bar.size.x * k, bar.size.y)), Color("#c9a25e"))
+    _text_outline("MÍRALA · %d / %d s" % [int(gaze_t), int(gaze_need)], Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
+    if gaze_away_t > 0.0 and gaze_state == "mira":
+        var blink: float = 0.6 + 0.4 * sin(elapsed * 14.0)
+        _label_center("¡NO LE DES LA ESPALDA!", player_pos + Vector2(0, -78), Color(1.0, 0.4, 0.4, blink))
+        # Flecha desde el personaje hacia ella.
+        var dir: Vector2 = (gaze_pos - player_pos).normalized()
+        var tip: Vector2 = player_pos + Vector2(0, -24) + dir * 46.0
+        var side := Vector2(-dir.y, dir.x)
+        draw_colored_polygon(PackedVector2Array([tip, tip - dir * 14.0 + side * 7.0, tip - dir * 14.0 - side * 7.0]), Color(1.0, 0.4, 0.4, blink))
+    elif gaze_state == "aviso":
+        _label_center("¡VIENE! ESQUIVA AHORA", player_pos + Vector2(0, -100), Color("#ffd36b"))
+
+
+# ------------------------------------------------------------ MÓVIL
+## Controles táctiles pensados para el pulgar: joystick flotante en la mitad
+## izquierda y cuatro botones en abanico a la derecha. El botón grande es de
+## ACCIÓN y cambia según lo que tengas cerca (hablar, comprar, cruzar, calmar,
+## golpear...), así no hace falta saber qué tecla es cada cosa.
+const JOY_HOME := Vector2(135, 480)
+const JOY_RADIUS := 76.0
+const JOY_ZONE_X := 400.0
+const JOY_ZONE_Y := 300.0
+## [centro, radio]. Radios generosos: el dedo no apunta como el ratón.
+const TOUCH_BUTTONS := {
+    "accion": [Vector2(858, 494), 58.0],
+    "esquivar": [Vector2(734, 540), 42.0],
+    "antorcha": [Vector2(748, 420), 40.0],
+    "resonancia": [Vector2(904, 596), 38.0],
+}
+var joy_center: Vector2 = JOY_HOME
+
+
+func _touch_button_at(at: Vector2) -> String:
+    var best: String = ""
+    var best_d: float = INF
+    for id in TOUCH_BUTTONS:
+        var d: float = at.distance_to(TOUCH_BUTTONS[id][0])
+        if d <= float(TOUCH_BUTTONS[id][1]) + 12.0 and d < best_d:
+            best = id
+            best_d = d
+    return best
+
+
+## Qué hará el botón de ACCIÓN aquí: [texto, icono, es un golpe, hay algo cerca].
+func _touch_context() -> Array:
+    for ally in allies:
+        if float(ally.get("panic", 0.0)) > 0.0 and bool(ally["alive"]) and player_pos.distance_to(ally["pos"]) < 80.0:
+            return ["CALMAR", "corazon", false, true]
+    if _has("guias") and not guiding:
+        for ally in allies:
+            if player_pos.distance_to(ally["pos"]) < 72.0:
+                return ["GUIAR", "habilidades", false, true]
+    if _room().has("merchant"):
+        if player_pos.distance_to(_merchant_hem()) < 30.0:
+            return ["¿LA MANO?", "calavera", false, true]
+        if player_pos.distance_to(Vector2(_room()["merchant"]) + Vector2(0, 40)) < 56.0:
+            return ["COMPRAR", "alma", false, true]
+    if _has("sello") and not seal_acquired and player_pos.distance_to(seal_pos) < 60.0:
+        return ["SELLO", "llama_interior", false, true]
+    if _has("altar") and player_pos.distance_to(altar_pos) < 64.0:
+        return ["ALTAR", "alma", false, true]
+    if _has("archivo") and player_pos.distance_to(archive_pos) < 72.0:
+        return ["LEER", "habilidades", false, true]
+    if player_pos.distance_to(door_pos) < 74.0:
+        return ["PUERTA", "", false, true]
+    if has_torch and torch_on:
+        return ["GOLPE", "golpe", true, false]
+    return ["USAR", "golpe", false, false]
+
+
+## Texto de una etiqueta del mundo: con la tecla o el botón entre corchetes,
+## o solo el texto en pantalla táctil (allí lo hace el botón de ACCIÓN).
+func _prompt(text: String) -> String:
+    if touch_enabled and not pad_active:
+        return text
+    return "%s [%s]" % [text, _key_label("interactuar")]
+
+
+## Ayuda al pie de los menús según cómo juegues.
+func _hint(keyboard: String, touch: String, pad: String) -> String:
+    if pad_active:
+        return pad
+    if touch_enabled:
+        return touch
+    return keyboard

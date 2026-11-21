@@ -1,5 +1,27 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Niveles, Piso VII y móvil
+
+**Niveles del personaje**
+- Experiencia por recoger almas (2), aplastar alimañas (3), calmar a un peregrino (10), desterrar entidades (25), cumplir misiones (8 + el premio) y superar pisos (30).
+- Cada nivel: +6 de vida máxima, +4 % de daño (golpe y Resonancia), +3 % de recarga del vigor, y te cura. Nivel máximo 20; cada nivel pide 20 XP más que el anterior.
+- Placa «NV» en el retrato del HUD, barra de experiencia bajo las barras, rótulo al subir y nivel y experiencia en el perfil. Se guarda con el progreso; si el alma es absorbida, la persona nueva empieza en el nivel 1.
+
+**Piso VII · La Que No Aparta la Vista** (cuatro salas: Antesala de los Ojos, Sala de la Mirada, Coro de los Ciegos y Umbral del Octavo)
+- Entidad nueva (sprite original): yelmo cerrado del que cae sangre y una hilera de ojos en el pecho. Rodea la sala y no se la puede herir.
+- **Regla**: solo ataca si la provocas: darle la espalda más de 0,7 s o esquivar (correr). Avisa medio segundo con los ojos rojos; esquiva entonces. Provocarla resta 6 s de mirada.
+- **Misión**: aguantar su mirada 45 s (Sala de la Mirada) y 60 s mientras recoges almas (Coro de los Ciegos). Medidor arriba y flecha hacia ella cuando le das la espalda.
+- **Provocaciones**: amagos sin aviso rojo (si esquivas, la provocas) y ruidos a tu espalda.
+- **Los peregrinos que guiaste en el Piso VI bajan contigo.** A mitad de la prueba uno entra en pánico: tienes 4 s para calmarlo (acción a su lado). Si no, echa a correr y ella se lo lleva. Los que llegan al Umbral te dan almas y siguen guardados.
+- **Eco Mente serena**: el miedo al máximo ya no te hace daño.
+
+**Móvil**
+- Joystick flotante: la base se coloca donde apoyas el pulgar en la mitad izquierda.
+- Botones en abanico a la derecha, al alcance del pulgar: **ACCIÓN** grande, LUZ, ESQUIVA y ONDA. ACCIÓN cambia según lo que tengas cerca (COMPRAR, GUIAR, CALMAR, PUERTA, LEER, ALTAR, SELLO o GOLPE) y brilla cuando hay algo con qué interactuar. La LUZ muestra los fósforos que quedan.
+- En pantalla táctil, las etiquetas del mundo ya no muestran teclas, son más grandes y los avisos también. Las ayudas de los menús (pisos, muerte, resumen, perfil, puesto, diálogos, creación del personaje) hablan de toques.
+- Sin el panel del arma en móvil: su información está en los botones.
+- Perfil: caben los diez Ecos y el botón HABILIDADES se movió abajo.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Piso VI: La Ofrenda
 
 Piso de respiro, sin entidades. Cuatro salas: Atrio de los Guías, Puesto del Mercader, Refectorio Vacío y Escalera del Séptimo.

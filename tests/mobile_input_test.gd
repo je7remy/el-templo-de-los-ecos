@@ -60,7 +60,7 @@ func _run() -> void:
     game.set("has_torch", true)
     game.set("matches", 5)
     var prev: bool = game.get("torch_on")
-    game.call("_mobile_tap", Vector2(585, 478))
+    game.call("_mobile_tap", (game.get("TOUCH_BUTTONS") as Dictionary)["antorcha"][0])
     if bool(game.get("torch_on")) == prev:
         _fail("No funciona el boton tactil de la linterna.")
         return

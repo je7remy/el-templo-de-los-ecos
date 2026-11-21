@@ -3,7 +3,7 @@
 ## Qué incluye
 - La campaña original de cinco habitaciones, almas y reencarnación se mantiene intacta.
 - El menú principal incorpora acceso al modo alternativo **Vigilia del Claustro** (tecla H o toque en la parte derecha).
-- En la campaña aparece un joystick virtual y botones E/F/DASH/Q para pantallas táctiles. E interactúa o, si no hay nada cerca y la antorcha está encendida, golpea con fuego. Tocar el retrato abre el perfil y el botón de pausa del minimapa pausa la partida. Los controles táctiles se pueden forzar o desactivar en *Configuración > Controles* (Auto / Siempre / Nunca).
+- En la campaña aparece un joystick flotante a la izquierda (la base va donde apoyes el pulgar) y cuatro botones en abanico a la derecha: **ACCIÓN** (grande), LUZ, ESQUIVA y ONDA. El botón de ACCIÓN cambia según lo que tengas cerca (COMPRAR, GUIAR, CALMAR, PUERTA, LEER, ALTAR, SELLO...) y brilla cuando hay algo con qué interactuar; si no, golpea con la antorcha. La LUZ muestra los fósforos que te quedan. Tocar el retrato abre el perfil y el botón de pausa del minimapa pausa la partida. Los controles táctiles se pueden forzar o desactivar en *Configuración > Controles* (Auto / Siempre / Nunca).
 - El nuevo modo cuenta con una sola cámara, cama productora de ecos, puerta reforzable, cuatro centinelas automáticos, reparación y oleadas crecientes hasta el amanecer (135 s). La derrota sucede cuando cae la puerta.
 - El nuevo modo tiene una economía **independiente** para no alterar el lore, las almas ni el personaje de la campaña.
 
@@ -13,7 +13,7 @@
 | Campaña | Tocar mitad izquierda en menú | Enter |
 | Vigilia | Tocar mitad derecha en menú | H |
 | Caminar en campaña | Joystick virtual | WASD o flechas |
-| Interactuar o golpear / antorcha / esquivar / resonancia | Botones E/F/DASH/Q | E o clic / F / Espacio / Q |
+| Interactuar o golpear / antorcha / esquivar / resonancia | Botones ACCIÓN / LUZ / ESQUIVA / ONDA | E o clic / F / Espacio / Q |
 | Perfil | Tocar el retrato | I o Tab |
 | Pausa | Botón de pausa (arriba a la derecha) | Esc |
 | Descansar | Tocar lecho o botón DESCANSAR | Espacio |
