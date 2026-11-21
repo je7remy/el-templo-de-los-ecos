@@ -35,14 +35,19 @@ const BOOK_POS := Vector2(497, 310) # sobre la mesa del archivo (base del libro)
 const ARCHIVE_POS := Vector2(497, 362) # frente a la mesa, donde se lee
 const EYE_POS := Vector2(690, 143) # ojo tallado en el muro del fondo
 const DOOR_POS := Vector2(867, 355)
-## Enemigos: caja útil del sprite (sin relleno transparente) y escala para que
-## los tres convivan con el protagonista (56 px). x0, x1, y_base, escala.
-const ENEMY_FRAMES := {
-    "angel": [13.0, 108.0, 112.0, 0.78],
-    "ghoul": [9.0, 49.0, 59.0, 1.2],
-    "wizard": [21.0, 55.0, 65.0, 1.3],
-}
-const RoomProps = preload("res://scripts/room_props.gd")
+## Enemigos: hojas originales de 48x64 por celda, pies en y=61.
+## Filas: 0 abajo, 1 arriba, 2 derecha, 3 izquierda.
+const ENEMY_CELL := Vector2(48.0, 64.0)
+const ENEMY_FEET_Y := 61.0
+## Salas editables: TileMapLayer + objetos + marcadores + colisiones.
+## Se generaron con herramientas/construir_salas.*; desde entonces se editan en Godot.
+const ROOM_SCENES := [
+    preload("res://rooms/sala_0.tscn"),
+    preload("res://rooms/sala_1.tscn"),
+    preload("res://rooms/sala_2.tscn"),
+    preload("res://rooms/sala_3.tscn"),
+    preload("res://rooms/sala_4.tscn"),
+]
 const WALL_COLOR := Color("#394052")
 const BG := Color("#090c17")
 const CREAM := Color("#d9d2ba")
@@ -58,12 +63,11 @@ const ART_PRELOADED := {
     "visual_room_3": preload("res://assets/visual/rooms/room_3.png"),
     "visual_room_4": preload("res://assets/visual/rooms/room_4.png"),
     "visual_hero": preload("res://assets/visual/protagonist_sheet.png"),
-    "props_0": preload("res://assets/visual/rooms/room_0_props.png"),
-    "props_1": preload("res://assets/visual/rooms/room_1_props.png"),
-    "props_2": preload("res://assets/visual/rooms/room_2_props.png"),
-    "props_3": preload("res://assets/visual/rooms/room_3_props.png"),
-    "props_4": preload("res://assets/visual/rooms/room_4_props.png"),
     "knowledge_book_sheet": preload("res://assets/knowledge/magic_book_sheet.png"),
+    ## Entidades originales cenitales (herramientas/generar_enemigos.py).
+    "enemy_testigo": preload("res://assets/visual/enemies/testigo.png"),
+    "enemy_ghoul": preload("res://assets/visual/enemies/ghoul.png"),
+    "enemy_hechicero": preload("res://assets/visual/enemies/hechicero.png"),
 
     "room_0": preload("res://assets/knowledge/rooms/room_0.png"),
     "room_1": preload("res://assets/knowledge/rooms/room_1.png"),
@@ -124,10 +128,24 @@ var enemy_stun: float = 0.0
 var enemy_pos: Vector2 = Vector2(788, 370)
 var enemy_home: Vector2 = Vector2(788, 370)
 var enemy_alert: bool = false
+## Solo visual: orientación y movimiento del enemigo para elegir la animación.
+var enemy_facing: int = 0 # 0 abajo, 1 arriba, 2 derecha, 3 izquierda
+var enemy_moving: bool = false
+var enemy_prev_pos: Vector2 = Vector2.ZERO
 var wizard_cast_cd: float = 2.6
 var fireballs: Array[Dictionary] = []
 var collected: Array[bool] = [false, false, false]
 var obstacles: Array[Rect2] = []
+## Datos leídos de la escena de la sala actual (los const son valores por defecto).
+var room_node: Node2D = null
+var room_props: Array = [] # {tex, rect, base, shadow, light, flip}
+var relics: Array = RELICS.duplicate()
+var seal_pos: Vector2 = SEAL_POS
+var altar_pos: Vector2 = ALTAR_POS
+var book_pos: Vector2 = BOOK_POS
+var archive_pos: Vector2 = ARCHIVE_POS
+var eye_pos: Vector2 = EYE_POS
+var door_pos: Vector2 = DOOR_POS
 var still_timer: float = 0.0
 var dark_timer: float = 0.0
 var letter_found: bool = false
@@ -253,16 +271,20 @@ func _new_run() -> void:
 
 
 func _enter_room() -> void:
-    player_pos = Vector2(115.0, 359.0)
+    _load_room_scene()
+    player_pos = _marker("Jugador", Vector2(115.0, 359.0))
     player_dir = Vector2.RIGHT
-    enemy_pos = Vector2(765.0, 358.0)
+    var default_enemy := Vector2(765.0, 358.0)
     if current_room == 1:
-        enemy_pos = Vector2(772.0, 472.0) # Burning Ghoul
+        default_enemy = Vector2(772.0, 472.0) # Ghoul de brasas
     elif current_room == 3:
-        enemy_pos = Vector2(773.0, 354.0) # Wizard
+        default_enemy = Vector2(773.0, 354.0) # Hechicero
+    enemy_pos = _marker("Enemigo", default_enemy)
     wizard_cast_cd = 2.4
     fireballs.clear()
     enemy_home = enemy_pos
+    enemy_prev_pos = enemy_pos
+    enemy_facing = 3 # empiezan mirando hacia la entrada (izquierda)
     enemy_stun = 0.0
     enemy_alert = false
     room_elapsed = 0.0
@@ -272,27 +294,59 @@ func _enter_room() -> void:
     collected = [false, false, false]
     ward_left = 0.0
     torch_on = true
-    obstacles.clear()
-    match current_room:
-        0:
-            obstacles.append(Rect2(397, 295, 62, 60))
-            obstacles.append(Rect2(630, 378, 70, 55))
-        1:
-            obstacles.append(Rect2(331, 305, 55, 86))
-            obstacles.append(Rect2(601, 305, 55, 86))
-            obstacles.append(Rect2(ALTAR_POS.x - 25.0, ALTAR_POS.y - 18.0, 50.0, 36.0)) # altar
-        2:
-            obstacles.append(Rect2(315, 285, 50, 70))
-            obstacles.append(Rect2(530, 400, 55, 70))
-        3:
-            obstacles.append(Rect2(341, 340, 70, 60))
-            obstacles.append(Rect2(635, 340, 70, 60))
-            obstacles.append(Rect2(457, 296, 82, 44)) # mesa del archivo
-        4:
-            obstacles.append(Rect2(365, 245, 62, 62))
-            obstacles.append(Rect2(655, 412, 54, 54))
-            obstacles.append(Rect2(767, 424, 58, 46)) # sarcófago
     _say(ROOM_WHISPERS[current_room], 4.5)
+
+
+## Instancia rooms/sala_N.tscn bajo el dibujo del juego y lee sus datos.
+func _load_room_scene() -> void:
+    if room_node != null:
+        remove_child(room_node)
+        room_node.queue_free()
+    room_node = ROOM_SCENES[current_room].instantiate()
+    room_node.z_index = -1 # el suelo (TileMapLayer) queda bajo todo lo demás
+    add_child(room_node)
+    move_child(room_node, 0)
+    obstacles.clear()
+    for shape in room_node.find_children("*", "CollisionShape2D", true, false):
+        var rect_shape := (shape as CollisionShape2D).shape as RectangleShape2D
+        if rect_shape == null or (shape as CollisionShape2D).disabled:
+            continue
+        var center: Vector2 = (shape as Node2D).global_position - global_position
+        obstacles.append(Rect2(center - rect_shape.size * 0.5, rect_shape.size))
+    # Los objetos los dibuja este script, ordenados por profundidad con los
+    # personajes; en el editor se ven y se mueven como Sprite2D normales.
+    room_props.clear()
+    var objetos: Node = room_node.get_node_or_null("Objetos")
+    if objetos != null:
+        (objetos as CanvasItem).visible = false
+        for child in objetos.get_children():
+            var sprite := child as Sprite2D
+            if sprite == null or sprite.texture == null or not sprite.visible:
+                continue
+            var size: Vector2 = sprite.texture.get_size() * sprite.scale.abs()
+            var anchor: Vector2 = sprite.global_position - global_position
+            var top_left: Vector2 = anchor + sprite.offset * sprite.scale.abs()
+            if sprite.centered:
+                top_left -= size * 0.5
+            room_props.append({
+                "tex": sprite.texture, "rect": Rect2(top_left, size), "base": anchor.y,
+                "shadow": bool(sprite.get_meta("sombra", true)), "light": bool(sprite.get_meta("luz", false)),
+                "flip": sprite.flip_h,
+            })
+    relics = [_marker("Reliquia1", RELICS[0]), _marker("Reliquia2", RELICS[1]), _marker("Reliquia3", RELICS[2])]
+    seal_pos = _marker("Sello", SEAL_POS)
+    altar_pos = _marker("Altar", ALTAR_POS)
+    book_pos = _marker("Libro", BOOK_POS)
+    archive_pos = _marker("Lectura", ARCHIVE_POS)
+    eye_pos = _marker("Ojo", EYE_POS)
+    door_pos = _marker("Salida", DOOR_POS)
+
+
+func _marker(marker_name: String, fallback: Vector2) -> Vector2:
+    if room_node == null:
+        return fallback
+    var marker := room_node.get_node_or_null("Marcadores/" + marker_name) as Node2D
+    return fallback if marker == null else marker.global_position - global_position
 
 
 func _input(event: InputEvent) -> void:
@@ -462,7 +516,7 @@ func _use_pulse() -> void:
 
 func _interact() -> void:
     visual_interaction_left = 0.24 # solo dibujo; no cambia la interacción
-    if current_room == 2 and not seal_acquired and player_pos.distance_to(SEAL_POS) < 60.0:
+    if current_room == 2 and not seal_acquired and player_pos.distance_to(seal_pos) < 60.0:
         seal_acquired = true
         remembered_rule = true
         observed_rule = true
@@ -472,23 +526,23 @@ func _interact() -> void:
         _say("SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
         _play_effect()
         return
-    if current_room == 1 and player_pos.distance_to(ALTAR_POS) < 64.0:
+    if current_room == 1 and player_pos.distance_to(altar_pos) < 64.0:
         game_mode = "altar"
         return
-    if current_room == 3 and player_pos.distance_to(ARCHIVE_POS) < 72.0:
+    if current_room == 3 and player_pos.distance_to(archive_pos) < 72.0:
         letter_found = true
         _say("Carta: 'He regresado. El cuerpo cambia, pero recuerdo sus ojos.'", 5.0)
         _play_effect()
         return
-    for i in range(RELICS.size()):
-        if not collected[i] and player_pos.distance_to(RELICS[i]) < 47.0:
+    for i in range(relics.size()):
+        if not collected[i] and player_pos.distance_to(relics[i]) < 47.0:
             collected[i] = true
             souls += 7
             fear = maxf(0.0, fear - 8.0)
             _say("Fragmento reunido: +7 almas. Es la moneda del templo.", 2.5)
             _play_effect()
             return
-    if player_pos.distance_to(DOOR_POS) < 74.0:
+    if player_pos.distance_to(door_pos) < 74.0:
         if _room_ready():
             if current_room == 4:
                 _win_run()
@@ -580,6 +634,7 @@ func _process(delta: float) -> void:
     visual_interaction_left = maxf(0.0, visual_interaction_left - delta)
     if game_mode == "play":
         _update_play(delta)
+        _track_enemy_visual(delta)
     queue_redraw()
 
 
@@ -684,7 +739,9 @@ func _update_enemy(dt: float) -> void:
 
 
 func _draw() -> void:
-    draw_rect(Rect2(0, 0, W, H), BG)
+    # En partida el fondo lo pone la escena de la sala (está por debajo).
+    if room_node == null or game_mode == "title":
+        draw_rect(Rect2(0, 0, W, H), BG)
     _draw_background()
     if game_mode == "title":
         _draw_title()
@@ -712,18 +769,18 @@ func _draw_background() -> void:
 
 
 func _draw_room() -> void:
-    var room_bg: Texture2D = art["visual_room_%d" % current_room]
-    draw_texture_rect(room_bg, Rect2(0.0, 0.0, W, H), false)
+    # El suelo y los muros los dibuja la escena de la sala (TileMapLayer).
+    _draw_prop_shadows()
     # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
     _draw_visual_atmosphere()
     # Objetos a ras de suelo: siempre por debajo de personajes y estatuas.
     _draw_door()
     if current_room == 2:
-        _draw_seal(SEAL_POS)
-        _draw_watcher_eye(EYE_POS)
-    for i in range(RELICS.size()):
+        _draw_seal(seal_pos)
+        _draw_watcher_eye(eye_pos)
+    for i in range(relics.size()):
         if not collected[i]:
-            _draw_relic(RELICS[i], i)
+            _draw_relic(relics[i], i)
     _draw_depth_sorted()
     if current_room == 3:
         _draw_fireballs()
@@ -738,29 +795,34 @@ func _draw_room() -> void:
     _draw_object_labels()
 
 
-## [VISUAL UPGRADE] Ordenación por profundidad. Columnas y estatuas están
-## pintadas en el fondo; se redibujan desde la capa room_N_props.png cuando un
-## personaje pasa por detrás, de modo que la base del objeto lo tape.
+## Sombras de contacto de los objetos de la sala (antes horneadas en el PNG)
+## y halo vivo de los braseros.
+func _draw_prop_shadows() -> void:
+    for prop in room_props:
+        var rect: Rect2 = prop["rect"]
+        if prop["shadow"]:
+            _draw_soft_shadow(Vector2(rect.get_center().x, float(prop["base"]) - 3.0), rect.size.x * 0.6, 1.1)
+        if prop["light"]:
+            var flicker: float = 0.5 + 0.5 * sin(elapsed * 7.0 + rect.position.x) * sin(elapsed * 2.3)
+            var c := Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.35)
+            for r in range(4, 0, -1):
+                draw_circle(c, 14.0 + float(r) * 13.0, Color(1.0, 0.78, 0.40, 0.022 + 0.01 * flicker))
+
+
+## [VISUAL UPGRADE] Ordenación por profundidad: objetos de la sala, personajes,
+## altar y libro se dibujan de arriba abajo según la y de su base.
 func _draw_depth_sorted() -> void:
     var items: Array = [] # [y_base, tipo, dato]
     items.append([player_pos.y, "player", null])
-    var actors: Array[Rect2] = [Rect2(player_pos.x - 22.0, player_pos.y - 54.0, 44.0, 58.0)]
     if current_room in [1, 2, 3]:
         items.append([enemy_pos.y, "enemy", null])
-        actors.append(_enemy_rect())
     if current_room == 1:
-        items.append([ALTAR_POS.y + 22.0, "altar", null])
+        items.append([altar_pos.y + 22.0, "altar", null])
     if current_room == 3:
-        items.append([347.0, "book", null]) # justo después de la mesa (base y=346)
-    var props: Array = RoomProps.PROPS[current_room]
-    for prop in props:
-        var region: Rect2 = prop[0]
-        for actor in actors:
-            if region.intersects(actor):
-                items.append([float(prop[1]), "prop", region])
-                break
+        items.append([book_pos.y + 37.0, "book", null]) # justo después de la mesa
+    for i in range(room_props.size()):
+        items.append([float(room_props[i]["base"]), "prop", i])
     items.sort_custom(func(x, y): return x[0] < y[0])
-    var layer: Texture2D = art["props_%d" % current_room]
     for item in items:
         match item[1]:
             "player":
@@ -768,21 +830,25 @@ func _draw_depth_sorted() -> void:
             "enemy":
                 _draw_enemy()
             "altar":
-                _draw_altar(ALTAR_POS)
+                _draw_altar(altar_pos)
             "book":
-                _draw_letter(BOOK_POS)
+                _draw_letter(book_pos)
             "prop":
-                draw_texture_rect_region(layer, item[2], item[2])
+                var prop: Dictionary = room_props[item[2]]
+                var dest: Rect2 = prop["rect"]
+                if prop["flip"]:
+                    dest = Rect2(dest.position + Vector2(dest.size.x, 0.0), Vector2(-dest.size.x, dest.size.y))
+                draw_texture_rect(prop["tex"], dest, false)
 
 
 func _draw_object_labels() -> void:
     # Etiquetas por encima de todo para que nunca queden tapadas.
-    if current_room == 1 and player_pos.distance_to(ALTAR_POS) < 150.0:
-        _label_center("INTERCAMBIO [E]", ALTAR_POS + Vector2(0.0, 46.0), CREAM)
-    if current_room == 3 and player_pos.distance_to(ARCHIVE_POS) < 150.0:
-        _label_center("LEER CARTA [E]" if not letter_found else "CARTA LEÍDA", ARCHIVE_POS + Vector2(0.0, 30.0), CREAM)
+    if current_room == 1 and player_pos.distance_to(altar_pos) < 150.0:
+        _label_center("INTERCAMBIO [E]", altar_pos + Vector2(0.0, 46.0), CREAM)
+    if current_room == 3 and not letter_found and player_pos.distance_to(archive_pos) < 150.0:
+        _label_center("LEER CARTA [E]", archive_pos + Vector2(0.0, 30.0), CREAM)
     if current_room == 2 and not seal_acquired:
-        _label_center("SELLO [E]", SEAL_POS + Vector2(0.0, 56.0), Color("#e2c48a"))
+        _label_center("SELLO [E]", seal_pos + Vector2(0.0, 56.0), Color("#e2c48a"))
     if current_room in [1, 2, 3] and enemy_stun > 0.0:
         var top: float = _enemy_rect().position.y
         _label_center("ATURDIDO", Vector2(enemy_pos.x, top - 6.0), SOUL)
@@ -883,10 +949,10 @@ func _draw_seal(at: Vector2) -> void:
 func _draw_door() -> void:
     var ready: bool = _room_ready()
     var tone: Color = Color("#82bdaf") if ready else Color("#b04d5e")
-    var gap := Rect2(DOOR_POS.x + 28.0, DOOR_POS.y - 36.0, 19.0, 72.0)
+    var gap := Rect2(door_pos.x + 28.0, door_pos.y - 36.0, 19.0, 72.0)
     var pulse: float = 0.5 + 0.5 * sin(elapsed * 2.2)
     # Luz en el umbral.
-    _draw_ellipse(Vector2(gap.position.x - 30.0, DOOR_POS.y), 34.0, 40.0, Color(tone.r, tone.g, tone.b, 0.05 + 0.03 * pulse))
+    _draw_ellipse(Vector2(gap.position.x - 30.0, door_pos.y), 34.0, 40.0, Color(tone.r, tone.g, tone.b, 0.05 + 0.03 * pulse))
     if ready:
         draw_rect(gap, Color("#05080a"))
         draw_polygon(PackedVector2Array([gap.position, gap.position + Vector2(0, gap.size.y), Vector2(gap.position.x - 60.0, gap.end.y + 18.0), Vector2(gap.position.x - 60.0, gap.position.y - 18.0)]),
@@ -903,7 +969,7 @@ func _draw_door() -> void:
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#454c3c"))
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 2.0), Color("#68715a"))
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#15170f"), false, 1.0)
-    _label_center("SALIDA [E]" if ready else "SELLADA", Vector2(DOOR_POS.x - 4.0, gap.position.y - 16.0), tone)
+    _label_center("SALIDA [E]" if ready else "SELLADA", Vector2(door_pos.x - 4.0, gap.position.y - 16.0), tone)
 
 
 ## Altar a proporción real (78x112 escalado de forma uniforme).
@@ -914,9 +980,18 @@ func _draw_altar(at: Vector2) -> void:
     # La base visible del sprite está en y=99 de 112.
     var origin := Vector2(at.x - size.x * 0.5, at.y + 22.0 - 99.0 * scale)
     _draw_soft_shadow(Vector2(at.x, at.y + 20.0), 30.0)
-    var glow: float = 0.05 + 0.03 * sin(elapsed * 1.7)
-    draw_circle(at + Vector2(0.0, -20.0), 26.0, Color(0.85, 0.72, 0.45, glow))
-    draw_texture_rect(tex, Rect2(origin, size), false)
+    # Luz cálida de ofrenda: el sprite original es muy oscuro sobre este suelo.
+    var flicker: float = 0.5 + 0.5 * sin(elapsed * 3.1) * sin(elapsed * 1.3)
+    _draw_ellipse(Vector2(at.x, at.y + 18.0), 48.0, 20.0, Color(0.95, 0.72, 0.38, 0.07 + 0.03 * flicker))
+    for r in range(3, 0, -1):
+        draw_circle(at + Vector2(0.0, -14.0), 10.0 + float(r) * 7.0, Color(0.95, 0.74, 0.42, 0.035 + 0.015 * flicker))
+    draw_texture_rect(tex, Rect2(origin, size), false, Color(1.55, 1.42, 1.22))
+    # Velas a los lados del altar.
+    for side in [-1.0, 1.0]:
+        var c := Vector2(at.x + side * 30.0, at.y + 14.0)
+        draw_rect(Rect2(c.x - 2.0, c.y - 9.0, 4.0, 9.0), Color("#d8cfb4"))
+        draw_circle(c + Vector2(0.0, -12.0), 2.2 + flicker * 0.6, Color(1.0, 0.78, 0.35, 0.95))
+        draw_circle(c + Vector2(0.0, -12.0), 6.0, Color(1.0, 0.7, 0.3, 0.12))
 
 
 ## Libro del archivo sobre la mesa: cerrado hasta leerlo; después hojea páginas.
@@ -928,10 +1003,12 @@ func _draw_letter(at: Vector2) -> void:
     else:
         var glow: float = 0.08 + 0.05 * sin(elapsed * 2.4)
         draw_circle(at + Vector2(0.0, -8.0), 22.0, Color(0.59, 0.79, 0.55, glow))
-    var scale: float = 2.0
+    var scale: float = 1.5
     # Celda de 64x64; la base del libro está en y=45.
-    var region := Rect2(float(frame * 64) + 4.0, 0.0, 56.0, 48.0)
-    var dest := Rect2(at.x - 28.0 * scale, at.y - 45.0 * scale, 56.0 * scale, 48.0 * scale)
+    # Desde y=26 de la celda: libro y páginas, sin los glifos que flotaban
+    # sobre la estatua de detrás.
+    var region := Rect2(float(frame * 64) + 4.0, 26.0, 56.0, 22.0)
+    var dest := Rect2(at.x - 28.0 * scale, at.y - 19.0 * scale, 56.0 * scale, 22.0 * scale)
     draw_texture_rect_region(sheet, dest, region)
 
 
@@ -955,48 +1032,58 @@ func _draw_relic(at: Vector2, index: int) -> void:
     draw_line(s + Vector2(0, -3), s + Vector2(0, 3), Color(1, 1, 1, sparkle), 1.0)
 
 
-func _enemy_kind() -> String:
-    return "ghoul" if current_room == 1 else ("angel" if current_room == 2 else "wizard")
-
-
 func _enemy_rect() -> Rect2:
-    var info: Array = ENEMY_FRAMES[_enemy_kind()]
-    var scale: float = info[3]
-    var width: float = (info[1] - info[0]) * scale
-    var height: float = info[2] * scale
-    return Rect2(enemy_pos.x - width * 0.5, enemy_pos.y + 4.0 - height, width, height)
+    return Rect2(enemy_pos.x - 15.0, enemy_pos.y + 4.0 - 56.0, 30.0, 56.0)
+
+
+func _track_enemy_visual(dt: float) -> void:
+    var delta_pos: Vector2 = enemy_pos - enemy_prev_pos
+    enemy_moving = dt > 0.0 and delta_pos.length() > 8.0 * dt
+    # Mientras se mueve mira hacia donde va; quieto, mira al jugador.
+    var look: Vector2 = delta_pos if enemy_moving else (player_pos - enemy_pos)
+    if look.length() > 0.5:
+        if absf(look.x) > absf(look.y):
+            enemy_facing = 2 if look.x > 0.0 else 3
+        else:
+            enemy_facing = 0 if look.y > 0.0 else 1
+    enemy_prev_pos = enemy_pos
+
+
+func _enemy_frame(kind: String) -> int:
+    match kind:
+        "testigo":
+            # La regla se lee en el sprite: columnas 0-3 ojo abierto, 4-7 cerrado.
+            return (0 if watcher_open else 4) + int(elapsed * 6.0) % 4
+        "ghoul":
+            return 2 + int(elapsed * 9.0) % 4 if enemy_moving else int(elapsed * 2.5) % 2
+        _:
+            if enemy_alert and wizard_cast_cd > 2.45: # acaba de lanzar un conjuro
+                return 6 + int(elapsed * 8.0) % 2
+            return 2 + int(elapsed * 7.0) % 4 if enemy_moving else int(elapsed * 2.0) % 2
 
 
 func _draw_enemy() -> void:
-    var kind: String = _enemy_kind()
-    var max_frames: int = 5 if kind == "wizard" else 8
-    var frame: int = 1 + (int(elapsed * 8.0) % max_frames)
-    var texture: Texture2D = art["%s_%d" % [kind, frame]]
-    var info: Array = ENEMY_FRAMES[kind]
-    var scale: float = info[3]
-    var size := Vector2(texture.get_width(), texture.get_height()) * scale
+    var kind: String = "ghoul" if current_room == 1 else ("testigo" if current_room == 2 else "hechicero")
+    var sheet: Texture2D = art["enemy_" + kind]
+    var frame: int = _enemy_frame(kind)
+    var region := Rect2(float(frame) * ENEMY_CELL.x, float(enemy_facing) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
     var lift: float = 0.0
-    if kind == "angel":
-        lift = 10.0 + sin(elapsed * 2.6) * 4.0 # flota: la sombra se queda en el suelo
-    # Ancla: centro de la caja útil sobre enemy_pos y base apoyada en el suelo.
-    var anchor := Vector2((info[0] + info[1]) * 0.5 * scale, info[2] * scale)
+    if kind == "testigo":
+        lift = 8.0 + sin(elapsed * 2.6) * 2.0 # flota: la sombra se queda en el suelo
     var feet := Vector2(roundf(enemy_pos.x), roundf(enemy_pos.y + 4.0 - lift))
-    var footprint: float = 22.0 if kind == "angel" else 15.0
+    var footprint: float = 17.0 if kind == "testigo" else 14.0
     _draw_soft_shadow(enemy_pos + Vector2(0.0, 3.0), footprint, 1.0 if lift == 0.0 else 0.7)
     if enemy_alert:
         var pulse: float = 0.5 + 0.5 * sin(elapsed * 8.0)
         _draw_ellipse(enemy_pos + Vector2(0.0, 3.0), footprint + 9.0, (footprint + 9.0) * 0.34, Color(0.85, 0.22, 0.28, 0.18 + 0.12 * pulse))
     if enemy_stun > 0.0:
         _draw_ellipse(enemy_pos + Vector2(0.0, 3.0), footprint + 9.0, (footprint + 9.0) * 0.34, Color(0.56, 0.78, 0.84, 0.30))
-    # Los sprites de perfil miran a la derecha: se voltean hacia el jugador.
-    var flip: bool = kind != "angel" and player_pos.x < enemy_pos.x
+    if kind == "ghoul":
+        # Las brasas iluminan el suelo a su alrededor.
+        draw_circle(enemy_pos + Vector2(0.0, -30.0), 30.0, Color(1.0, 0.55, 0.2, 0.05 + 0.02 * sin(elapsed * 9.0)))
     var tint := Color(0.75, 0.85, 1.0, 1.0) if enemy_stun > 0.0 else Color.WHITE
-    if flip:
-        draw_set_transform(feet, 0.0, Vector2(-1.0, 1.0))
-    else:
-        draw_set_transform(feet, 0.0, Vector2.ONE)
-    draw_texture_rect(texture, Rect2(-anchor, size), false, tint)
-    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    var dest := Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y)
+    draw_texture_rect_region(sheet, dest, region, tint)
 
 
 func _draw_fireballs() -> void:
