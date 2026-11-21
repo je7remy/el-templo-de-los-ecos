@@ -506,6 +506,78 @@ func _run_checks() -> void:
         return
     (game.get("ecos") as Array).erase("piel")
     print("OK: Piso IV, fuego, raíces y Tejedora de Raíz.")
+
+    # Piso V: mastines que temen al fuego, antorcha que se consume, rescate y Máscara.
+    game.set("current_floor", 4)
+    game.set("current_room", 0)
+    game.call("_on_floor_start")
+    game.set("has_torch", true)
+    game.set("has_inner_flame", false)
+    game.set("matches", 3)
+    game.set("torch_on", false)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    var hs: Array = game.get("hounds")
+    if hs.size() != 2 or (game.get("maze_walls") as Array).is_empty():
+        _fail("El Corredor de los Relicarios no tiene mastines o muros.")
+        return
+    game.set("player_pos", Vector2(480, 300))
+    hs[0]["pos"] = Vector2(480, 230)
+    hs[1]["pos"] = Vector2(720, 200)
+    game.call("_toggle_torch")
+    var d0: float = Vector2(hs[0]["pos"]).distance_to(Vector2(480, 300))
+    for k in range(60):
+        game.call("_update_hounds", 1.0 / 60.0)
+    if Vector2(hs[0]["pos"]).distance_to(Vector2(480, 300)) < d0:
+        _fail("Con la antorcha encendida el mastín se acerca.")
+        return
+    game.set("torch_fuel", 0.01)
+    game.call("_update_labyrinth", 0.05)
+    if bool(game.get("torch_on")):
+        _fail("La antorcha no se consume en el Piso V.")
+        return
+    game.set("hp", 100.0)
+    game.set("damage_cd", 0.0)
+    game.set("dash_left", 0.0)
+    hs[0]["flee"] = 0.0
+    hs[0]["bite_cd"] = 0.0
+    hs[0]["pos"] = Vector2(480, 285)
+    for k in range(30):
+        game.call("_update_hounds", 1.0 / 60.0)
+    if float(game.get("hp")) >= 100.0:
+        _fail("A oscuras el mastín no muerde.")
+        return
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("torch_on", true)
+    game.set("stamina", 100.0)
+    game.set("strike_cd", 0.0)
+    game.set("player_pos", Vector2(660, 470))
+    game.set("player_dir", Vector2.RIGHT)
+    game.call("_torch_strike")
+    game.call("_dialog_skip")
+    if game.get("rescue_state") != "libre" or not (game.get("rescued") as Array).has("SAÚL"):
+        _fail("Golpear la reja no libera al peregrino atrapado.")
+        return
+    game.set("current_room", 3)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("has_mask", false)
+    if bool(game.call("_room_ready")):
+        _fail("Los Canales de Almas abren la puerta sin la Máscara.")
+        return
+    game.set("player_pos", (game.call("_room") as Dictionary)["mask"])
+    game.call("_update_labyrinth", 0.016)
+    game.call("_dialog_skip")
+    if not bool(game.get("has_mask")) or float(game.call("_pulse_radius")) <= 150.0 or not bool(game.call("_room_ready")):
+        _fail("La Máscara de Porcelana no se recoge o no amplía la Resonancia.")
+        return
+    game.set("has_mask", false)
+    print("OK: Piso V, mastines, antorcha que se consume, rescate y Máscara.")
     game.set("current_floor", 0)
 
     game.set("current_room", 2)
