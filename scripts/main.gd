@@ -873,7 +873,6 @@ func _input(event: InputEvent) -> void:
         if k in [_key("perfil"), KEY_TAB, KEY_ESCAPE, KEY_E]:
             _close_inventory()
         elif k == _key("habilidades"):
-            game_mode = "play"
             _open_abilities()
         elif k in [KEY_RIGHT, KEY_D]:
             inventory_sel = (inventory_sel % 100 + 1) % INVENTORY_SLOTS.size()
@@ -946,7 +945,10 @@ func _mobile_tap(at: Vector2) -> void:
                         get_tree().quit()
         return
     if game_mode == "intro":
-        _intro_next()
+        if INTRO_SKIP_BTN.has_point(at):
+            _end_intro()
+        else:
+            _intro_next()
         return
     if game_mode == "pause":
         for i in range(_pause_options().size()):
@@ -991,14 +993,16 @@ func _mobile_tap(at: Vector2) -> void:
             _sfx("interfaz", -12.0, 0.9)
         return
     if game_mode == "dialog":
-        _dialog_advance()
+        if SKIP_BTN.has_point(at):
+            _dialog_skip()
+        else:
+            _dialog_advance()
         return
     if game_mode == "abilities":
         _close_abilities()
         return
     if game_mode == "inventory":
         if PROFILE_ABIL_BTN.has_point(at):
-            game_mode = "play"
             _open_abilities()
             return
         var slot: int = _inventory_slot_at(at)
@@ -1195,8 +1199,10 @@ func _enter_floor() -> void:
 
 
 func _open_inventory() -> void:
-    if game_mode != "play":
+    if not game_mode in ["play", "pause", "abilities"]:
         return
+    if game_mode != "abilities":
+        overlay_return = game_mode # desde la pausa, ESC vuelve a la pausa
     game_mode = "inventory"
     mobile_axis = Vector2.ZERO
     mobile_finger = -1
@@ -1209,7 +1215,7 @@ func _open_inventory() -> void:
 
 
 func _close_inventory() -> void:
-    game_mode = "play"
+    game_mode = overlay_return
     if in_tutorial:
         tut_profile = true
     _sfx("interfaz", -12.0, 0.9)
@@ -4077,10 +4083,8 @@ func _pause_choose(i: int) -> void:
         "ajustes":
             _open_settings("pause")
         "perfil":
-            game_mode = "play"
-            _open_inventory()
+            _open_inventory() # al cerrarlo se vuelve a la pausa
         "habilidades":
-            game_mode = "play"
             _open_abilities()
         "saltar_tutorial":
             _end_tutorial()
@@ -4212,7 +4216,7 @@ func _draw_intro() -> void:
     for k in range(INTRO.size()):
         draw_rect(Rect2(430.0 + float(k) * 22.0, 540, 14, 4), UI_GOLD if k <= intro_slide else Color("#2a2e38"))
     _text_outline(_t("siguiente"), Vector2(24, 622), 12, Color("#8a8574"))
-    _text_outline(_t("saltar"), Vector2(820, 622), 12, Color("#8a8574"))
+    _skip_button(INTRO_SKIP_BTN)
 
 
 # ------------------------------------------------------------ TUTORIAL
@@ -5338,7 +5342,7 @@ func _draw_dialog() -> void:
         var pulse: float = 0.5 + 0.5 * sin(elapsed * 5.0)
         var more: String = "»  clic / E" if dialog_queue.size() > 1 else "»  clic / E para cerrar"
         _text_outline(more, Vector2(box.end.x - 230.0, box.end.y - 12.0), 12, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.5 + 0.5 * pulse), 210.0)
-    _text_outline("ESC: saltar", Vector2(box.position.x + 24.0, box.end.y - 12.0), 10, Color("#6b6f80"))
+    _skip_button(SKIP_BTN)
 
 
 # --- Pantalla de habilidades ---------------------------------------------------------
@@ -5346,8 +5350,10 @@ var abilities_return: String = "play"
 
 
 func _open_abilities() -> void:
-    if game_mode != "play":
+    if not game_mode in ["play", "pause", "inventory"]:
         return
+    if game_mode != "inventory":
+        overlay_return = game_mode # desde la pausa, ESC vuelve a la pausa
     game_mode = "abilities"
     mobile_axis = Vector2.ZERO
     mobile_finger = -1
@@ -5355,7 +5361,7 @@ func _open_abilities() -> void:
 
 
 func _close_abilities() -> void:
-    game_mode = "play"
+    game_mode = overlay_return
     _sfx("interfaz", -12.0, 0.9)
 
 
@@ -6075,4 +6081,19 @@ func _draw_critter_eyes() -> void:
 
 func _save_path() -> String:
     return SAVE_PATH_TEST if Engine.has_meta("modo_prueba") else SAVE_PATH
+
+
+# ------------------------------------------------------------ SALTAR Y VOLVER A LA PAUSA
+## Botón para saltar diálogos y la intro (además de ESC); se puede tocar.
+const SKIP_BTN := Rect2(690, 390, 160, 34) # sobre el cuadro de diálogo
+const INTRO_SKIP_BTN := Rect2(780, 596, 160, 34)
+## Adónde vuelven el perfil y las habilidades al cerrarse: al juego si se
+## abrieron jugando, a la pausa si se abrieron desde la pausa.
+var overlay_return: String = "play"
+
+
+func _skip_button(rect: Rect2) -> void:
+    var hot: bool = rect.has_point(ui_hover)
+    _panel(rect, Color("#2a1d22") if hot else Color(0.04, 0.035, 0.05, 0.9), UI_GOLD if hot else UI_LIGHT)
+    _text_outline("SALTAR (ESC)  »»", Vector2(rect.position.x, rect.position.y + 22.0), 13, CREAM if hot else Color("#b9b29b"), rect.size.x)
 

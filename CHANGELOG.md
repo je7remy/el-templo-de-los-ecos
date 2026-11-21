@@ -1,5 +1,11 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Saltar diálogos y volver a la pausa
+
+- Botón **SALTAR (ESC) »»** sobre el cuadro de diálogo y en la intro; se puede pulsar con el ratón o tocar en el móvil. ESC sigue saltando.
+- El **perfil** y las **habilidades** recuerdan desde dónde se abrieron: si fue desde la pausa, ESC (o cerrarlos) vuelve a la pausa; si fue jugando, vuelve al juego. Pasar del perfil a las habilidades conserva el origen.
+
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Etapa 3: lo aprovechable del primer juego (*Craving Candy*)
 
 - **Alimañas del osario** (sprite original): patrullan entre dos puntos y dan media vuelta; si te huelen cerca se lanzan y muerden (6). Mueren de un **esquive** (como el dash del primer juego), de un golpe de antorcha o de Resonancia, y sueltan 1 alma. En la Nave del Agua y el Umbral del Tercer Piso salen de un **nido** y reaparecen a los 9 s. Sus ojos rojos brillan en la oscuridad. Están en el Pórtico, la Nave del Agua, el Umbral del Tercer Piso y el Claustro del Encargo.

@@ -426,6 +426,33 @@ func _run_checks() -> void:
                 _fail("Falta el sonido %s." % file)
                 return
     print("OK: alimañas, cuerpo de la vida anterior y sonidos con variantes.")
+
+    # Saltar diálogos con el botón y volver a la pausa desde el perfil y las habilidades.
+    game.set("game_mode", "play")
+    game.call("_dialog", [["PEREGRINO", "Una frase."], ["PEREGRINO", "Otra frase."]])
+    game.call("_mobile_tap", (game.get("SKIP_BTN") as Rect2).get_center())
+    if game.get("game_mode") != "play" or not (game.get("dialog_queue") as Array).is_empty():
+        _fail("El botón SALTAR no salta la conversación.")
+        return
+    game.call("_open_pause")
+    game.call("_open_inventory")
+    game.call("_open_abilities")
+    game.call("_close_abilities")
+    if game.get("game_mode") != "pause":
+        _fail("Cerrar las habilidades abiertas desde la pausa no vuelve a la pausa.")
+        return
+    game.call("_open_inventory")
+    game.call("_close_inventory")
+    if game.get("game_mode") != "pause":
+        _fail("Cerrar el perfil abierto desde la pausa no vuelve a la pausa.")
+        return
+    game.set("game_mode", "play")
+    game.call("_open_inventory")
+    game.call("_close_inventory")
+    if game.get("game_mode") != "play":
+        _fail("Cerrar el perfil abierto jugando no vuelve al juego.")
+        return
+    print("OK: saltar diálogos y volver a la pausa.")
     game.set("current_floor", 0)
 
     game.set("current_room", 2)
