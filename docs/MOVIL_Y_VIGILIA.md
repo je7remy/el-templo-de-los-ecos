@@ -3,7 +3,7 @@
 ## Qué incluye
 - La campaña original de cinco habitaciones, almas y reencarnación se mantiene intacta.
 - El menú principal incorpora acceso al modo alternativo **Vigilia del Claustro** (tecla H o toque en la parte derecha).
-- En la campaña aparece un joystick virtual y botones E/F/DASH/Q para pantallas táctiles. E interactúa o, si no hay nada cerca y la antorcha está encendida, golpea con fuego. Tocar la parte derecha de la barra superior abre el inventario.
+- En la campaña aparece un joystick virtual y botones E/F/DASH/Q para pantallas táctiles. E interactúa o, si no hay nada cerca y la antorcha está encendida, golpea con fuego. Tocar el retrato abre el perfil y el botón de pausa del minimapa vuelve al menú.
 - El nuevo modo cuenta con una sola cámara, cama productora de ecos, puerta reforzable, cuatro centinelas automáticos, reparación y oleadas crecientes hasta el amanecer (135 s). La derrota sucede cuando cae la puerta.
 - El nuevo modo tiene una economía **independiente** para no alterar el lore, las almas ni el personaje de la campaña.
 
@@ -14,7 +14,8 @@
 | Vigilia | Tocar mitad derecha en menú | H |
 | Caminar en campaña | Joystick virtual | WASD o flechas |
 | Interactuar o golpear / antorcha / esquivar / resonancia | Botones E/F/DASH/Q | E o clic / F / Espacio / Q |
-| Inventario | Tocar la barra superior (derecha) | I o Tab |
+| Perfil | Tocar el retrato | I o Tab |
+| Volver al menú | Botón de pausa (arriba a la derecha) | Esc |
 | Descansar | Tocar lecho o botón DESCANSAR | Espacio |
 | Mejorar lecho/puerta/centinela/reparar | Botones inferiores | 2/3/4/5 |
 | Ver qué hace un botón | Tocarlo (la descripción se ve un momento) | Pasar el cursor por encima |

@@ -1,5 +1,20 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Estilo roguelike de acción
+
+**HUD** (paneles biselados flotantes, como en los roguelike de acción tipo Soul Knight)
+- Panel del jugador: retrato de Mark (con sangre y brecha cuando la vida baja del 35 %), barras de vida, vigor y miedo con icono, marcas cada 10 % y números. La barra de miedo late por encima del 70 %.
+- Cartel del piso y la sala, y contador de almas con icono.
+- Minimapa del piso: salas en cadena, la actual resaltada, una marca roja si hay una amenaza viva y una calavera al final del piso. Incluye un botón de pausa.
+- Pie: misión en su panel; panel de arma con la antorcha y su «munición» (fósforos o Llama interior); habilidades redondas (golpe y Resonancia) con recuperación en forma de reloj.
+- Tipografía pixel **Pixelify Sans** (OFL), sin suavizado, en todo el juego y en la Vigilia.
+
+**Perfil** (antes, inventario): retrato grande, nombre e identidad, barras, estadísticas (daño, almas, muertes, retornos, absorciones, pisos superados), equipo y mochila, Ecos y descripción de lo señalado. En móvil se abre tocando el retrato.
+
+**Salas con más detalle** (`herramientas/generar_decorados.py`): calaveras, huesos, costillares, vasijas rotas, velas encendidas que dan luz, charcos y regueros de sangre en el suelo; estandartes rasgados con el ojo del templo, cadenas, telarañas, manos ensangrentadas y goteos en el muro. Colocados en espejo y siempre iguales en la misma sala; cada piso tiene más sangre que el anterior. La oscuridad no se reduce.
+
+**Menú y altar** con los mismos paneles; botones gruesos con icono.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Pisos y Piso II: Los Peregrinos
 
 **Estructura de pisos**
