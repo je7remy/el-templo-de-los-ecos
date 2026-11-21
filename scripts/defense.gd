@@ -16,6 +16,12 @@ const HERO := preload("res://assets/visual/protagonist_sheet.png")
 const HUNTER := preload("res://assets/gothic_enemies/ghoul_1.png")
 const ALT_HUNTER := preload("res://assets/gothic_enemies/angel_1.png")
 const WIZARD := preload("res://assets/gothic_enemies/wizard_1.png")
+## Caja útil de cada sprite (x0, x1, y_base) y escala uniforme: evita deformarlos.
+const MONSTER_FRAMES := {
+    "angel": [13.0, 108.0, 112.0, 0.62],
+    "ghoul": [9.0, 49.0, 59.0, 1.25],
+    "wizard": [21.0, 55.0, 65.0, 1.3],
+}
 
 var phase: String = "selection" # selection, play, won, lost
 var chamber: int = 0
@@ -301,7 +307,7 @@ func _leave() -> void:
 
 func _draw() -> void:
     draw_texture_rect(ROOM, Rect2(0, 0, W, H), false)
-    draw_rect(Rect2(0, 0, W, H), Color(0.015, 0.028, 0.047, 0.47))
+    draw_rect(Rect2(0, 0, W, H), Color(0.015, 0.028, 0.047, 0.58))
     draw_rect(Rect2(0, 0, 960, 111), DARK)
     draw_rect(Rect2(0, 109, 960, 2), GOLD)
     _label("VIGILIA DEL CLAUSTRO", Vector2(24, 38), 28, MINT)
@@ -343,29 +349,25 @@ func _draw_chamber() -> void:
     draw_rect(Rect2(22, 145, 914, 8), Color("#33434a"))
     draw_rect(Rect2(22, 145, 914 * progress, 8), BLUE)
     # Cámara protegida, cama y umbral.
-    draw_rect(Rect2(44, 175, 673, 296), Color(0.07, 0.11, 0.15, 0.65))
-    draw_rect(Rect2(44, 175, 673, 296), Color("#7b7968"), false, 4)
-    draw_rect(Rect2(130, 269, 184, 147), Color("#283e4d"))
-    draw_rect(Rect2(130, 269, 184, 147), GOLD, false, 3)
-    draw_rect(Rect2(156, 288, 132, 86), Color("#435e62"))
-    draw_rect(Rect2(165, 298, 114, 25), Color("#aaa6a0"))
-    if sleeping:
-        draw_texture_rect_region(HERO, Rect2(205, 311, 40, 56), Rect2(0, 0, 40, 56))
-    _label("LECHO NIV %d" % bed_level, Vector2(148, 401), 17, MINT)
-    _label("DURMIENDO" if sleeping else "TOCA PARA DESCANSAR", Vector2(134, 439), 13, BLUE)
+    # Cámara: suelo de piedra oscuro con muro, para que el templo de fondo no
+    # compita con los elementos de juego.
+    draw_rect(Rect2(44, 175, 673, 296), Color(0.055, 0.085, 0.10, 0.88))
+    for row in range(6):
+        draw_line(Vector2(48, 175 + row * 50), Vector2(713, 175 + row * 50), Color(1, 1, 1, 0.025), 1.0)
+    draw_rect(Rect2(44, 175, 673, 296), Color("#5f5d50"), false, 4)
+    draw_rect(Rect2(48, 179, 665, 3), Color("#8c876f"))
+    _draw_bed(Rect2(130, 269, 184, 147))
     # Defensas aparecen en espacios edificables y atacan automaticamente.
     for slot in range(4):
         var p := Vector2(425 + (slot % 2) * 120, 255 + (slot / 2) * 160)
         draw_rect(Rect2(p - Vector2(33, 33), Vector2(66, 66)), Color("#223540"))
         draw_rect(Rect2(p - Vector2(33, 33), Vector2(66, 66)), GOLD if slot < wards else Color("#597078"), false, 2)
         if slot < wards:
-            draw_circle(p, 18, BLUE)
-            draw_line(p, p + Vector2(28, 0), MINT, 5)
+            _draw_sentinel(p)
         else:
             _label("+", p + Vector2(-12, 13), 32, MINT)
     # Puerta, barra de vida y entidad antagonista.
-    draw_rect(Rect2(710, 269, 33, 182), Color("#735a50"))
-    draw_rect(Rect2(710, 269, 33, 182), GOLD, false, 3)
+    _draw_gate(Rect2(710, 269, 33, 182))
     draw_rect(Rect2(662, 254, 130, 9), Color("#60383c"))
     draw_rect(Rect2(662, 254, 130 * clampf(gate_hp / gate_max, 0.0, 1.0), 9), BLUE)
     _label("PUERTA NIV %d" % gate_level, Vector2(662, 245), 13, MINT)
@@ -379,9 +381,25 @@ func _draw_chamber() -> void:
             monster = ALT_HUNTER
         elif hunter_kind == "wizard":
             monster = WIZARD
-        draw_texture_rect(monster, Rect2(hpos - Vector2(31, 60), Vector2(62, 72)), false)
-        draw_rect(Rect2(hpos.x - 40, hpos.y - 70, 80, 6), Color("#493137"))
-        draw_rect(Rect2(hpos.x - 40, hpos.y - 70, 80 * clampf(hunter_hp / hunter_max, 0, 1), 6), CRIMSON)
+        var frame: Array = MONSTER_FRAMES[hunter_kind]
+        var scale: float = frame[3]
+        var feet := Vector2(roundf(hpos.x), roundf(hpos.y + 12.0))
+        for i in range(3):
+            var k: float = 1.0 - float(i) * 0.28
+            draw_set_transform(Vector2(hunter_x, 380.0), 0.0, Vector2(1.0, 0.32))
+            draw_circle(Vector2.ZERO, 20.0 * k, Color(0, 0, 0, 0.14))
+        # Avanza hacia la izquierda: el ghoul de perfil mira a la derecha y se voltea.
+        var flip: float = -1.0 if hunter_kind == "ghoul" else 1.0
+        draw_set_transform(feet, 0.0, Vector2(flip, 1.0))
+        var anchor := Vector2((frame[0] + frame[1]) * 0.5 * scale, frame[2] * scale)
+        draw_texture_rect(monster, Rect2(-anchor, Vector2(monster.get_width(), monster.get_height()) * scale), false)
+        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        # Barra de vida sobre la cabeza, siempre dentro de la pantalla.
+        var bar_top: float = feet.y - frame[2] * scale - 12.0
+        var bar_x: float = clampf(hpos.x - 30.0, 8.0, W - 68.0)
+        draw_rect(Rect2(bar_x - 1, bar_top - 1, 62, 7), Color(0, 0, 0, 0.6))
+        draw_rect(Rect2(bar_x, bar_top, 60, 5), Color("#493137"))
+        draw_rect(Rect2(bar_x, bar_top, 60 * clampf(hunter_hp / hunter_max, 0, 1), 5), CRIMSON)
         if wards > 0 and hunter_x < 938:
             for n in range(wards):
                 var source := Vector2(425 + (n % 2) * 120, 255 + (n / 2) * 160)
@@ -397,6 +415,64 @@ func _draw_chamber() -> void:
     var names := ["DESCANSAR" if not sleeping else "LEVANTAR", "LECHO", "PUERTA", "CENTINELA", "REPARAR"]
     for idx in range(5):
         _button(Rect2(12 + idx * 191, 558, 181, 69), names[idx], costs[idx])
+
+## Lecho: marco de madera, almohada y manta; el durmiente aparece sobre él.
+func _draw_bed(area: Rect2) -> void:
+    var frame := Rect2(area.position.x + 26, area.position.y + 14, 132, 92)
+    draw_rect(Rect2(frame.position + Vector2(4, 6), frame.size), Color(0, 0, 0, 0.35))
+    draw_rect(frame, Color("#4a3426"))
+    draw_rect(Rect2(frame.position, Vector2(frame.size.x, 5)), Color("#6b4c37"))
+    draw_rect(frame.grow(-6), Color("#2c3d43"))
+    draw_rect(Rect2(frame.position.x + 10, frame.position.y + 12, 34, frame.size.y - 24), Color("#cfc6b0"))
+    draw_rect(Rect2(frame.position.x + 10, frame.position.y + 12, 34, 4), Color("#ebe3cf"))
+    var blanket := Rect2(frame.position.x + 50, frame.position.y + 8, frame.size.x - 58, frame.size.y - 16)
+    draw_rect(blanket, Color("#3f6a6e") if not sleeping else Color("#4f8187"))
+    for i in range(3):
+        draw_line(Vector2(blanket.position.x + 14 + i * 22, blanket.position.y + 4), Vector2(blanket.position.x + 14 + i * 22, blanket.end.y - 4), Color(1, 1, 1, 0.06), 2.0)
+    draw_rect(frame, Color("#1b130d"), false, 2.0)
+    if sleeping:
+        # De lado, con la cabeza sobre la almohada.
+        draw_set_transform(Vector2(frame.position.x + 27, frame.position.y + 46), -PI * 0.5, Vector2.ONE)
+        draw_texture_rect_region(HERO, Rect2(-20, -14, 40, 56), Rect2(0, 0, 40, 56))
+        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        var z: float = fmod(tick, 2.0)
+        _label("z", Vector2(frame.position.x + 52 + z * 10.0, frame.position.y + 8 - z * 12.0), 14, Color(BLUE.r, BLUE.g, BLUE.b, 1.0 - z * 0.5))
+    if sleeping:
+        draw_rect(area, Color(BLUE.r, BLUE.g, BLUE.b, 0.06))
+    draw_rect(area, GOLD if sleeping else Color("#7a6b4f"), false, 2)
+    _label("LECHO NIV %d" % bed_level, Vector2(area.position.x + 18, area.end.y - 14), 15, MINT)
+    _label("DURMIENDO" if sleeping else "TOCA PARA DESCANSAR", Vector2(area.position.x + 4, area.end.y + 22), 13, BLUE)
+
+
+## Puerta del umbral: tablones con herrajes; se agrieta al perder resistencia.
+func _draw_gate(area: Rect2) -> void:
+    draw_rect(Rect2(area.position - Vector2(6, 8), Vector2(area.size.x + 12, 8)), Color("#4b5145"))
+    draw_rect(Rect2(area.position.x - 6, area.end.y, area.size.x + 12, 8), Color("#4b5145"))
+    draw_rect(area, Color("#5a3f2c"))
+    for i in range(3):
+        draw_line(Vector2(area.position.x + 8 + i * 9, area.position.y), Vector2(area.position.x + 8 + i * 9, area.end.y), Color("#3b281b"), 1.0)
+    for y in [area.position.y + 26, area.end.y - 30]:
+        draw_rect(Rect2(area.position.x, y, area.size.x, 6), Color("#2b2d2e"))
+        draw_circle(Vector2(area.position.x + 6, y + 3), 2.0, Color("#8a8f8c"))
+        draw_circle(Vector2(area.end.x - 6, y + 3), 2.0, Color("#8a8f8c"))
+    var damage: float = 1.0 - clampf(gate_hp / gate_max, 0.0, 1.0)
+    if damage > 0.25:
+        draw_polyline(PackedVector2Array([area.position + Vector2(10, 60), area.position + Vector2(20, 82), area.position + Vector2(13, 104)]), Color("#1a120b"), 2.0)
+    if damage > 0.6:
+        draw_polyline(PackedVector2Array([area.position + Vector2(24, 120), area.position + Vector2(14, 140), area.position + Vector2(22, 162)]), Color("#1a120b"), 2.0)
+    draw_rect(area, Color("#1b130d"), false, 2.0)
+
+
+## Centinela: cristal flotante con halo, en la misma línea visual que las reliquias.
+func _draw_sentinel(p: Vector2) -> void:
+    var bob: float = sin(tick * 2.4 + p.x * 0.05) * 3.0
+    var c := p + Vector2(0, -4 + bob)
+    for r in range(3, 0, -1):
+        draw_circle(c, 6.0 + float(r) * 5.0, Color(BLUE.r, BLUE.g, BLUE.b, 0.06))
+    draw_colored_polygon(PackedVector2Array([c + Vector2(0, -16), c + Vector2(0, 0), c + Vector2(0, 14), c + Vector2(-9, -1)]), Color("#bfe9f2"))
+    draw_colored_polygon(PackedVector2Array([c + Vector2(0, -16), c + Vector2(9, -1), c + Vector2(0, 14), c + Vector2(0, 0)]), Color("#5ea7bb"))
+    draw_polyline(PackedVector2Array([c + Vector2(0, -16), c + Vector2(9, -1), c + Vector2(0, 14), c + Vector2(-9, -1), c + Vector2(0, -16)]), Color("#e8fbff"), 1.0)
+
 
 func _button(rect: Rect2, heading: String, detail: String) -> void:
     draw_rect(rect, Color("#172e39"))
