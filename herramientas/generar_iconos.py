@@ -400,6 +400,54 @@ def eco_paso() -> Image.Image:
     return i.fin()
 
 
+def eco_huesos() -> Image.Image:
+    """Piso VI: hueso firme cruzado sobre un corazón: aguantas un golpe mortal."""
+    i = Icono()
+    i.p([(16, 28), (4, 15), (4, 9), (9, 5), (16, 10), (23, 5), (28, 9), (28, 15)], c("#7a1f2a"))
+    i.p([(16, 28), (16, 10), (23, 5), (28, 9), (28, 15)], c("#5a1520"))
+    i.ln([(8, 24), (24, 8)], c("#e8e2d4"), 3)
+    for x, y in ((6, 24), (9, 27), (22, 5), (25, 8)):
+        i.e(x - 2, y - 2, x + 2, y + 2, c("#e8e2d4"))
+    i.ln([(10, 21), (21, 10)], c("#b3ab9a"))
+    return i.fin()
+
+
+def pan() -> Image.Image:
+    """Pan de ceniza del Mercader: corteza gris con miga clara."""
+    i = Icono()
+    i.e(3, 10, 29, 27, c("#6b5a48"))
+    i.e(4, 9, 28, 23, c("#9a8468"))
+    i.e(6, 10, 26, 18, c("#b8a282"))
+    for x in (10, 16, 22):
+        i.ln([(x - 2, 13), (x + 2, 17)], c("#5a4a3a"))
+    for x, y in ((8, 20), (19, 21), (24, 19)):
+        i.px(x, y, c("#3a3430"))
+    return i.fin()
+
+
+def brazalete() -> Image.Image:
+    """Brazalete de bronce: +10 % al golpe."""
+    i = Icono()
+    i.e(4, 8, 28, 26, c("#8a5a2a"))
+    i.e(8, 12, 24, 22, (0, 0, 0, 0))
+    i.arco(16, 17, 11, 190, 350, c("#d9a45c"), 2)
+    for x in (7, 16, 25):
+        i.e(x - 2, 6 if x == 16 else 12, x + 2, 10 if x == 16 else 16, c("#e3bd7b"))
+    i.px(16, 8, c("#fff0c0"))
+    return i.fin()
+
+
+def amuleto() -> Image.Image:
+    """Amuleto de hueso: el vigor se recupera un 10 % más rápido."""
+    i = Icono()
+    i.ln([(8, 3), (16, 12), (24, 3)], c("#6e665a"))
+    i.p([(16, 11), (23, 18), (16, 29), (9, 18)], c("#e2dccb"))
+    i.p([(16, 11), (23, 18), (16, 29)], c("#b3ab9a"))
+    i.e(13, 16, 19, 22, c("#5c9474"))
+    i.px(15, 18, c("#c8f0d8"))
+    return i.fin()
+
+
 def habilidades() -> Image.Image:
     """Grimorio abierto con una runa encendida: la pantalla de habilidades."""
     i = Icono()
@@ -466,7 +514,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
 }
 
 

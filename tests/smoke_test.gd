@@ -647,6 +647,83 @@ func _run_checks() -> void:
     game.set("game_mode", "play")
     print("OK: mando de Xbox y similares en el juego y los menús.")
 
+    # Piso VI: grupo que pide guía, Mercader (se paga primero, no se toca el manto) y Huesos firmes.
+    game.set("current_floor", 5)
+    game.set("current_room", 0)
+    game.call("_on_floor_start")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    var group: Array = game.get("allies")
+    if group.size() != 4 or not bool(group[0]["waiting"]):
+        _fail("El grupo del Piso VI no espera (con Saúl, rescatado en el Piso V).")
+        return
+    game.set("player_pos", Vector2(group[0]["pos"]) + Vector2(40, 0))
+    game.call("_interact")
+    game.call("_dialog_skip")
+    if not bool(game.get("guiding")) or bool(group[0]["waiting"]):
+        _fail("Hablar con el grupo no lo convierte en tus guiados.")
+        return
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    var teo_maimed := false
+    for a in group:
+        if str(a["name"]) == "TEO":
+            teo_maimed = bool(a["maimed"])
+    if not teo_maimed:
+        _fail("Teo no paga la regla del manto al entrar con el grupo.")
+        return
+    game.set("souls", 30)
+    var merchant: Vector2 = (game.call("_room") as Dictionary)["merchant"]
+    game.set("player_pos", merchant + Vector2(0, 44))
+    game.call("_interact")
+    if game.get("game_mode") != "shop":
+        _fail("El cuenco no abre el puesto del Mercader.")
+        return
+    game.call("_shop_key", KEY_DOWN)
+    game.call("_shop_key", KEY_DOWN)
+    game.call("_shop_key", KEY_ENTER)
+    if not (game.get("trinkets") as Array).has("brazalete") or int(game.get("souls")) != 18 \
+            or float(game.call("_strike_damage")) <= 18.0 or bool(game.call("_shop_buy", 2)):
+        _fail("El Brazalete de bronce no se compra, no se cobra primero o se vende dos veces.")
+        return
+    game.call("_shop_key", KEY_ESCAPE)
+    game.set("player_pos", game.call("_merchant_hem"))
+    game.call("_interact")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    if not bool(game.get("hand_lost")) or float(game.get("max_hp")) != 75.0:
+        _fail("Meter la mano bajo el manto no cuesta vida máxima.")
+        return
+    game.call("_shop_buy", 0)
+    if float(game.get("max_hp")) != 85.0 or float(game.get("hp")) != 85.0:
+        _fail("El pan del Mercader no devuelve vida máxima.")
+        return
+    (game.get("ecos") as Array).append("huesos")
+    game.set("hp", -5.0)
+    game.call("_update_play", 0.016)
+    if float(game.get("hp")) <= 0.0 or not bool(game.get("bones_used")) or game.get("game_mode") == "dead":
+        _fail("Huesos firmes no aguanta el golpe mortal.")
+        return
+    game.set("current_room", 3)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    if (game.get("guided") as Array).size() != 4:
+        _fail("Los guiados no quedan guardados al llegar a la escalera.")
+        return
+    (game.get("ecos") as Array).erase("huesos")
+    (game.get("trinkets") as Array).clear()
+    (game.get("guided") as Array).clear()
+    game.set("hand_lost", false)
+    game.set("max_hp", 100.0)
+    game.set("hp", 100.0)
+    game.call("_on_floor_start")
+    game.set("current_floor", 0)
+    game.set("game_mode", "play")
+    print("OK: Piso VI, guiar al grupo, Mercader, regla del manto y Huesos firmes.")
+
     game.set("current_room", 2)
     game.call("_enter_room")
     game.call("_dialog_skip") # las conversaciones se leen con clic
