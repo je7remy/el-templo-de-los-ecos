@@ -32,3 +32,8 @@ Los recursos integrados forman parte del proyecto jugable; no deben extraerse y 
 ## Publicación
 
 La release alpha presenta el **código fuente de un prototipo de videojuego**, no una biblioteca de recursos gráficos ni una redistribución comercial independiente de los packs. Antes de publicar un juego comercial conviene volver a revisar las condiciones originales y los créditos en el propio juego.
+
+## Tipografía de rótulos (etapa 2)
+- **Jacquard 24** (The Soft Type Project Authors), licencia SIL Open Font License 1.1: `assets/fonts/Jacquard24-Regular.ttf`, licencia en `assets/fonts/OFL_Jacquard24.txt`. Fuente: repositorio de Google Fonts (`ofl/jacquard24`).
+- La niebla (`assets/visual/fx/niebla.png`) es original, generada por `herramientas/generar_niebla.py`.
+

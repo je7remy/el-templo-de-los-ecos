@@ -343,6 +343,37 @@ func _run_checks() -> void:
         return
     game.call("_close_abilities")
     print("OK: diálogos, misiones, esquivar quieto, regeneración, trampas y habilidades.")
+
+    # Etapa 2: menú de pisos (solo se entra en pisos alcanzados) y capas de arte.
+    game.set("max_floor", 1)
+    game.set("game_mode", "title")
+    game.call("_open_floors")
+    if game.get("game_mode") != "floors":
+        _fail("El menú de pisos no se abre.")
+        return
+    game.call("_choose_floor", 9)
+    if game.get("game_mode") != "floors":
+        _fail("Se puede entrar en un piso que aún no existe.")
+        return
+    # En la CI no hay partida guardada: sin nombre, elegir piso abre la creación.
+    game.set("player_name", "")
+    game.call("_choose_floor", 1)
+    if game.get("game_mode") != "create" or str(game.get("create_then")) != "piso:1":
+        _fail("Elegir piso sin personaje no abre la creación.")
+        return
+    game.set("create_buf", "PRUEBA")
+    game.call("_create_finish")
+    if game.get("game_mode") != "floor_intro" or int(game.get("current_floor")) != 1 or not bool(game.get("has_torch")):
+        _fail("Elegir el Piso II no empieza allí con la antorcha.")
+        return
+    game.call("_enter_floor")
+    game.call("_dialog_skip")
+    game.call("_emit", Vector2(300, 300), 5, Color.WHITE, 10.0, 20.0, 0.5, 2.0)
+    game.call("_update_fx", 0.1)
+    if (game.get("fx_parts") as Array).is_empty() or String(game.call("_tc", "PISO II · LOS PEREGRINOS")) != "Piso II · Los Peregrinos":
+        _fail("Las partículas o los rótulos góticos no funcionan.")
+        return
+    print("OK: menú de pisos, partículas y rótulos.")
     game.set("current_floor", 0)
 
     game.set("current_room", 2)
