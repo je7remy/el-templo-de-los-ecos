@@ -1,5 +1,19 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-20 · Almas por contacto, luz, avisos y audio original
+
+**Jugabilidad**
+- Las almas se recogen al tocarlas (antes había que pulsar E), con anillo de luz, «+7» ascendente, pulso del contador y sonido propio. El sello, la carta, el altar y las puertas siguen con E.
+
+**Sensación de juego (sin cambiar reglas)**
+- Penumbra dinámica: la linterna del personaje, los braseros, las almas, los conjuros, el altar y la salida abierta iluminan; las entidades siempre se distinguen. Nunca negro total. Con miedo alto se oscurecen los bordes.
+- Avisos justos: el ojo del Testigo tiembla, muestra una rendija roja y cruje 0,6 s antes de abrirse; el Hechicero carga un orbe visible antes de lanzar.
+- Daño legible: sacudida de pantalla, destello rojo que se apaga y parpadeo del personaje durante la invulnerabilidad.
+
+**Audio original** (`herramientas/generar_audio.py`)
+- Ambiente del templo en bucle sin cortes, capa de tensión adaptativa (latido y cuerdas disonantes) y diez efectos por evento, en la campaña y en Vigilia.
+- Retirados `audio/ambient.wav` y `audio/chime.wav`, sustituidos por los nuevos.
+
 ## En `main` (sin nuevo release) — 2026-11-20 · Todos los objetos son sólidos
 
 - Braseros, estatuas orantes y estatuas del arquero ya no se atraviesan: tienen colisión en su base (pedestal o pie), como el resto de objetos. Se puede pasar por detrás de la figura y esta tapa al personaje.

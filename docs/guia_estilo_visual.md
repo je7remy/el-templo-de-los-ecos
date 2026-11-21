@@ -37,7 +37,9 @@
 - Tipografía de respaldo de Godot. Pendiente integrar una fuente de pixel art licenciada y revisar acentos a resolución real.
 
 ## Iluminación y cámara
-- La luz del escenario está calculada en los PNG derivados de los originales y el polvo ambiental se dibuja en tiempo real. No se añadió PointLight2D/CanvasModulate de manera ficticia porque el prototipo completo se renderiza en un Node2D, sin nodos de luz ni capas TileMapLayer.
+- Luz base de cada sala: `shaders/luz_sala.gdshader` sobre el TileMapLayer.
+- **Penumbra dinámica** (`_draw_lighting` en `scripts/main.gd`): rejilla de oscuridad interpolada. El personaje lleva su luz (205 px con la linterna, 120 px sin ella); braseros, almas, conjuros, la salida abierta y el altar iluminan su entorno; las entidades siempre tienen algo de luz para que la amenaza se lea (juego limpio). La oscuridad máxima es 0,85: nunca negro total. Con miedo alto se oscurecen los bordes.
+- El polvo ambiental se dibuja en tiempo real.
 - No se incorporó una cámara nueva: la escena utiliza canvas fijo sin scroll. Alterar la cámara cambiaría la composición y la zona visible; necesita revisión independiente.
 - La luz ha de proporcionar lectura de esquinas, puertas y amenazas. Se prohíbe usar negro uniforme como único medio de horror.
 

@@ -24,7 +24,10 @@
   - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve.
   - **Ghoul de brasas**: le atrae la luz de la linterna.
   - **Hechicero del archivo**: lanza conjuros hacia la luz.
-- **Exploración e interacción**: reliquias de alma, el sello del Testigo, la carta del archivo, el altar del Mercader Silencioso y una habilidad experimental (Resonancia).
+- **Exploración e interacción**: almas que se recogen al tocarlas, el sello del Testigo, la carta del archivo, el altar del Mercader Silencioso y una habilidad experimental (Resonancia).
+- **Penumbra dinámica**: tu linterna, los braseros y las almas abren claros en la oscuridad; apagar la luz te esconde, pero también te ciega.
+- **Peligro que se anuncia**: el ojo del Testigo tiembla antes de abrirse y el Hechicero carga su conjuro a la vista. Los golpes sacuden la pantalla y dan un breve margen de invulnerabilidad.
+- **Música y sonido originales** que reaccionan al miedo y a la persecución.
 - **Muerte 50/50**: el alma regresa (misma persona, con memoria y habilidades) o es absorbida y aparece un humano nuevo, sin recuerdos.
 - **Vigilia del Claustro**: modo alternativo de defensa con refugios, lecho, puerta, centinelas y oleadas hasta el amanecer.
 - **Salas editables en Godot**: arquitectura en `TileMapLayer`, objetos como `Sprite2D` con su colisión y marcadores para todas las posiciones de juego.
@@ -65,6 +68,14 @@ Cada sala es una escena (`rooms/sala_N.tscn`). Puedes mover columnas y estatuas 
 
 ![Comparación entre el prototipo inicial y el estado actual del Claustro de las ofrendas](docs/galeria/11_antes_despues.png)
 
+## Música y sonido
+
+Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, sin muestras de terceros:
+
+- **Ambiente del templo**: dron grave, coro sintético en re menor con un giro frigio (mi♭) que no termina de resolver, campanas lejanas y viento. Es un bucle de 64 s que empalma sin cortes.
+- **Capa de tensión**: latido y cuerdas disonantes en trémolo. Sube con el miedo, cuando una entidad te persigue o con el ojo del Testigo abierto, y baja al calmarse la situación.
+- **Efectos por evento**: alma, golpe, aviso y apertura del ojo, sello, puerta, conjuro, carta, linterna y muerte.
+
 ## Jugar en Android
 
 Puedes descargar el [APK de prueba de v0.4.2-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.4.2-alpha) para teléfonos Android ARM64. No está publicado en Google Play y necesita pruebas en dispositivos reales. **Ese APK es anterior a la renovación visual** que muestran las capturas; los cambios llegarán en el próximo release.
@@ -103,7 +114,7 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | Enter | Iniciar la exploración o reiniciar |
 | H | Abrir Vigilia del Claustro desde el menú |
 | W / A / S / D o flechas | Moverse |
-| E | Interactuar, recoger, abrir puertas |
+| E | Interactuar (sello, carta, altar, puertas). Las almas se recogen al tocarlas |
 | F | Encender o apagar la linterna |
 | Espacio | Esquivar |
 | Q | Resonancia (después de adquirirla) |
@@ -139,12 +150,13 @@ assets/                 Arte: escenario (Knowledge Temple), entidades, tiles, ob
   visual/enemies/       Entidades originales (Testigo, Ghoul de brasas, Hechicero)
   visual/tiles/         Atlas de la arquitectura de las salas
   visual/objetos/       Columnas, estatuas, braseros, mesa, sarcófago… por sala
+audio/                  Música y efectos originales (OGG)
 rooms/                  Escenas editables de las cinco salas y su TileSet
 shaders/                Luz y tinte de cada sala
 scenes/                 Escena principal y Vigilia del Claustro
 scripts/                Lógica de juego en GDScript
 tests/                  Pruebas para Godot sin interfaz
-herramientas/           Validación, apertura en Fedora y generadores de salas y entidades
+herramientas/           Validación, apertura en Fedora y generadores de salas, entidades y audio
 docs/                   Diseño, licencias, guías, notas de versión y galería del README
 .github/workflows/      Integración continua y publicación de alpha
 project.godot           Configuración del motor

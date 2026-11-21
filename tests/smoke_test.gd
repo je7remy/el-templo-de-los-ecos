@@ -52,6 +52,15 @@ func _run_checks() -> void:
         _fail("No fue posible recoger el sello de la mision.")
         return
 
+    # Las almas se recogen al tocarlas, sin pulsar E.
+    var souls_before: int = int(game.get("souls"))
+    var relic_spot: Vector2 = (game.get("relics") as Array)[1]
+    game.set("player_pos", relic_spot + Vector2(0, 6))
+    game.call("_update_play", 1.0 / 60.0)
+    if not bool((game.get("collected") as Array)[1]) or int(game.get("souls")) != souls_before + 7:
+        _fail("Las almas no se recogen por contacto.")
+        return
+
     game.call("_lose_run")
     if game.get("game_mode") != "dead":
         _fail("La derrota no cambia el estado de juego.")
@@ -59,6 +68,8 @@ func _run_checks() -> void:
     if not (game.get("soul_fate") in ["retorno", "absorcion"]):
         _fail("Resultado de muerte invalido.")
         return
+    print("OK: almas recogidas por contacto.")
+    # La CI busca esta línea exacta: no cambiar su texto.
     print("OK: carga, inicio, 5 salas, sello y desenlace de muerte.")
     # Liberar la escena y sus recursos antes de cerrar la prueba headless.
     # Sin esto, Godot puede informar recursos retenidos al finalizar el proceso.
