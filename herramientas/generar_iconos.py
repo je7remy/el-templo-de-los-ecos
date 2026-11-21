@@ -360,6 +360,37 @@ def eco_reflejos() -> Image.Image:
     return i.fin()
 
 
+def habilidades() -> Image.Image:
+    """Grimorio abierto con una runa encendida: la pantalla de habilidades."""
+    i = Icono()
+    i.p([(3, 9), (15, 12), (15, 28), (3, 25)], c("#5e3478"))
+    i.p([(29, 9), (17, 12), (17, 28), (29, 25)], c("#7d4b9a"))
+    i.p([(5, 10), (15, 13), (15, 26), (5, 23)], c("#e8dfc4"))
+    i.p([(27, 10), (17, 13), (17, 26), (27, 23)], c("#d8cdb0"))
+    i.ln([(16, 12), (16, 28)], c("#3f2153"), 1)
+    for y in (16, 19, 22):
+        i.ln([(7, y), (13, y + 1)], c("#a69a7c"))
+    i.e(19, 14, 25, 20, c("#8fc7d7"))
+    i.ln([(22, 12), (22, 22)], c("#d8f2f7"))
+    i.ln([(20, 17), (24, 17)], c("#d8f2f7"))
+    i.px(22, 6, c("#c6aa6e"))
+    i.ln([(22, 3), (22, 9)], c("#c6aa6e"))
+    i.ln([(19, 6), (25, 6)], c("#c6aa6e"))
+    return i.fin()
+
+
+def pinchos() -> Image.Image:
+    """Trampa de pinchos (inscripción en la pantalla de habilidades/ayuda)."""
+    i = Icono()
+    i.r(3, 22, 28, 27, c("#4f5749"))
+    i.r(3, 22, 28, 22, c("#76806f"))
+    for x in (5, 11, 17, 23):
+        i.p([(x, 22), (x + 3, 8), (x + 6, 22)], c("#b4bba8"))
+        i.ln([(x + 3, 9), (x + 3, 21)], c("#e4e2d6"))
+    i.p([(14, 9), (17, 9), (16, 14)], c("#c23a40"))
+    return i.fin()
+
+
 def calavera() -> Image.Image:
     i = Icono()
     i.e(6, 3, 26, 22, c("#e2dccb"))
@@ -395,7 +426,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
 }
 
 

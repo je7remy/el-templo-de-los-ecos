@@ -83,6 +83,7 @@ func _run_checks() -> void:
     for index in range(5):
         game.set("current_room", index)
         game.call("_enter_room")
+        game.call("_dialog_skip") # las conversaciones se leen con clic
         if int(game.get("current_room")) != index:
             _fail("Fallo al acceder a la sala %d." % (index + 1))
             return
@@ -110,6 +111,7 @@ func _run_checks() -> void:
     # Combate: el golpe de antorcha daña al Ghoul y a 0 de vida se destierra.
     game.set("current_room", 1)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     var foe: Vector2 = game.get("enemy_pos")
     game.set("player_pos", foe + Vector2(-40, 0))
     game.set("player_dir", Vector2.RIGHT)
@@ -127,6 +129,7 @@ func _run_checks() -> void:
     # Debilidad: el Testigo es inmune con el ojo abierto.
     game.set("current_room", 2)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     game.set("watcher_open", true)
     if bool(game.call("_damage_enemy", 10.0)):
         _fail("El Testigo no debe recibir daño con el ojo abierto.")
@@ -140,6 +143,7 @@ func _run_checks() -> void:
     # La puerta se cruza al tocarla, sin pulsar E; sellada, no deja pasar.
     game.set("current_room", 0)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     game.set("player_pos", Vector2(game.get("door_pos")) + Vector2(-12, 0))
     game.call("_update_play", 1.0 / 60.0)
     if int(game.get("current_room")) != 1:
@@ -147,6 +151,7 @@ func _run_checks() -> void:
         return
     game.set("current_room", 2)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     game.set("seal_acquired", false)
     game.set("player_pos", Vector2(game.get("door_pos")) + Vector2(-12, 0))
     game.call("_update_play", 1.0 / 60.0)
@@ -159,6 +164,7 @@ func _run_checks() -> void:
     game.set("current_floor", 0)
     game.set("current_room", 4)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     game.call("_finish_floor")
     if int(game.get("current_floor")) != 1 or game.get("game_mode") != "floor_intro":
         _fail("Superar el Piso I no lleva a la entrada del Piso II.")
@@ -167,6 +173,7 @@ func _run_checks() -> void:
         _fail("Superar el Piso I no da el Eco de Respiración contenida.")
         return
     game.call("_enter_floor")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     if game.get("pilgrim_state") != "follow":
         _fail("El Peregrino no aparece al entrar en el Piso II.")
         return
@@ -179,6 +186,7 @@ func _run_checks() -> void:
     # La Cosecha: un Peregrino traidor desenvaina al reunir la última alma.
     game.set("current_room", 2)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     game.set("pilgrim_traitor", true)
     game.set("pilgrim_state", "follow")
     var got: Array = game.get("collected")
@@ -187,6 +195,14 @@ func _run_checks() -> void:
     game.call("_update_play", 1.0 / 60.0)
     if game.get("pilgrim_state") != "tell":
         _fail("El Peregrino traidor no reacciona en la Cosecha.")
+        return
+    if game.get("game_mode") != "dialog":
+        _fail("La frase del Peregrino no se muestra en el cuadro de diálogo.")
+        return
+    game.call("_dialog_advance") # completa la frase
+    game.call("_dialog_advance") # la cierra
+    if game.get("game_mode") != "play":
+        _fail("El diálogo no se cierra con clic.")
         return
     game.call("_update_play", 1.0)
     if game.get("pilgrim_state") != "hostile":
@@ -204,11 +220,13 @@ func _run_checks() -> void:
     game.set("current_room", 0)
     game.call("_on_floor_start")
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     if int(game.call("_allies_alive")) != 3:
         _fail("Los tres aliados del Piso III no aparecen.")
         return
     game.set("current_room", 1)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     if bool(game.call("_room_ready")):
         _fail("La puerta de la Cacería se abre con la presa viva.")
         return
@@ -241,11 +259,13 @@ func _run_checks() -> void:
         return
     game.set("current_room", 2)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     if float(game.get("enemy_hp")) > float(game.get("enemy_max")) * 0.5:
         _fail("El Segador no conserva sus heridas en la sala siguiente.")
         return
     game.set("current_room", 3)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     if int(game.get("souls")) <= 0:
         _fail("Sobrevivir con aliados no da recompensa.")
         return
@@ -256,10 +276,78 @@ func _run_checks() -> void:
         return
     game.set("ecos", eco_before)
     print("OK: Piso III, Segador de Hilos, aliados y Reflejos.")
+
+    # Etapa 1: esquivar quieto, regeneración, trampas, misión de sala y habilidades.
+    (game.get("banished") as Dictionary).clear()
+    (game.get("missions_done") as Dictionary).clear()
+    game.set("current_floor", 0)
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    if bool(game.call("_room_ready")):
+        _fail("La sala del Ghoul deja pasar sin cumplir su misión.")
+        return
+    var souls_m: int = int(game.get("souls"))
+    game.call("_banish_enemy")
+    if not bool(game.call("_room_ready")) or int(game.get("souls")) <= souls_m:
+        _fail("Desterrar al Ghoul no cumple la misión ni da su premio.")
+        return
+    game.set("player_pos", Vector2(300, 470))
+    game.set("player_dir", Vector2.RIGHT)
+    game.set("dash_cd", 0.0)
+    game.set("stamina", 100.0)
+    game.set("mobile_axis", Vector2.ZERO)
+    game.call("_start_dash")
+    var x_before: float = Vector2(game.get("player_pos")).x
+    game.call("_update_play", 0.1)
+    if Vector2(game.get("player_pos")).x < x_before + 20.0:
+        _fail("Esquivar sin moverse no desplaza al personaje.")
+        return
+    game.set("hp", 50.0)
+    game.set("fear", 0.0)
+    game.set("hp_prev", 50.0)
+    game.set("regen_wait", 0.0)
+    game.call("_update_regen", 1.0)
+    if float(game.get("hp")) <= 50.0:
+        _fail("La vida no se regenera.")
+        return
+    game.set("current_room", 4)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    var trap_list: Array = game.get("traps")
+    if trap_list.is_empty():
+        _fail("El Pórtico no tiene trampas.")
+        return
+    game.set("player_pos", trap_list[0]["pos"])
+    game.set("room_elapsed", 2.5 - float(trap_list[0]["phase"]))
+    game.set("damage_cd", 0.0)
+    game.set("dash_left", 0.0)
+    game.set("hp", 100.0)
+    game.call("_update_traps", 0.016)
+    if float(game.get("hp")) >= 100.0:
+        _fail("Los pinchos levantados no hieren.")
+        return
+    game.set("hp", 100.0)
+    game.set("damage_cd", 0.0)
+    game.set("dash_left", 0.1)
+    game.call("_update_traps", 0.016)
+    if float(game.get("hp")) < 100.0:
+        _fail("Esquivar no protege de los pinchos.")
+        return
+    game.set("dash_left", 0.0)
+    game.set("game_mode", "play")
+    game.call("_open_abilities")
+    if game.get("game_mode") != "abilities" or (game.call("_ability_rows") as Array).size() < 5:
+        _fail("La pantalla de habilidades no se abre.")
+        return
+    game.call("_close_abilities")
+    print("OK: diálogos, misiones, esquivar quieto, regeneración, trampas y habilidades.")
     game.set("current_floor", 0)
 
     game.set("current_room", 2)
     game.call("_enter_room")
+    game.call("_dialog_skip") # las conversaciones se leen con clic
     game.set("player_pos", game.get("seal_pos"))
     game.call("_interact")
     if not bool(game.get("seal_acquired")):

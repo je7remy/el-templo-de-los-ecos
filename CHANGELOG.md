@@ -1,5 +1,19 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Etapa 1: diálogos, misiones, trampas y habilidades
+
+- **Diálogos con clic**: lo que dicen el Peregrino y los aliados aparece en un cuadro inferior con el nombre de quien habla; el texto se escribe solo y avanza con clic, E, Enter o Espacio (el primer clic muestra la frase entera; ESC salta la conversación). El juego se detiene mientras lees. En pleno combate se usa un bocadillo que dura según lo largo de la frase.
+- **Conversaciones** al entrar en salas con más personajes (Piso II con el Peregrino; Piso III con Odón, Bruna y Ciro). Quien ha muerto no habla.
+- **Misiones de sala** en las salas con monstruo, con premio en almas y aviso «MISIÓN CUMPLIDA»: desterrar al Ghoul (obligatoria), al Testigo (opcional), al Hechicero (obligatoria), herir al Segador hasta que huya y matarlo. Las obligatorias mantienen la puerta cerrada.
+- **Respiro**: tras 4 s sin recibir daño, la vida se recupera (2 por segundo), salvo con el miedo al máximo.
+- **Esquivar estando quieto**: el impulso sale hacia donde miras; durante el impulso mantiene su dirección.
+- **Pantalla de HABILIDADES** (tecla K, botón del libro bajo la pausa, desde el perfil o la pausa): activas y propias con su tecla, coste y descripción; Ecos con su piso de origen. La acción es reasignable en Controles.
+- **Perfil**: los Ecos ya no se salen del cuadro; ahora son iconos (caben los diez pisos) y al señalarlos se lee su descripción. Botón a Habilidades.
+- **Trampas de pinchos** (del primer juego del autor): asoman, tiemblan y suenan antes de herir (18). Esquivar te hace pasar por encima. En el Pórtico (Piso I), la Nave del Agua (Piso II) y el Coro Desgarrado (Piso III).
+- **Inscripciones** de lore que se leen al acercarse (también del primer juego: los carteles). En el Pórtico, la Nave del Agua y el Claustro del Encargo.
+- Pruebas nuevas: diálogo que se cierra con clic, misión que bloquea y premia, esquivar quieto, regeneración, pinchos (y su inmunidad al esquivar) y pantalla de habilidades.
+
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Personaje propio, muerte sin pérdida y Piso III
 
 **Creación del personaje**
