@@ -18,6 +18,7 @@ Las cinco salas del piso 1 son escenas normales de Godot en `rooms/sala_0.tscn` 
 - En partida los `Sprite2D` de `Objetos` se ocultan porque el juego los dibuja ordenados junto con los personajes. En el editor se ven normales.
 - Metadatos de cada objeto: `sombra` (bool, sombra de contacto suave) y `luz` (bool, halo animado de brasero).
 - Solo se usan colisiones **rectangulares** (`RectangleShape2D`). Una forma desactivada (`disabled`) no bloquea.
+- **Todos los objetos son sólidos.** La colisión cubre solo la base (pedestal o pie) para poder pasar por detrás de la figura. Si añades un objeto nuevo, dale su `Colision`; el test `visual_asset_test.gd` falla si alguno queda atravesable. El juego amplía cada colisión 15,5 px (radio del personaje).
 - Si borras un marcador, el juego usa la posición por defecto de `scripts/main.gd`. Los tests (`tests/visual_asset_test.gd`) exigen que existan los marcadores básicos.
 - La luz y el tinte de cada sala se aplican a `Arquitectura` con `shaders/luz_sala.gdshader` (parámetros `ganancia` y `desplazamiento`). Los objetos ya traen su luz en el PNG.
 

@@ -374,8 +374,22 @@ def extraer_runa(original: np.ndarray, lit_base: np.ndarray, visual_previa: np.n
     return {"nodo": "RunaSuelo", "textura": "res://assets/visual/objetos/runa_suelo.png", "posicion": [x, y]}
 
 
+# Huella sólida de los objetos que no traían colisión en el diseño original:
+# solo la base (pedestal o pie), para poder pasar por detrás de la figura.
+#   nombre: (margen lateral, alto de la huella)
+HUELLAS = {
+    "Brasero": (3, 18),
+    "EstatuaOrante": (4, 16),
+    "EstatuaArquero": (6, 24),
+}
+
+
 def asignar_colisiones(objetos: list[dict], colisiones: list[tuple]) -> list[dict]:
-    """Cuelga cada colisión del objeto que la contiene (se mueven juntos en el editor)."""
+    """Cuelga cada colisión del objeto que la contiene (se mueven juntos en el editor).
+
+    Todos los objetos son sólidos: los que no tenían colisión reciben una huella
+    en su base (HUELLAS). Los cirios comparten una colisión de grupo.
+    """
     sueltas = []
     for x, y, w, h in colisiones:
         cx, cy = x + w / 2, y + h / 2
@@ -385,6 +399,14 @@ def asignar_colisiones(objetos: list[dict], colisiones: list[tuple]) -> list[dic
             duenos[0]["colision"] = rect
         else:
             sueltas.append(rect)
+    for o in objetos:
+        tipo = o["nodo"].rstrip("0123456789")
+        if "colision" in o or tipo not in HUELLAS:
+            continue
+        margen, alto = HUELLAS[tipo]
+        x, y, w, h = o["caja"]
+        base = y + h - 1
+        o["colision"] = {"centro": [x + w / 2, base - alto / 2], "tamano": [w - 2 * margen, alto]}
     return sueltas
 
 

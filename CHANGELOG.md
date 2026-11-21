@@ -1,5 +1,11 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-20 · Todos los objetos son sólidos
+
+- Braseros, estatuas orantes y estatuas del arquero ya no se atraviesan: tienen colisión en su base (pedestal o pie), como el resto de objetos. Se puede pasar por detrás de la figura y esta tapa al personaje.
+- Al chocar con un objeto se levanta un poco de polvo a los pies (solo visual).
+- `tests/visual_asset_test.gd` falla si algún objeto de una sala queda sin colisión.
+
 ## En `main` (sin nuevo release) — 2026-11-20 · Marco de las salas
 
 - Marco de la sala rehecho y simétrico: muros completos que cierran en las cuatro esquinas con pilares de piedra, muro derecho igual al izquierdo, muro inferior que ya no sobresale, remate de piedra sobre el muro superior y sombra de los muros sobre el suelo.

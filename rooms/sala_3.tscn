@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=4]
+[gd_scene load_steps=24 format=4]
 
 [ext_resource type="Shader" path="res://shaders/luz_sala.gdshader" id="1_0y0my"]
 [ext_resource type="TileSet" path="res://rooms/templo_tileset.tres" id="2_l6vds"]
@@ -19,6 +19,21 @@
 shader = ExtResource("1_0y0my")
 shader_parameter/ganancia = Vector3(1.5247, 1.4019, 1.548)
 shader_parameter/desplazamiento = Vector3(0.0358, 0.0329, 0.0387)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gw8rw"]
+size = Vector2(29, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_upr1e"]
+size = Vector2(29, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6iscb"]
+size = Vector2(28, 18)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mq8e4"]
+size = Vector2(25, 18)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fvu37"]
+size = Vector2(36, 24)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_s3n5x"]
 size = Vector2(82, 44)
@@ -54,6 +69,12 @@ offset = Vector2(-18, -49)
 metadata/sombra = true
 metadata/luz = false
 
+[node name="Colision" type="StaticBody2D" parent="Objetos/EstatuaOrante1"]
+
+[node name="Forma" type="CollisionShape2D" parent="Objetos/EstatuaOrante1/Colision"]
+position = Vector2(0.5, -9)
+shape = SubResource("RectangleShape2D_gw8rw")
+
 [node name="EstatuaOrante2" type="Sprite2D" parent="Objetos"]
 position = Vector2(792, 225)
 texture = ExtResource("5_l4c0i")
@@ -61,6 +82,12 @@ centered = false
 offset = Vector2(-18, -49)
 metadata/sombra = true
 metadata/luz = false
+
+[node name="Colision" type="StaticBody2D" parent="Objetos/EstatuaOrante2"]
+
+[node name="Forma" type="CollisionShape2D" parent="Objetos/EstatuaOrante2/Colision"]
+position = Vector2(0.5, -9)
+shape = SubResource("RectangleShape2D_upr1e")
 
 [node name="Brasero1" type="Sprite2D" parent="Objetos"]
 position = Vector2(88, 226)
@@ -70,6 +97,12 @@ offset = Vector2(-17, -38)
 metadata/sombra = true
 metadata/luz = true
 
+[node name="Colision" type="StaticBody2D" parent="Objetos/Brasero1"]
+
+[node name="Forma" type="CollisionShape2D" parent="Objetos/Brasero1/Colision"]
+position = Vector2(0, -10)
+shape = SubResource("RectangleShape2D_6iscb")
+
 [node name="Brasero2" type="Sprite2D" parent="Objetos"]
 position = Vector2(853, 226)
 texture = ExtResource("7_2no46")
@@ -78,6 +111,12 @@ offset = Vector2(-15, -38)
 metadata/sombra = true
 metadata/luz = true
 
+[node name="Colision" type="StaticBody2D" parent="Objetos/Brasero2"]
+
+[node name="Forma" type="CollisionShape2D" parent="Objetos/Brasero2/Colision"]
+position = Vector2(0.5, -10)
+shape = SubResource("RectangleShape2D_mq8e4")
+
 [node name="EstatuaArquero1" type="Sprite2D" parent="Objetos"]
 position = Vector2(488, 279)
 texture = ExtResource("8_skutb")
@@ -85,6 +124,12 @@ centered = false
 offset = Vector2(-24, -104)
 metadata/sombra = true
 metadata/luz = false
+
+[node name="Colision" type="StaticBody2D" parent="Objetos/EstatuaArquero1"]
+
+[node name="Forma" type="CollisionShape2D" parent="Objetos/EstatuaArquero1/Colision"]
+position = Vector2(0, -13)
+shape = SubResource("RectangleShape2D_fvu37")
 
 [node name="Mesa1" type="Sprite2D" parent="Objetos"]
 position = Vector2(497, 345)
