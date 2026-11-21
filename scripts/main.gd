@@ -195,6 +195,32 @@ const FLOORS := [
              "whisper": "Detrás, los ojos se cierran. Delante, el templo empieza a cambiar.", "items": []},
         ],
     },
+    {
+        # Inspiración: L.A.G. cambia y la memoria del protagonista falla.
+        # Las salas del Piso I, alteradas: estatuas del revés, el Testigo con
+        # la regla invertida, el sello en otra sala y pistas falsas «tuyas».
+        "number": "VIII", "title": "EL TEMPLO QUE CAMBIA", "state": "ESTO YA LO HAS VISTO. ¿O NO?", "wear": 0.4,
+        "eco": "memoria", "mirror": true, "inverted": true,
+        "rooms": [
+            {"scene": 0, "name": "VIII-1 · UMBRAL QUE NO RECUERDAS", "enemy": "", "traits": [],
+             "whisper": "Conoces esta sala. Pero las estatuas miran hacia el otro lado.",
+             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
+             "inscription": [Vector2(480, 470), "{yo}: soy tú, de otra vida. El sello sigue en la Sala del Testigo. Cuando abra el ojo, quédate quieto. Confía en mí."]},
+            {"scene": 2, "name": "VIII-2 · SALA DEL TESTIGO", "enemy": "testigo", "traits": ["almas"],
+             "whisper": "El ojo del muro te sigue. Esta vez parece esperar a que te detengas.", "items": [],
+             "mission": {"goal": "desterrar", "required": false, "reward": 14, "text": "Destierra al Testigo invertido"}},
+            {"scene": 3, "name": "VIII-3 · ARCHIVO QUE SE REESCRIBE", "enemy": "ghoul", "traits": ["sello", "archivo"],
+             "whisper": "El sello está aquí, sobre los papeles. No donde decía la inscripción.",
+             "items": [["fosforos", "Fosforos", Vector2(230, 460)]],
+             "seal": Vector2(480, 440),
+             "letter": "Carta con tu letra: 'No confíes en las inscripciones. Las escribí yo... ¿o el templo escribió con mi mano?'",
+             "mission": {"goal": "desterrar", "required": false, "reward": 10, "text": "Destierra al Ghoul del archivo"}},
+            {"scene": 4, "name": "VIII-4 · PÓRTICO QUE NO ES EL MISMO", "enemy": "", "traits": [],
+             "whisper": "La inscripción del pórtico ha cambiado. Esta vez dice la verdad.", "items": [],
+             "traps": [Vector2(290, 350), Vector2(670, 350), Vector2(350, 500), Vector2(610, 500)],
+             "inscription": [Vector2(480, 300), "Esto no es un templo. Es una fábrica: el miedo entra, las almas salen. Y tú eres parte del turno."]},
+        ],
+    },
 ]
 
 const RELICS := [
@@ -235,6 +261,7 @@ const ICONS := {
     "mascara": preload("res://assets/visual/iconos/mascara.png"),
     "eco_huesos": preload("res://assets/visual/iconos/eco_huesos.png"),
     "eco_serena": preload("res://assets/visual/iconos/eco_serena.png"),
+    "eco_memoria": preload("res://assets/visual/iconos/eco_memoria.png"),
     "pan": preload("res://assets/visual/iconos/pan.png"),
     "brazalete": preload("res://assets/visual/iconos/brazalete.png"),
     "amuleto": preload("res://assets/visual/iconos/amuleto.png"),
@@ -281,6 +308,7 @@ const ECOS := {
     "paso": ["PASO LIGERO", "Te mueves un 5 % más rápido."],
     "huesos": ["HUESOS FIRMES", "Una vez por piso, un golpe mortal te deja con 1 de vida."],
     "serena": ["MENTE SERENA", "El miedo al máximo ya no te hace daño."],
+    "memoria": ["MEMORIA DE ECO", "Ves tu silueta donde moriste en otras vidas."],
 }
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
@@ -685,6 +713,8 @@ func _load_progress() -> void:
         var saved_rescued = data.get("rescued", [])
         rescued = (saved_rescued as Array).map(func(e): return str(e)) if saved_rescued is Array else []
         player_level = clampi(int(data.get("player_level", 1)), 1, LEVEL_MAX)
+        var saved_marks = data.get("death_marks", {})
+        death_marks = saved_marks if saved_marks is Dictionary else {}
         xp = maxi(0, int(data.get("xp", 0)))
         var saved_guided = data.get("guided", [])
         guided = (saved_guided as Array).map(func(e): return str(e)) if saved_guided is Array else []
@@ -712,6 +742,7 @@ func _save_progress() -> void:
             "rescued": rescued,
             "guided": guided,
             "player_level": player_level,
+            "death_marks": death_marks,
             "xp": xp,
             "trinkets": trinkets
         }))
@@ -840,6 +871,7 @@ func _enter_room() -> void:
     if game_mode == "play":
         _room_talk()
         _offering_after_talk()
+        _memory_whisper()
 
 
 ## Instancia rooms/sala_N.tscn bajo el dibujo del juego y lee sus datos.
@@ -879,7 +911,7 @@ func _load_room_scene() -> void:
             room_props.append({
                 "tex": sprite.texture, "rect": Rect2(top_left, size), "base": anchor.y,
                 "shadow": bool(sprite.get_meta("sombra", true)), "light": bool(sprite.get_meta("luz", false)),
-                "flip": sprite.flip_h,
+                "flip": sprite.flip_h != bool(_floor().get("mirror", false)), # Piso VIII: todo mira al otro lado
             })
     relics = [_marker("Reliquia1", RELICS[0]), _marker("Reliquia2", RELICS[1]), _marker("Reliquia3", RELICS[2])]
     seal_pos = _marker("Sello", SEAL_POS)
@@ -888,6 +920,8 @@ func _load_room_scene() -> void:
     archive_pos = _marker("Lectura", ARCHIVE_POS)
     eye_pos = _marker("Ojo", EYE_POS)
     door_pos = _marker("Salida", DOOR_POS)
+    if _room().has("seal"):
+        seal_pos = _room()["seal"] # Piso VIII: el sello cambió de sala
 
 
 func _marker(marker_name: String, fallback: Vector2) -> Vector2:
@@ -1682,6 +1716,7 @@ func _enter_floor() -> void:
     _say(_room()["whisper"], 4.5)
     _room_talk()
     _offering_after_talk()
+    _memory_whisper()
     if not dialog_queue.is_empty() and game_mode == "play":
         _dialog([]) # frases que llegaron durante la pantalla del piso
 
@@ -1884,7 +1919,7 @@ func _interact() -> void:
         if has_pulse:
             ability_level = maxi(ability_level, 1)
         _save_progress()
-        _say("SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
+        _say("SELLO RECUPERADO. En este piso el Testigo castiga al que se queda quieto." if _floor().get("inverted", false) else "SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
         _sfx("sello", -4.0)
         return
     if _calm_ally():
@@ -1898,7 +1933,7 @@ func _interact() -> void:
         return
     if _has("archivo") and player_pos.distance_to(archive_pos) < 72.0:
         letter_found = true
-        _say("Carta: 'He regresado. El cuerpo cambia, pero recuerdo sus ojos.'", 5.0)
+        _say(str(_room().get("letter", "Carta: 'He regresado. El cuerpo cambia, pero recuerdo sus ojos.'")), 5.0)
         _sfx("libro", -5.0)
         return
     if player_pos.distance_to(door_pos) < 74.0:
@@ -2015,6 +2050,7 @@ func _on_floor_start() -> void:
     _pilgrim_reset()
     _allies_reset()
     bones_used = false
+    inverted_seen = false
     guiding = false
     guides_rewarded = false
     rescue_state = "atrapado" if _floor_has_trait_key("rescue") else ""
@@ -2039,6 +2075,7 @@ func _lose_run() -> void:
     _sfx("k_campana", -7.0, 0.55) # tañido fúnebre
     floor_deaths += 1
     # Tu cuerpo se queda en la sala: el «cadáver de la vida anterior».
+    _mark_death()
     life_corpse = {"key": _room_key(), "pos": player_pos, "life": deaths,
         "souls": 0 if MUERTE_SIN_PERDIDA else souls / 2, "claimed": false}
     _transition("nubes", false, 0.9)
@@ -2280,12 +2317,18 @@ func _update_enemy(dt: float) -> void:
             enemy_pos = enemy_pos.move_toward(enemy_home, 48.0 * dt)
     elif _enemy_kind() == "testigo":
         # Witness: observes motion with its eyes open. Stop moving to survive.
-        enemy_alert = watcher_open and player_moving and d < 490.0
+        # En el Piso VIII la regla se invierte: persigue al que se queda quieto.
+        var inverted: bool = bool(_floor().get("inverted", false))
+        enemy_alert = watcher_open and (player_moving != inverted) and d < 490.0
         if enemy_alert and enemy_stun <= 0.0:
             var wanted := enemy_pos.move_toward(player_pos, 169.0 * dt)
             if not _is_blocked(wanted):
                 enemy_pos = wanted
-            if not observed_rule:
+            if inverted:
+                if not inverted_seen:
+                    inverted_seen = true
+                    _say("¡Viene cuando te detienes! Aquí la regla es al revés: muévete mientras el ojo esté abierto.", 4.5)
+            elif not observed_rule:
                 observed_rule = true
                 remembered_rule = true
                 _save_progress()
@@ -2431,6 +2474,7 @@ func _draw_room() -> void:
         if not bool(ally["alive"]) and str(ally["dead_key"]) == _room_key():
             _draw_corpse(ally["dead_pos"], int(ally["seed"]))
     _draw_life_corpse()
+    _draw_death_marks()
     if not pilgrim_corpse.is_empty() and pilgrim_corpse["key"] == _room_key():
         _draw_corpse(pilgrim_corpse["pos"], 1)
     for i in range(relics.size()):
@@ -3352,7 +3396,7 @@ func _draw_footer() -> void:
     _vgradient(Rect2(0, 572, W, 68), Color(0.02, 0.025, 0.035, 0.55), Color(0.02, 0.025, 0.035, 0.96))
     var task: String = _mission_text()
     var task_color: Color = SOUL if _room_ready() else CREAM
-    if _has("sello") and _enemy_active() and watcher_open and not seal_acquired:
+    if _has("sello") and _enemy_active() and _enemy_kind() == "testigo" and watcher_open and not seal_acquired:
         task_color = RED
     if pilgrim_state in ["tell", "hostile"]:
         task_color = RED
@@ -3403,9 +3447,11 @@ func _mission_text() -> String:
     if _has("sello"):
         if seal_acquired:
             return "SELLO RECUPERADO · VE A LA PUERTA"
-        if _enemy_active():
-            return "OJO ABIERTO: INMÓVIL" if watcher_open else "OJO CERRADO: AVANZA"
+        if _enemy_active() and _enemy_kind() == "testigo":
+            return "OJO ABIERTO: INMÓVIL" if watcher_open else "OJO CERRADO: AVANZA" # Piso I
         return "MISIÓN: Recuperar el sello del Testigo"
+    if _enemy_kind() == "testigo" and _enemy_active() and bool(_floor().get("inverted", false)):
+        return "OJO ABIERTO: ¡NO TE DETENGAS!" if watcher_open else "OJO CERRADO: GOLPÉALO · almas %d/3" % (3 - collected.count(false))
     var pilgrim_task: String = _pilgrim_mission_text()
     if pilgrim_task != "":
         return pilgrim_task
@@ -5905,6 +5951,13 @@ const ROOM_TALKS := {
         ["BAS", "Contigo delante, quizá lleguemos."],
         ["SAÚL", "Te debía una. Ahora te debo dos."],
     ],
+    "7:0": [
+        ["{yo}", "Esta sala... es la primera. El Umbral del despertar. Pero las estatuas miran al revés."],
+        ["{yo}", "Y esa inscripción tiene mi nombre. ¿La escribí yo en otra vida?"],
+    ],
+    "7:1": [
+        ["{yo}", "El Testigo. Aquí aprendí a quedarme quieto cuando abre el ojo... si es que sigue igual."],
+    ],
     "6:0": [
         ["{yo}", "Ojos arrancados en cada estatua... Lo que vive aquí no soporta que la ignoren.", "solo"],
         ["IRENE", "Mira la inscripción. «No corras, no le des la espalda.»"],
@@ -6498,6 +6551,7 @@ const FLOOR_TRUTHS := [
     "Las almas no se pierden: corren por canales hacia abajo. El templo las recoge.",
     "El miedo y la desesperanza alimentan algo. Por eso el templo te deja descansar: para que vuelvas a esperar.",
     "Ella no caza: vigila. El templo quiere que veas morir a los demás; el miedo ajeno también alimenta.",
+    "El edificio es un sistema de producción: el miedo entra, las almas salen.",
 ]
 var critters: Array = [] # {pos, a, b, to_b, alive, dead_t, respawn, flip, bite_cd}
 var life_corpse: Dictionary = {}
@@ -8096,3 +8150,50 @@ func _hint(keyboard: String, touch: String, pad: String) -> String:
     if touch_enabled:
         return touch
     return keyboard
+
+
+# ------------------------------------------------------------ PISO VIII · EL TEMPLO QUE CAMBIA
+## Las salas del Piso I, pero cambiadas: las estatuas y los objetos miran al
+## otro lado («mirror»), el Testigo persigue al que se queda quieto
+## («inverted»), el sello está en el Archivo y una inscripción firmada con tu
+## nombre miente. El Eco del piso, Memoria de eco, muestra tu silueta donde
+## moriste en otras vidas (las muertes se recuerdan entre partidas).
+const DEATH_MARKS_PER_ROOM := 3
+var death_marks: Dictionary = {} # "piso:sala" -> [[x, y], ...]
+var inverted_seen: bool = false
+
+
+func _mark_death() -> void:
+    if in_tutorial:
+        return
+    var key: String = _room_key()
+    var marks: Array = death_marks.get(key, [])
+    marks.append([roundf(player_pos.x), roundf(player_pos.y)])
+    while marks.size() > DEATH_MARKS_PER_ROOM:
+        marks.pop_front()
+    death_marks[key] = marks
+
+
+func _room_death_marks() -> Array:
+    if in_tutorial or not ecos.has("memoria"):
+        return []
+    return (death_marks.get(_room_key(), []) as Array).map(func(m): return Vector2(float(m[0]), float(m[1])))
+
+
+func _memory_whisper() -> void:
+    if not _room_death_marks().is_empty():
+        _say("Memoria de eco: ya moriste aquí. Tu silueta marca el sitio.", 3.5)
+
+
+## Silueta translúcida del personaje tendido donde cayó en otra vida.
+func _draw_death_marks() -> void:
+    var marks: Array = _room_death_marks()
+    for i in range(marks.size()):
+        var at: Vector2 = marks[i]
+        var pulse: float = 0.5 + 0.5 * sin(elapsed * 2.0 + float(i))
+        _draw_ellipse(at + Vector2(0, 2), 20.0, 7.0, Color(0.56, 0.86, 0.95, 0.10 + 0.08 * pulse))
+        if art.has("visual_hero"):
+            draw_texture_rect_region(_hero_sheet(), Rect2(at.x - 20.0, at.y + 4.0 - 54.0, 40.0, 56.0), Rect2(0, 0, 40, 56),
+                Color(0.7, 0.95, 1.0, 0.38 + 0.15 * pulse))
+        if player_pos.distance_to(at) < 150.0:
+            _label_center("AQUÍ MORISTE", at + Vector2(0, -62), Color(0.62, 0.86, 0.95, 0.6 + 0.4 * pulse))

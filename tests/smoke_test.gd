@@ -829,6 +829,61 @@ func _run_checks() -> void:
     game.set("game_mode", "play")
     print("OK: Piso VII, la mirada, provocar, calmar a los guiados y Mente serena.")
 
+    # Piso VIII: las salas del Piso I cambiadas.
+    game.set("current_floor", 7)
+    game.set("current_room", 0)
+    game.call("_on_floor_start")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    var flipped := false
+    for prop in game.get("room_props"):
+        if bool(prop["flip"]):
+            flipped = true
+    if not flipped:
+        _fail("En el Piso VIII las estatuas no miran al otro lado.")
+        return
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("watcher_open", true)
+    game.set("enemy_stun", 0.0)
+    game.set("player_pos", Vector2(300, 470))
+    game.set("player_moving", false)
+    game.call("_update_enemy", 0.05)
+    var chases_still: bool = bool(game.get("enemy_alert"))
+    game.set("player_moving", true)
+    game.call("_update_enemy", 0.05)
+    if not chases_still or bool(game.get("enemy_alert")):
+        _fail("El Testigo del Piso VIII no invierte su regla.")
+        return
+    game.set("current_room", 2)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("seal_acquired", false)
+    if bool(game.call("_room_ready")):
+        _fail("El Archivo del Piso VIII abre sin el sello.")
+        return
+    game.set("player_pos", game.get("seal_pos"))
+    game.call("_interact")
+    if not bool(game.get("seal_acquired")) or not bool(game.call("_room_ready")):
+        _fail("El sello del Piso VIII no está en el Archivo o no abre la puerta.")
+        return
+    game.set("seal_acquired", false)
+    (game.get("ecos") as Array).append("memoria")
+    game.set("player_pos", Vector2(400, 470))
+    game.call("_mark_death")
+    if (game.call("_room_death_marks") as Array).is_empty():
+        _fail("Memoria de eco no recuerda dónde moriste.")
+        return
+    (game.get("ecos") as Array).erase("memoria")
+    (game.get("death_marks") as Dictionary).clear()
+    game.call("_on_floor_start")
+    game.set("current_floor", 0)
+    game.set("game_mode", "play")
+    print("OK: Piso VIII, salas cambiadas, Testigo invertido, sello movido y Memoria de eco.")
+
     game.set("current_room", 2)
     game.call("_enter_room")
     game.call("_dialog_skip") # las conversaciones se leen con clic
