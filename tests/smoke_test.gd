@@ -166,6 +166,10 @@ func _run_checks() -> void:
     game.call("_enter_room")
     game.call("_dialog_skip") # las conversaciones se leen con clic
     game.call("_finish_floor")
+    if game.get("game_mode") != "floor_summary" or (game.get("summary") as Dictionary).get("floor", "") != "I":
+        _fail("Superar el Piso I no muestra su resumen.")
+        return
+    game.call("_after_floor_summary")
     if int(game.get("current_floor")) != 1 or game.get("game_mode") != "floor_intro":
         _fail("Superar el Piso I no lleva a la entrada del Piso II.")
         return
@@ -374,6 +378,49 @@ func _run_checks() -> void:
         _fail("Las partículas o los rótulos góticos no funcionan.")
         return
     print("OK: menú de pisos, partículas y rótulos.")
+
+    # Etapa 3 (del primer juego): alimañas, cuerpo de la vida anterior y sonidos con variantes.
+    game.set("game_mode", "play")
+    game.set("current_floor", 0)
+    game.set("current_room", 4)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    var crs: Array = game.get("critters")
+    if crs.size() != 2:
+        _fail("El Pórtico no tiene sus alimañas.")
+        return
+    var souls_c: int = int(game.get("souls"))
+    game.set("player_pos", crs[0]["pos"])
+    game.set("dash_left", 0.1)
+    game.call("_update_critters", 0.016)
+    if bool(crs[0]["alive"]) or int(game.get("souls")) != souls_c + 1:
+        _fail("Esquivar contra una alimaña no la aplasta ni da su alma.")
+        return
+    game.set("dash_left", 0.0)
+    game.set("hp", 80.0)
+    game.set("player_pos", Vector2(480, 300))
+    game.call("_lose_run")
+    var lc: Dictionary = game.get("life_corpse")
+    if lc.is_empty() or str(lc["key"]) != "0:4":
+        _fail("Al morir no queda tu cuerpo en la sala.")
+        return
+    game.call("_after_end")
+    game.set("damage_cd", 0.0)
+    game.set("player_pos", Vector2(480, 300))
+    var souls_l: int = int(game.get("souls"))
+    game.call("_update_life_corpse")
+    if not bool((game.get("life_corpse") as Dictionary)["claimed"]) or int(game.get("souls")) <= souls_l:
+        _fail("Tocar tu cuerpo anterior no devuelve almas.")
+        return
+    game.call("_dialog_skip")
+    # En modo sin pantalla no se carga audio: se comprueba que existan las tomas.
+    var groups: Dictionary = game.get("SFX_GROUPS")
+    for group in groups:
+        for file in groups[group]:
+            if not ResourceLoader.exists("res://audio/kenney/%s.ogg" % file):
+                _fail("Falta el sonido %s." % file)
+                return
+    print("OK: alimañas, cuerpo de la vida anterior y sonidos con variantes.")
     game.set("current_floor", 0)
 
     game.set("current_room", 2)

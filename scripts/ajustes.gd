@@ -34,6 +34,7 @@ static func valores_por_defecto() -> Dictionary:
         teclas[accion] = int(ACCIONES[accion][2])
     return {
         "volumen_general": 0.9, "volumen_musica": 0.8, "volumen_efectos": 0.9, "silencio": false,
+        "pantalla_completa": false,
         "teclas": teclas, "tactil": "auto", # auto, siempre, nunca
         "idioma": "es",
         "acuerdo_aceptado": false, "acuerdo_version": 0,

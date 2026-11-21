@@ -1,5 +1,19 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Etapa 3: lo aprovechable del primer juego (*Craving Candy*)
+
+- **Alimañas del osario** (sprite original): patrullan entre dos puntos y dan media vuelta; si te huelen cerca se lanzan y muerden (6). Mueren de un **esquive** (como el dash del primer juego), de un golpe de antorcha o de Resonancia, y sueltan 1 alma. En la Nave del Agua y el Umbral del Tercer Piso salen de un **nido** y reaparecen a los 9 s. Sus ojos rojos brillan en la oscuridad. Están en el Pórtico, la Nave del Agua, el Umbral del Tercer Piso y el Claustro del Encargo.
+- **El cuerpo de tu vida anterior**: al morir, tu cuerpo queda tendido en la sala, con su charco de sangre. Tocarlo devuelve almas (2 en el modo sin pérdida; la mitad de las perdidas en el modo canónico) y una frase de tu personaje.
+- **Transiciones con máscara** (máscaras originales recreadas, `herramientas/generar_transiciones.py`, `shaders/transicion.gdshader`): nubes de humo al morir, estallido desde el centro al reaparecer, barrido al terminar un piso y espiral al entrar en el siguiente, con un filo del color de las almas.
+- **Resumen del piso** (como «nivel completado»): tiempo, almas ganadas, muertes, misiones, alimañas aplastadas, aliados con vida, Eco despertado y la **verdad** que revela el piso.
+- **Contador de almas de la sala** («SALA 2/3») en la esquina de la sala, y **la puerta se abre con un estallido de luz y una campana** cuando cumples lo que pedía.
+- **Sonidos de Kenney** (CC0, los mismos del primer juego): pasos sobre piedra, campanas (misiones, piso nuevo, tañido al morir), metal de los pinchos, vidrio al reunir almas y al desterrar, golpes y cuerpos. Cada grupo tiene varias tomas que se eligen al azar con el tono algo distinto.
+- **Cursor gótico** propio (estilete dorado con gema de alma) y chispa dorada al hacer clic.
+- **Pantalla completa** en Configuración › Sonido.
+- **Controles táctiles de Kenney** (CC0) para el joystick y los botones, teñidos con la paleta; los botones muestran cuánto vigor les falta.
+- **Créditos** en Configuración › Privacidad: autoría, recursos de terceros con su crédito y la dedicatoria del primer juego («En memoria de Leudy Antonio Mendez»).
+
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Esquivar y Resonancia se recargan con el vigor
 
 - Esquivar y Resonancia ya no tienen un reloj de recarga propio: están listas en cuanto la barra de vigor cubre su coste (el vigor se llena a 16 por segundo). Esquivar cuesta 28 (unos 1,75 s de barra) y Resonancia 40 (unos 2,5 s); antes, 2,65 s y 8 s.
