@@ -453,6 +453,59 @@ func _run_checks() -> void:
         _fail("Cerrar el perfil abierto jugando no vuelve al juego.")
         return
     print("OK: saltar diálogos y volver a la pausa.")
+
+    # Piso IV: enredaderas que arden, raíces de la puerta y la Tejedora de Raíz.
+    game.set("current_floor", 3)
+    game.set("current_room", 0)
+    game.call("_on_floor_start")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    if (game.get("vines") as Dictionary).is_empty() or int(game.call("_door_roots_left")) <= 0 or bool(game.call("_room_ready")):
+        _fail("El Atrio de las Raíces no tiene enredaderas o la puerta no está tapada.")
+        return
+    game.set("has_inner_flame", false)
+    game.set("matches", 3)
+    game.call("_try_ignite", Vector2(200, 470))
+    if int(game.get("matches")) != 2:
+        _fail("Prender una enredadera seca no gasta un fósforo.")
+        return
+    game.set("player_pos", Vector2(150, 250))
+    for k in range(60 * 25):
+        game.call("_update_fire", 1.0 / 60.0)
+    if int(game.call("_door_roots_left")) != 0:
+        _fail("El fuego no llega a las raíces de la puerta.")
+        return
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    var hp_t: float = float(game.get("enemy_hp"))
+    game.call("_damage_enemy", 18.0)
+    if hp_t - float(game.get("enemy_hp")) > 5.0:
+        _fail("La Tejedora recibe el golpe entero: su corteza debería resistir.")
+        return
+    var cells: Dictionary = game.get("vines")
+    var first: Vector2i = cells.keys()[0]
+    game.call("_ignite", first)
+    game.set("enemy_pos", game.call("_cell_center", first))
+    game.set("player_pos", Vector2(480, 200))
+    var hp_before: float = float(game.get("enemy_hp"))
+    for k in range(30):
+        game.call("_update_tejedora", 1.0 / 30.0)
+    if float(game.get("enemy_hp")) > hp_before - 20.0:
+        _fail("El fuego no quema a la Tejedora.")
+        return
+    (game.get("ecos") as Array).append("piel")
+    game.set("hp", 100.0)
+    game.set("hp_prev", 100.0)
+    game.set("hp", 80.0)
+    game.call("_update_regen", 0.0)
+    if absf(float(game.get("hp")) - 85.0) > 0.01:
+        _fail("Piel curtida no reduce el daño.")
+        return
+    (game.get("ecos") as Array).erase("piel")
+    print("OK: Piso IV, fuego, raíces y Tejedora de Raíz.")
     game.set("current_floor", 0)
 
     game.set("current_room", 2)

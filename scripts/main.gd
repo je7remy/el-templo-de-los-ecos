@@ -24,7 +24,10 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ##   mission (opcional): {goal: "desterrar" | "ahuyentar", required, reward, text}
 ##           Misión de la sala: si es obligatoria, la puerta no se abre sin ella.
 ##   traps (opcional): posiciones de trampas de pinchos (ciclo con aviso).
-##   inscription (opcional): [posición, texto] que se lee al acercarse.
+##   inscription (opcional): [posición, texto] que se lee al acercarse ({yo} = tu nombre).
+##   vines (opcional): tramos de enredadera seca que arden y propagan el fuego.
+##           Rasgo "raices_puerta": raíces vivas tapan la puerta; solo arden
+##           si les llega el fuego de las secas.
 const FLOORS := [
     {
         "number": "I", "title": "EL DESPERTAR", "state": "TEMPLO CONSERVADO", "wear": 0.0,
@@ -89,6 +92,31 @@ const FLOORS := [
              "whisper": "Los que siguen vivos cuentan los pasos de los que no.", "items": []},
         ],
     },
+    {
+        # Inspiración: las arañas de árbol, vencidas con fuego.
+        "number": "IV", "title": "EL CLAUSTRO ENRAIZADO", "state": "LA PIEDRA SE AGRIETA", "wear": 1.8,
+        "eco": "piel",
+        "rooms": [
+            {"scene": 0, "name": "I · ATRIO DE LAS RAÍCES", "enemy": "", "traits": ["raices_puerta"],
+             "whisper": "Raíces vivas sellan la puerta. Las secas, en cambio, arden.",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
+             "vines": [[Vector2(200, 470), Vector2(800, 470)], [Vector2(800, 470), Vector2(830, 410)]]},
+            {"scene": 1, "name": "II · CLAUSTRO ENRAIZADO", "enemy": "tejedora", "traits": [],
+             "whisper": "Algo cruje entre las columnas, como un árbol que camina.", "items": [],
+             "vines": [[Vector2(140, 410), Vector2(840, 410)], [Vector2(140, 530), Vector2(840, 530)],
+                 [Vector2(300, 410), Vector2(300, 530)], [Vector2(660, 410), Vector2(660, 530)]],
+             "mission": {"goal": "desterrar", "required": true, "reward": 12, "text": "Quema a la Tejedora de Raíz"}},
+            {"scene": 2, "name": "III · JARDÍN DE CENIZA", "enemy": "tejedora", "traits": [],
+             "whisper": "Aquí ya ardió algo antes. Las raíces volvieron a crecer.",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
+             "vines": [[Vector2(120, 380), Vector2(840, 380)], [Vector2(140, 172), Vector2(840, 172)],
+                 [Vector2(260, 172), Vector2(260, 380)], [Vector2(700, 172), Vector2(700, 380)]],
+             "mission": {"goal": "desterrar", "required": true, "reward": 14, "text": "Quema a la segunda Tejedora"}},
+            {"scene": 4, "name": "IV · MURO DE LOS NOMBRES", "enemy": "", "traits": [],
+             "whisper": "La pared está cubierta de nombres grabados a uña.", "items": [],
+             "inscription": [Vector2(480, 350), "Cientos de nombres de quienes volvieron. Entre ellos, recién grabado, reconoces el tuyo: {yo}."]},
+        ],
+    },
 ]
 
 const RELICS := [
@@ -124,6 +152,7 @@ const ICONS := {
     "eco_respiracion": preload("res://assets/visual/iconos/eco_respiracion.png"),
     "eco_nuca": preload("res://assets/visual/iconos/eco_nuca.png"),
     "eco_reflejos": preload("res://assets/visual/iconos/eco_reflejos.png"),
+    "eco_piel": preload("res://assets/visual/iconos/eco_piel.png"),
     "habilidades": preload("res://assets/visual/iconos/habilidades.png"),
     "pinchos": preload("res://assets/visual/iconos/pinchos.png"),
     "calavera": preload("res://assets/visual/iconos/calavera.png"),
@@ -163,6 +192,7 @@ const ECOS := {
     "respiracion": ["RESPIRACIÓN CONTENIDA", "El miedo sube un 25 % más despacio."],
     "nuca": ["NUCA FRÍA", "Sientes cuando alguien con malas intenciones queda a tu espalda."],
     "reflejos": ["REFLEJOS", "Esquivar cuesta un 40 % menos de vigor."],
+    "piel": ["PIEL CURTIDA", "Recibes un 25 % menos de daño."],
 }
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
@@ -183,7 +213,7 @@ const DOOR_TOUCH := 36.0 # distancia a la que tocar la puerta abierta te hace cr
 const MATCHES_FIRST_BOX := 5
 const MATCHES_REFILL := 3
 ## Vida de cada entidad por sala (PROVISIONAL, ajustar en pruebas de juego).
-const ENEMY_MAX_HP := {"ghoul": 60.0, "testigo": 90.0, "hechicero": 70.0, "segador": 140.0}
+const ENEMY_MAX_HP := {"ghoul": 60.0, "testigo": 90.0, "hechicero": 70.0, "segador": 140.0, "tejedora": 110.0}
 const WIZARD_CHARGE := 1.0 # segundos de carga visibles (y vulnerables) del conjuro
 const STRIKE_RANGE := 64.0
 const STRIKE_DAMAGE := 18.0
@@ -218,6 +248,7 @@ const ART_PRELOADED := {
     "enemy_hechicero": preload("res://assets/visual/enemies/hechicero.png"),
     "enemy_peregrino": preload("res://assets/visual/enemies/peregrino.png"),
     "enemy_segador": preload("res://assets/visual/enemies/segador.png"),
+    "enemy_tejedora": preload("res://assets/visual/enemies/tejedora.png"),
 
     "room_0": preload("res://assets/knowledge/rooms/room_0.png"),
     "room_1": preload("res://assets/knowledge/rooms/room_1.png"),
@@ -393,6 +424,7 @@ const SFX_PATHS := {
     "paso_3": "res://audio/sfx_paso_3.ogg", "cuchillo": "res://audio/sfx_cuchillo.ogg",
     "hilo": "res://audio/sfx_hilo.ogg", "latigo": "res://audio/sfx_latigo.ogg",
     "pinchos": "res://audio/sfx_pinchos.ogg",
+    "fuego": "res://audio/sfx_fuego.ogg", "raices": "res://audio/sfx_raices.ogg",
 }
 ## Sonidos de Kenney (CC0) traídos del primer juego del autor: cada grupo
 ## tiene varias tomas y se elige una al azar con un tono algo distinto.
@@ -685,6 +717,7 @@ func _enter_room() -> void:
     _allies_enter_room()
     _load_traps()
     _load_critters()
+    _load_vines()
     door_state = "unknown"
     if game_mode == "floor_intro":
         toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
@@ -1301,6 +1334,12 @@ func _damage_enemy(amount: float) -> bool:
         else:
             _say("Su escudo solo cae mientras carga el conjuro.", 2.6)
         return false
+    if _enemy_kind() == "tejedora" and not fire_hit:
+        # La corteza apenas se marca: el fuego es lo que la mata.
+        amount = maxf(2.0, roundf(amount * 0.18))
+        if teje_hint_t <= 0.0:
+            teje_hint_t = 6.0
+            _say("La corteza apenas se marca. Atráela hasta las enredaderas y préndelas.", 3.2)
     enemy_hp -= amount
     enemy_hit_t = 0.2
     _sfx("k_golpe", -11.0)
@@ -1362,6 +1401,7 @@ func _torch_strike() -> bool:
             var shove := pilgrim_pos + to_p.normalized() * 16.0
             if not _is_blocked(shove):
                 pilgrim_pos = shove
+    _try_ignite(player_pos + strike_dir * 28.0)
     for cr in critters:
         if bool(cr["alive"]):
             var to_c: Vector2 = Vector2(cr["pos"]) - player_pos
@@ -1445,6 +1485,8 @@ func _room_ready() -> bool:
         return false
     if _mission_pending(true):
         return false
+    if _door_roots_left() > 0:
+        return false
     return _pilgrim_allows_exit()
 
 
@@ -1462,6 +1504,8 @@ func _required_clue() -> String:
         return "La Cacería no ha terminado: la presa sigue viva."
     if _mission_pending(true):
         return "MISIÓN: %s. La puerta no se abre hasta cumplirla." % _mission()["text"]
+    if _door_roots_left() > 0:
+        return "Raíces vivas tapan la puerta. No prenden con la antorcha: hazles llegar el fuego de las secas."
     return "La puerta todavía no te reconoce."
 
 
@@ -1715,6 +1759,7 @@ func _update_play(dt: float) -> void:
     if fear >= 100.0:
         hp -= dt * 5.0
     _update_traps(dt)
+    _update_fire(dt)
     _update_critters(dt)
     _update_life_corpse()
     _update_door_celebration()
@@ -1770,6 +1815,8 @@ func _update_enemy(dt: float) -> void:
                 _say("Observación: al detenerte, el Testigo también se detiene.", 4.5)
     elif _enemy_kind() == "segador":
         _update_segador(dt)
+    elif _enemy_kind() == "tejedora":
+        _update_tejedora(dt)
     elif _enemy_kind() == "hechicero":
         # Wizard: warded while the player's torch is off. Provisional mechanic.
         enemy_alert = torch_on and d < 390.0
@@ -1891,6 +1938,7 @@ func _draw_room() -> void:
     _draw_door()
     _draw_inscription_plaque()
     _draw_traps()
+    _draw_vines()
     if _has("sello"):
         _draw_seal(seal_pos)
     if _enemy_kind() == "testigo" and _enemy_active():
@@ -1915,6 +1963,8 @@ func _draw_room() -> void:
     if not fireballs.is_empty():
         _draw_fireballs()
     _draw_lighting()
+    _draw_flames()
+    _draw_tejedora_fire()
     _draw_critter_eyes()
     _draw_light_rays()
     _draw_fog()
@@ -1992,6 +2042,12 @@ func _lights() -> Array:
         for ally in allies:
             if bool(ally["alive"]):
                 list.append([Vector2(ally["pos"]) + Vector2(0.0, -20.0), 55.0, 0.45])
+    var lit: int = 0
+    for cell in vines:
+        if str(vines[cell]["state"]) == "fuego":
+            lit += 1
+            if lit % 3 == 1: # una luz por cada tres celdas: barato y suficiente
+                list.append([_cell_center(cell) + Vector2(0, -8), 90.0, 0.9])
     for prop in room_props:
         if prop["light"]:
             var rect: Rect2 = prop["rect"]
@@ -2351,6 +2407,12 @@ func _enemy_frame(kind: String) -> int:
             return (0 if watcher_open else 4) + int(elapsed * 6.0) % 4
         "ghoul":
             return 2 + int(elapsed * 9.0) % 4 if enemy_moving else int(elapsed * 2.5) % 2
+        "tejedora":
+            if teje_state == "alza":
+                return 6
+            if teje_state == "zarpa":
+                return 7
+            return 2 + int(elapsed * 6.0) % 4 if enemy_moving else int(elapsed * 1.5) % 2
         "segador":
             if seg_state == "tensa":
                 return 6
@@ -2418,6 +2480,9 @@ func _draw_enemy_health() -> void:
     if enemy_stun > 0.0:
         state = "ATURDIDO"
         tone = SOUL
+    elif _enemy_kind() == "tejedora":
+        state = "ARDIENDO" if teje_burn > 0.0 else "CORTEZA · TEME AL FUEGO"
+        tone = Color("#ff9a3c") if teje_burn > 0.0 else Color("#b49a72")
     elif not _enemy_kind() == "ghoul":
         state = "VULNERABLE" if vulnerable else "INMUNE"
         tone = Color("#e3bd7b") if vulnerable else Color("#9aa19a")
@@ -5056,6 +5121,8 @@ func _start_dash() -> void:
 func _update_regen(dt: float) -> void:
     if hp < hp_prev - 0.01:
         regen_wait = REGEN_WAIT # recibir daño reinicia la espera
+        if ecos.has("piel"):
+            hp += (hp_prev - hp) * 0.25 # Piel curtida: un cuarto del daño no entra
     regen_wait = maxf(0.0, regen_wait - dt)
     if regen_wait <= 0.0 and fear < 100.0 and hp > 0.0 and hp < max_hp:
         hp = minf(max_hp, hp + REGEN_RATE * dt)
@@ -5167,7 +5234,7 @@ func _draw_inscription_text() -> void:
     var box := Rect2(200, 112, 560, 64)
     _panel(box, Color(0.07, 0.065, 0.055, 0.94), UI_GOLD)
     _text_outline("INSCRIPCIÓN", Vector2(box.position.x + 16.0, box.position.y + 20.0), 11, UI_GOLD)
-    draw_multiline_string(font, box.position + Vector2(16, 40), str(ins[1]), HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 32.0, 14, 2, CREAM)
+    draw_multiline_string(font, box.position + Vector2(16, 40), str(ins[1]).replace("{yo}", _hero_name()), HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 32.0, 14, 2, CREAM)
 
 
 # --- Misiones de sala --------------------------------------------------------------
@@ -5231,6 +5298,13 @@ const ROOM_TALKS := {
         ["BRUNA", "Ahí está. ¿Lo oyes? Cuerdas que se tensan."],
         ["ODÓN", "Cuando dispara se queda clavado a sus hilos. Ese es el momento de golpear."],
         ["CIRO", "Y que la línea no nos pille a nosotros, por favor."],
+    ],
+    "3:0": [
+        ["{yo}", "Raíces secas por todas partes. Una chispa y esto arde entero."],
+        ["{yo}", "Y las de la puerta están vivas... habrá que hacerles llegar el fuego."],
+    ],
+    "3:1": [
+        ["{yo}", "Esa cosa es corteza. Los golpes no le harán nada. El fuego, sí."],
     ],
     "2:2": [
         ["CIRO", "Está herido... Esta vez no tiene adónde huir."],
@@ -5799,6 +5873,7 @@ const FLOOR_TRUTHS := [
     "Estás atrapado en un templo. Y no eres el primero.",
     "Las almas se pueden robar. El templo te enfrenta con los demás.",
     "La caza también es una ofrenda. Algo se alimenta de cada muerte.",
+    "Otros también vuelven. Sus nombres están en el muro, y entre ellos, el tuyo.",
 ]
 var critters: Array = [] # {pos, a, b, to_b, alive, dead_t, respawn, flip, bite_cd}
 var life_corpse: Dictionary = {}
@@ -6097,3 +6172,280 @@ func _skip_button(rect: Rect2) -> void:
     _panel(rect, Color("#2a1d22") if hot else Color(0.04, 0.035, 0.05, 0.9), UI_GOLD if hot else UI_LIGHT)
     _text_outline("SALTAR (ESC)  »»", Vector2(rect.position.x, rect.position.y + 22.0), 13, CREAM if hot else Color("#b9b29b"), rect.size.x)
 
+
+
+# ------------------------------------------------------------ PISO IV · EL CLAUSTRO ENRAIZADO
+## Enredaderas que arden: un golpe de antorcha prende las secas (gasta un
+## fósforo, salvo con Llama Interior) y el fuego salta a las vecinas. Lo que
+## pisa una celda en llamas se quema, tú incluido (esquivando no). Las raíces
+## vivas de la puerta solo arden si les llega el fuego. La Tejedora de Raíz
+## apenas nota los golpes: hay que atraerla al fuego. Valores PROVISIONALES.
+const VINE_CELL := 32.0
+const FIRE_SPREAD := 0.3 # segundos hasta prender a las vecinas
+const FIRE_BURN := 3.6 # segundos que arde una celda
+const FIRE_DAMAGE := 9.0 # por toque al jugador (cada 0,45 s)
+const VINE_REGROW := 14.0 # las secas vuelven a crecer (las raíces de la puerta, no)
+const TEJE_SPEED := 66.0
+const TEJE_REACH := 58.0
+const TEJE_WINDUP := 0.65
+const TEJE_DAMAGE := 22.0
+var vines: Dictionary = {} # Vector2i -> {state: intacta|fuego|ceniza, t, verde, seed}
+var fire_hit: bool = false
+var fire_hint_t: float = 0.0
+var teje_state: String = "anda" # anda | alza | zarpa
+var teje_t: float = 0.0
+var teje_burn: float = 0.0
+var teje_fire_acc: float = 0.0
+var teje_hint_t: float = 0.0
+var teje_detour: Vector2 = Vector2.ZERO
+var teje_detour_t: float = 0.0
+
+
+func _cell_of(at: Vector2) -> Vector2i:
+    return Vector2i(int(floor(at.x / VINE_CELL)), int(floor(at.y / VINE_CELL)))
+
+
+func _cell_center(cell: Vector2i) -> Vector2:
+    return Vector2((float(cell.x) + 0.5) * VINE_CELL, (float(cell.y) + 0.5) * VINE_CELL)
+
+
+func _load_vines() -> void:
+    vines.clear()
+    teje_state = "anda"
+    teje_burn = 0.0
+    var n: int = 0
+    for seg in _room().get("vines", []):
+        var a: Vector2 = seg[0]
+        var b: Vector2 = seg[1]
+        var steps: int = maxi(1, int(a.distance_to(b) / 8.0))
+        for i in range(steps + 1):
+            var cell: Vector2i = _cell_of(a.lerp(b, float(i) / float(steps)))
+            if not vines.has(cell):
+                n += 1
+                vines[cell] = {"state": "intacta", "t": 0.0, "verde": false, "seed": n * 7919}
+    if _has("raices_puerta"):
+        # Raíces vivas delante de la puerta.
+        for dx in range(-2, 0):
+            for dy in range(-3, 3):
+                var cell: Vector2i = _cell_of(door_pos) + Vector2i(dx, dy)
+                n += 1
+                vines[cell] = {"state": "intacta", "t": 0.0, "verde": true, "seed": n * 7919}
+
+
+func _door_roots_left() -> int:
+    var left: int = 0
+    for cell in vines:
+        if bool(vines[cell]["verde"]) and str(vines[cell]["state"]) != "ceniza":
+            left += 1
+    return left
+
+
+func _cell_burning(at: Vector2) -> bool:
+    var cell: Vector2i = _cell_of(at)
+    return vines.has(cell) and str(vines[cell]["state"]) == "fuego"
+
+
+## Golpe de antorcha sobre una enredadera seca: la prende.
+func _try_ignite(at: Vector2) -> void:
+    var target: Variant = null
+    for cell in [_cell_of(at), _cell_of(player_pos)]:
+        if vines.has(cell) and str(vines[cell]["state"]) == "intacta":
+            target = cell
+            break
+    if target == null:
+        return
+    if bool(vines[target]["verde"]):
+        _say("Raíz viva: la antorcha no la prende. El fuego tiene que llegarle.", 2.6)
+        return
+    if not has_inner_flame:
+        if matches <= 0:
+            _say("Sin fósforos no hay chispa para prender las raíces.", 2.4)
+            return
+        matches -= 1
+    _ignite(target)
+    _sfx("fuego", -5.0)
+    if fire_hint_t <= 0.0:
+        fire_hint_t = 30.0
+        _say("Las raíces prenden. Cuidado: el fuego también te quema.", 3.0)
+
+
+func _ignite(cell: Vector2i) -> void:
+    vines[cell]["state"] = "fuego"
+    vines[cell]["t"] = 0.0
+
+
+func _update_fire(dt: float) -> void:
+    fire_hint_t = maxf(0.0, fire_hint_t - dt)
+    if vines.is_empty():
+        return
+    var to_light: Array = []
+    for cell in vines:
+        var v: Dictionary = vines[cell]
+        if str(v["state"]) == "fuego":
+            var before: float = float(v["t"])
+            v["t"] = before + dt
+            if before < FIRE_SPREAD and float(v["t"]) >= FIRE_SPREAD:
+                for dx in range(-1, 2):
+                    for dy in range(-1, 2):
+                        var nb: Vector2i = cell + Vector2i(dx, dy)
+                        if vines.has(nb) and str(vines[nb]["state"]) == "intacta":
+                            to_light.append(nb)
+            if float(v["t"]) >= FIRE_BURN:
+                v["state"] = "ceniza"
+                v["t"] = 0.0
+            elif randf() < dt * 3.0:
+                _emit(_cell_center(cell) + Vector2(randf_range(-10, 10), -10), 1, Color(1.0, 0.6, 0.2), 10.0, 40.0, 0.9, 2.0, -60.0, Vector2.UP, 0.5, true)
+        elif str(v["state"]) == "ceniza":
+            v["t"] = float(v["t"]) + dt
+            if float(v["t"]) > VINE_REGROW and not bool(v["verde"]):
+                v["state"] = "intacta" # las raíces secas vuelven a crecer
+                v["t"] = 0.0
+    var roots_before: int = _door_roots_left()
+    for cell in to_light:
+        _ignite(cell)
+    if roots_before > 0 and not to_light.is_empty() and randf() < 0.3:
+        _sfx("fuego", -12.0, 1.2)
+    # Quemaduras: el jugador (no esquivando) y las alimañas.
+    if _cell_burning(player_pos) and dash_left <= 0.0 and damage_cd <= 0.0:
+        hp -= FIRE_DAMAGE
+        fear = minf(100.0, fear + 5.0)
+        damage_cd = 0.45
+        _on_hurt()
+    for cr in critters:
+        if bool(cr["alive"]) and _cell_burning(cr["pos"]):
+            _critter_die(cr)
+
+
+func _draw_vines() -> void:
+    for cell in vines:
+        var v: Dictionary = vines[cell]
+        var c: Vector2 = _cell_center(cell)
+        var seed_v: int = int(v["seed"])
+        match str(v["state"]):
+            "intacta":
+                # Tallos que se enlazan con las celdas vecinas, con espinas y hojas secas.
+                var base: Color = Color("#3d5a2a") if bool(v["verde"]) else Color("#6b5236")
+                var light: Color = Color("#5f8040") if bool(v["verde"]) else Color("#a88452")
+                var thick: float = 4.0 if bool(v["verde"]) else 3.0
+                var linked: bool = false
+                for off in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(-1, 1)]:
+                    var nb: Vector2i = cell + off
+                    if vines.has(nb) and str(vines[nb]["state"]) == "intacta":
+                        linked = true
+                        var nc: Vector2 = _cell_center(nb)
+                        var n: Vector2 = (nc - c).orthogonal().normalized()
+                        for k in range(2):
+                            var bend: float = (float((seed_v >> (k * 3)) % 9) - 4.0) * 1.4 + float(k) * 3.0 - 1.5
+                            var m1: Vector2 = c.lerp(nc, 0.33) + n * bend
+                            var m2: Vector2 = c.lerp(nc, 0.66) - n * bend
+                            draw_polyline(PackedVector2Array([c + n * float(k * 3 - 1), m1, m2, nc + n * float(k * 3 - 1)]), base if k == 0 else light, thick if k == 0 else 1.0)
+                if not linked:
+                    draw_circle(c, 5.0, base)
+                for k in range(3):
+                    var t_pos: Vector2 = c + Vector2(float((seed_v >> k) % 24) - 12.0, float((seed_v >> (k + 3)) % 14) - 7.0)
+                    if k == 0:
+                        draw_line(t_pos, t_pos + Vector2(2, -3), light, 1.0) # espina
+                    else:
+                        draw_rect(Rect2(t_pos.round(), Vector2(3, 2)), Color("#7da04f") if bool(v["verde"]) else Color("#9a7434"))
+            "fuego":
+                draw_rect(Rect2(c - Vector2(15, 15), Vector2(30, 30)), Color(0.35, 0.08, 0.02, 0.6))
+            "ceniza":
+                var glow: float = clampf(1.0 - float(v["t"]) / 4.0, 0.0, 1.0)
+                draw_rect(Rect2(c - Vector2(14, 12), Vector2(28, 24)), Color(0.08, 0.07, 0.07, 0.75))
+                for k in range(3):
+                    var e: Vector2 = c + Vector2(float((seed_v >> k) % 22) - 11.0, float((seed_v >> (k + 2)) % 18) - 9.0)
+                    draw_rect(Rect2(e.round(), Vector2(2, 1)), Color(1.0, 0.45, 0.15, 0.2 + 0.7 * glow * (0.5 + 0.5 * sin(elapsed * 5.0 + float(k)))))
+
+
+## Llamas: sobre la penumbra, con parpadeo; menguan al final de la quema.
+func _draw_flames() -> void:
+    for cell in vines:
+        var v: Dictionary = vines[cell]
+        if str(v["state"]) != "fuego":
+            continue
+        var c: Vector2 = _cell_center(cell) + Vector2(0, 8)
+        var life: float = float(v["t"]) / FIRE_BURN
+        var size: float = clampf(life * 6.0, 0.0, 1.0) * clampf((1.0 - life) * 3.0, 0.25, 1.0)
+        for k in range(3):
+            var x: float = c.x - 9.0 + float(k) * 9.0
+            var flick: float = 0.75 + 0.25 * sin(elapsed * 17.0 + float(k) * 2.1 + float(v["seed"]))
+            var h: float = (16.0 + 8.0 * float((int(v["seed"]) >> k) % 3)) * flick * size
+            draw_colored_polygon(PackedVector2Array([Vector2(x - 6, c.y), Vector2(x + 6, c.y), Vector2(x, c.y - h)]), Color(1.0, 0.42, 0.12, 0.85))
+            draw_colored_polygon(PackedVector2Array([Vector2(x - 3, c.y), Vector2(x + 3, c.y), Vector2(x, c.y - h * 0.6)]), Color(1.0, 0.85, 0.4, 0.9))
+        draw_circle(c + Vector2(0, -8), 18.0 * size, Color(1.0, 0.5, 0.15, 0.10))
+
+
+# --- Tejedora de Raíz -----------------------------------------------------------
+func _update_tejedora(dt: float) -> void:
+    enemy_alert = true
+    teje_hint_t = maxf(0.0, teje_hint_t - dt)
+    # Fuego: si pisa una celda en llamas, prende y sigue ardiendo un poco.
+    if _cell_burning(enemy_pos):
+        if teje_burn <= 0.0:
+            _sfx("raices", -6.0, 1.3)
+        teje_burn = 1.3
+    if teje_burn > 0.0:
+        teje_burn -= dt
+        teje_fire_acc += dt
+        if randf() < dt * 12.0:
+            _emit(enemy_pos + Vector2(randf_range(-12, 12), randf_range(-60, -10)), 1, Color(1.0, 0.55, 0.15), 15.0, 50.0, 0.7, 3.0, -70.0, Vector2.UP, 0.6, true)
+        if teje_fire_acc >= 0.25:
+            teje_fire_acc = 0.0
+            fire_hit = true
+            _damage_enemy(11.0)
+            fire_hit = false
+            if not _enemy_active():
+                return
+    if enemy_stun > 0.0:
+        teje_state = "anda"
+        return
+    var d: float = enemy_pos.distance_to(player_pos)
+    match teje_state:
+        "anda":
+            var to_p: Vector2 = (player_pos - enemy_pos).normalized()
+            var dir: Vector2 = to_p
+            if teje_detour_t > 0.0:
+                teje_detour_t -= dt
+                dir = teje_detour # rodea la columna un momento
+            var nxt: Vector2 = enemy_pos + dir * TEJE_SPEED * dt
+            if not _is_blocked(nxt):
+                enemy_pos = nxt
+            else:
+                # Choca: prueba a rodear por el lado que más la acerca a ti.
+                var perp := Vector2(-to_p.y, to_p.x)
+                var options: Array = [perp, -perp, -to_p] if perp.dot(player_pos - enemy_pos) >= 0.0 else [-perp, perp, -to_p]
+                for cand in options:
+                    var try_pos: Vector2 = enemy_pos + (cand as Vector2) * TEJE_SPEED * dt
+                    if not _is_blocked(try_pos):
+                        enemy_pos = try_pos
+                        teje_detour = cand
+                        teje_detour_t = 0.7
+                        break
+            if d < TEJE_REACH:
+                teje_state = "alza"
+                teje_t = TEJE_WINDUP
+                _sfx("raices", -7.0)
+        "alza":
+            teje_t -= dt
+            if teje_t <= 0.0:
+                teje_state = "zarpa"
+                teje_t = 0.35
+                shake = maxf(shake, 0.25)
+                if d < TEJE_REACH + 16.0 and dash_left <= 0.0 and damage_cd <= 0.0:
+                    hp -= TEJE_DAMAGE
+                    fear = minf(100.0, fear + 12.0)
+                    damage_cd = 0.8
+                    _on_hurt()
+        "zarpa":
+            teje_t -= dt
+            if teje_t <= 0.0:
+                teje_state = "anda"
+
+
+func _draw_tejedora_fire() -> void:
+    if _enemy_active() and _enemy_kind() == "tejedora" and teje_burn > 0.0:
+        for k in range(4):
+            var x: float = enemy_pos.x - 12.0 + float(k) * 8.0
+            var h: float = 22.0 + 10.0 * sin(elapsed * 15.0 + float(k) * 1.7)
+            var base: float = enemy_pos.y - 14.0 - float(k % 2) * 16.0
+            draw_colored_polygon(PackedVector2Array([Vector2(x - 5, base), Vector2(x + 5, base), Vector2(x, base - h)]), Color(1.0, 0.45, 0.1, 0.8))

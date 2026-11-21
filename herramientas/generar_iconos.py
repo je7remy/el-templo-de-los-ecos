@@ -360,6 +360,19 @@ def eco_reflejos() -> Image.Image:
     return i.fin()
 
 
+def eco_piel() -> Image.Image:
+    """Piso IV: piel curtida como corteza, con una brasa que no la atraviesa."""
+    i = Icono()
+    i.p([(16, 3), (27, 8), (25, 22), (16, 29), (7, 22), (5, 8)], c("#6b5238"))
+    i.p([(16, 3), (27, 8), (25, 22), (16, 29)], c("#4a3826"))
+    for y in (10, 15, 20):
+        i.ln([(9, y), (15, y + 2)], c("#8a6c4a"))
+        i.ln([(17, y + 2), (23, y)], c("#3a2c1e"))
+    i.e(19, 3, 25, 9, c("#ff9a3c"))
+    i.e(21, 5, 23, 7, c("#fff0b0"))
+    return i.fin()
+
+
 def habilidades() -> Image.Image:
     """Grimorio abierto con una runa encendida: la pantalla de habilidades."""
     i = Icono()
@@ -426,7 +439,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
 }
 
 
