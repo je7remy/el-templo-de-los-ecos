@@ -473,6 +473,9 @@ def main() -> None:
         "rejilla": rejilla, "salas": salas,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{DATOS.relative_to(RAIZ)} escrito")
+    # Disposición simétrica de los objetos (herramientas/simetrizar_salas.py).
+    from simetrizar_salas import aplicar
+    aplicar()
 
 
 if __name__ == "__main__":

@@ -19,14 +19,18 @@
 
 ## ¿Qué incluye el prototipo?
 
-- **Un piso de cinco salas**: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
+- **Dos pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
+  - **Piso I · El Despertar**, cinco salas: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
+  - **Piso II · Los Peregrinos**, cuatro salas con las primeras grietas del templo. Un Peregrino se ofrece a reunir almas contigo… y en la mayoría de las vidas te traiciona al llegar a la Cripta del Reparto. Tiene indicios: se queda a tu espalda y miente sobre cuántas almas lleva. Si lo atacas primero y era sincero, lo pagas.
+- **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría). Se conservan si tu alma regresa y se pierden si es absorbida.
 - **Tres entidades con reglas que se pueden aprender**, con arte propio en vista cenital y cuatro direcciones:
   - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve. Solo recibe daño con el ojo cerrado.
   - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
   - **Hechicero del archivo**: lanza conjuros hacia la luz. Solo recibe daño mientras carga el conjuro.
 - **Antorcha e inventario**: despiertas a oscuras; en la primera sala encuentras madera y fósforos y se construye la antorcha. Encenderla gasta un fósforo (apagarla no); hay más cajas en las salas 3 y 4, y el altar vende la **Llama interior**, que la enciende sin gastar.
 - **Combate**: golpe de antorcha (clic o E) y **Resonancia** (Q), una onda visible que daña y aturde. Las entidades tienen barra de vida, avisan si son INMUNES o VULNERABLES y, a 0, se disuelven dejando almas. Vuelven si mueres.
-- **Exploración e interacción**: almas que se recogen al tocarlas, el sello del Testigo, la carta del archivo y el altar del Mercader Silencioso.
+- **Exploración e interacción**: almas que se recogen al tocarlas, cada una sobre el cuerpo ensangrentado de su antiguo dueño; el sello del Testigo, la carta del archivo y el altar del Mercader Silencioso. Las puertas se cruzan al tocarlas.
+- **Salas simétricas**: los objetos de cada sala van en el eje central o en parejas en espejo.
 - **Penumbra dinámica**: tu antorcha, los braseros y las almas abren claros en la oscuridad; apagarla te esconde, pero también te ciega.
 - **Peligro que se anuncia**: el ojo del Testigo tiembla antes de abrirse y el Hechicero carga su conjuro a la vista. Los golpes sacuden la pantalla y dan un breve margen de invulnerabilidad.
 - **Música y sonido originales** que reaccionan al miedo y a la persecución.
@@ -44,11 +48,13 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | | |
 | --- | --- |
 | ![Menú principal](docs/galeria/01_menu.png) | ![Umbral del despertar](docs/galeria/02_umbral.png) |
-| **Menú principal.** Elige entre Explorar o Vigilia. | **I · Umbral del despertar.** Despiertas a oscuras: la madera y los fósforos brillan en el suelo. |
+| **Menú principal.** Elige entre Explorar o Vigilia. | **I · Umbral del despertar.** Despiertas a oscuras: la madera y los fósforos brillan en el suelo; cada alma flota sobre un cadáver. |
 | ![Claustro de las ofrendas con el Ghoul de brasas](docs/galeria/03_claustro_ghoul.png) | ![Altar del Mercader Silencioso](docs/galeria/07_altar.png) |
 | **II · Claustro de las ofrendas.** El Ghoul de brasas persigue tu luz. El altar está en el centro. | **El Mercader Silencioso.** Cambia almas por Resonancia o por la Llama interior. |
 | ![Golpe de antorcha contra el Ghoul](docs/galeria/12_combate.png) | ![Inventario](docs/galeria/13_inventario.png) |
 | **Combate.** El golpe de antorcha deja una estela de fuego; la barra indica la vida de la entidad. | **Inventario (I).** Iconos de objetos y habilidades con su descripción. |
+| ![Entrada al Piso II](docs/galeria/14_piso2_entrada.png) | ![El Peregrino traiciona en la Cripta del Reparto](docs/galeria/15_peregrino.png) |
+| **Entrada al Piso II.** Solo un fragmento de la sala: lo demás se descubre al entrar. | **La Cosecha.** «Lo siento. Las almas no alcanzan para dos.» |
 | ![Archivo de los ausentes con el Hechicero](docs/galeria/05_archivo.png) | ![Pórtico del siguiente piso](docs/galeria/06_portico.png) |
 | **IV · Archivo de los ausentes.** El libro se abre al leer la carta; el Hechicero responde a la antorcha. | **V · Pórtico del siguiente piso.** «Esto no es una salida. Es una transición.» |
 
@@ -66,7 +72,7 @@ Descansa en el lecho para ganar ecos, levanta centinelas en los pedestales rúni
 
 ![Sala con sus colisiones, marcadores y la base de cada objeto](docs/galeria/10_sala_editable.png)
 
-Cada sala es una escena (`rooms/sala_N.tscn`). Puedes mover columnas y estatuas en el editor y su colisión las acompaña. Las posiciones de juego (jugador, enemigo, salida, reliquias, altar…) son `Marker2D`. Consulta la [guía para editar salas](docs/EDITAR_SALAS.md).
+Cada sala es una escena (`rooms/sala_N.tscn`). Los objetos están en simetría respecto al eje central. Puedes mover columnas y estatuas en el editor y su colisión las acompaña. Las posiciones de juego (jugador, enemigo, salida, reliquias, altar…) son `Marker2D`. Consulta la [guía para editar salas](docs/EDITAR_SALAS.md).
 
 ### Evolución visual
 
@@ -118,7 +124,7 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | Enter | Iniciar la exploración o reiniciar |
 | H | Abrir Vigilia del Claustro desde el menú |
 | W / A / S / D o flechas | Moverse |
-| E | Interactuar (sello, carta, altar, puertas). Si no hay nada cerca y la antorcha arde, golpear. Almas y objetos se recogen al tocarlos |
+| E | Interactuar (sello, carta, altar). Si no hay nada cerca y la antorcha arde, golpear. Almas, objetos y puertas abiertas funcionan al tocarlos |
 | Clic izquierdo | Golpe de antorcha |
 | F | Encender (gasta un fósforo) o apagar la antorcha |
 | I o Tab | Inventario |

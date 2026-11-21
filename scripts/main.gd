@@ -9,19 +9,49 @@ const H: float = 640.0
 const ARENA: Rect2 = Rect2(40.0, 122.0, 880.0, 458.0)
 const SAVE_PATH: String = "user://templo_personaje_v03.json"
 const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
-const ROOM_NAMES := [
-    "I · UMBRAL DEL DESPERTAR",
-    "II · CLAUSTRO DE LAS OFRENDAS",
-    "III · SALA DEL TESTIGO",
-    "IV · ARCHIVO DE LOS AUSENTES",
-    "V · PÓRTICO DEL SIGUIENTE PISO"
-]
-const ROOM_WHISPERS := [
-    "Una inscripción dice: 'La esperanza es parte del mecanismo'.",
-    "Las piedras tienen marcas de quienes estuvieron antes que tú.",
-    "No todos los ojos necesitan luz para verte.",
-    "Algunas cartas parecen escritas por personas que regresaron.",
-    "Esto no es una salida. Es una transición."
+## PISOS (docs: «DISEÑO DE 10 PISOS»). Cada sala usa una escena
+## rooms/sala_N.tscn y declara qué contiene: entidad, rasgos (altar, sello,
+## archivo…) y objetos. El código pregunta por rasgos, nunca por números de sala.
+##   enemy:  "" | "ghoul" | "testigo" | "hechicero"
+##   traits: "tutorial", "altar", "sello", "archivo", "almas" (la puerta exige
+##           reunir las almas), "peregrino" (aparece el Peregrino), "cosecha"
+##   items:  [clave, marcador, posición por defecto]
+const FLOORS := [
+    {
+        "number": "I", "title": "EL DESPERTAR", "state": "TEMPLO CONSERVADO", "wear": 0.0,
+        "eco": "respiracion",
+        "rooms": [
+            {"scene": 0, "name": "I · UMBRAL DEL DESPERTAR", "enemy": "", "traits": ["tutorial"],
+             "whisper": "Una inscripción dice: 'La esperanza es parte del mecanismo'.",
+             "items": [["madera", "Madera", Vector2(300, 470)], ["fosforos", "Fosforos", Vector2(660, 470)]]},
+            {"scene": 1, "name": "II · CLAUSTRO DE LAS OFRENDAS", "enemy": "ghoul", "traits": ["altar"],
+             "whisper": "Las piedras tienen marcas de quienes estuvieron antes que tú.", "items": []},
+            {"scene": 2, "name": "III · SALA DEL TESTIGO", "enemy": "testigo", "traits": ["sello"],
+             "whisper": "No todos los ojos necesitan luz para verte.",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]]},
+            {"scene": 3, "name": "IV · ARCHIVO DE LOS AUSENTES", "enemy": "hechicero", "traits": ["archivo"],
+             "whisper": "Algunas cartas parecen escritas por personas que regresaron.",
+             "items": [["fosforos", "Fosforos", Vector2(230, 460)]]},
+            {"scene": 4, "name": "V · PÓRTICO DEL SIGUIENTE PISO", "enemy": "", "traits": [],
+             "whisper": "Esto no es una salida. Es una transición.", "items": []},
+        ],
+    },
+    {
+        # Inspiración: la traición durante la recolección de almas.
+        "number": "II", "title": "LOS PEREGRINOS", "state": "PRIMERAS GRIETAS", "wear": 1.0,
+        "eco": "nuca",
+        "rooms": [
+            {"scene": 0, "name": "I · ATRIO DE LOS PEREGRINOS", "enemy": "", "traits": ["almas", "peregrino"],
+             "whisper": "Alguien más respira en la oscuridad.", "items": []},
+            {"scene": 2, "name": "II · NAVE DEL AGUA", "enemy": "", "traits": ["almas"],
+             "whisper": "El agua corre hacia abajo. Las almas también.",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]]},
+            {"scene": 4, "name": "III · CRIPTA DEL REPARTO", "enemy": "", "traits": ["almas", "cosecha"],
+             "whisper": "Aquí se reparte lo reunido. Siempre sobra alguien.", "items": []},
+            {"scene": 3, "name": "IV · UMBRAL DEL TERCER PISO", "enemy": "", "traits": [],
+             "whisper": "Nadie llega a esta puerta acompañado.", "items": []},
+        ],
+    },
 ]
 
 const RELICS := [
@@ -52,6 +82,11 @@ const ICONS := {
     "golpe": preload("res://assets/visual/iconos/golpe.png"),
     "alma": preload("res://assets/visual/iconos/alma.png"),
 }
+## Ecos: [nombre, descripción]. Se ganan al superar cada piso (clave "eco" del piso).
+const ECOS := {
+    "respiracion": ["RESPIRACIÓN CONTENIDA", "El miedo sube un 25 % más despacio."],
+    "nuca": ["NUCA FRÍA", "Sientes cuando alguien con malas intenciones queda a tu espalda."],
+}
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
     ["madera", "MADERA Y TELA", "El cuerpo de una antorcha. Con fósforos se construye sola."],
@@ -61,16 +96,17 @@ const INVENTORY_SLOTS := [
     ["golpe", "GOLPE DE ANTORCHA", "Clic o E con la antorcha encendida: daño de fuego a corta distancia."],
     ["resonancia", "RESONANCIA", "Q: una onda que daña y aturde a las entidades cercanas."],
 ]
-## Objetos de cada sala: [clave, marcador en la escena, posición por defecto].
-const ROOM_ITEMS := {
-    0: [["madera", "Madera", Vector2(330, 445)], ["fosforos", "Fosforos", Vector2(600, 250)]],
-    2: [["fosforos", "Fosforos", Vector2(250, 470)]],
-    3: [["fosforos", "Fosforos", Vector2(230, 460)]],
-}
+## Cuerpos de los antiguos dueños bajo cada alma (herramientas/generar_cuerpos.py).
+const CORPSES := [
+    preload("res://assets/visual/cuerpos/cuerpo_1.png"),
+    preload("res://assets/visual/cuerpos/cuerpo_2.png"),
+    preload("res://assets/visual/cuerpos/cuerpo_3.png"),
+]
+const DOOR_TOUCH := 36.0 # distancia a la que tocar la puerta abierta te hace cruzarla
 const MATCHES_FIRST_BOX := 5
 const MATCHES_REFILL := 3
 ## Vida de cada entidad por sala (PROVISIONAL, ajustar en pruebas de juego).
-const ENEMY_MAX_HP := [0.0, 60.0, 90.0, 70.0, 0.0]
+const ENEMY_MAX_HP := {"ghoul": 60.0, "testigo": 90.0, "hechicero": 70.0}
 const WIZARD_CHARGE := 1.0 # segundos de carga visibles (y vulnerables) del conjuro
 const STRIKE_RANGE := 64.0
 const STRIKE_DAMAGE := 18.0
@@ -103,6 +139,7 @@ const ART_PRELOADED := {
     "enemy_testigo": preload("res://assets/visual/enemies/testigo.png"),
     "enemy_ghoul": preload("res://assets/visual/enemies/ghoul.png"),
     "enemy_hechicero": preload("res://assets/visual/enemies/hechicero.png"),
+    "enemy_peregrino": preload("res://assets/visual/enemies/peregrino.png"),
 
     "room_0": preload("res://assets/knowledge/rooms/room_0.png"),
     "room_1": preload("res://assets/knowledge/rooms/room_1.png"),
@@ -141,7 +178,8 @@ const ART_PRELOADED := {
 }
 
 var font: Font
-var game_mode: String = "title" # title, play, altar, dead, victory
+var game_mode: String = "title" # title, play, altar, inventory, floor_intro, dead, victory
+var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
 var current_room: int = 0
 var elapsed: float = 0.0
 var room_elapsed: float = 0.0
@@ -159,13 +197,18 @@ var has_wood: bool = false
 var has_torch: bool = false
 var matches: int = 0
 var has_inner_flame: bool = false # habilidad del altar; se guarda como Resonancia
-var items_taken: Dictionary = {} # "sala:clave" -> true
+## Ecos: pasivas que se ganan al superar un piso y se acumulan (homenaje a
+## las «pasivas ilimitadas»). Se conservan si el alma regresa; se pierden
+## si es absorbida. Se guardan.
+var ecos: Array = []
+var floor_intro_eco: String = "" # Eco recién ganado, para la pantalla de piso
+var items_taken: Dictionary = {} # "piso:sala:clave" -> true
 var room_items: Array = [] # {kind, pos}
 var inventory_sel: int = 0
 ## Combate.
 var enemy_hp: float = 0.0
 var enemy_max: float = 1.0
-var banished: Dictionary = {} # sala -> true (desterrada en esta partida)
+var banished: Dictionary = {} # "piso:sala" -> true (desterrada en esta partida)
 var enemy_hit_t: float = 0.0
 var strike_cd: float = 0.0
 var strike_fx: float = 0.0
@@ -174,6 +217,29 @@ var pulse_fx: float = -1.0
 var float_fx: Array = [] # {pos, text, color, t}
 var dissolve_fx: Array = [] # {pos, kind, facing, frame, t}
 var drops: Array = [] # {pos}
+var door_msg_cd: float = 0.0
+## Peregrino (Piso II): otro atrapado que te acompaña. En la mayoría de las
+## vidas es un traidor; a veces es sincero. Nadie lo sabe hasta la Cosecha.
+const PILGRIM_MAX_HP := 70.0
+const PILGRIM_TRAITOR_CHANCE := 0.7
+var pilgrim_state: String = "none" # none, waiting, follow, tell, hostile, friend, dead
+var pilgrim_traitor: bool = true
+var pilgrim_pos: Vector2 = Vector2.ZERO
+var pilgrim_prev: Vector2 = Vector2.ZERO
+var pilgrim_facing: int = 0
+var pilgrim_moving: bool = false
+var pilgrim_hp: float = PILGRIM_MAX_HP
+var pilgrim_souls: int = 0
+var pilgrim_timer: float = 0.0 # aviso antes de traicionar / carga del tajo
+var pilgrim_cd: float = 0.0
+var pilgrim_lunge: float = 0.0
+var pilgrim_hit_t: float = 0.0
+var pilgrim_stun: float = 0.0
+var pilgrim_wronged: bool = false # lo atacaste siendo sincero
+var pilgrim_line: String = ""
+var pilgrim_line_t: float = 0.0
+var pilgrim_corpse: Dictionary = {} # {key, pos}
+var nuca_cd: float = 0.0
 var step_t: float = 0.0
 var step_i: int = 0
 var dash_left: float = 0.0
@@ -242,7 +308,7 @@ const SFX_PATHS := {
     "resonancia": "res://audio/sfx_resonancia.ogg", "destierro": "res://audio/sfx_destierro.ogg",
     "interfaz": "res://audio/sfx_interfaz.ogg", "toque": "res://audio/sfx_toque.ogg",
     "paso_1": "res://audio/sfx_paso_1.ogg", "paso_2": "res://audio/sfx_paso_2.ogg",
-    "paso_3": "res://audio/sfx_paso_3.ogg",
+    "paso_3": "res://audio/sfx_paso_3.ogg", "cuchillo": "res://audio/sfx_cuchillo.ogg",
 }
 var music: AudioStreamPlayer
 var tension: AudioStreamPlayer
@@ -331,7 +397,7 @@ func _update_audio(delta: float) -> void:
         target = fear / 100.0 * 0.75
         if enemy_alert:
             target += 0.55
-        if current_room == 2 and watcher_open and not seal_acquired:
+        if _enemy_active() and _enemy_kind() == "testigo" and watcher_open:
             target += 0.25
     tension_level = move_toward(tension_level, clampf(target, 0.0, 1.0), delta * 0.4)
     tension.volume_db = linear_to_db(maxf(tension_level, 0.001)) - 7.0
@@ -351,6 +417,8 @@ func _load_progress() -> void:
         reincarnations = maxi(0, int(data.get("reincarnations", 0)))
         has_pulse = bool(data.get("has_pulse", false))
         has_inner_flame = bool(data.get("has_inner_flame", false))
+        var saved_ecos = data.get("ecos", [])
+        ecos = (saved_ecos as Array).filter(func(e): return ECOS.has(str(e))) if saved_ecos is Array else []
         ability_level = maxi(0, int(data.get("ability_level", 0)))
         remembered_rule = bool(data.get("remembered_rule", false))
         deaths = maxi(0, int(data.get("deaths", 0)))
@@ -365,6 +433,7 @@ func _save_progress() -> void:
             "reincarnations": reincarnations,
             "has_pulse": has_pulse,
             "has_inner_flame": has_inner_flame,
+            "ecos": ecos,
             "ability_level": ability_level,
             "remembered_rule": remembered_rule,
             "deaths": deaths,
@@ -372,8 +441,32 @@ func _save_progress() -> void:
         }))
 
 
+## --- Datos del piso y de la sala actuales -------------------------------
+func _floor() -> Dictionary:
+    return FLOORS[current_floor]
+
+
+func _room() -> Dictionary:
+    return _floor()["rooms"][current_room]
+
+
+func _room_count() -> int:
+    return (_floor()["rooms"] as Array).size()
+
+
+func _room_key() -> String:
+    return "%d:%d" % [current_floor, current_room]
+
+
+func _has(trait_name: String) -> bool:
+    return trait_name in _room()["traits"]
+
+
 func _new_run() -> void:
+    current_floor = 0
     current_room = 0
+    pilgrim_state = "none"
+    pilgrim_corpse = {}
     souls = 0
     max_hp = 100.0
     hp = max_hp
@@ -406,10 +499,10 @@ func _enter_room() -> void:
     player_pos = _marker("Jugador", Vector2(115.0, 359.0))
     player_dir = Vector2.RIGHT
     var default_enemy := Vector2(765.0, 358.0)
-    if current_room == 1:
-        default_enemy = Vector2(772.0, 472.0) # Ghoul de brasas
-    elif current_room == 3:
-        default_enemy = Vector2(773.0, 354.0) # Hechicero
+    if _enemy_kind() == "ghoul":
+        default_enemy = Vector2(772.0, 472.0)
+    elif _enemy_kind() == "hechicero":
+        default_enemy = Vector2(773.0, 354.0)
     enemy_pos = _marker("Enemigo", default_enemy)
     wizard_cast_cd = 2.4
     fireballs.clear()
@@ -426,10 +519,10 @@ func _enter_room() -> void:
     ward_left = 0.0
     # La antorcha conserva su estado al cruzar la puerta.
     room_items.clear()
-    for entry in ROOM_ITEMS.get(current_room, []):
-        if not items_taken.has("%d:%s" % [current_room, entry[0]]):
+    for entry in _room()["items"]:
+        if not items_taken.has("%s:%s" % [_room_key(), entry[0]]):
             room_items.append({"kind": entry[0], "pos": _marker(entry[1], entry[2])})
-    enemy_max = maxf(1.0, ENEMY_MAX_HP[current_room])
+    enemy_max = maxf(1.0, float(ENEMY_MAX_HP.get(_enemy_kind(), 1.0)))
     enemy_hp = enemy_max
     enemy_hit_t = 0.0
     pulse_fx = -1.0
@@ -437,10 +530,13 @@ func _enter_room() -> void:
     float_fx.clear()
     dissolve_fx.clear()
     drops.clear()
-    if current_room == 0 and not has_torch:
+    _pilgrim_enter_room()
+    if game_mode == "floor_intro":
+        toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
+    elif _has("tutorial") and not has_torch:
         _say("Oscuridad. Busca madera y fósforos para hacer una antorcha.", 4.5)
     else:
-        _say(ROOM_WHISPERS[current_room], 4.5)
+        _say(_room()["whisper"], 4.5)
 
 
 ## Instancia rooms/sala_N.tscn bajo el dibujo del juego y lee sus datos.
@@ -448,8 +544,11 @@ func _load_room_scene() -> void:
     if room_node != null:
         remove_child(room_node)
         room_node.queue_free()
-    room_node = ROOM_SCENES[current_room].instantiate()
+    room_node = ROOM_SCENES[int(_room()["scene"])].instantiate()
     room_node.z_index = -1 # el suelo (TileMapLayer) queda bajo todo lo demás
+    # Cada piso más gastado y apagado que el anterior (GDD §5: cambio gradual).
+    var wear: float = float(_floor().get("wear", 0.0))
+    room_node.modulate = Color(1, 1, 1).lerp(Color(0.80, 0.82, 0.76), clampf(wear * 0.6, 0.0, 1.0))
     add_child(room_node)
     move_child(room_node, 0)
     obstacles.clear()
@@ -504,7 +603,7 @@ func _input(event: InputEvent) -> void:
         _mobile_update_axis(make_input_local(event).position)
         return
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-        if game_mode in ["title", "inventory", "altar"]:
+        if game_mode in ["title", "inventory", "altar", "floor_intro"]:
             _mobile_tap(make_input_local(event).position)
             return
         if game_mode == "play" and not touch_enabled:
@@ -526,6 +625,9 @@ func _input(event: InputEvent) -> void:
             _new_run()
         elif k == KEY_H:
             _open_defense()
+    elif game_mode == "floor_intro":
+        if k in [KEY_ENTER, KEY_KP_ENTER, KEY_E, KEY_SPACE]:
+            _enter_floor()
     elif game_mode == "dead" or game_mode == "victory":
         if k == KEY_ENTER or k == KEY_KP_ENTER:
             _new_run()
@@ -597,6 +699,9 @@ func _mobile_tap(at: Vector2) -> void:
         return
     if game_mode == "dead" or game_mode == "victory":
         _new_run()
+        return
+    if game_mode == "floor_intro":
+        _enter_floor()
         return
     if game_mode == "altar":
         var row: int = _altar_row_at(at)
@@ -714,6 +819,9 @@ func _use_pulse() -> void:
     stamina -= 24.0
     pulse_fx = 0.0
     _sfx("resonancia", -5.0)
+    if _pilgrim_present() and pilgrim_state != "dead" and player_pos.distance_to(pilgrim_pos) < PULSE_RADIUS + 12.0:
+        pilgrim_stun = 1.4
+        _damage_pilgrim(30.0 + 10.0 * float(ability_level))
     if _enemy_active() and player_pos.distance_to(enemy_pos) < 220.0:
         enemy_stun = 1.6 + 0.5 * float(ability_level)
         if player_pos.distance_to(enemy_pos) < PULSE_RADIUS + 12.0:
@@ -758,7 +866,7 @@ func _toggle_torch() -> void:
 func _take_item(i: int) -> void:
     var item: Dictionary = room_items[i]
     var kind: String = item["kind"]
-    items_taken["%d:%s" % [current_room, kind]] = true
+    items_taken["%s:%s" % [_room_key(), kind]] = true
     room_items.remove_at(i)
     var label: String = ""
     if kind == "madera":
@@ -782,6 +890,14 @@ func _try_craft() -> void:
     has_torch = true
     _sfx("interfaz", -8.0, 0.8)
     _say("Construiste una ANTORCHA. Pulsa F para encenderla (gasta 1 fósforo).", 4.5)
+
+
+func _enter_floor() -> void:
+    game_mode = "play"
+    _sfx("interfaz", -8.0, 0.7)
+    _say(_room()["whisper"], 4.5)
+    if pilgrim_state == "follow" and _has("peregrino"):
+        _pilgrim_say("¿Tú también despertaste aquí? Busquemos almas juntos. Hay para los dos.", 4.5)
 
 
 func _open_inventory() -> void:
@@ -844,20 +960,20 @@ func _altar_row_at(at: Vector2) -> int:
 
 # ---------------------------------------------------------------- COMBATE
 func _enemy_active() -> bool:
-    return current_room in [1, 2, 3] and not banished.has(current_room)
+    return _enemy_kind() != "" and not banished.has(_room_key())
 
 
 func _enemy_kind() -> String:
-    return "ghoul" if current_room == 1 else ("testigo" if current_room == 2 else "hechicero")
+    return str(_room()["enemy"])
 
 
 ## Debilidades: el Testigo solo con el ojo cerrado; el Hechicero solo
 ## mientras carga el conjuro; el Ghoul siempre.
 func _enemy_vulnerable() -> bool:
-    match current_room:
-        2:
+    match _enemy_kind():
+        "testigo":
             return not watcher_open
-        3:
+        "hechicero":
             return enemy_alert and wizard_cast_cd < WIZARD_CHARGE
     return true
 
@@ -867,7 +983,7 @@ func _damage_enemy(amount: float) -> bool:
     if not _enemy_vulnerable():
         float_fx.append({"pos": head, "text": "INMUNE", "color": Color("#b4bba8"), "t": 0.0})
         _sfx("inmune", -8.0)
-        if current_room == 2:
+        if _enemy_kind() == "testigo":
             _say("Con el ojo abierto es piedra. Golpéalo cuando lo cierre.", 2.6)
         else:
             _say("Su escudo solo cae mientras carga el conjuro.", 2.6)
@@ -884,7 +1000,7 @@ func _damage_enemy(amount: float) -> bool:
 ## A 0 de vida la entidad se disuelve y suelta almas. Vuelve si mueres.
 func _banish_enemy() -> void:
     var kind: String = _enemy_kind()
-    banished[current_room] = true
+    banished[_room_key()] = true
     dissolve_fx.append({"pos": enemy_pos, "kind": kind, "facing": enemy_facing, "frame": _enemy_frame(kind), "t": 0.0})
     drops.append({"pos": enemy_pos})
     fireballs.clear()
@@ -907,6 +1023,13 @@ func _torch_strike() -> bool:
     strike_dir = player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT
     visual_interaction_left = 0.24
     _sfx("golpe", -7.0)
+    if _pilgrim_present() and pilgrim_state != "dead":
+        var to_p := pilgrim_pos - player_pos
+        if to_p.length() < STRIKE_RANGE + 10.0 and (to_p.length() < 24.0 or to_p.normalized().dot(strike_dir) > 0.25):
+            _damage_pilgrim(STRIKE_DAMAGE)
+            var shove := pilgrim_pos + to_p.normalized() * 16.0
+            if not _is_blocked(shove):
+                pilgrim_pos = shove
     if _enemy_active():
         var to := enemy_pos - player_pos
         if to.length() < STRIKE_RANGE + 10.0 and (to.length() < 24.0 or to.normalized().dot(strike_dir) > 0.25):
@@ -920,7 +1043,7 @@ func _torch_strike() -> bool:
 
 func _interact() -> void:
     visual_interaction_left = 0.24 # solo dibujo; no cambia la interacción
-    if current_room == 2 and not seal_acquired and player_pos.distance_to(seal_pos) < 60.0:
+    if _has("sello") and not seal_acquired and player_pos.distance_to(seal_pos) < 60.0:
         seal_acquired = true
         remembered_rule = true
         observed_rule = true
@@ -930,24 +1053,19 @@ func _interact() -> void:
         _say("SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
         _sfx("sello", -4.0)
         return
-    if current_room == 1 and player_pos.distance_to(altar_pos) < 64.0:
+    if _has("altar") and player_pos.distance_to(altar_pos) < 64.0:
         game_mode = "altar"
         inventory_sel = 0
         _sfx("interfaz", -8.0)
         return
-    if current_room == 3 and player_pos.distance_to(archive_pos) < 72.0:
+    if _has("archivo") and player_pos.distance_to(archive_pos) < 72.0:
         letter_found = true
         _say("Carta: 'He regresado. El cuerpo cambia, pero recuerdo sus ojos.'", 5.0)
         _sfx("libro", -5.0)
         return
     if player_pos.distance_to(door_pos) < 74.0:
         if _room_ready():
-            if current_room == 4:
-                _win_run()
-            else:
-                current_room += 1
-                _enter_room()
-                _sfx("puerta", -6.0)
+            _go_through_door()
         else:
             _say(_required_clue(), 3.2)
         return
@@ -956,15 +1074,47 @@ func _interact() -> void:
     _sfx("toque", -10.0)
     _say("La piedra no responde a tu tacto.", 1.3)
 
+func _go_through_door() -> void:
+    if current_room == _room_count() - 1:
+        _finish_floor()
+    else:
+        current_room += 1
+        _enter_room()
+        _sfx("puerta", -6.0)
+
+
+## La puerta se cruza al tocarla (sin pulsar E). Si sigue sellada, avisa.
+func _check_door_touch(dt: float) -> void:
+    door_msg_cd = maxf(0.0, door_msg_cd - dt)
+    if player_pos.distance_to(door_pos) >= DOOR_TOUCH:
+        return
+    if _room_ready():
+        _go_through_door()
+    elif door_msg_cd <= 0.0:
+        door_msg_cd = 3.0
+        _say(_required_clue(), 3.0)
+        _sfx("toque", -10.0)
+
+
 func _room_ready() -> bool:
     # Una misión principal en el primer piso: recuperar el sello del Testigo.
-    if current_room == 2 and not seal_acquired:
+    if _has("sello") and not seal_acquired:
         return false
-    return true
+    if _has("almas") and collected.has(false):
+        return false
+    return _pilgrim_allows_exit()
+
+
+func _pilgrim_allows_exit() -> bool:
+    return not pilgrim_state in ["tell", "hostile"]
 
 func _required_clue() -> String:
-    if current_room == 2 and not seal_acquired:
+    if _has("sello") and not seal_acquired:
         return "El pórtico exige el sello de la estatua. Está al fondo."
+    if _has("almas") and collected.has(false):
+        return "El templo no deja pasar a nadie con las manos vacías: faltan almas."
+    if pilgrim_state in ["tell", "hostile"]:
+        return "No puedes darle la espalda a quien te quiere muerto."
     return "La puerta todavía no te reconoce."
 
 
@@ -974,6 +1124,30 @@ func _relic_count() -> int:
         if picked:
             count += 1
     return count
+
+
+## Última puerta del piso: Eco de recompensa y, si hay otro piso, su pantalla de entrada.
+func _finish_floor() -> void:
+    var eco: String = str(_floor().get("eco", ""))
+    floor_intro_eco = ""
+    if eco != "" and not ecos.has(eco):
+        ecos.append(eco)
+        floor_intro_eco = eco
+    _save_progress()
+    if current_floor + 1 >= FLOORS.size():
+        _win_run()
+        return
+    current_floor += 1
+    current_room = 0
+    _on_floor_start()
+    game_mode = "floor_intro" # antes de entrar: nada habla hasta pulsar ENTRAR
+    _enter_room()
+    _sfx("puerta", -4.0, 0.7)
+
+
+## Preparación propia de cada piso (p. ej., el Peregrino del Piso II).
+func _on_floor_start() -> void:
+    _pilgrim_reset()
 
 
 func _win_run() -> void:
@@ -997,6 +1171,7 @@ func _lose_run() -> void:
         identity_number += 1
         has_pulse = false
         has_inner_flame = false
+        ecos.clear()
         ability_level = 0
         remembered_rule = false
         # Una persona nueva, sin la memoria de la anterior.
@@ -1113,16 +1288,20 @@ func _update_play(dt: float) -> void:
     for i in range(room_items.size() - 1, -1, -1):
         if player_pos.distance_to(room_items[i]["pos"]) < 30.0:
             _take_item(i)
+    _check_door_touch(dt)
+    if game_mode != "play":
+        return # se ganó la partida al cruzar la última puerta
     for i in range(drops.size() - 1, -1, -1):
         if player_pos.distance_to(drops[i]["pos"]) < 32.0:
-            souls += BANISH_SOULS
+            var value: int = int(drops[i].get("value", BANISH_SOULS))
+            souls += value
             souls_flash = 0.8
-            pickup_fx.append({"pos": drops[i]["pos"], "t": 0.0, "text": "+%d" % BANISH_SOULS})
+            pickup_fx.append({"pos": drops[i]["pos"], "t": 0.0, "text": "+%d" % value})
             drops.remove_at(i)
             _sfx("alma", -5.0)
 
     watcher_open = fmod(room_elapsed, 6.0) < 3.25
-    if current_room == 2:
+    if _enemy_kind() == "testigo":
         # Aviso justo: el ojo tiembla y cruje 0,6 s antes de abrirse.
         var phase: float = fmod(room_elapsed, 6.0)
         if phase >= 5.4 and not watcher_warned:
@@ -1132,11 +1311,12 @@ func _update_play(dt: float) -> void:
             watcher_warned = false
             _sfx("ojo", -7.0)
         watcher_was_open = watcher_open
+    _update_pilgrim(dt)
     if _enemy_active():
         _update_enemy(dt)
         var near: float = player_pos.distance_to(enemy_pos)
         if near < 185.0:
-            fear += dt * (8.0 if watcher_open else 2.0)
+            fear += dt * (8.0 if watcher_open else 2.0) * (0.75 if ecos.has("respiracion") else 1.0)
     else:
         # A oscuras el miedo se va más despacio.
         fear -= (4.0 if torch_on else 1.2) * dt
@@ -1167,7 +1347,7 @@ func _update_enemy(dt: float) -> void:
     # Other behaviors are simple encounter prototypes, not narrative canon.
     var d: float = enemy_pos.distance_to(player_pos)
     enemy_alert = false
-    if current_room == 1:
+    if _enemy_kind() == "ghoul":
         # Fire-lit hunter: darkness breaks its pursuit in this test encounter.
         enemy_alert = torch_on and d < 350.0
         if enemy_alert and enemy_stun <= 0.0:
@@ -1176,7 +1356,7 @@ func _update_enemy(dt: float) -> void:
                 enemy_pos = wanted
         elif not enemy_alert and enemy_stun <= 0.0:
             enemy_pos = enemy_pos.move_toward(enemy_home, 48.0 * dt)
-    elif current_room == 2:
+    elif _enemy_kind() == "testigo":
         # Witness: observes motion with its eyes open. Stop moving to survive.
         enemy_alert = watcher_open and player_moving and d < 490.0
         if enemy_alert and enemy_stun <= 0.0:
@@ -1188,7 +1368,7 @@ func _update_enemy(dt: float) -> void:
                 remembered_rule = true
                 _save_progress()
                 _say("Observación: al detenerte, el Testigo también se detiene.", 4.5)
-    elif current_room == 3:
+    elif _enemy_kind() == "hechicero":
         # Wizard: warded while the player's torch is off. Provisional mechanic.
         enemy_alert = torch_on and d < 390.0
         wizard_cast_cd = maxf(0.0, wizard_cast_cd - dt)
@@ -1215,9 +1395,9 @@ func _update_enemy(dt: float) -> void:
                 fireballs.remove_at(i)
             else:
                 fireballs[i] = ball
-    if current_room in [1, 2] and enemy_alert and enemy_stun <= 0.0:
+    if (_enemy_kind() == "ghoul" or _enemy_kind() == "testigo") and enemy_alert and enemy_stun <= 0.0:
         if enemy_pos.distance_to(player_pos) < 31.0 and damage_cd <= 0.0:
-            hp -= 33.0 if current_room == 1 else 42.0
+            hp -= 33.0 if _enemy_kind() == "ghoul" else 42.0
             fear = minf(100.0, fear + 21.0)
             damage_cd = 1.5
             var away := (player_pos - enemy_pos).normalized()
@@ -1256,6 +1436,8 @@ func _draw() -> void:
         _draw_end_overlay(false)
     elif game_mode == "victory":
         _draw_end_overlay(true)
+    elif game_mode == "floor_intro":
+        _draw_floor_intro()
     _draw_mobile_controls()
 
 
@@ -1269,14 +1451,20 @@ func _draw_background() -> void:
 func _draw_room() -> void:
     # El suelo y los muros los dibuja la escena de la sala (TileMapLayer).
     _draw_room_depth()
+    _draw_wear()
     _draw_prop_shadows()
     # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
     _draw_visual_atmosphere()
     # Objetos a ras de suelo: siempre por debajo de personajes y estatuas.
     _draw_door()
-    if current_room == 2:
+    if _has("sello"):
         _draw_seal(seal_pos)
+    if _enemy_kind() == "testigo" and _enemy_active():
         _draw_watcher_eye(eye_pos)
+    for i in range(relics.size()):
+        _draw_corpse(relics[i], (current_floor * 5 + current_room) * 3 + i)
+    if not pilgrim_corpse.is_empty() and pilgrim_corpse["key"] == _room_key():
+        _draw_corpse(pilgrim_corpse["pos"], 1)
     for i in range(relics.size()):
         if not collected[i]:
             _draw_relic(relics[i], i)
@@ -1286,13 +1474,14 @@ func _draw_room() -> void:
         _draw_relic(drops[i]["pos"], 7 + i)
     _draw_depth_sorted()
     _draw_dissolve_fx()
-    if current_room == 3:
+    if not fireballs.is_empty():
         _draw_fireballs()
     _draw_lighting()
     _draw_strike_fx()
     _draw_pulse_fx()
     _draw_pickup_fx()
     _draw_float_fx()
+    _draw_nuca()
     if damage_cd > 0.0:
         # Destello rojo que se apaga durante la invulnerabilidad.
         draw_rect(ARENA, Color(0.75, 0.08, 0.14, 0.16 * clampf(damage_cd / 1.5, 0.0, 1.0) ** 2))
@@ -1351,6 +1540,8 @@ func _lights() -> Array:
         list.append([item["pos"], 62.0, 0.5])
     for drop in drops:
         list.append([drop["pos"], 80.0, 0.6])
+    if _pilgrim_present() and pilgrim_state != "dead":
+        list.append([pilgrim_pos + Vector2(0.0, -20.0), 60.0, 0.5]) # se le distingue siempre
     for prop in room_props:
         if prop["light"]:
             var rect: Rect2 = prop["rect"]
@@ -1361,12 +1552,12 @@ func _lights() -> Array:
             list.append([relics[i], 70.0, 0.55])
     if _enemy_active():
         # Las amenazas siempre se distinguen (juego limpio); el Ghoul arde.
-        list.append([enemy_pos + Vector2(0.0, -24.0), 120.0 if current_room == 1 else 70.0, 0.8 if current_room == 1 else 0.45])
+        list.append([enemy_pos + Vector2(0.0, -24.0), 120.0 if _enemy_kind() == "ghoul" else 70.0, 0.8 if _enemy_kind() == "ghoul" else 0.45])
     for ball in fireballs:
         list.append([ball["pos"], 85.0, 0.9])
     if _room_ready():
         list.append([door_pos + Vector2(20.0, 0.0), 95.0, 0.6])
-    if current_room == 1:
+    if _has("altar"):
         list.append([altar_pos, 85.0, 0.6])
     return list
 
@@ -1446,9 +1637,11 @@ func _draw_depth_sorted() -> void:
     items.append([player_pos.y, "player", null])
     if _enemy_active():
         items.append([enemy_pos.y, "enemy", null])
-    if current_room == 1:
+    if _pilgrim_present() and pilgrim_state != "dead":
+        items.append([pilgrim_pos.y, "pilgrim", null])
+    if _has("altar"):
         items.append([altar_pos.y + 22.0, "altar", null])
-    if current_room == 3:
+    if _has("archivo"):
         items.append([book_pos.y + 37.0, "book", null]) # justo después de la mesa
     for i in range(room_props.size()):
         items.append([float(room_props[i]["base"]), "prop", i])
@@ -1459,28 +1652,29 @@ func _draw_depth_sorted() -> void:
                 _draw_player()
             "enemy":
                 _draw_enemy()
+            "pilgrim":
+                _draw_pilgrim()
             "altar":
                 _draw_altar(altar_pos)
             "book":
                 _draw_letter(book_pos)
             "prop":
                 var prop: Dictionary = room_props[item[2]]
-                var dest: Rect2 = prop["rect"]
-                if prop["flip"]:
-                    dest = Rect2(dest.position + Vector2(dest.size.x, 0.0), Vector2(-dest.size.x, dest.size.y))
-                draw_texture_rect(prop["tex"], dest, false)
+                _draw_texture_flipped(prop["tex"], prop["rect"], prop["flip"])
 
 
 func _draw_object_labels() -> void:
     # Etiquetas por encima de todo para que nunca queden tapadas.
-    if current_room == 1 and player_pos.distance_to(altar_pos) < 150.0:
+    if _has("altar") and player_pos.distance_to(altar_pos) < 150.0:
         _label_center("INTERCAMBIO [E]", altar_pos + Vector2(0.0, 46.0), CREAM)
-    if current_room == 3 and not letter_found and player_pos.distance_to(archive_pos) < 150.0:
+    if _has("archivo") and not letter_found and player_pos.distance_to(archive_pos) < 150.0:
         _label_center("LEER CARTA [E]", archive_pos + Vector2(0.0, 30.0), CREAM)
-    if current_room == 2 and not seal_acquired:
+    if _has("sello") and not seal_acquired:
         _label_center("SELLO [E]", seal_pos + Vector2(0.0, 56.0), Color("#e2c48a"))
     if _enemy_active():
         _draw_enemy_health()
+    if _pilgrim_present():
+        _draw_pilgrim_overlay()
 
 
 func _label_center(msg: String, at: Vector2, color: Color) -> void:
@@ -1495,7 +1689,7 @@ func _label_center(msg: String, at: Vector2, color: Color) -> void:
 func _draw_visual_atmosphere() -> void:
     var amount: int = 13
     for i in range(amount):
-        var seed_value: float = float(i * 71 + current_room * 109)
+        var seed_value: float = float(i * 71 + (current_floor * 5 + current_room) * 109)
         var x_pos: float = 92.0 + fmod(seed_value * 3.7, 775.0)
         var y_pos: float = 182.0 + fmod(seed_value * 1.9 + sin(elapsed * 0.4 + seed_value) * 8.0, 349.0)
         var intensity: float = 0.11 + 0.06 * sin(elapsed * 1.3 + seed_value)
@@ -1604,7 +1798,7 @@ func _draw_door() -> void:
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#454c3c"))
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 2.0), Color("#68715a"))
         draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#15170f"), false, 1.0)
-    _label_center("SALIDA [E]" if ready else "SELLADA", Vector2(door_pos.x - 4.0, gap.position.y - 16.0), tone)
+    _label_center("SALIDA" if ready else "SELLADA", Vector2(door_pos.x - 4.0, gap.position.y - 16.0), tone)
 
 
 ## Altar a proporción real (78x112 escalado de forma uniforme).
@@ -1698,7 +1892,7 @@ func _enemy_frame(kind: String) -> int:
 
 
 func _draw_enemy() -> void:
-    var kind: String = "ghoul" if current_room == 1 else ("testigo" if current_room == 2 else "hechicero")
+    var kind: String = _enemy_kind()
     var sheet: Texture2D = art["enemy_" + kind]
     var frame: int = _enemy_frame(kind)
     var region := Rect2(float(frame) * ENEMY_CELL.x, float(enemy_facing) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
@@ -1733,7 +1927,7 @@ func _draw_enemy() -> void:
 
 ## Barra de vida y estado de la entidad: siempre sobre la escena.
 func _draw_enemy_health() -> void:
-    var top: float = _enemy_rect().position.y - (8.0 if current_room == 2 else 0.0)
+    var top: float = _enemy_rect().position.y - (8.0 if _enemy_kind() == "testigo" else 0.0)
     var near: bool = player_pos.distance_to(enemy_pos) < 300.0
     if enemy_hp >= enemy_max and not near:
         return
@@ -1744,7 +1938,7 @@ func _draw_enemy_health() -> void:
     var fill: Color = Color("#d1474f") if vulnerable else Color("#7d6f73")
     draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(enemy_hp / enemy_max, 0.0, 1.0), bar.size.y)), fill)
     var edge: Color = Color("#e3bd7b") if vulnerable else Color("#5b6266")
-    if vulnerable and current_room != 1:
+    if vulnerable and not _enemy_kind() == "ghoul":
         edge.a = 0.6 + 0.4 * sin(elapsed * 10.0)
     draw_rect(bar.grow(1.0), edge, false, 1.0)
     var state: String = ""
@@ -1752,7 +1946,7 @@ func _draw_enemy_health() -> void:
     if enemy_stun > 0.0:
         state = "ATURDIDO"
         tone = SOUL
-    elif current_room != 1:
+    elif not _enemy_kind() == "ghoul":
         state = "VULNERABLE" if vulnerable else "INMUNE"
         tone = Color("#e3bd7b") if vulnerable else Color("#9aa19a")
     if state != "":
@@ -1816,6 +2010,25 @@ func _draw_float_fx() -> void:
         var p: Vector2 = fx["pos"] + Vector2(0.0, -t * 24.0)
         draw_string(font, p + Vector2(-50, 1), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 100, 16, Color(0, 0, 0, a * 0.8))
         draw_string(font, p + Vector2(-51, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 100, 16, Color(col.r, col.g, col.b, a))
+
+
+## Cadáver del antiguo dueño del alma: tendido en el suelo, bajo la luz de la sala.
+func _draw_corpse(at: Vector2, seed_index: int) -> void:
+    var tex: Texture2D = CORPSES[seed_index % CORPSES.size()]
+    var size := Vector2(tex.get_width(), tex.get_height())
+    var dest := Rect2(roundf(at.x - size.x * 0.5), roundf(at.y + 4.0 - size.y * 0.5), size.x, size.y)
+    _draw_texture_flipped(tex, dest, seed_index % 2 == 1) # variedad: espejo
+
+
+## Dibuja una textura en su rectángulo, volteada en horizontal si se pide.
+## (Un Rect2 de ancho negativo no sirve: Godot lo desplaza un ancho.)
+func _draw_texture_flipped(tex: Texture2D, dest: Rect2, flip: bool) -> void:
+    if not flip:
+        draw_texture_rect(tex, dest, false)
+        return
+    draw_set_transform(Vector2(dest.position.x + dest.size.x, dest.position.y), 0.0, Vector2(-1.0, 1.0))
+    draw_texture_rect(tex, Rect2(Vector2.ZERO, dest.size), false)
+    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Objeto recogible en el suelo: icono que flota sobre su sombra.
@@ -1927,8 +2140,8 @@ func _draw_topbar() -> void:
     draw_rect(Rect2(0, 100, W, 2), Color("#6f6552"))
     draw_rect(Rect2(25, 14, 3, 69), Color("#bb9e6d"))
     _text("EL TEMPLO DE LOS ECOS", Vector2(40, 34), 18, CREAM)
-    _text(ROOM_NAMES[current_room], Vector2(40, 66), 13, Color("#a0b6b2"))
-    _text("PISO I  /  TEMPLO CONSERVADO", Vector2(40, 85), 10, Color("#978d77"))
+    _text(_room()["name"], Vector2(40, 66), 13, Color("#a0b6b2"))
+    _text("PISO %s  /  %s" % [_floor()["number"], _floor()["state"]], Vector2(40, 85), 10, Color("#978d77"))
     _text("VIDA", Vector2(317, 27), 11, CREAM)
     _text("VIGOR", Vector2(309, 54), 11, CREAM)
     _text("MIEDO", Vector2(310, 82), 11, CREAM)
@@ -1936,7 +2149,7 @@ func _draw_topbar() -> void:
     _bar(Rect2(361, 42, 169, 11), stamina / 100.0, Color("#84b3a0"))
     _bar(Rect2(361, 70, 169, 10), fear / 100.0, Color("#c5a06e"))
     draw_rect(Rect2(566, 20, 1, 66), Color("#444a4d"))
-    _text("SALA %02d / 05" % (current_room + 1), Vector2(590, 43), 16, CREAM)
+    _text("SALA %02d / %02d" % [current_room + 1, _room_count()], Vector2(590, 43), 16, CREAM)
     var soul_color: Color = SOUL.lerp(Color.WHITE, clampf(souls_flash / 0.8, 0.0, 1.0))
     _text("ALMAS  %03d" % souls, Vector2(590, 70), 17 + int(round(souls_flash * 4.0)), soul_color)
     _text("IDENTIDAD %03d" % identity_number, Vector2(781, 30), 12, Color("#a0b6b2"))
@@ -1965,21 +2178,9 @@ func _draw_footer() -> void:
     ## La misión ya no flota sobre el muro ni los mensajes tapan los controles.
     draw_rect(Rect2(0, 575, W, 65), Color("#101720"))
     draw_rect(Rect2(0, 575, W, 2), Color("#8b795c"))
-    var task: String = "MISIÓN: Recuperar el sello del Testigo"
-    if current_room == 0 and not has_torch:
-        task = "OSCURIDAD: busca madera y fósforos"
-    elif current_room == 0 and not torch_on:
-        task = "PULSA F PARA ENCENDER LA ANTORCHA"
-    elif current_room == 1:
-        task = "BRASAS: tu luz puede atraer algo"
-    elif current_room == 3:
-        task = "ARCHIVO: lee la carta, evita los conjuros"
-    if current_room == 2:
-        task = "OJO ABIERTO: INMÓVIL" if watcher_open else "OJO CERRADO: AVANZA"
-        if seal_acquired:
-            task = "SELLO RECUPERADO · VE A LA PUERTA"
+    var task: String = _mission_text()
     var task_color: Color = SOUL if _room_ready() else CREAM
-    if current_room == 2 and watcher_open and not seal_acquired:
+    if _has("sello") and _enemy_active() and watcher_open and not seal_acquired:
         task_color = RED
     draw_colored_polygon(PackedVector2Array([Vector2(26, 594), Vector2(31, 589), Vector2(36, 594), Vector2(31, 599)]), Color("#bb9e6d"))
     _text(task, Vector2(44, 600), 14, task_color)
@@ -1987,6 +2188,35 @@ func _draw_footer() -> void:
     _draw_ability_icon(Rect2(846, 581, 34, 34), "golpe", has_torch and torch_on, strike_cd / 0.6, "E")
     _draw_ability_icon(Rect2(890, 581, 34, 34), "resonancia", has_pulse, pulse_cd / 8.0, "Q")
     _text("WASD mover  ·  E / CLIC interactuar o golpear  ·  F antorcha  ·  ESPACIO esquivar  ·  Q resonancia  ·  I inventario  ·  ESC menú", Vector2(26, 630), 11, Color("#a9a48f"))
+
+
+## Objetivo de la sala para el pie de pantalla.
+func _mission_text() -> String:
+    if _has("tutorial") and not has_torch:
+        return "OSCURIDAD: busca madera y fósforos"
+    if _has("tutorial") and not torch_on:
+        return "PULSA F PARA ENCENDER LA ANTORCHA"
+    if _has("sello"):
+        if seal_acquired:
+            return "SELLO RECUPERADO · VE A LA PUERTA"
+        if _enemy_active():
+            return "OJO ABIERTO: INMÓVIL" if watcher_open else "OJO CERRADO: AVANZA"
+        return "MISIÓN: Recuperar el sello del Testigo"
+    var pilgrim_task: String = _pilgrim_mission_text()
+    if pilgrim_task != "":
+        return pilgrim_task
+    if _has("almas") and collected.has(false):
+        return "MISIÓN: reúne las almas de la sala (%d/3)" % (3 - collected.count(false))
+    match _enemy_kind():
+        "ghoul":
+            if _enemy_active():
+                return "BRASAS: tu luz puede atraer algo"
+        "hechicero":
+            if _enemy_active():
+                return "ARCHIVO: lee la carta, evita los conjuros"
+    if current_floor == 0:
+        return "MISIÓN: Recuperar el sello del Testigo"
+    return "LA PUERTA ESTÁ ABIERTA" if _room_ready() else "BUSCA LA SALIDA"
 
 
 func _draw_ability_icon(box: Rect2, key: String, ready_to_use: bool, cooldown: float, hotkey: String) -> void:
@@ -2031,7 +2261,7 @@ func _draw_title() -> void:
     _center("DE LOS ECOS", 339, 43, SOUL)
     _center("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", 376, 15, CREAM)
     draw_line(Vector2(318, 392), Vector2(642, 392), Color("#736851"), 1.0)
-    _center("PISO I  •  5 SALAS  •  REGLAS POR DESCUBRIR", 413, 12, SOUL)
+    _center("PISOS I–%s  •  REGLAS POR DESCUBRIR" % FLOORS[FLOORS.size() - 1]["number"], 413, 12, SOUL)
     _center("No conoces las reglas. Aún.", 434, 16, CREAM)
     draw_string(font, Vector2(explore.position.x, explore.position.y + 37.0), "EXPLORAR", HORIZONTAL_ALIGNMENT_CENTER, explore.size.x, 21, CREAM)
     draw_string(font, Vector2(vigil.position.x, vigil.position.y + 37.0), "VIGILIA", HORIZONTAL_ALIGNMENT_CENTER, vigil.size.x, 21, CREAM)
@@ -2073,6 +2303,10 @@ func _draw_inventory_overlay() -> void:
     draw_rect(Rect2(196, 140, 568, 400), Color("#19202b"))
     draw_rect(Rect2(196, 140, 568, 400), Color("#8c8088"), false, 2)
     _center("INVENTARIO", 184, 24, CREAM)
+    var eco_names: Array = []
+    for e in ecos:
+        eco_names.append(ECOS[e][0])
+    _center("ECOS: " + (" · ".join(eco_names) if not eco_names.is_empty() else "ninguno todavía"), 204, 11, SOUL if not eco_names.is_empty() else Color("#6d6a60"))
     for i in range(INVENTORY_SLOTS.size()):
         var box: Rect2 = _inventory_slot_rect(i)
         var owned: bool = _slot_owned(i)
@@ -2093,10 +2327,38 @@ func _draw_inventory_overlay() -> void:
     draw_string(font, Vector2(222, 483), desc, HORIZONTAL_ALIGNMENT_CENTER, 516, 13, SOUL if _slot_owned(inventory_sel) else Color("#8a8778"))
     _center("I / ESC: cerrar", 524, 12, Color("#978d77"))
 
+## Pantalla de entrada al piso (GDD §7): solo una vista parcial del interior,
+## sin desvelar lo que hay tras las puertas.
+func _draw_floor_intro() -> void:
+    # Ventana circular: un fragmento de la sala, nada más. Fuera, oscuridad.
+    var c := Vector2(480, 330)
+    var r_in: float = 128.0
+    var dark := Color(0.01, 0.015, 0.02, 0.96)
+    var seg: int = 64
+    for i in range(seg):
+        var a0: float = TAU * float(i) / float(seg)
+        var a1: float = TAU * float(i + 1) / float(seg)
+        draw_colored_polygon(PackedVector2Array([
+            c + Vector2.from_angle(a0) * r_in, c + Vector2.from_angle(a0) * 1200.0,
+            c + Vector2.from_angle(a1) * 1200.0, c + Vector2.from_angle(a1) * r_in]), dark)
+    # Borde difuminado hacia dentro.
+    for k in range(6):
+        draw_arc(c, r_in - float(k) * 4.0, 0.0, TAU, seg, Color(0.01, 0.015, 0.02, 0.5 - float(k) * 0.08), 4.0)
+    draw_arc(c, r_in + 2.0, 0.0, TAU, seg, Color("#8d7957"), 2.0)
+    _center("PISO %s" % _floor()["number"], 120, 22, Color("#c6aa6e"))
+    _center(_floor()["title"], 160, 34, CREAM)
+    if floor_intro_eco != "":
+        var eco: Array = ECOS[floor_intro_eco]
+        _center("ECO ADQUIRIDO: %s" % eco[0], 486, 16, SOUL)
+        _center(eco[1], 510, 14, Color("#b9b29b"))
+    var pulse: float = 0.6 + 0.4 * sin(elapsed * 3.0)
+    _center("ENTRAR  ·  ENTER / TOCA", 560, 18, Color(0.89, 0.74, 0.48, pulse))
+
+
 func _draw_end_overlay(win: bool) -> void:
     _overlay()
     if win:
-        _center("PISO 1 SUPERADO", 230, 33, SOUL)
+        _center("PISO %s SUPERADO" % _floor()["number"], 230, 33, SOUL)
         _center("No has escapado. El siguiente nivel sigue oculto.", 280, 18, CREAM)
         _center("El templo conserva su apariencia. Nada es lo que parece.", 318, 16, CREAM)
         _center("ENTER: repetir prueba  ·  ESC: menú", 418, 18, CREAM)
@@ -2124,3 +2386,335 @@ func _text(msg: String, at: Vector2, size: int = 16, color: Color = CREAM) -> vo
 
 func _center(msg: String, y: float, size: int = 16, color: Color = CREAM) -> void:
     draw_string(font, Vector2(40, y), msg, HORIZONTAL_ALIGNMENT_CENTER, 880.0, size, color)
+
+
+# ============================================================ PISO II: PEREGRINO
+func _pilgrim_reset() -> void:
+    pilgrim_state = "none"
+    for room in _floor()["rooms"]:
+        if "peregrino" in room["traits"]:
+            pilgrim_state = "waiting"
+    pilgrim_traitor = randf() < PILGRIM_TRAITOR_CHANCE
+    pilgrim_hp = PILGRIM_MAX_HP
+    pilgrim_souls = 0
+    pilgrim_wronged = false
+    pilgrim_corpse = {}
+    pilgrim_line_t = 0.0
+
+
+func _pilgrim_present() -> bool:
+    return pilgrim_state in ["follow", "tell", "hostile", "friend"]
+
+
+func _pilgrim_say(line: String, duration: float = 3.2) -> void:
+    pilgrim_line = line
+    pilgrim_line_t = duration
+
+
+## Al entrar en una sala: aparece (sala con "peregrino") o entra detrás de ti.
+func _pilgrim_enter_room() -> void:
+    if pilgrim_state == "waiting" and _has("peregrino"):
+        pilgrim_state = "follow"
+        pilgrim_pos = Vector2(220, 400)
+        if game_mode != "floor_intro":
+            _pilgrim_say("¿Tú también despertaste aquí? Busquemos almas juntos. Hay para los dos.", 4.5)
+    elif pilgrim_state in ["follow", "friend"]:
+        pilgrim_pos = player_pos + Vector2(-6.0, 40.0)
+        if _is_blocked(pilgrim_pos):
+            pilgrim_pos = player_pos + Vector2(20.0, 0.0)
+        if _has("cosecha"):
+            _pilgrim_say("Esta cripta... Aquí se termina de reunir. Luego, a repartir.", 4.0)
+        elif pilgrim_state == "follow" and pilgrim_souls > 0:
+            # El traidor miente sobre lo que lleva: ese es el indicio.
+            var claimed: int = pilgrim_souls if not pilgrim_traitor else maxi(0, pilgrim_souls - 14)
+            _pilgrim_say("Yo apenas llevo %d almas. Sigamos." % claimed, 3.5)
+    pilgrim_prev = pilgrim_pos
+
+
+func _update_pilgrim(dt: float) -> void:
+    pilgrim_line_t = maxf(0.0, pilgrim_line_t - dt)
+    nuca_cd = maxf(0.0, nuca_cd - dt)
+    if not _pilgrim_present():
+        return
+    pilgrim_hit_t = maxf(0.0, pilgrim_hit_t - dt)
+    pilgrim_cd = maxf(0.0, pilgrim_cd - dt)
+    pilgrim_lunge = maxf(0.0, pilgrim_lunge - dt)
+    pilgrim_stun = maxf(0.0, pilgrim_stun - dt)
+    var dirn: Vector2 = player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT
+    match pilgrim_state:
+        "follow", "friend":
+            # El traidor se queda a tu espalda; el sincero camina a tu lado.
+            var target: Vector2 = player_pos - dirn * 46.0
+            if not pilgrim_traitor or pilgrim_state == "friend":
+                target = player_pos + dirn * 18.0 + Vector2(-dirn.y, dirn.x) * 40.0
+            # Compite por las almas. El sincero solo toma las que le quedan más
+            # cerca a él; el traidor, codicioso, va a por la que más le ventaja
+            # te saca (la que tú no estás a punto de coger).
+            if pilgrim_state == "follow":
+                var best: int = -1
+                var best_gain: float = -INF
+                for i in range(relics.size()):
+                    if collected[i]:
+                        continue
+                    var mine: float = pilgrim_pos.distance_to(relics[i])
+                    var yours: float = player_pos.distance_to(relics[i])
+                    var wants: bool = mine < 150.0 and mine < yours
+                    if pilgrim_traitor:
+                        wants = mine < 340.0 and yours > 110.0
+                    if wants and yours - mine > best_gain:
+                        best_gain = yours - mine
+                        best = i
+                if best >= 0:
+                    target = relics[best]
+                    if pilgrim_pos.distance_to(relics[best]) < 22.0:
+                        _pilgrim_take_relic(best)
+            _pilgrim_move_to(target, 140.0, dt)
+            if _has("cosecha") and pilgrim_state == "follow" and not collected.has(false):
+                _pilgrim_harvest()
+        "tell":
+            pilgrim_timer -= dt
+            _pilgrim_face(player_pos - pilgrim_pos)
+            pilgrim_moving = false
+            if pilgrim_timer <= 0.0:
+                pilgrim_state = "hostile"
+        "hostile":
+            if pilgrim_stun > 0.0:
+                pilgrim_moving = false
+            elif pilgrim_timer > 0.0:
+                # Carga del tajo: se detiene y alza el cuchillo (aviso justo).
+                pilgrim_timer -= dt
+                pilgrim_moving = false
+                _pilgrim_face(player_pos - pilgrim_pos)
+                if pilgrim_timer <= 0.0:
+                    pilgrim_lunge = 0.22
+                    pilgrim_cd = 1.2
+                    if pilgrim_pos.distance_to(player_pos) < 46.0 and damage_cd <= 0.0:
+                        hp -= 26.0
+                        fear = minf(100.0, fear + 14.0)
+                        damage_cd = 1.2
+                        _on_hurt()
+                        _say("El cuchillo del Peregrino te alcanza.", 2.2)
+            else:
+                _pilgrim_move_to(player_pos, 172.0, dt)
+                if pilgrim_pos.distance_to(player_pos) < 38.0 and pilgrim_cd <= 0.0:
+                    pilgrim_timer = 0.42
+                    _sfx("cuchillo", -12.0, 1.3)
+    # Nuca fría: sientes a quien te quiere mal cuando está a tu espalda.
+    if ecos.has("nuca") and _pilgrim_behind() and nuca_cd <= 0.0:
+        nuca_cd = 4.0
+        _sfx("aviso", -14.0, 0.8)
+
+
+func _pilgrim_move_to(target: Vector2, speed: float, dt: float) -> void:
+    var delta_v := target - pilgrim_pos
+    if delta_v.length() < 12.0:
+        pilgrim_moving = false
+        return
+    var step := delta_v.normalized() * speed * dt
+    var moved := false
+    var nx := Vector2(pilgrim_pos.x + step.x, pilgrim_pos.y)
+    if not _is_blocked(nx):
+        pilgrim_pos.x = nx.x
+        moved = true
+    var ny := Vector2(pilgrim_pos.x, pilgrim_pos.y + step.y)
+    if not _is_blocked(ny):
+        pilgrim_pos.y = ny.y
+        moved = true
+    # Atascado lejos de ti: retoma el camino detrás de tus pasos.
+    if not moved and pilgrim_pos.distance_to(player_pos) > 160.0:
+        var behind := player_pos - player_dir.normalized() * 40.0
+        if not _is_blocked(behind):
+            pilgrim_pos = behind
+    pilgrim_moving = moved
+    _pilgrim_face(step)
+
+
+func _pilgrim_face(v: Vector2) -> void:
+    if v.length() < 0.1:
+        return
+    if absf(v.x) > absf(v.y):
+        pilgrim_facing = 2 if v.x > 0.0 else 3
+    else:
+        pilgrim_facing = 0 if v.y > 0.0 else 1
+
+
+func _pilgrim_take_relic(i: int) -> void:
+    collected[i] = true
+    pilgrim_souls += 7
+    pickup_fx.append({"pos": relics[i], "t": 0.0, "text": "+7 (él)", "color": Color("#c9a27a")})
+    _sfx("alma", -12.0, 0.8)
+    if randf() < 0.5:
+        _pilgrim_say(["Esta la vi yo primero.", "Una menos para ti, ¿eh? Es broma.", "Hay que darse prisa."][randi() % 3], 2.4)
+
+
+## Última alma de la cripta: el traidor desenvaina; el sincero comparte.
+func _pilgrim_harvest() -> void:
+    if pilgrim_traitor:
+        pilgrim_state = "tell"
+        pilgrim_timer = 0.9
+        _pilgrim_say("Lo siento. Las almas no alcanzan para dos.", 3.0)
+        _sfx("cuchillo", -6.0)
+        shake = maxf(shake, 0.2)
+    else:
+        pilgrim_state = "friend"
+        var gift: int = pilgrim_souls / 2
+        souls += gift
+        pilgrim_souls -= gift
+        hp = minf(max_hp, hp + 30.0)
+        souls_flash = 0.8
+        _pilgrim_say("Toma, bebe. Y la mitad de lo mío. Nadie debería cruzar esto solo.", 4.5)
+        _say("El Peregrino era sincero: +%d almas y agua (+30 de vida)." % gift, 4.0)
+        _sfx("alma", -6.0, 0.9)
+
+
+func _damage_pilgrim(amount: float) -> void:
+    if pilgrim_state in ["follow", "friend"]:
+        # Atacarlo primero: el traidor lo admite; el sincero no lo entiende.
+        pilgrim_wronged = not pilgrim_traitor
+        _pilgrim_say("Así que lo sabías." if pilgrim_traitor else "¿Por qué...? Yo solo quería salir.", 3.0)
+        pilgrim_state = "hostile"
+        pilgrim_timer = 0.0
+        _sfx("cuchillo", -8.0)
+    pilgrim_hp -= amount
+    pilgrim_hit_t = 0.2
+    float_fx.append({"pos": pilgrim_pos + Vector2(28.0, -44.0), "text": "-%d" % int(amount), "color": Color("#ffd36b"), "t": 0.0})
+    _sfx("impacto", -6.0, 1.1)
+    if pilgrim_hp <= 0.0:
+        _pilgrim_die()
+
+
+func _pilgrim_die() -> void:
+    pilgrim_state = "dead"
+    pilgrim_corpse = {"key": _room_key(), "pos": pilgrim_pos}
+    drops.append({"pos": pilgrim_pos + Vector2(0.0, -4.0), "value": maxi(7, pilgrim_souls)})
+    pilgrim_line_t = 0.0
+    _sfx("muerte", -12.0, 1.4)
+    if pilgrim_wronged:
+        fear = minf(100.0, fear + 30.0)
+        _say("Era sincero. En su morral había agua para dos.", 4.5)
+    else:
+        _say("El Peregrino ha caído. Sus almas son tuyas.", 3.0)
+
+
+## ¿Está el Peregrino (con malas intenciones) a tu espalda y cerca?
+func _pilgrim_behind() -> bool:
+    if not _pilgrim_present() or not (pilgrim_traitor or pilgrim_state == "hostile"):
+        return false
+    if pilgrim_state == "friend":
+        return false
+    var to := pilgrim_pos - player_pos
+    if to.length() > 140.0 or to.length() < 1.0:
+        return false
+    return to.normalized().dot(player_dir.normalized()) < -0.3
+
+
+func _pilgrim_mission_text() -> String:
+    match pilgrim_state:
+        "tell", "hostile":
+            return "¡TRAICIÓN! Sobrevive al Peregrino"
+        "follow":
+            if _has("almas") and collected.has(false):
+                var claimed: int = pilgrim_souls if not pilgrim_traitor else maxi(0, pilgrim_souls - 14)
+                return "REÚNE LAS ALMAS (%d/3) · él dice llevar %d" % [3 - collected.count(false), claimed]
+        "friend":
+            return "EL PEREGRINO ERA SINCERO · SIGAN JUNTOS"
+    return ""
+
+
+func _draw_pilgrim() -> void:
+    var sheet: Texture2D = art["enemy_peregrino"]
+    var frame: int = int(elapsed * 2.0) % 2
+    if pilgrim_state == "tell" or (pilgrim_state == "hostile" and pilgrim_timer > 0.0):
+        frame = 6
+    elif pilgrim_lunge > 0.0:
+        frame = 7
+    elif pilgrim_moving:
+        frame = 2 + int(elapsed * 8.0) % 4
+    var region := Rect2(float(frame) * ENEMY_CELL.x, float(pilgrim_facing) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
+    var feet := Vector2(roundf(pilgrim_pos.x), roundf(pilgrim_pos.y + 4.0))
+    _draw_soft_shadow(pilgrim_pos + Vector2(0.0, 3.0), 13.0)
+    if pilgrim_state in ["tell", "hostile"]:
+        var pulse: float = 0.5 + 0.5 * sin(elapsed * 8.0)
+        _draw_ellipse(pilgrim_pos + Vector2(0.0, 3.0), 22.0, 7.5, Color(0.85, 0.22, 0.28, 0.18 + 0.12 * pulse))
+    var tint := Color.WHITE
+    if pilgrim_hit_t > 0.0 and int(pilgrim_hit_t * 30.0) % 2 == 0:
+        tint = Color(1.0, 0.42, 0.38)
+    elif pilgrim_stun > 0.0:
+        tint = Color(0.75, 0.85, 1.0)
+    draw_texture_rect_region(sheet, Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), region, tint)
+    if pilgrim_state == "hostile" and pilgrim_timer > 0.0:
+        # Destello del filo justo antes del tajo.
+        draw_circle(feet + Vector2(0.0, -58.0), 3.0 + 5.0 * (1.0 - pilgrim_timer / 0.42), Color(1.0, 1.0, 1.0, 0.8))
+
+
+## Bocadillo de diálogo y vida del Peregrino, por encima de todo.
+func _draw_pilgrim_overlay() -> void:
+    if pilgrim_state == "dead":
+        return
+    var head := pilgrim_pos + Vector2(0.0, -60.0)
+    if pilgrim_state in ["tell", "hostile"] or pilgrim_hp < PILGRIM_MAX_HP:
+        var bar := Rect2(pilgrim_pos.x - 22.0, head.y - 6.0, 44.0, 5.0)
+        draw_rect(bar.grow(1.0), Color(0, 0, 0, 0.7))
+        draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(pilgrim_hp / PILGRIM_MAX_HP, 0.0, 1.0), bar.size.y)), Color("#d1474f"))
+        head.y -= 10.0
+    if pilgrim_state == "tell":
+        _label_center("!", head + Vector2(0.0, -2.0), RED)
+    if pilgrim_line_t <= 0.0:
+        return
+    var a: float = clampf(pilgrim_line_t * 2.0, 0.0, 1.0)
+    var size: int = 12
+    var width: float = minf(font.get_string_size(pilgrim_line, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 18.0, 420.0)
+    var box := Rect2(clampf(pilgrim_pos.x - width * 0.5, 46.0, W - width - 46.0), head.y - 34.0, width, 22.0)
+    draw_rect(box, Color(0.93, 0.89, 0.80, 0.92 * a))
+    draw_colored_polygon(PackedVector2Array([Vector2(pilgrim_pos.x - 5, box.end.y), Vector2(pilgrim_pos.x + 5, box.end.y), Vector2(pilgrim_pos.x, box.end.y + 7)]), Color(0.93, 0.89, 0.80, 0.92 * a))
+    draw_string(font, box.position + Vector2(9, 16), pilgrim_line, HORIZONTAL_ALIGNMENT_LEFT, width - 12.0, size, Color(0.10, 0.09, 0.08, a))
+
+
+## Eco «Nuca fría»: escarcha en el borde de la pantalla del lado de la amenaza.
+func _draw_nuca() -> void:
+    if not ecos.has("nuca") or not _pilgrim_behind():
+        return
+    var side: Vector2 = (pilgrim_pos - player_pos).normalized()
+    var k: float = 0.5 + 0.5 * sin(elapsed * 4.0)
+    var col := Color(0.62, 0.84, 0.95, 0.10 + 0.08 * k)
+    var clear := Color(0.62, 0.84, 0.95, 0.0)
+    if absf(side.x) > absf(side.y):
+        var x0: float = ARENA.position.x if side.x < 0.0 else ARENA.end.x - 90.0
+        _hgradient(Rect2(x0, ARENA.position.y, 90.0, ARENA.size.y), col if side.x < 0.0 else clear, clear if side.x < 0.0 else col)
+    else:
+        var y0: float = ARENA.position.y if side.y < 0.0 else ARENA.end.y - 70.0
+        _vgradient(Rect2(ARENA.position.x, y0, ARENA.size.x, 70.0), col if side.y < 0.0 else clear, clear if side.y < 0.0 else col)
+
+
+## Desgaste progresivo del templo (GDD §5): grietas y cascotes según el piso.
+func _draw_wear() -> void:
+    var wear: float = float(_floor().get("wear", 0.0))
+    if wear <= 0.0:
+        return
+    var rng := RandomNumberGenerator.new()
+    rng.seed = hash(_room_key())
+    var dark := Color(0.03, 0.04, 0.04, 0.55)
+    var lit := Color(0.55, 0.60, 0.50, 0.18)
+    for n in range(int(7.0 * wear)):
+        var p := Vector2(rng.randf_range(90.0, 870.0), rng.randf_range(180.0, 540.0))
+        var ang: float = rng.randf_range(0.0, TAU)
+        var pts := PackedVector2Array([p])
+        for k in range(rng.randi_range(3, 6)):
+            ang += rng.randf_range(-0.7, 0.7)
+            p += Vector2.from_angle(ang) * rng.randf_range(8.0, 18.0)
+            pts.append(p)
+            if rng.randf() < 0.35: # ramificación
+                draw_line(p, p + Vector2.from_angle(ang + 1.2) * 9.0, dark, 1.0)
+        draw_polyline(pts, dark, 1.5)
+        var edge := PackedVector2Array()
+        for q in pts:
+            edge.append(q + Vector2(1.0, -1.0)) # filo iluminado desde arriba
+        draw_polyline(edge, lit, 1.0)
+    # Grietas en la cara del muro del fondo.
+    for n in range(int(4.0 * wear)):
+        var x: float = rng.randf_range(100.0, 860.0)
+        draw_polyline(PackedVector2Array([Vector2(x, 124.0), Vector2(x + rng.randf_range(-6, 6), 136.0), Vector2(x + rng.randf_range(-8, 8), 150.0)]), dark, 1.5)
+    # Cascotes caídos.
+    for n in range(int(10.0 * wear)):
+        var q := Vector2(rng.randf_range(80.0, 880.0), rng.randf_range(165.0, 545.0))
+        draw_rect(Rect2(q, Vector2(rng.randi_range(2, 4), rng.randi_range(2, 3))), Color(0.42, 0.45, 0.38, 0.6))

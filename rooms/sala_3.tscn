@@ -1,97 +1,73 @@
 [gd_scene load_steps=24 format=4]
 
-[ext_resource type="Shader" path="res://shaders/luz_sala.gdshader" id="1_0y0my"]
-[ext_resource type="TileSet" path="res://rooms/templo_tileset.tres" id="2_l6vds"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/runa_suelo.png" id="3_gvljf"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/estatuaorante1.png" id="4_mpbnj"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/estatuaorante2.png" id="5_l4c0i"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/brasero1.png" id="6_3yii7"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/brasero2.png" id="7_2no46"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/estatuaarquero1.png" id="8_skutb"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/mesa1.png" id="9_w3qo1"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/cirios1.png" id="10_a2q5p"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/cirios2.png" id="11_yrxjf"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/cirios3.png" id="12_xl7r4"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/cirios4.png" id="13_lk71e"]
-[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/columna1.png" id="14_02hej"]
+[ext_resource type="Shader" path="res://shaders/luz_sala.gdshader" id="1_0dpai"]
+[ext_resource type="TileSet" path="res://rooms/templo_tileset.tres" id="2_ibcoe"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/runa_suelo.png" id="3_upo3f"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/brasero1.png" id="4_fneje"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/estatuaorante1.png" id="5_ety3d"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/estatuaarquero1.png" id="6_y27kv"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/mesa1.png" id="7_oasnp"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/columna1.png" id="8_us0em"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/cirios3.png" id="9_bnkrd"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/cirios1.png" id="10_sx2vh"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/cirios2.png" id="11_ts4ut"]
+[ext_resource type="Texture2D" path="res://assets/visual/objetos/sala_3/cirios4.png" id="12_2ng63"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_uocpu"]
-shader = ExtResource("1_0y0my")
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4t6ts"]
+shader = ExtResource("1_0dpai")
 shader_parameter/ganancia = Vector3(1.5247, 1.4019, 1.548)
 shader_parameter/desplazamiento = Vector3(0.0358, 0.0329, 0.0387)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_gw8rw"]
-size = Vector2(29, 16)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_upr1e"]
-size = Vector2(29, 16)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_6iscb"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_w7ilh"]
 size = Vector2(28, 18)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_mq8e4"]
-size = Vector2(25, 18)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_l2yql"]
+size = Vector2(28, 18)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_fvu37"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ffssb"]
+size = Vector2(29, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fwerg"]
+size = Vector2(29, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yfhqf"]
 size = Vector2(36, 24)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_s3n5x"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7g2oh"]
 size = Vector2(82, 44)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_rvwjb"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_541m7"]
 size = Vector2(70, 60)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_tqcol"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_y84e2"]
+size = Vector2(70, 60)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_y1ixo"]
+size = Vector2(70, 60)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nhty3"]
 size = Vector2(70, 60)
 
 [node name="Sala4" type="Node2D"]
 
 [node name="Arquitectura" type="TileMapLayer" parent="."]
-material = SubResource("ShaderMaterial_uocpu")
+material = SubResource("ShaderMaterial_4t6ts")
 position = Vector2(-24, -24)
 tile_map_data = PackedByteArray("AAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAACAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAHAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAJAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAALAAAAAAAAAAAAAAAMAAAAAAAAAAAAAAANAAAAAAAAAAAAAAAOAAAAAAAAAAAAAAAPAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAARAAAAAAAAAAAAAAASAAAAAAAAAAAAAAATAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAAVAAAAAAAAAAAAAAAWAAAAAAAAAAAAAAAXAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAZAAAAAAAAAAAAAAAaAAAAAAAAAAAAAAAbAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAAdAAAAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAABAAEAAAAAAAAAAAACAAEAAAAAAAAAAAADAAEAAAAAAAAAAAAEAAEAAAAAAAAAAAAFAAEAAAAAAAAAAAAGAAEAAAAAAAAAAAAHAAEAAAAAAAAAAAAIAAEAAAAAAAAAAAAJAAEAAAAAAAAAAAAKAAEAAAAAAAAAAAALAAEAAAAAAAAAAAAMAAEAAAAAAAAAAAANAAEAAAAAAAAAAAAOAAEAAAAAAAAAAAAPAAEAAAAAAAAAAAAQAAEAAAAAAAAAAAARAAEAAAAAAAAAAAASAAEAAAAAAAAAAAATAAEAAAAAAAAAAAAUAAEAAAAAAAAAAAAVAAEAAAAAAAAAAAAWAAEAAAAAAAAAAAAXAAEAAAAAAAAAAAAYAAEAAAAAAAAAAAAZAAEAAAAAAAAAAAAaAAEAAAAAAAAAAAAbAAEAAAAAAAAAAAAcAAEAAAAAAAAAAAAdAAEAAAAAAAAAAAAeAAEAAAAAAAAAAAAAAAIAAAAAAAAAAAABAAIAAAAAAAAAAAACAAIAAAAAAAAAAAADAAIAAAAAAAAAAAAEAAIAAAAAAAAAAAAFAAIAAAAAAAAAAAAGAAIAAAAAAAAAAAAHAAIAAAAAAAAAAAAIAAIAAAAAAAAAAAAJAAIAAAAAAAAAAAAKAAIAAAAAAAAAAAALAAIAAAAAAAAAAAAMAAIAAAAAAAAAAAANAAIAAAAAAAAAAAAOAAIAAAAAAAAAAAAPAAIAAAAAAAAAAAAQAAIAAAAAAAAAAAARAAIAAAAAAAAAAAASAAIAAAAAAAAAAAATAAIAAAAAAAAAAAAUAAIAAAAAAAAAAAAVAAIAAAAAAAAAAAAWAAIAAAAAAAAAAAAXAAIAAAAAAAAAAAAYAAIAAAAAAAAAAAAZAAIAAAAAAAAAAAAaAAIAAAAAAAAAAAAbAAIAAAAAAAAAAAAcAAIAAAAAAAAAAAAdAAIAAAAAAAAAAAAeAAIAAAAAAAAAAAAAAAMAAAAAAAAAAAABAAMAAAAAAAAAAAACAAMAAAAAAAAAAAADAAMAAAAAAAAAAAAEAAMAAAAAAAAAAAAFAAMAAAAAAAAAAAAGAAMAAAAAAAAAAAAHAAMAAAAAAAAAAAAIAAMAAAAAAAAAAAAJAAMAAAAAAAAAAAAKAAMAAAAAAAAAAAALAAMAAAAAAAAAAAAMAAMAAAAAAAAAAAANAAMAAAAAAAAAAAAOAAMAAAAAAAAAAAAPAAMAAAAAAAAAAAAQAAMAAAAAAAAAAAARAAMAAAAAAAAAAAASAAMAAAAAAAAAAAATAAMAAAAAAAAAAAAUAAMAAAAAAAAAAAAVAAMAAAAAAAAAAAAWAAMAAAAAAAAAAAAXAAMAAAAAAAAAAAAYAAMAAAAAAAAAAAAZAAMAAAAAAAAAAAAaAAMAAAAAAAAAAAAbAAMAAAAAAAAAAAAcAAMAAAAAAAAAAAAdAAMAAAAAAAAAAAAeAAMAAAAAAAAAAAAAAAQAAAAAAAAAAAABAAQAAAAAAAAAAAACAAQAAAABAAAAAAADAAQAAAACAAAAAAAEAAQAAAACAAAAAAAFAAQAAAACAAAAAAAGAAQAAAACAAAAAAAHAAQAAAACAAAAAAAIAAQAAAACAAAAAAAJAAQAAAACAAAAAAAKAAQAAAACAAAAAAALAAQAAAACAAAAAAAMAAQAAAACAAAAAAANAAQAAAACAAAAAAAOAAQAAAACAAAAAAAPAAQAAAACAAAAAAAQAAQAAAACAAAAAAARAAQAAAACAAAAAAASAAQAAAACAAAAAAATAAQAAAACAAAAAAAUAAQAAAACAAAAAAAVAAQAAAACAAAAAAAWAAQAAAACAAAAAAAXAAQAAAACAAAAAAAYAAQAAAACAAAAAAAZAAQAAAACAAAAAAAaAAQAAAACAAAAAAAbAAQAAAACAAAAAAAcAAQAAAADAAAAAAAdAAQAAAAEAAAAAAAeAAQAAAAAAAAAAAAAAAUAAAAAAAAAAAABAAUAAAAAAAAAAAACAAUAAAAFAAAAAAADAAUAAAAGAAAAAAAEAAUAAAAHAAAAAAAFAAUAAAAAAAEAAAAGAAUAAAABAAEAAAAHAAUAAAAGAAAAAAAIAAUAAAAHAAAAAAAJAAUAAAAAAAEAAAAKAAUAAAABAAEAAAALAAUAAAAGAAAAAAAMAAUAAAAHAAAAAAANAAUAAAAAAAEAAAAOAAUAAAABAAEAAAAPAAUAAAAGAAAAAAAQAAUAAAAHAAAAAAARAAUAAAAAAAEAAAASAAUAAAABAAEAAAATAAUAAAAGAAAAAAAUAAUAAAAHAAAAAAAVAAUAAAAAAAEAAAAWAAUAAAABAAEAAAAXAAUAAAAGAAAAAAAYAAUAAAAHAAAAAAAZAAUAAAAAAAEAAAAaAAUAAAABAAEAAAAbAAUAAAAGAAAAAAAcAAUAAAACAAEAAAAdAAUAAAADAAEAAAAeAAUAAAAAAAAAAAAAAAYAAAAAAAAAAAABAAYAAAAAAAAAAAACAAYAAAAEAAEAAAADAAYAAAAFAAEAAAAEAAYAAAAGAAEAAAAFAAYAAAAHAAEAAAAGAAYAAAAAAAIAAAAHAAYAAAAFAAEAAAAIAAYAAAAGAAEAAAAJAAYAAAAHAAEAAAAKAAYAAAAAAAIAAAALAAYAAAAFAAEAAAAMAAYAAAAGAAEAAAANAAYAAAAHAAEAAAAOAAYAAAAAAAIAAAAPAAYAAAAFAAEAAAAQAAYAAAAGAAEAAAARAAYAAAAHAAEAAAASAAYAAAAAAAIAAAATAAYAAAAFAAEAAAAUAAYAAAAGAAEAAAAVAAYAAAAHAAEAAAAWAAYAAAAAAAIAAAAXAAYAAAAFAAEAAAAYAAYAAAAGAAEAAAAZAAYAAAAHAAEAAAAaAAYAAAAAAAIAAAAbAAYAAAAFAAEAAAAcAAYAAAABAAIAAAAdAAYAAAACAAIAAAAeAAYAAAAAAAAAAAAAAAcAAAAAAAAAAAABAAcAAAAAAAAAAAACAAcAAAADAAIAAAADAAcAAAAEAAIAAAAEAAcAAAAFAAIAAAAFAAcAAAAGAAIAAAAGAAcAAAAHAAIAAAAHAAcAAAAEAAIAAAAIAAcAAAAFAAIAAAAJAAcAAAAGAAIAAAAKAAcAAAAHAAIAAAALAAcAAAAEAAIAAAAMAAcAAAAFAAIAAAANAAcAAAAGAAIAAAAOAAcAAAAHAAIAAAAPAAcAAAAEAAIAAAAQAAcAAAAFAAIAAAARAAcAAAAGAAIAAAASAAcAAAAHAAIAAAATAAcAAAAEAAIAAAAUAAcAAAAFAAIAAAAVAAcAAAAGAAIAAAAWAAcAAAAHAAIAAAAXAAcAAAAEAAIAAAAYAAcAAAAFAAIAAAAZAAcAAAAGAAIAAAAaAAcAAAAHAAIAAAAbAAcAAAAEAAIAAAAcAAcAAAAAAAMAAAAdAAcAAAACAAIAAAAeAAcAAAAAAAAAAAAAAAgAAAAAAAAAAAABAAgAAAAAAAAAAAACAAgAAAABAAMAAAADAAgAAAACAAMAAAAEAAgAAAADAAMAAAAFAAgAAAAEAAMAAAAGAAgAAAAFAAMAAAAHAAgAAAACAAMAAAAIAAgAAAADAAMAAAAJAAgAAAAEAAMAAAAKAAgAAAAFAAMAAAALAAgAAAACAAMAAAAMAAgAAAADAAMAAAANAAgAAAAEAAMAAAAOAAgAAAAFAAMAAAAPAAgAAAACAAMAAAAQAAgAAAADAAMAAAARAAgAAAAEAAMAAAASAAgAAAAFAAMAAAATAAgAAAACAAMAAAAUAAgAAAADAAMAAAAVAAgAAAAEAAMAAAAWAAgAAAAFAAMAAAAXAAgAAAACAAMAAAAYAAgAAAADAAMAAAAZAAgAAAAEAAMAAAAaAAgAAAAFAAMAAAAbAAgAAAACAAMAAAAcAAgAAAAGAAMAAAAdAAgAAAACAAIAAAAeAAgAAAAAAAAAAAAAAAkAAAAAAAAAAAABAAkAAAAAAAAAAAACAAkAAAAHAAMAAAADAAkAAAAAAAQAAAAEAAkAAAABAAQAAAAFAAkAAAACAAQAAAAGAAkAAAADAAQAAAAHAAkAAAAAAAQAAAAIAAkAAAABAAQAAAAJAAkAAAACAAQAAAAKAAkAAAADAAQAAAALAAkAAAAAAAQAAAAMAAkAAAABAAQAAAANAAkAAAACAAQAAAAOAAkAAAADAAQAAAAPAAkAAAAAAAQAAAAQAAkAAAABAAQAAAARAAkAAAACAAQAAAASAAkAAAADAAQAAAATAAkAAAAAAAQAAAAUAAkAAAABAAQAAAAVAAkAAAACAAQAAAAWAAkAAAADAAQAAAAXAAkAAAAAAAQAAAAYAAkAAAABAAQAAAAZAAkAAAACAAQAAAAaAAkAAAADAAQAAAAbAAkAAAAAAAQAAAAcAAkAAAAEAAQAAAAdAAkAAAACAAIAAAAeAAkAAAAAAAAAAAAAAAoAAAAAAAAAAAABAAoAAAAAAAAAAAACAAoAAAAFAAQAAAADAAoAAAAGAAQAAAAEAAoAAAAHAAQAAAAFAAoAAAAAAAUAAAAGAAoAAAABAAUAAAAHAAoAAAAGAAQAAAAIAAoAAAAHAAQAAAAJAAoAAAAAAAUAAAAKAAoAAAABAAUAAAALAAoAAAAGAAQAAAAMAAoAAAAHAAQAAAANAAoAAAAAAAUAAAAOAAoAAAABAAUAAAAPAAoAAAAGAAQAAAAQAAoAAAAHAAQAAAARAAoAAAAAAAUAAAASAAoAAAABAAUAAAATAAoAAAAGAAQAAAAUAAoAAAAHAAQAAAAVAAoAAAAAAAUAAAAWAAoAAAABAAUAAAAXAAoAAAAGAAQAAAAYAAoAAAAHAAQAAAAZAAoAAAAAAAUAAAAaAAoAAAABAAUAAAAbAAoAAAAGAAQAAAAcAAoAAAACAAUAAAAdAAoAAAACAAIAAAAeAAoAAAAAAAAAAAAAAAsAAAAAAAAAAAABAAsAAAAAAAAAAAACAAsAAAADAAIAAAADAAsAAAAEAAIAAAAEAAsAAAAFAAIAAAAFAAsAAAAGAAIAAAAGAAsAAAAHAAIAAAAHAAsAAAAEAAIAAAAIAAsAAAAFAAIAAAAJAAsAAAAGAAIAAAAKAAsAAAAHAAIAAAALAAsAAAAEAAIAAAAMAAsAAAAFAAIAAAANAAsAAAAGAAIAAAAOAAsAAAAHAAIAAAAPAAsAAAAEAAIAAAAQAAsAAAAFAAIAAAARAAsAAAAGAAIAAAASAAsAAAAHAAIAAAATAAsAAAAEAAIAAAAUAAsAAAAFAAIAAAAVAAsAAAAGAAIAAAAWAAsAAAAHAAIAAAAXAAsAAAAEAAIAAAAYAAsAAAAFAAIAAAAZAAsAAAAGAAIAAAAaAAsAAAAHAAIAAAAbAAsAAAAEAAIAAAAcAAsAAAAAAAMAAAAdAAsAAAACAAIAAAAeAAsAAAAAAAAAAAAAAAwAAAAAAAAAAAABAAwAAAAAAAAAAAACAAwAAAABAAMAAAADAAwAAAACAAMAAAAEAAwAAAADAAMAAAAFAAwAAAAEAAMAAAAGAAwAAAAFAAMAAAAHAAwAAAACAAMAAAAIAAwAAAADAAMAAAAJAAwAAAAEAAMAAAAKAAwAAAAFAAMAAAALAAwAAAACAAMAAAAMAAwAAAADAAMAAAANAAwAAAAEAAMAAAAOAAwAAAAFAAMAAAAPAAwAAAACAAMAAAAQAAwAAAADAAMAAAARAAwAAAAEAAMAAAASAAwAAAAFAAMAAAATAAwAAAACAAMAAAAUAAwAAAADAAMAAAAVAAwAAAAEAAMAAAAWAAwAAAAFAAMAAAAXAAwAAAACAAMAAAAYAAwAAAADAAMAAAAZAAwAAAAEAAMAAAAaAAwAAAAFAAMAAAAbAAwAAAACAAMAAAAcAAwAAAAGAAMAAAAdAAwAAAACAAIAAAAeAAwAAAAAAAAAAAAAAA0AAAAAAAAAAAABAA0AAAAAAAAAAAACAA0AAAAHAAMAAAADAA0AAAAAAAQAAAAEAA0AAAABAAQAAAAFAA0AAAACAAQAAAAGAA0AAAADAAQAAAAHAA0AAAAAAAQAAAAIAA0AAAABAAQAAAAJAA0AAAACAAQAAAAKAA0AAAADAAQAAAALAA0AAAAAAAQAAAAMAA0AAAABAAQAAAANAA0AAAACAAQAAAAOAA0AAAADAAQAAAAPAA0AAAAAAAQAAAAQAA0AAAABAAQAAAARAA0AAAACAAQAAAASAA0AAAADAAQAAAATAA0AAAAAAAQAAAAUAA0AAAABAAQAAAAVAA0AAAACAAQAAAAWAA0AAAADAAQAAAAXAA0AAAAAAAQAAAAYAA0AAAABAAQAAAAZAA0AAAACAAQAAAAaAA0AAAADAAQAAAAbAA0AAAAAAAQAAAAcAA0AAAAEAAQAAAAdAA0AAAACAAIAAAAeAA0AAAAAAAAAAAAAAA4AAAAAAAAAAAABAA4AAAAAAAAAAAACAA4AAAAFAAQAAAADAA4AAAAGAAQAAAAEAA4AAAAHAAQAAAAFAA4AAAAAAAUAAAAGAA4AAAABAAUAAAAHAA4AAAAGAAQAAAAIAA4AAAAHAAQAAAAJAA4AAAAAAAUAAAAKAA4AAAABAAUAAAALAA4AAAAGAAQAAAAMAA4AAAAHAAQAAAANAA4AAAAAAAUAAAAOAA4AAAABAAUAAAAPAA4AAAAGAAQAAAAQAA4AAAAHAAQAAAARAA4AAAAAAAUAAAASAA4AAAABAAUAAAATAA4AAAAGAAQAAAAUAA4AAAAHAAQAAAAVAA4AAAAAAAUAAAAWAA4AAAABAAUAAAAXAA4AAAAGAAQAAAAYAA4AAAAHAAQAAAAZAA4AAAAAAAUAAAAaAA4AAAABAAUAAAAbAA4AAAAGAAQAAAAcAA4AAAACAAUAAAAdAA4AAAACAAIAAAAeAA4AAAAAAAAAAAAAAA8AAAAAAAAAAAABAA8AAAAAAAAAAAACAA8AAAADAAIAAAADAA8AAAAEAAIAAAAEAA8AAAAFAAIAAAAFAA8AAAAGAAIAAAAGAA8AAAAHAAIAAAAHAA8AAAAEAAIAAAAIAA8AAAAFAAIAAAAJAA8AAAAGAAIAAAAKAA8AAAAHAAIAAAALAA8AAAAEAAIAAAAMAA8AAAAFAAIAAAANAA8AAAAGAAIAAAAOAA8AAAAHAAIAAAAPAA8AAAAEAAIAAAAQAA8AAAAFAAIAAAARAA8AAAAGAAIAAAASAA8AAAAHAAIAAAATAA8AAAAEAAIAAAAUAA8AAAAFAAIAAAAVAA8AAAAGAAIAAAAWAA8AAAAHAAIAAAAXAA8AAAAEAAIAAAAYAA8AAAAFAAIAAAAZAA8AAAAGAAIAAAAaAA8AAAAHAAIAAAAbAA8AAAAEAAIAAAAcAA8AAAAAAAMAAAAdAA8AAAACAAIAAAAeAA8AAAAAAAAAAAAAABAAAAAAAAAAAAABABAAAAAAAAAAAAACABAAAAABAAMAAAADABAAAAACAAMAAAAEABAAAAADAAMAAAAFABAAAAAEAAMAAAAGABAAAAAFAAMAAAAHABAAAAACAAMAAAAIABAAAAADAAMAAAAJABAAAAAEAAMAAAAKABAAAAAFAAMAAAALABAAAAACAAMAAAAMABAAAAADAAMAAAANABAAAAAEAAMAAAAOABAAAAAFAAMAAAAPABAAAAACAAMAAAAQABAAAAADAAMAAAARABAAAAAEAAMAAAASABAAAAAFAAMAAAATABAAAAACAAMAAAAUABAAAAADAAMAAAAVABAAAAAEAAMAAAAWABAAAAAFAAMAAAAXABAAAAACAAMAAAAYABAAAAADAAMAAAAZABAAAAAEAAMAAAAaABAAAAAFAAMAAAAbABAAAAACAAMAAAAcABAAAAAGAAMAAAAdABAAAAACAAIAAAAeABAAAAAAAAAAAAAAABEAAAAAAAAAAAABABEAAAAAAAAAAAACABEAAAADAAUAAAADABEAAAAAAAQAAAAEABEAAAABAAQAAAAFABEAAAACAAQAAAAGABEAAAADAAQAAAAHABEAAAAAAAQAAAAIABEAAAABAAQAAAAJABEAAAACAAQAAAAKABEAAAADAAQAAAALABEAAAAAAAQAAAAMABEAAAABAAQAAAANABEAAAACAAQAAAAOABEAAAADAAQAAAAPABEAAAAAAAQAAAAQABEAAAABAAQAAAARABEAAAACAAQAAAASABEAAAADAAQAAAATABEAAAAAAAQAAAAUABEAAAABAAQAAAAVABEAAAACAAQAAAAWABEAAAADAAQAAAAXABEAAAAAAAQAAAAYABEAAAABAAQAAAAZABEAAAACAAQAAAAaABEAAAADAAQAAAAbABEAAAAAAAQAAAAcABEAAAAEAAUAAAAdABEAAAAFAAUAAAAeABEAAAAAAAAAAAAAABIAAAAAAAAAAAABABIAAAAAAAAAAAACABIAAAAGAAUAAAADABIAAAAHAAUAAAAEABIAAAAAAAYAAAAFABIAAAABAAYAAAAGABIAAAACAAYAAAAHABIAAAAHAAUAAAAIABIAAAAAAAYAAAAJABIAAAABAAYAAAAKABIAAAACAAYAAAALABIAAAAHAAUAAAAMABIAAAAAAAYAAAANABIAAAABAAYAAAAOABIAAAACAAYAAAAPABIAAAAHAAUAAAAQABIAAAAAAAYAAAARABIAAAABAAYAAAASABIAAAACAAYAAAATABIAAAAHAAUAAAAUABIAAAAAAAYAAAAVABIAAAABAAYAAAAWABIAAAACAAYAAAAXABIAAAAHAAUAAAAYABIAAAAAAAYAAAAZABIAAAABAAYAAAAaABIAAAACAAYAAAAbABIAAAAHAAUAAAAcABIAAAADAAYAAAAdABIAAAAEAAYAAAAeABIAAAAAAAAAAAAAABMAAAAAAAAAAAABABMAAAAAAAAAAAACABMAAAAAAAAAAAADABMAAAAAAAAAAAAEABMAAAAAAAAAAAAFABMAAAAAAAAAAAAGABMAAAAAAAAAAAAHABMAAAAAAAAAAAAIABMAAAAAAAAAAAAJABMAAAAAAAAAAAAKABMAAAAAAAAAAAALABMAAAAAAAAAAAAMABMAAAAAAAAAAAANABMAAAAAAAAAAAAOABMAAAAAAAAAAAAPABMAAAAAAAAAAAAQABMAAAAAAAAAAAARABMAAAAAAAAAAAASABMAAAAAAAAAAAATABMAAAAAAAAAAAAUABMAAAAAAAAAAAAVABMAAAAAAAAAAAAWABMAAAAAAAAAAAAXABMAAAAAAAAAAAAYABMAAAAAAAAAAAAZABMAAAAAAAAAAAAaABMAAAAAAAAAAAAbABMAAAAAAAAAAAAcABMAAAAAAAAAAAAdABMAAAAAAAAAAAAeABMAAAAAAAAAAAAAABQAAAAAAAAAAAABABQAAAAAAAAAAAACABQAAAAAAAAAAAADABQAAAAAAAAAAAAEABQAAAAAAAAAAAAFABQAAAAAAAAAAAAGABQAAAAAAAAAAAAHABQAAAAAAAAAAAAIABQAAAAAAAAAAAAJABQAAAAAAAAAAAAKABQAAAAAAAAAAAALABQAAAAAAAAAAAAMABQAAAAAAAAAAAANABQAAAAAAAAAAAAOABQAAAAAAAAAAAAPABQAAAAAAAAAAAAQABQAAAAAAAAAAAARABQAAAAAAAAAAAASABQAAAAAAAAAAAATABQAAAAAAAAAAAAUABQAAAAAAAAAAAAVABQAAAAAAAAAAAAWABQAAAAAAAAAAAAXABQAAAAAAAAAAAAYABQAAAAAAAAAAAAZABQAAAAAAAAAAAAaABQAAAAAAAAAAAAbABQAAAAAAAAAAAAcABQAAAAAAAAAAAAdABQAAAAAAAAAAAAeABQAAAAAAAAAAAA=")
-tile_set = ExtResource("2_l6vds")
+tile_set = ExtResource("2_ibcoe")
 
 [node name="Suelo" type="Node2D" parent="."]
 
 [node name="RunaSuelo" type="Sprite2D" parent="Suelo"]
-position = Vector2(400, 425)
-texture = ExtResource("3_gvljf")
+position = Vector2(408, 425)
+texture = ExtResource("3_upo3f")
 centered = false
 
 [node name="Objetos" type="Node2D" parent="."]
 
-[node name="EstatuaOrante1" type="Sprite2D" parent="Objetos"]
-position = Vector2(204, 225)
-texture = ExtResource("4_mpbnj")
-centered = false
-offset = Vector2(-18, -49)
-metadata/sombra = true
-metadata/luz = false
-
-[node name="Colision" type="StaticBody2D" parent="Objetos/EstatuaOrante1"]
-
-[node name="Forma" type="CollisionShape2D" parent="Objetos/EstatuaOrante1/Colision"]
-position = Vector2(0.5, -9)
-shape = SubResource("RectangleShape2D_gw8rw")
-
-[node name="EstatuaOrante2" type="Sprite2D" parent="Objetos"]
-position = Vector2(792, 225)
-texture = ExtResource("5_l4c0i")
-centered = false
-offset = Vector2(-18, -49)
-metadata/sombra = true
-metadata/luz = false
-
-[node name="Colision" type="StaticBody2D" parent="Objetos/EstatuaOrante2"]
-
-[node name="Forma" type="CollisionShape2D" parent="Objetos/EstatuaOrante2/Colision"]
-position = Vector2(0.5, -9)
-shape = SubResource("RectangleShape2D_upr1e")
-
 [node name="Brasero1" type="Sprite2D" parent="Objetos"]
 position = Vector2(88, 226)
-texture = ExtResource("6_3yii7")
+texture = ExtResource("4_fneje")
 centered = false
 offset = Vector2(-17, -38)
 metadata/sombra = true
@@ -101,25 +77,55 @@ metadata/luz = true
 
 [node name="Forma" type="CollisionShape2D" parent="Objetos/Brasero1/Colision"]
 position = Vector2(0, -10)
-shape = SubResource("RectangleShape2D_6iscb")
+shape = SubResource("RectangleShape2D_w7ilh")
 
 [node name="Brasero2" type="Sprite2D" parent="Objetos"]
-position = Vector2(853, 226)
-texture = ExtResource("7_2no46")
+position = Vector2(872, 226)
+texture = ExtResource("4_fneje")
 centered = false
-offset = Vector2(-15, -38)
+offset = Vector2(-17, -38)
+flip_h = true
 metadata/sombra = true
 metadata/luz = true
 
 [node name="Colision" type="StaticBody2D" parent="Objetos/Brasero2"]
 
 [node name="Forma" type="CollisionShape2D" parent="Objetos/Brasero2/Colision"]
-position = Vector2(0.5, -10)
-shape = SubResource("RectangleShape2D_mq8e4")
+position = Vector2(0, -10)
+shape = SubResource("RectangleShape2D_l2yql")
+
+[node name="EstatuaOrante1" type="Sprite2D" parent="Objetos"]
+position = Vector2(204, 225)
+texture = ExtResource("5_ety3d")
+centered = false
+offset = Vector2(-18, -49)
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Colision" type="StaticBody2D" parent="Objetos/EstatuaOrante1"]
+
+[node name="Forma" type="CollisionShape2D" parent="Objetos/EstatuaOrante1/Colision"]
+position = Vector2(0.5, -9)
+shape = SubResource("RectangleShape2D_ffssb")
+
+[node name="EstatuaOrante2" type="Sprite2D" parent="Objetos"]
+position = Vector2(756, 225)
+texture = ExtResource("5_ety3d")
+centered = false
+offset = Vector2(-19, -49)
+flip_h = true
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Colision" type="StaticBody2D" parent="Objetos/EstatuaOrante2"]
+
+[node name="Forma" type="CollisionShape2D" parent="Objetos/EstatuaOrante2/Colision"]
+position = Vector2(-0.5, -9)
+shape = SubResource("RectangleShape2D_fwerg")
 
 [node name="EstatuaArquero1" type="Sprite2D" parent="Objetos"]
-position = Vector2(488, 279)
-texture = ExtResource("8_skutb")
+position = Vector2(480, 279)
+texture = ExtResource("6_y27kv")
 centered = false
 offset = Vector2(-24, -104)
 metadata/sombra = true
@@ -129,11 +135,11 @@ metadata/luz = false
 
 [node name="Forma" type="CollisionShape2D" parent="Objetos/EstatuaArquero1/Colision"]
 position = Vector2(0, -13)
-shape = SubResource("RectangleShape2D_fvu37")
+shape = SubResource("RectangleShape2D_yfhqf")
 
 [node name="Mesa1" type="Sprite2D" parent="Objetos"]
-position = Vector2(497, 345)
-texture = ExtResource("9_w3qo1")
+position = Vector2(480, 345)
+texture = ExtResource("7_oasnp")
 centered = false
 offset = Vector2(-42, -55)
 metadata/sombra = true
@@ -143,43 +149,11 @@ metadata/luz = false
 
 [node name="Forma" type="CollisionShape2D" parent="Objetos/Mesa1/Colision"]
 position = Vector2(1, -27)
-shape = SubResource("RectangleShape2D_s3n5x")
-
-[node name="Cirios1" type="Sprite2D" parent="Objetos"]
-position = Vector2(661, 415)
-texture = ExtResource("10_a2q5p")
-centered = false
-offset = Vector2(-6, -70)
-metadata/sombra = true
-metadata/luz = false
-
-[node name="Cirios2" type="Sprite2D" parent="Objetos"]
-position = Vector2(680, 415)
-texture = ExtResource("11_yrxjf")
-centered = false
-offset = Vector2(-6, -70)
-metadata/sombra = true
-metadata/luz = false
-
-[node name="Cirios3" type="Sprite2D" parent="Objetos"]
-position = Vector2(641, 416)
-texture = ExtResource("12_xl7r4")
-centered = false
-offset = Vector2(-6, -71)
-metadata/sombra = true
-metadata/luz = false
-
-[node name="Cirios4" type="Sprite2D" parent="Objetos"]
-position = Vector2(700, 416)
-texture = ExtResource("13_lk71e")
-centered = false
-offset = Vector2(-6, -71)
-metadata/sombra = true
-metadata/luz = false
+shape = SubResource("RectangleShape2D_7g2oh")
 
 [node name="Columna1" type="Sprite2D" parent="Objetos"]
 position = Vector2(375, 427)
-texture = ExtResource("14_02hej")
+texture = ExtResource("8_us0em")
 centered = false
 offset = Vector2(-31, -112)
 metadata/sombra = true
@@ -189,13 +163,100 @@ metadata/luz = false
 
 [node name="Forma" type="CollisionShape2D" parent="Objetos/Columna1/Colision"]
 position = Vector2(1, -57)
-shape = SubResource("RectangleShape2D_rvwjb")
+shape = SubResource("RectangleShape2D_541m7")
+
+[node name="Columna2" type="Sprite2D" parent="Objetos"]
+position = Vector2(585, 427)
+texture = ExtResource("8_us0em")
+centered = false
+offset = Vector2(-31, -112)
+flip_h = true
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Colision" type="StaticBody2D" parent="Objetos/Columna2"]
+
+[node name="Forma" type="CollisionShape2D" parent="Objetos/Columna2/Colision"]
+position = Vector2(-1, -57)
+shape = SubResource("RectangleShape2D_y84e2")
+
+[node name="Cirios1" type="Sprite2D" parent="Objetos"]
+position = Vector2(318, 416)
+texture = ExtResource("9_bnkrd")
+centered = false
+offset = Vector2(-6, -71)
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Cirios2" type="Sprite2D" parent="Objetos"]
+position = Vector2(642, 416)
+texture = ExtResource("9_bnkrd")
+centered = false
+offset = Vector2(-7, -71)
+flip_h = true
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Cirios3" type="Sprite2D" parent="Objetos"]
+position = Vector2(298, 415)
+texture = ExtResource("10_sx2vh")
+centered = false
+offset = Vector2(-6, -70)
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Cirios4" type="Sprite2D" parent="Objetos"]
+position = Vector2(662, 415)
+texture = ExtResource("10_sx2vh")
+centered = false
+offset = Vector2(-7, -70)
+flip_h = true
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Cirios5" type="Sprite2D" parent="Objetos"]
+position = Vector2(280, 415)
+texture = ExtResource("11_ts4ut")
+centered = false
+offset = Vector2(-6, -70)
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Cirios6" type="Sprite2D" parent="Objetos"]
+position = Vector2(680, 415)
+texture = ExtResource("11_ts4ut")
+centered = false
+offset = Vector2(-7, -70)
+flip_h = true
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Cirios7" type="Sprite2D" parent="Objetos"]
+position = Vector2(260, 416)
+texture = ExtResource("12_2ng63")
+centered = false
+offset = Vector2(-6, -71)
+metadata/sombra = true
+metadata/luz = false
+
+[node name="Cirios8" type="Sprite2D" parent="Objetos"]
+position = Vector2(700, 416)
+texture = ExtResource("12_2ng63")
+centered = false
+offset = Vector2(-7, -71)
+flip_h = true
+metadata/sombra = true
+metadata/luz = false
 
 [node name="Colisiones" type="StaticBody2D" parent="."]
 
 [node name="Bloqueo1" type="CollisionShape2D" parent="Colisiones"]
+position = Vector2(290, 370)
+shape = SubResource("RectangleShape2D_y1ixo")
+
+[node name="Bloqueo2" type="CollisionShape2D" parent="Colisiones"]
 position = Vector2(670, 370)
-shape = SubResource("RectangleShape2D_tqcol")
+shape = SubResource("RectangleShape2D_nhty3")
 
 [node name="Marcadores" type="Node2D" parent="."]
 
@@ -203,34 +264,34 @@ shape = SubResource("RectangleShape2D_tqcol")
 position = Vector2(773, 354)
 gizmo_extents = 14.0
 
+[node name="Fosforos" type="Marker2D" parent="Marcadores"]
+position = Vector2(230, 460)
+gizmo_extents = 14.0
+
 [node name="Jugador" type="Marker2D" parent="Marcadores"]
 position = Vector2(115, 359)
 gizmo_extents = 14.0
 
 [node name="Lectura" type="Marker2D" parent="Marcadores"]
-position = Vector2(497, 362)
+position = Vector2(480, 362)
 gizmo_extents = 14.0
 
 [node name="Libro" type="Marker2D" parent="Marcadores"]
-position = Vector2(497, 310)
+position = Vector2(480, 310)
 gizmo_extents = 14.0
 
 [node name="Reliquia1" type="Marker2D" parent="Marcadores"]
-position = Vector2(280, 245)
+position = Vector2(290, 245)
 gizmo_extents = 14.0
 
 [node name="Reliquia2" type="Marker2D" parent="Marcadores"]
-position = Vector2(500, 465)
+position = Vector2(480, 500)
 gizmo_extents = 14.0
 
 [node name="Reliquia3" type="Marker2D" parent="Marcadores"]
-position = Vector2(725, 230)
+position = Vector2(670, 245)
 gizmo_extents = 14.0
 
 [node name="Salida" type="Marker2D" parent="Marcadores"]
 position = Vector2(867, 355)
-gizmo_extents = 14.0
-
-[node name="Fosforos" type="Marker2D" parent="Marcadores"]
-position = Vector2(230, 460)
 gizmo_extents = 14.0
