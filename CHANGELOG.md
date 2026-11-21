@@ -1,5 +1,18 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Etapa 2: dirección de arte y menú de pisos
+
+**Menú de pisos** (botón PISOS del menú o tecla P): los diez pisos del diseño como tarjetas con su número gótico, nombre, Eco y estado (superado, disponible, sin alcanzar, en las profundidades). Se puede empezar directamente en cualquier piso ya alcanzado, con antorcha y fósforos. El piso más profundo alcanzado se guarda (las partidas antiguas lo deducen de sus Ecos).
+
+**Dirección de arte** (dark fantasy gótico, sin cambiar sprites ni reglas):
+- Paleta: negros profundos, carbón, dorado envejecido, violeta oscuro y carmesí en toda la interfaz.
+- Rótulos con **Jacquard 24** (gótica de píxel, OFL) en el título, pisos, perfil, habilidades, pausa, configuración y muerte; el texto corrido sigue en Pixelify Sans.
+- Paneles translúcidos con filete fino y esquinas ornamentadas; barras en degradado con brillo y marcas; botones del menú que crecen y brillan al pasar el cursor.
+- **Postproceso** (`shaders/postproceso.gdshader`, compatible con OpenGL): bloom moderado de almas, fuego y velas; gradación (sombras violeta, luces doradas); viñeta que se cierra con el miedo y grano leve. Solo dentro de la sala: el HUD queda nítido. Sin bloom en móvil.
+- **Atmósfera**: haces de luz desde los ventanales con polvo que brilla, niebla baja en dos capas (`assets/visual/fx/niebla.png`, `herramientas/generar_niebla.py`), polvo y brasas suspendidos (más brasas en pisos gastados).
+- **Efectos**: polvo al pisar y al esquivar con estela espiritual; chispas y sangre al herir; sangre al recibir daño; destellos al reunir almas; disolución violeta al desterrar; al morir, el alma se desprende en motas y un estallido carmesí; al reaparecer, una columna de luz. Fundido al cruzar de sala y temblor de cámara suave.
+
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Etapa 1: diálogos, misiones, trampas y habilidades
 
 - **Diálogos con clic**: lo que dicen el Peregrino y los aliados aparece en un cuadro inferior con el nombre de quien habla; el texto se escribe solo y avanza con clic, E, Enter o Espacio (el primer clic muestra la frase entera; ESC salta la conversación). El juego se detiene mientras lees. En pleno combate se usa un bocadillo que dura según lo largo de la frase.

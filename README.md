@@ -24,6 +24,7 @@
   - **Piso I · El Despertar**, cinco salas: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
   - **Piso II · Los Peregrinos**, cuatro salas con las primeras grietas del templo. Un Peregrino se ofrece a reunir almas contigo… y en la mayoría de las vidas te traiciona al llegar a la Cripta del Reparto. Tiene indicios: se queda a tu espalda y miente sobre cuántas almas lleva. Si lo atacas primero y era sincero, lo pagas.
   - **Piso III · La Cacería**, cuatro salas. El templo ordena cazar al **Segador de Hilos** con tres peregrinos aliados. Antes de atacar tensa una línea roja: lo que esté sobre ella (tú o tus aliados, también los que van detrás de ti) recibe el hilo. Después queda enganchado y solo entonces se le puede herir. A media vida huye a la sala siguiente; la puerta no se abre mientras viva.
+- **Dirección de arte gótica**: rótulos con tipografía gótica de píxel, interfaz oscura con dorado envejecido, bloom, niebla, haces de luz, partículas y fundidos. **Menú de pisos** para volver a cualquier piso alcanzado.
 - **Diálogos, misiones y trampas**: conversaciones que avanzan con clic, misiones con premio en las salas con monstruo, pinchos con aviso e inscripciones de lore. La vida se recupera poco a poco y esquivar funciona aunque estés quieto. Pantalla de habilidades con la tecla K.
 - **Morir no cuesta progreso (temporal, modo de pruebas)**: te levantas en la entrada de la misma sala con almas, objetos, habilidades y Ecos. Se desactiva con `MUERTE_SIN_PERDIDA` en `scripts/main.gd`.
 - **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría, Reflejos). Se conservan si tu alma regresa y se pierden si es absorbida.
@@ -67,6 +68,10 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Inicio.** Haz clic para continuar; el engranaje abre la configuración. | **Configuración.** Sonido, controles reasignables, idioma y privacidad. |
 | ![Tutorial](docs/galeria/18_tutorial.png) | ![Pausa](docs/galeria/19_pausa.png) |
 | **Tutorial.** Sala de práctica con pasos guiados y un muñeco de entrenamiento. | **Pausa.** Continuar, configuración, perfil o volver al inicio. |
+| ![Menú con la nueva dirección de arte](docs/galeria/24_arte_menu.png) | ![Menú de pisos](docs/galeria/25_arte_pisos.png) |
+| **Menú.** Rótulo gótico, paneles oscuros con dorado envejecido. | **Pisos.** Los diez pisos del templo; se puede volver a cualquiera ya alcanzado. |
+| ![Nave del Agua con niebla y haces de luz](docs/galeria/26_arte_nave.png) | ![Muerte](docs/galeria/27_arte_muerte.png) |
+| **Atmósfera.** Haces de luz, niebla baja, polvo, bloom y viñeta. | **Muerte.** El alma se desprende; te levantas en una columna de luz. |
 | ![Creación del personaje: nombre](docs/galeria/20_crear_nombre.png) | ![Creación del personaje: género](docs/galeria/21_crear_genero.png) |
 | **Tu nombre.** Escribe con el teclado o toca las letras; también hay nombres al azar. | **Tu género.** Masculino o femenino, con su sprite y su retrato. |
 | ![El Segador de Hilos tensa la línea](docs/galeria/22_caza_hilos.png) | ![El Segador queda enganchado](docs/galeria/23_caza_enganche.png) |
