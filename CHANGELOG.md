@@ -1,5 +1,9 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Arreglo: la Máscara de Porcelana reaparece
+
+- Al volver al Piso V con la Máscara ya conseguida, la puerta de los Canales de Almas quedaba cerrada para siempre: la máscara no volvía a su pedestal y la misión obligatoria no se podía cumplir. Ahora la máscara está en el pedestal en cada visita hasta que la recoges en esa partida; si ya la llevabas, solo abre la puerta.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Niveles, Piso VII y móvil
 
 **Niveles del personaje**

@@ -7232,17 +7232,29 @@ func _free_rescue() -> void:
         ["SAÚL", "Me llamo Saúl. Si sigo vivo más abajo, no lo olvidaré."]])
 
 
+## La máscara está en su pedestal en cada visita hasta que la recoges en esa
+## partida: la puerta de los Canales depende de recogerla, y si ya la llevabas
+## de antes no puede quedar cerrada para siempre.
+func _mask_on_pedestal() -> bool:
+    return _room().has("mask") and not missions_done.has(_room_key())
+
+
 func _check_mask_pickup() -> void:
-    if not _room().has("mask") or has_mask:
+    if not _mask_on_pedestal():
         return
     if player_pos.distance_to(_room()["mask"]) < 28.0:
+        var had_it: bool = has_mask
         has_mask = true
         _complete_mission()
         _save_progress()
         _sfx("k_campana", -8.0, 0.7)
         _emit(Vector2(_room()["mask"]) + Vector2(0, -14), 24, Color(0.95, 0.92, 0.85), 15.0, 70.0, 1.2, 2.0, -40.0, Vector2.UP, 1.1, true)
-        _dialog([[_hero_name(), "Una máscara de porcelana, como las de los perros. Al ponérmela, mi Resonancia ruge."],
-            [_hero_name(), "Ahora la onda llega más lejos, y los mastines huyen de ella."]])
+        if had_it:
+            _dialog([[_hero_name(), "Otra máscara igual a la mía, en el mismo pedestal. El templo la repone para cada visitante."],
+                [_hero_name(), "Al tocarla, la puerta de los canales cede."]])
+        else:
+            _dialog([[_hero_name(), "Una máscara de porcelana, como las de los perros. Al ponérmela, mi Resonancia ruge."],
+                [_hero_name(), "Ahora la onda llega más lejos, y los mastines huyen de ella."]])
 
 
 func _draw_hound(i: int) -> void:
@@ -7318,7 +7330,7 @@ func _draw_rescue_label() -> void:
 
 
 func _draw_mask_item() -> void:
-    if not _room().has("mask") or has_mask:
+    if not _mask_on_pedestal():
         return
     var at: Vector2 = _room()["mask"]
     draw_rect(Rect2(at.x - 16.0, at.y - 4.0, 32, 10), Color("#4a4540"))

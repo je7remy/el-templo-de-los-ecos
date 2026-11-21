@@ -576,6 +576,19 @@ func _run_checks() -> void:
     if not bool(game.get("has_mask")) or float(game.call("_pulse_radius")) <= 150.0 or not bool(game.call("_room_ready")):
         _fail("La Máscara de Porcelana no se recoge o no amplía la Resonancia.")
         return
+    # Volver al piso con la máscara ya puesta: reaparece y abre la puerta.
+    (game.get("missions_done") as Dictionary).erase(game.call("_room_key"))
+    game.set("player_pos", Vector2(480, 470))
+    game.call("_update_labyrinth", 0.016)
+    if bool(game.call("_room_ready")) or not bool(game.call("_mask_on_pedestal")):
+        _fail("Al volver al Piso V la máscara no reaparece.")
+        return
+    game.set("player_pos", (game.call("_room") as Dictionary)["mask"])
+    game.call("_update_labyrinth", 0.016)
+    game.call("_dialog_skip")
+    if not bool(game.call("_room_ready")):
+        _fail("Con la máscara ya conseguida antes, la puerta de los Canales queda cerrada.")
+        return
     game.set("has_mask", false)
     print("OK: Piso V, mastines, antorcha que se consume, rescate y Máscara.")
     game.set("current_floor", 0)
