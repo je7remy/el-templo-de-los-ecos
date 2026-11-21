@@ -6,9 +6,9 @@ Las cinco salas del piso 1 son escenas normales de Godot en `rooms/sala_0.tscn` 
 
 | Nodo | Tipo | Para qué sirve |
 | --- | --- | --- |
-| `Arquitectura` | `TileMapLayer` | Suelo y muros. Tiles de 32 × 32 del atlas `assets/visual/tiles/templo.png` (`rooms/templo_tileset.tres`). Pinta, borra o mueve tiles con el editor de TileMap. |
+| `Arquitectura` | `TileMapLayer` | Suelo, muros cerrados con pilares en las esquinas y vacío exterior. Tiles de 32 × 32 del atlas `assets/visual/tiles/templo.png` (`rooms/templo_tileset.tres`). Pinta, borra o mueve tiles con el editor de TileMap. |
 | `Suelo` | `Node2D` | Detalles pintados sobre el suelo (p. ej. `RunaSuelo`). Siempre quedan bajo personajes y objetos. |
-| `Objetos` | `Node2D` | Columnas, estatuas, arcos, braseros, mesa, sarcófago… Un `Sprite2D` por objeto. |
+| `Objetos` | `Node2D` | Columnas, estatuas, braseros, mesa, sarcófago… Un `Sprite2D` por objeto. |
 | `Objetos/<objeto>/Colision` | `StaticBody2D` + `CollisionShape2D` | Bloqueo del objeto. Es hija del sprite: **si mueves el objeto, su colisión lo acompaña**. |
 | `Colisiones` | `StaticBody2D` | Bloqueos que no pertenecen a un solo objeto (altar, grupo de cirios). |
 | `Marcadores` | `Marker2D` | Posiciones de juego: `Jugador`, `Enemigo`, `Salida`, `Reliquia1-3`, y según la sala `Altar`, `Sello`, `Ojo`, `Libro`, `Lectura`. |

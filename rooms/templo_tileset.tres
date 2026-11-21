@@ -1,9 +1,9 @@
 [gd_resource type="TileSet" load_steps=3 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/visual/tiles/templo.png" id="1_bvnyi"]
+[ext_resource type="Texture2D" path="res://assets/visual/tiles/templo.png" id="1_78dbr"]
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_1wsaq"]
-texture = ExtResource("1_bvnyi")
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_q8qr8"]
+texture = ExtResource("1_78dbr")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 1:0/0 = 0
@@ -58,13 +58,7 @@ texture_region_size = Vector2i(32, 32)
 2:6/0 = 0
 3:6/0 = 0
 4:6/0 = 0
-5:6/0 = 0
-6:6/0 = 0
-7:6/0 = 0
-0:7/0 = 0
-1:7/0 = 0
-2:7/0 = 0
 
 [resource]
 tile_size = Vector2i(32, 32)
-sources/0 = SubResource("TileSetAtlasSource_1wsaq")
+sources/0 = SubResource("TileSetAtlasSource_q8qr8")

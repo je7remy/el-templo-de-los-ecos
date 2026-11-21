@@ -4,6 +4,7 @@
 Resultado de este paso:
   * assets/visual/tiles/templo.png        atlas de tiles 32x32 (arquitectura sin objetos)
   * assets/visual/objetos/sala_N/*.png    un PNG por objeto (columnas, estatuas, arcos...)
+  * assets/visual/rooms/vigilia.png        fondo de Vigilia con el mismo marco
   * herramientas/salas.json               rejilla de tiles, objetos, marcadores, colisiones
                                           y parámetros de luz por sala
 
@@ -107,6 +108,95 @@ def base_sala(original: np.ndarray) -> np.ndarray:
     return base
 
 
+def enmarcar(base0):
+    """Marco de la sala cerrado y simétrico (sustituye al de la composición original).
+
+    El original dejaba esquinas sin cerrar, un muro inferior que sobresalía por la
+    derecha, un muro derecho más estrecho, una franja de suelo exterior con línea
+    gris y un filo suelto 6 px por debajo del muro superior. Aquí: suelo interior,
+    muros completos (el derecho es espejo del izquierdo), remate de piedra, pilares
+    en las esquinas, sombra de los muros y vacío oscuro fuera.
+    """
+    b = base0.astype(int)
+    H, W = b.shape[:2]
+    vacio = b[5, 5].copy()
+    out = np.zeros_like(b); out[:] = vacio
+    # Medidas (del original): ladrillos izq x48-65, filo x66; muro sup. y121-157; inferior y552-571.
+    X0, X1 = 48, 913           # exterior de los muros laterales (izq incluido, der excluido)
+    LW = 18                    # ancho de ladrillo lateral
+    FX0, FX1 = X0 + LW + 1, X1 - LW - 1   # suelo interior [67, 894)
+    Y0, YB = 121, 158          # muro superior [121,158)
+    YF1 = 552                  # suelo hasta 552; muro inferior [552, 572)
+    Y1 = 572
+    per = lambda v, a: a + ((v - a) % 128)
+    # Suelo interior (periódico; se toma de una zona limpia para evitar el filo de y=164).
+    for y in range(YB, YF1):
+        sy = per(y, 260)
+        for x in range(FX0, FX1):
+            out[y, x] = b[sy, per(x, 200)]
+    # Muro superior de lado a lado.
+    for y in range(Y0, YB):
+        for x in range(X0, X1):
+            out[y, x] = b[y, per(x, 200)]
+    # Muro inferior (filo + ladrillos) de lado a lado.
+    for y in range(YF1, Y1):
+        for x in range(X0, X1):
+            out[y, x] = b[y, per(x, 200)]
+    # Lateral izquierdo y su espejo a la derecha, de arriba abajo.
+    for y in range(Y0, Y1):
+        sy = per(y, 200)
+        for x in range(X0, X0 + LW + 1):     # ladrillos + filo (x=66)
+            out[y, x] = b[sy, x]
+            out[y, X1 - 1 - (x - X0)] = b[sy, x]
+    # Remate de piedra sobre el muro superior (antes asomaba una tira de suelo).
+    claro0 = np.array([52, 58, 32, 255]); medio0 = np.array([31, 33, 19, 255])
+    out[Y0, X0:X1] = medio0
+    out[Y0 + 1:Y0 + 3, X0:X1] = claro0
+    out[Y0 + 3:Y0 + 5, X0:X1] = medio0
+    # Filo claro del suelo bajo el muro superior (como en los otros tres lados).
+    filo = b[300, 66].copy()
+    out[YB, FX0:FX1] = filo
+    # Contorno oscuro exterior.
+    oscuro = np.array([8, 9, 7, 255])
+    out[Y0 - 1, X0 - 1:X1 + 1] = oscuro; out[Y1, X0 - 1:X1 + 1] = oscuro
+    out[Y0 - 1:Y1 + 1, X0 - 1] = oscuro; out[Y0 - 1:Y1 + 1, X1] = oscuro
+    # Sombra de los muros sobre el suelo.
+    for d in range(10):
+        k = 0.62 + 0.38 * d / 10
+        out[YB + 1 + d, FX0:FX1, :3] = (out[YB + 1 + d, FX0:FX1, :3] * k).astype(int)
+    for d in range(5):
+        k = 0.72 + 0.28 * d / 5
+        out[YB + 1:YF1, FX0 + d, :3] = (out[YB + 1:YF1, FX0 + d, :3] * k).astype(int)
+        out[YB + 1:YF1, FX1 - 1 - d, :3] = (out[YB + 1:YF1, FX1 - 1 - d, :3] * k).astype(int)
+    # Pilares en las esquinas.
+    ladrillo = b[125:157, 200:232]
+    claro = np.array([52, 58, 32, 255]); medio = np.array([31, 33, 19, 255]); sombra = np.array([12, 13, 8, 255])
+    def pilar(cx, cy, w=30, h=38):
+        x0, y0 = cx - w // 2, cy - h // 2
+        blk = np.zeros((h, w, 4), int)
+        for yy in range(h):
+            for xx in range(w):
+                blk[yy, xx] = ladrillo[yy % 32, xx % 32]
+        blk[..., :3] = (blk[..., :3] * 0.85 + medio[:3] * 0.15).astype(int)
+        blk[:2, :] = claro; blk[:, :2] = claro
+        blk[-3:, :] = sombra; blk[:, -2:] = sombra
+        blk[0, :] = oscuro; blk[-1, :] = oscuro; blk[:, 0] = oscuro; blk[:, -1] = oscuro
+        # Losa superior inset.
+        blk[5:h - 7, 5:w - 5, :3] = (blk[5:h - 7, 5:w - 5, :3] * 1.18).clip(0, 255).astype(int)
+        blk[5, 5:w - 5] = sombra; blk[5:h - 7, 5] = sombra
+        out[y0:y0 + h, x0:x0 + w] = blk
+        # Sombra del pilar sobre el suelo (abajo).
+        ys = y0 + h
+        if ys < YF1:
+            for d in range(4):
+                k = 0.6 + 0.1 * d
+                out[ys + d, x0 + 2:x0 + w, :3] = (out[ys + d, x0 + 2:x0 + w, :3] * k).astype(int)
+    cxL, cxR = X0 + 9, X1 - 1 - 9
+    pilar(cxL, (Y0 + YB) // 2 + 1); pilar(cxR, (Y0 + YB) // 2 + 1)
+    pilar(cxL, (YF1 + Y1) // 2, h=30); pilar(cxR, (YF1 + Y1) // 2, h=30)
+    return out.clip(0, 255).astype(np.uint8)
+
+
 def ajustar_luz(base0: np.ndarray, original: np.ndarray, base: np.ndarray, visual: np.ndarray) -> dict:
     """visual ≈ ganancia * base0 + desplazamiento, por canal, sobre la arquitectura."""
     zona = np.zeros((ALTO, ANCHO), bool)
@@ -190,9 +280,18 @@ def extraer_objetos(sala: int, original: np.ndarray, base: np.ndarray, visual: n
     if arco is not None:
         ah, aw = arco.shape[:2]
         for ax in ARCOS_X:
-            ventana = original[145:145 + ah, ax:ax + aw]
-            igual = (np.abs(ventana[..., :3].astype(int) - arco[..., :3]).sum(2) == 0) & (arco[..., 3] > 0)
-            es_arco[145:145 + ah, ax:ax + aw] |= igual & distinto[145:145 + ah, ax:ax + aw]
+            # El cuarto nicho puede estar desplazado unos píxeles: buscar el mejor encaje.
+            mejor, coincide = None, -1
+            for dx in range(-6, 7):
+                x = ax + dx
+                ventana = original[145:145 + ah, x:x + aw]
+                igual = (np.abs(ventana[..., :3].astype(int) - arco[..., :3]).sum(2) == 0) & (arco[..., 3] > 0)
+                if igual.sum() > coincide:
+                    mejor, coincide = (x, igual), igual.sum()
+            x, igual = mejor
+            es_arco[145:145 + ah, x:x + aw] |= igual & distinto[145:145 + ah, x:x + aw]
+            # Por encima de y=163 no hay estatuas: todo lo que asoma ahí es del nicho.
+            es_arco[145:163, x - 2:x + aw + 2] |= distinto[145:163, x - 2:x + aw + 2]
     objetos = []
     for mascara in (es_arco, distinto & ~es_arco):
         etiquetas = componentes(dilatar(mascara, 2))
@@ -221,6 +320,8 @@ def extraer_objetos(sala: int, original: np.ndarray, base: np.ndarray, visual: n
     for x0, y0, recorte in objetos:
         h, w = recorte.shape[:2]
         nombre = nombre_objeto(sala, x0, y0, w, h)
+        if nombre == "Arco":
+            continue  # los nichos del muro superior se retiraron por diseño
         usados[nombre] += 1
         nodo = f"{nombre}{usados[nombre]}"
         archivo = f"{nodo.lower()}.png"
@@ -287,6 +388,22 @@ def asignar_colisiones(objetos: list[dict], colisiones: list[tuple]) -> list[dic
     return sueltas
 
 
+def generar_vigilia(marco: np.ndarray, sala: dict) -> None:
+    """Fondo de Vigilia: el claustro (sala II) con el marco nuevo, solo braseros y
+    estatuas pequeñas junto al muro; el centro queda libre para la cámara."""
+    luz = sala["luz"]
+    img = np.clip(marco[..., :3] * np.array(luz["ganancia"]) + np.array(luz["desplazamiento"]) * 255.0, 0, 255)
+    img = np.dstack([img, np.full(img.shape[:2], 255)]).astype(np.uint8)
+    lienzo = Image.fromarray(img)
+    for o in sala["objetos"]:
+        if o["nodo"].startswith(("Brasero", "EstatuaOrante")):
+            ruta = RAIZ / o["textura"].replace("res://", "")
+            sprite = Image.open(ruta).convert("RGBA")
+            x, y = o["caja"][0], o["caja"][1]
+            lienzo.alpha_composite(sprite, (x, y))
+    lienzo.save(VISUALES / "vigilia.png", optimize=True)
+
+
 def main() -> None:
     originales = [np.array(Image.open(ORIGINALES / f"room_{i}.png").convert("RGBA")) for i in range(5)]
     visuales = [np.array(Image.open(VISUALES / f"room_{i}.png").convert("RGBA")) for i in range(5)]
@@ -294,7 +411,8 @@ def main() -> None:
     for i, o in enumerate(originales):
         bases.append(base_sala(o))
         print(f"sala {i}: arquitectura reconstruida")
-    rejilla, por_fila = construir_atlas(bases[0])
+    marco = enmarcar(bases[0])
+    rejilla, por_fila = construir_atlas(marco)
     print(f"atlas: {max(max(f) for f in rejilla) + 1} tiles de {TILE}x{TILE}")
     # Plantilla del arco: el primero de la sala 0 sobre fondo transparente.
     o0 = originales[0].astype(int)
@@ -326,6 +444,7 @@ def main() -> None:
             "marcadores": {k: list(v) for k, v in marcadores.items()},
         })
         print(f"sala {i}: {len(objetos)} objetos, {len(sueltas)} colisiones sueltas")
+    generar_vigilia(marco, salas[1])
     DATOS.write_text(json.dumps({
         "tile": TILE, "origen": [FASE - TILE, FASE - TILE], "atlas_columnas": por_fila,
         "rejilla": rejilla, "salas": salas,
