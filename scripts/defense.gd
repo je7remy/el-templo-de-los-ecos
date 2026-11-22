@@ -177,6 +177,7 @@ func _ready() -> void:
             (f as FontFile).hinting = TextServer.HINTING_NONE
             (f as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
     rng.randomize()
+    _setup_fullscreen()
     _load_records()
     music = AudioStreamPlayer.new()
     tension = AudioStreamPlayer.new()
@@ -959,6 +960,10 @@ func _input(event: InputEvent) -> void:
         if event.pressed:
             _tap(make_input_local(event).position)
     elif event is InputEventMouseButton:
+        # El toque ya llegó como InputEventScreenTouch: el clic emulado se ignora
+        # (si no, cada toque contaba dos veces: dormir y levantarse a la vez).
+        if event.device == InputEvent.DEVICE_ID_EMULATION:
+            return
         if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
             _tap(make_input_local(event).position)
     elif event is InputEventMouseMotion:
@@ -1547,3 +1552,40 @@ func _center_text(text_value: String, y: float, size: int = 16, color: Color = C
 
 func _text_center(text_value: String, rect: Rect2, size: int, color: Color) -> void:
     draw_string(font, Vector2(rect.position.x, rect.position.y + size), text_value, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, size, color)
+
+
+
+# ------------------------------------------------------------ PANTALLA COMPLETA REAL
+## Igual que en la campaña: «expand» llena cualquier pantalla; la celda queda
+## centrada y lo que sobra se rellena con la propia celda, en penumbra.
+var screen_pad: Vector2 = Vector2.ZERO
+var backdrop_rect: TextureRect
+
+
+func _setup_fullscreen() -> void:
+    var layer := CanvasLayer.new()
+    layer.layer = -1
+    add_child(layer)
+    backdrop_rect = TextureRect.new()
+    backdrop_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    backdrop_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+    backdrop_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    backdrop_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    backdrop_rect.modulate = Color(0.3, 0.28, 0.36)
+    if ResourceLoader.exists("res://assets/visual/rooms/vigilia.png"):
+        backdrop_rect.texture = load("res://assets/visual/rooms/vigilia.png")
+    layer.add_child(backdrop_rect)
+    get_viewport().size_changed.connect(_fit_screen)
+    _fit_screen()
+
+
+func _fit_screen() -> void:
+    var view: Vector2 = get_viewport_rect().size
+    screen_pad = ((view - Vector2(W, H)) * 0.5).floor().max(Vector2.ZERO)
+    if DisplayServer.get_name() == "headless":
+        screen_pad = Vector2.ZERO # sin pantalla (pruebas automáticas): disposición base
+    position = screen_pad
+    if backdrop_rect != null:
+        backdrop_rect.position = Vector2.ZERO
+        backdrop_rect.size = view
+    queue_redraw()

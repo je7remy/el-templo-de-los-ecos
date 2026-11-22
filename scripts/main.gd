@@ -414,6 +414,7 @@ func _ready() -> void:
     _load_room_scene() # sala 1 como fondo del menú
     _setup_post()
     _setup_transition()
+    _setup_fullscreen()
     _setup_cursor()
     _apply_window_mode()
     Input.joy_connection_changed.connect(_on_joy_connection)
@@ -742,6 +743,7 @@ func _load_room_scene() -> void:
     # Los objetos los dibuja este script, ordenados por profundidad con los
     # personajes; en el editor se ven y se mueven como Sprite2D normales.
     room_props.clear()
+    _update_backdrop()
     var objetos: Node = room_node.get_node_or_null("Objetos")
     if objetos != null:
         (objetos as CanvasItem).visible = false
@@ -820,6 +822,11 @@ func _input(event: InputEvent) -> void:
     elif event is InputEventMouseButton and event.pressed and game_mode == "abilities" and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
         _abil_turn(1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1)
         queue_redraw()
+        return
+    elif event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION:
+        # Cada toque llega dos veces: como InputEventScreenTouch (ya atendido) y
+        # como clic emulado. Se ignora el clic: abría el perfil, el mapa o el
+        # inventario y el mismo toque lo volvía a cerrar, y duplicaba letras.
         return
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
         var click_at: Vector2 = make_input_local(event).position
@@ -1288,14 +1295,14 @@ func _mobile_touch(finger: int, at: Vector2, pressed: bool) -> void:
         if finger == mobile_finger:
             mobile_finger = -1
             mobile_axis = Vector2.ZERO
-            joy_center = JOY_HOME
+            joy_center = _joy_home()
         queue_redraw()
         return
     if game_mode == "play" and at.x <= JOY_ZONE_X and at.y >= JOY_ZONE_Y:
         mobile_finger = finger
         # Joystick flotante: si el dedo cae lejos de la base, la base va al dedo.
         if at.distance_to(joy_center) > JOY_RADIUS + 10.0:
-            joy_center = Vector2(clampf(at.x, 90.0, JOY_ZONE_X - 40.0), clampf(at.y, JOY_ZONE_Y + 50.0, 560.0))
+            joy_center = Vector2(clampf(at.x, 90.0 - screen_pad.x, JOY_ZONE_X - 40.0), clampf(at.y, JOY_ZONE_Y + 50.0, 560.0 + screen_pad.y))
         _mobile_update_axis(at)
     else:
         _mobile_tap(at)
@@ -1457,7 +1464,7 @@ func _draw_mobile_controls() -> void:
     draw_texture_rect(BUTTON_TEX, Rect2(joy_center + mobile_axis * 48.0 - Vector2(30, 30), Vector2(60, 60)), false, Color(0.62, 0.81, 0.83, 0.5 if idle else 0.85))
     var ctx: Array = _touch_context()
     for id in TOUCH_BUTTONS:
-        var at: Vector2 = TOUCH_BUTTONS[id][0]
+        var at: Vector2 = _tb_pos(id)
         var r: float = TOUCH_BUTTONS[id][1]
         if id == "resonancia" and not has_pulse:
             continue
@@ -2095,6 +2102,8 @@ func _is_blocked(at: Vector2) -> bool:
 
 
 func _process(delta: float) -> void:
+    if name_edit != null and name_edit.visible and (game_mode != "create" or create_step != 0):
+        _name_edit_close()
     elapsed += delta
     _update_pad_repeat(delta)
     _update_level_fx(delta)
@@ -2128,7 +2137,7 @@ func _process(delta: float) -> void:
     # Sacudida de pantalla tras un golpe (todo el lienzo; decae rápido).
     shake = maxf(0.0, shake - delta * 2.4)
     # Temblor suave (ondas superpuestas, como el ruido de la cámara del primer juego).
-    position = Vector2(sin(elapsed * 47.0) + 0.6 * sin(elapsed * 83.0), cos(elapsed * 41.0) + 0.6 * sin(elapsed * 67.0)) * 0.6 * shake * shake * 14.0 if shake > 0.0 else Vector2.ZERO
+    position = screen_pad + (Vector2(sin(elapsed * 47.0) + 0.6 * sin(elapsed * 83.0), cos(elapsed * 41.0) + 0.6 * sin(elapsed * 67.0)) * 0.6 * shake * shake * 14.0 if shake > 0.0 else Vector2.ZERO)
     _update_fx(delta)
     _update_audio(delta)
     queue_redraw()
@@ -2336,7 +2345,7 @@ func _update_enemy(dt: float) -> void:
 func _draw() -> void:
     # El fondo lo pone la escena de la sala (está por debajo).
     if room_node == null:
-        draw_rect(Rect2(0, 0, W, H), BG)
+        draw_rect(_full_rect(), BG)
     elif game_mode in ["title", "create", "floors", "splash", "eula"] or (game_mode == "settings" and settings_return in ["title", "splash"]):
         # En el menú se ve la sala completa, con sus objetos, detrás del panel.
         var objetos: Node = room_node.get_node_or_null("Objetos")
@@ -3524,14 +3533,14 @@ func _draw_toast() -> void:
 func _draw_title() -> void:
     ## Menú principal estilo roguelike: panel biselado, botones gruesos con icono.
     # La sala actual (escena) queda detrás; solo se oscurece.
-    draw_rect(Rect2(0, 0, W, H), Color(0.018, 0.027, 0.032, 0.62))
+    draw_rect(_full_rect(), Color(0.018, 0.027, 0.032, 0.62))
     var main := Rect2(149, 150, 662, 410)
     _panel(main, Color(0.045, 0.055, 0.07, 0.95), UI_GOLD)
     draw_rect(main.grow(-8.0), Color("#3a3f4c"), false, 1.0)
     draw_texture_rect(BRAND_ICON, Rect2(443, 164, 74, 74), false)
     _title_text("El Templo de los Ecos", Vector2(149, 300), 48, CREAM, main.size.x)
     _ornament_line(Vector2(480, 318), 150.0)
-    _text_outline("UN LUGAR SAGRADO. UN CICLO QUE SE ALIMENTA DE TI.", Vector2(149, 362), 14, CREAM, main.size.x)
+    _text_outline("DESPIERTAS A OSCURAS. NADIE TE DICE POR QUÉ.", Vector2(149, 362), 14, CREAM, main.size.x)
     draw_rect(Rect2(318, 376, 324, 2), UI_GOLD.darkened(0.3))
     _text_outline("ROGUELIKE DE TERROR · PISOS I–%s · REGLAS POR DESCUBRIR" % FLOORS[FLOORS.size() - 1]["number"], Vector2(149, 398), 12, SOUL, main.size.x)
     _text_outline("No conoces las reglas. Aún.", Vector2(149, 422), 15, Color("#b9b29b"), main.size.x)
@@ -3610,7 +3619,7 @@ func _draw_inventory_overlay() -> void:
     ## PERFIL del jugador (I / Tab, o tocar el retrato): ficha de personaje al
     ## estilo de los roguelike de acción. Izquierda: retrato y estadísticas.
     ## Derecha: equipo y habilidades, Ecos y la descripción de lo señalado.
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.78))
+    draw_rect(_full_rect(), Color(0, 0, 0, 0.78))
     var sheet := Rect2(70, 46, 820, 548)
     _panel(sheet, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
     _panel(Rect2(380, 34, 200, 30), Color("#2a1d22"), UI_GOLD)
@@ -3767,7 +3776,7 @@ func _draw_end_overlay(win: bool) -> void:
 
 
 func _overlay() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.75))
+    draw_rect(_full_rect(), Color(0, 0, 0, 0.75))
 
 
 func _text(msg: String, at: Vector2, size: int = 16, color: Color = CREAM) -> void:
@@ -4404,7 +4413,7 @@ func _back_to_splash() -> void:
 
 func _draw_splash() -> void:
     # El templo detrás, casi a oscuras, con niebla que respira.
-    draw_rect(Rect2(0, 0, W, H), Color(0.01, 0.012, 0.02, 0.82))
+    draw_rect(_full_rect(), Color(0.01, 0.012, 0.02, 0.82))
     for i in range(9):
         var x: float = fmod(float(i) * 137.0 + elapsed * (6.0 + float(i % 3) * 3.0), W + 300.0) - 150.0
         var y: float = 470.0 + float(i % 4) * 34.0 + sin(elapsed * 0.5 + float(i)) * 10.0
@@ -4435,7 +4444,7 @@ func _draw_splash() -> void:
 
 
 func _draw_eula() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0.01, 0.012, 0.02, 0.88))
+    draw_rect(_full_rect(), Color(0.01, 0.012, 0.02, 0.88))
     var panel := Rect2(150, 150, 660, 300)
     _panel(panel, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
     _text_outline(_t("acuerdo_titulo"), Vector2(panel.position.x, 196), 26, CREAM, panel.size.x)
@@ -4540,7 +4549,7 @@ func _settings_focusable() -> Array:
 
 
 func _draw_settings() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.82))
+    draw_rect(_full_rect(), Color(0, 0, 0, 0.82))
     _panel(SETTINGS_PANEL, Color(0.05, 0.06, 0.08, 0.98), UI_GOLD)
     _panel(Rect2(380, 48, 200, 30), Color("#2a1d22"), UI_GOLD)
     _title_text(_tc(_t("ajustes")), Vector2(380, 72), 24, CREAM, 200.0)
@@ -4827,7 +4836,7 @@ func _pause_choose(i: int) -> void:
 
 
 func _draw_pause() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.7))
+    draw_rect(_full_rect(), Color(0, 0, 0, 0.7))
     var opts: Array = _pause_options()
     var panel := Rect2(300, 130, 360, 90.0 + float(opts.size()) * 62.0)
     _panel(panel, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
@@ -4905,7 +4914,7 @@ func _end_intro() -> void:
 
 
 func _draw_intro() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 1.0))
+    draw_rect(_full_rect(), Color(0, 0, 0, 1.0))
     var slide: Array = INTRO[clampi(intro_slide, 0, INTRO.size() - 1)]
     var fade: float = clampf(intro_t * 1.5, 0.0, 1.0)
     var c := Vector2(480, 270)
@@ -5136,6 +5145,7 @@ func _start_creation(then: String) -> void:
     if pad_active:
         _pad_name_hover()
     _sfx("interfaz", -8.0, 0.9)
+    _name_edit_open()
 
 
 func _create_type(ch: String) -> void:
@@ -5156,11 +5166,13 @@ func _create_next() -> void:
     if create_buf == "":
         _say(_t("pj_vacio"), 2.0)
         return
+    _name_edit_close()
     create_step = 1
     _sfx("interfaz", -8.0, 1.0)
 
 
 func _create_finish() -> void:
+    _name_edit_close()
     player_name = _clean_name(create_buf)
     player_gender = "femenino" if create_gender == 1 else "masculino"
     _save_progress()
@@ -5177,7 +5189,9 @@ func _create_finish() -> void:
 func _create_back() -> void:
     if create_step == 1:
         create_step = 0
+        _name_edit_open()
     else:
+        _name_edit_close()
         game_mode = "title"
     _sfx("interfaz", -10.0, 0.8)
 
@@ -5187,6 +5201,8 @@ func _create_key(k: Key, unicode: int) -> void:
         _create_back()
         return
     if create_step == 0:
+        if name_edit != null and name_edit.has_focus() and not k in [KEY_ENTER, KEY_KP_ENTER]:
+            return # el teclado del móvil escribe en el campo nativo
         if k in [KEY_ENTER, KEY_KP_ENTER]:
             _create_next()
         elif k == KEY_BACKSPACE:
@@ -5244,7 +5260,10 @@ func _create_tap(at: Vector2) -> void:
                     _create_next()
                 _:
                     _create_type(str(key[1]))
+            _name_edit_sync()
             return
+        if NAME_BOX.has_point(at):
+            _name_edit_focus() # tocar el recuadro del nombre abre el teclado del móvil
         return
     for i in range(2):
         if _create_card(i).has_point(at):
@@ -5271,7 +5290,7 @@ func _create_key_button(rect: Rect2, label: String, size: int, accent: bool = fa
 
 
 func _draw_creation() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0.018, 0.027, 0.032, 0.72))
+    draw_rect(_full_rect(), Color(0.018, 0.027, 0.032, 0.72))
     _panel(CREATE_PANEL, Color(0.045, 0.055, 0.07, 0.96), UI_GOLD)
     draw_rect(CREATE_PANEL.grow(-8.0), Color("#3a3f4c"), false, 1.0)
     # Indicador de paso (1 nombre · 2 género).
@@ -5280,7 +5299,7 @@ func _draw_creation() -> void:
         draw_rect(dot, UI_GOLD if create_step >= i else UI_EDGE)
     if create_step == 0:
         _text_outline(_t("pj_nombre"), Vector2(150, 168), 30, CREAM, CREATE_PANEL.size.x)
-        var box := Rect2(300, 182, 360, 54)
+        var box := NAME_BOX
         _panel(box, Color("#0b0e13"), SOUL)
         var shown: String = create_buf + ("_" if int(elapsed * 2.0) % 2 == 0 and create_buf.length() < NAME_MAX else " ")
         _text_outline(shown, Vector2(box.position.x, box.position.y + 38.0), 30, SOUL, box.size.x)
@@ -6104,7 +6123,7 @@ func _draw_dialog() -> void:
         return
     var who: String = dialog_queue[0][0]
     var text: String = dialog_queue[0][1]
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.25))
+    draw_rect(_full_rect(), Color(0, 0, 0, 0.25))
     var box := Rect2(110, 432, 740, 128)
     _panel(box, Color(0.04, 0.045, 0.06, 0.95), UI_GOLD)
     draw_rect(box.grow(-6.0), Color(1, 1, 1, 0.04), false, 1.0)
@@ -6190,7 +6209,7 @@ func _ability_rows() -> Array:
 
 
 func _draw_abilities() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.8))
+    draw_rect(_full_rect(), Color(0, 0, 0, 0.8))
     var sheet := Rect2(70, 46, 820, 548)
     _panel(sheet, Color(0.05, 0.05, 0.075, 0.97), UI_GOLD)
     _panel(Rect2(360, 34, 240, 30), Color("#241a30"), UI_GOLD)
@@ -6587,7 +6606,7 @@ func _start_floor(i: int) -> void:
 
 
 func _draw_floors() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0.012, 0.01, 0.02, 0.8))
+    draw_rect(_full_rect(), Color(0.012, 0.01, 0.02, 0.8))
     var panel := Rect2(80, 64, 800, 508)
     _panel(panel, Color(0.035, 0.03, 0.045, 0.95), UI_GOLD)
     _title_text("Los Pisos", Vector2(80, 112), 48, CREAM, panel.size.x)
@@ -6844,7 +6863,7 @@ func _open_floor_summary(eco: String) -> void:
 
 
 func _draw_floor_summary() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0.012, 0.01, 0.02, 0.82))
+    draw_rect(_full_rect(), Color(0.012, 0.01, 0.02, 0.82))
     var panel := Rect2(170, 70, 620, 500)
     _panel(panel, Color(0.035, 0.03, 0.045, 0.96), UI_GOLD)
     _title_text("Piso %s superado" % summary.get("floor", ""), Vector2(170, 124), 48, CREAM, panel.size.x)
@@ -8298,7 +8317,7 @@ func _touch_button_at(at: Vector2) -> String:
     var best: String = ""
     var best_d: float = INF
     for id in TOUCH_BUTTONS:
-        var d: float = at.distance_to(TOUCH_BUTTONS[id][0])
+        var d: float = at.distance_to(_tb_pos(id))
         if d <= float(TOUCH_BUTTONS[id][1]) + 12.0 and d < best_d:
             best = id
             best_d = d
@@ -9609,7 +9628,7 @@ func _deaths_on_floor(i: int) -> int:
 
 
 func _draw_map() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.72))
+    draw_rect(_full_rect(), Color(0, 0, 0, 0.72))
     _panel(MAP_PANEL, Color(0.035, 0.032, 0.045, 0.97), UI_GOLD)
     _title_text("Mapa", Vector2(MAP_PANEL.position.x, MAP_PANEL.position.y + 44.0), 40, CREAM, MAP_PANEL.size.x)
     var names := ["ESTE PISO", "DESCENSO"]
@@ -9888,7 +9907,7 @@ func _choice_tap(at: Vector2) -> void:
 
 
 func _draw_choice() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.62))
+    draw_rect(_full_rect(), Color(0, 0, 0, 0.62))
     var panel := Rect2(170, 170, 620, 300)
     _panel(panel, Color(0.04, 0.035, 0.05, 0.97), UI_GOLD)
     _text_outline(str(choice.get("speaker", "")), Vector2(panel.position.x, panel.position.y + 34.0), 16, UI_GOLD, panel.size.x)
@@ -9936,3 +9955,152 @@ func _draw_guides_request() -> void:
         if player_pos.distance_to(ally["pos"]) < 72.0:
             near = true
     _label_center(_prompt("HABLAR: PIDEN AYUDA") if near else "EL GRUPO PIDE AYUDA", lead + Vector2(0, -118), Color("#ffd36b"))
+
+
+
+# ------------------------------------------------------------ PANTALLA COMPLETA REAL
+## El juego se dibuja en 960x640, pero la ventana usa «expand»: en cualquier
+## pantalla (teléfono 20:9, tableta 4:3, portátil 16:9) se llena todo. La
+## zona de juego queda centrada (sin deformar el pixel art) y lo que sobra
+## no es negro: se rellena con la propia sala, ampliada y en penumbra. Los
+## controles táctiles se pegan a los bordes reales de la pantalla.
+var screen_pad: Vector2 = Vector2.ZERO # margen a cada lado (en píxeles del juego)
+var backdrop_rect: TextureRect
+var backdrop_shade: ColorRect
+
+
+func _setup_fullscreen() -> void:
+    var layer := CanvasLayer.new()
+    layer.layer = -1 # por debajo de todo
+    add_child(layer)
+    backdrop_rect = TextureRect.new()
+    backdrop_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    backdrop_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+    backdrop_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    backdrop_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    backdrop_rect.modulate = Color(0.42, 0.4, 0.48)
+    layer.add_child(backdrop_rect)
+    backdrop_shade = ColorRect.new()
+    backdrop_shade.color = Color(0.02, 0.018, 0.03, 0.55)
+    backdrop_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    layer.add_child(backdrop_shade)
+    get_viewport().size_changed.connect(_fit_screen)
+    _fit_screen()
+
+
+## Toda la pantalla, en coordenadas del juego (incluye los márgenes).
+func _full_rect() -> Rect2:
+    return Rect2(-screen_pad, Vector2(W, H) + screen_pad * 2.0)
+
+
+func _fit_screen() -> void:
+    var view: Vector2 = get_viewport_rect().size
+    screen_pad = ((view - Vector2(W, H)) * 0.5).floor().max(Vector2.ZERO)
+    if DisplayServer.get_name() == "headless":
+        screen_pad = Vector2.ZERO # sin pantalla (pruebas automáticas): disposición base
+    position = screen_pad
+    if name_edit != null:
+        name_edit.position = NAME_BOX.position + screen_pad
+    if mobile_finger < 0:
+        joy_center = _joy_home()
+    for r in [backdrop_rect, backdrop_shade, post_rect, trans_rect]:
+        if r != null:
+            (r as Control).position = Vector2.ZERO
+            (r as Control).size = view
+    _update_backdrop()
+    queue_redraw()
+
+
+func _update_backdrop() -> void:
+    if backdrop_rect == null:
+        return
+    var scene_i: int = int(_room().get("scene", 0)) if not FLOORS.is_empty() else 0
+    var path: String = "res://assets/visual/rooms/room_%d.png" % scene_i
+    if ResourceLoader.exists(path):
+        backdrop_rect.texture = load(path)
+
+
+## Botones táctiles: anclados a la esquina inferior derecha real de la pantalla.
+func _tb_pos(id: String) -> Vector2:
+    return Vector2(TOUCH_BUTTONS[id][0]) + screen_pad
+
+
+## Joystick: anclado a la esquina inferior izquierda real de la pantalla.
+func _joy_home() -> Vector2:
+    return JOY_HOME + Vector2(-screen_pad.x, screen_pad.y)
+
+
+
+# ------------------------------------------------------------ TECLADO DEL MÓVIL
+## En pantallas táctiles, un campo de texto nativo (invisible) va encima del
+## recuadro del nombre: al tocarlo se abre el teclado del teléfono. Lo que se
+## escribe pasa por el mismo filtro que el teclado del juego (mayúsculas,
+## letras y como mucho NAME_MAX). El teclado en pantalla sigue funcionando.
+const NAME_BOX := Rect2(300, 182, 360, 54)
+var name_edit: LineEdit
+var name_edit_layer: CanvasLayer
+
+
+func _name_edit_open() -> void:
+    if not touch_enabled or create_step != 0:
+        return
+    if name_edit == null:
+        name_edit_layer = CanvasLayer.new()
+        name_edit_layer.layer = 3
+        add_child(name_edit_layer)
+        name_edit = LineEdit.new()
+        name_edit.modulate = Color(1, 1, 1, 0.0) # se ve el recuadro del juego, no el campo
+        name_edit.max_length = NAME_MAX
+        name_edit.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_DEFAULT
+        name_edit.context_menu_enabled = false
+        name_edit.text_changed.connect(_on_name_edit_changed)
+        name_edit.text_submitted.connect(func(_t): _create_next())
+        name_edit_layer.add_child(name_edit)
+    name_edit.position = NAME_BOX.position + screen_pad
+    name_edit.size = NAME_BOX.size
+    name_edit.visible = true
+    _name_edit_sync()
+    _name_edit_focus()
+
+
+func _name_edit_focus() -> void:
+    if name_edit == null or not name_edit.visible:
+        return
+    name_edit.grab_focus()
+    name_edit.caret_column = name_edit.text.length()
+    if DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+        DisplayServer.virtual_keyboard_show(name_edit.text, Rect2(NAME_BOX.position + screen_pad, NAME_BOX.size), DisplayServer.KEYBOARD_TYPE_DEFAULT, NAME_MAX)
+
+
+func _name_edit_close() -> void:
+    if name_edit == null:
+        return
+    name_edit.release_focus()
+    name_edit.visible = false
+    if DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+        DisplayServer.virtual_keyboard_hide()
+
+
+func _name_edit_sync() -> void:
+    if name_edit != null and name_edit.text != create_buf:
+        name_edit.text = create_buf
+        name_edit.caret_column = create_buf.length()
+
+
+func _on_name_edit_changed(new_text: String) -> void:
+    var before: String = create_buf
+    create_buf = ""
+    for ch in new_text:
+        if create_buf.length() >= NAME_MAX:
+            break
+        var up: String = ch.to_upper()
+        var code: int = up.unicode_at(0)
+        if not ((code >= 65 and code <= 90) or up in "ÁÉÍÓÚÜÑ -'"):
+            continue
+        if up == " " and (create_buf == "" or create_buf.ends_with(" ")):
+            continue
+        create_buf += up
+    if create_buf != before:
+        _sfx("toque", -14.0, 1.1)
+    _name_edit_sync()
+    queue_redraw()
