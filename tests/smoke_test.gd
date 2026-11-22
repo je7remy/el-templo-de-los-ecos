@@ -198,6 +198,20 @@ func _run_checks() -> void:
     game.call("_dialog_skip") # las conversaciones se leen con clic
     game.set("pilgrim_traitor", true)
     game.set("pilgrim_state", "follow")
+    # Mientras te acompaña no se le puede tocar (golpes a las alimañas, Resonancia).
+    var php: float = float(game.get("pilgrim_hp"))
+    game.call("_damage_pilgrim", 10.0)
+    game.set("player_pos", Vector2(game.get("pilgrim_pos")) + Vector2(-30, 0))
+    game.set("player_dir", Vector2.RIGHT)
+    game.set("has_torch", true)
+    game.set("torch_on", true)
+    game.set("strike_cd", 0.0)
+    game.set("stamina", 100.0)
+    game.call("_torch_strike")
+    if game.get("pilgrim_state") != "follow" or float(game.get("pilgrim_hp")) != php:
+        _fail("Un golpe por accidente destapa la traición del Peregrino.")
+        return
+    game.set("torch_on", false)
     var got: Array = game.get("collected")
     for k in range(got.size()):
         got[k] = true # el array tipado se modifica en su sitio
