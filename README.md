@@ -157,7 +157,7 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.5.0-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.0-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
+Puedes descargar el [APK de prueba de v0.5.1-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.1-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
 
 La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
@@ -296,4 +296,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.0-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.1-alpha** (se publica al fusionar esta versión en `main`).

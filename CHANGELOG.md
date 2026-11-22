@@ -9,7 +9,7 @@
 - **Android al día:** versión 0.5.0-alpha (código 7). Al fusionar en `main`, el CI compila el APK y publica la prerelease `v0.5.0-alpha` con él. Si esa versión ya existe, no la toca. Hay que desinstalar la versión anterior del teléfono antes de instalar la nueva.
 - Mando: SELECT abre el mapa; el perfil sigue en LB.
 
-## En `main` (sin nuevo release) — 2026-11-22 · Experiencia de juego: Vigilia por llave, puntos de control y PNJ vivos
+## v0.5.1-alpha — 2026-11-22 · Experiencia de juego: Vigilia por llave, puntos de control y PNJ vivos
 
 - **La Vigilia se compra.** El Mercader Silencioso (Piso VI) vende la **llave de la Vigilia** por 500 almas (más si llevas la maldición; nunca menos). Hasta entonces, el botón del menú sale como «BLOQUEADA». Así el botín que da la Vigilia (fósforos, pan…) llega cuando ya tiene sentido en la campaña.
 - **Las almas se guardan** entre partidas y sesiones: son tu moneda. Borrar el perfil las pone a cero.
