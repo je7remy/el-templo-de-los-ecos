@@ -437,6 +437,20 @@ def eco_memoria() -> Image.Image:
     return i.fin()
 
 
+def eco_fuerza() -> Image.Image:
+    """Piso IX: puño de piedra sobre una pila de ecos."""
+    i = Icono()
+    for k in range(4):
+        i.e(5 + k * 6, 23, 11 + k * 6, 29, c("#8fc7d7"))
+    i.r(9, 7, 23, 21, c("#7d7a72"))
+    i.r(9, 7, 23, 10, c("#a8a49a"))
+    for x in (12, 16, 20):
+        i.ln([(x, 7), (x, 13)], c("#4f4c47"))
+    i.r(5, 12, 9, 19, c("#7d7a72"))
+    i.ln([(14, 15), (18, 19)], c("#e3bd7b"))
+    return i.fin()
+
+
 def vial() -> Image.Image:
     """Vial de sangre (botín de la Vigilia)."""
     i = Icono()
@@ -585,7 +599,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "eco_serena": eco_serena, "eco_memoria": eco_memoria, "vial": vial, "incienso": incienso, "bolsa_almas": bolsa_almas, "reliquia": reliquia, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "eco_serena": eco_serena, "eco_memoria": eco_memoria, "eco_fuerza": eco_fuerza, "vial": vial, "incienso": incienso, "bolsa_almas": bolsa_almas, "reliquia": reliquia, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
 }
 
 

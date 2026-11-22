@@ -1,5 +1,17 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Tanda C: Piso IX, jefes y enemigos más fuertes
+
+- **Piso IX · El Coloso del Pórtico** (cuatro salas: Nave de los Arietes, Galería Agrietada, Pórtico del Coloso y Vitral Roto).
+  - **Arietes de Piedra** (enemigo nuevo, sprite original): golems con cuernos, de piedra. Si te alineas con uno en horizontal o vertical se prepara 0,6 s (línea roja) y embiste en línea recta (28 de daño y empujón). Si choca contra un muro o una columna queda aturdido 2 s, y solo entonces se rompe con golpes.
+  - **El Coloso** (jefe, sprite original): estatua viva inmune a golpes y a la Resonancia. Pisotón con aviso (círculo rojo, 32 de daño). Hay que atraerlo junto a una de las cuatro **columnas agrietadas** y golpearla: cae sobre él. Tres columnas lo derriban; con cada una camina y pisa más rápido. Barra de jefe con tres segmentos.
+  - **Eco Fuerza acumulada**: el golpe hace un 4 % más de daño por cada Eco que tienes.
+  - **Verdad**: tras el vitral roto, un ala inmensa; el dueño del templo es un ángel caído.
+- **Enemigos más fuertes cuanto más abajo**: Ghoul, Testigo, Hechicero, Segador, Tejedora, mastines y la Vigía tienen +12 % de vida y daño por cada piso de profundidad (el Ghoul y el Testigo del Piso VIII son casi el doble de duros que los del Piso I).
+- **Reestructuración, primer paso**: los datos de los pisos, las conversaciones y las verdades pasan a `scripts/datos/pisos.gd`. Plan para separar el resto en escenas en `docs/ARQUITECTURA.md`.
+- Arreglo: el ataque de la Vigía ya no aplicaba dos veces la reducción de Piel curtida.
+- Valores provisionales (vida y velocidad de Arietes y Coloso, radio de las columnas, escalado por piso).
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Tanda B: Vigilia por fases con botín
 
 - **Nuevo aspecto** (estilo de defensa de cuarto, con arte e interfaz propios):

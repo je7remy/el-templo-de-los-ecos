@@ -903,6 +903,88 @@ func _run_checks() -> void:
     game.set("game_mode", "play")
     print("OK: Piso VIII, salas cambiadas, Testigo invertido, sello movido y Memoria de eco.")
 
+    # Más abajo, más fuertes: el Ghoul del Piso VIII tiene más vida que el del Piso I.
+    game.set("current_floor", 7)
+    game.set("current_room", 2)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    var deep_hp: float = float(game.get("enemy_max"))
+    game.set("current_floor", 0)
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    if deep_hp <= float(game.get("enemy_max")):
+        _fail("Las entidades no son más fuertes en los pisos profundos.")
+        return
+    # Piso IX: Arietes de Piedra y el Coloso.
+    game.set("current_floor", 8)
+    game.set("current_room", 0)
+    game.call("_on_floor_start")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("has_torch", true)
+    game.set("torch_on", true)
+    var rs: Array = game.get("rams")
+    if rs.size() != 2:
+        _fail("La Nave de los Arietes no tiene sus dos Arietes.")
+        return
+    game.set("player_pos", Vector2(rs[0]["pos"]) + Vector2(-200, 0))
+    rs[0]["cd"] = 0.0
+    game.call("_update_rams", 0.016)
+    if str(rs[0]["state"]) != "aim":
+        _fail("El Ariete no se prepara al alinearte con él.")
+        return
+    rs[0]["state"] = "stun"
+    rs[0]["t"] = 2.0
+    rs[0]["hp"] = 1.0
+    game.set("player_pos", Vector2(rs[0]["pos"]) + Vector2(-40, 0))
+    game.set("player_dir", Vector2.RIGHT)
+    game.set("strike_cd", 0.0)
+    game.set("stamina", 100.0)
+    game.call("_torch_strike")
+    if (game.get("rams") as Array).size() != 1:
+        _fail("El Ariete aturdido no se rompe con el golpe.")
+        return
+    game.set("current_room", 2)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("torch_on", true)
+    if not bool(game.get("colossus_active")) or bool(game.call("_room_ready")):
+        _fail("El Pórtico del Coloso no tiene al Coloso o abre sin derribarlo.")
+        return
+    var cols: Array = game.get("pillars")
+    game.set("colossus_pos", Vector2(480, 470))
+    game.set("player_pos", Vector2(cols[0]["pos"]) + Vector2(30, 0))
+    game.set("player_dir", Vector2.LEFT)
+    game.set("strike_cd", 0.0)
+    game.call("_torch_strike")
+    if bool(cols[0]["fallen"]):
+        _fail("La columna cae aunque el Coloso esté lejos.")
+        return
+    for k in range(3):
+        game.set("colossus_pos", Vector2(cols[k]["pos"]) + Vector2(60, 0))
+        game.set("player_pos", Vector2(cols[k]["pos"]) + Vector2(-30, 0))
+        game.set("player_dir", Vector2.RIGHT)
+        game.set("strike_cd", 0.0)
+        game.set("stamina", 100.0)
+        game.call("_torch_strike")
+    if bool(game.get("colossus_active")) or not bool(game.call("_room_ready")):
+        _fail("Tres columnas no derriban al Coloso o la puerta no se abre.")
+        return
+    var base_dmg: float = float(game.call("_strike_damage"))
+    game.set("ecos", ["fuerza", "piel", "paso"])
+    if float(game.call("_strike_damage")) <= base_dmg:
+        _fail("Fuerza acumulada no aumenta el golpe.")
+        return
+    game.set("ecos", [])
+    game.set("torch_on", false)
+    game.call("_on_floor_start")
+    game.set("current_floor", 0)
+    game.set("game_mode", "play")
+    print("OK: Piso IX, Arietes, Coloso, columnas y enemigos más fuertes en lo profundo.")
+
     # Cerrar el juego pregunta antes (autoload ConfirmarSalida) y pausa mientras tanto.
     var confirm: Node = root.get_node_or_null("ConfirmarSalida")
     if confirm == null:

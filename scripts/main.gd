@@ -33,195 +33,8 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ##   vines (opcional): tramos de enredadera seca que arden y propagan el fuego.
 ##           Rasgo "raices_puerta": raíces vivas tapan la puerta; solo arden
 ##           si les llega el fuego de las secas.
-const FLOORS := [
-    {
-        "number": "I", "title": "EL DESPERTAR", "state": "TEMPLO CONSERVADO", "wear": 0.0,
-        "eco": "respiracion",
-        "rooms": [
-            {"scene": 0, "name": "I · UMBRAL DEL DESPERTAR", "enemy": "", "traits": ["tutorial"],
-             "whisper": "Una inscripción dice: 'La esperanza es parte del mecanismo'.",
-             "items": [["madera", "Madera", Vector2(300, 470)], ["fosforos", "Fosforos", Vector2(660, 470)]]},
-            {"scene": 1, "name": "II · CLAUSTRO DE LAS OFRENDAS", "enemy": "ghoul", "traits": ["altar"],
-             "whisper": "Las piedras tienen marcas de quienes estuvieron antes que tú.", "items": [],
-             "mission": {"goal": "desterrar", "required": true, "reward": 8, "text": "Destierra al Ghoul de brasas"}},
-            {"scene": 2, "name": "III · SALA DEL TESTIGO", "enemy": "testigo", "traits": ["sello"],
-             "whisper": "No todos los ojos necesitan luz para verte.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "mission": {"goal": "desterrar", "required": false, "reward": 12, "text": "Destierra al Testigo"}},
-            {"scene": 3, "name": "IV · ARCHIVO DE LOS AUSENTES", "enemy": "hechicero", "traits": ["archivo"],
-             "whisper": "Algunas cartas parecen escritas por personas que regresaron.",
-             "items": [["fosforos", "Fosforos", Vector2(230, 460)]],
-             "mission": {"goal": "desterrar", "required": true, "reward": 10, "text": "Destierra al Hechicero del archivo"}},
-            {"scene": 4, "name": "V · PÓRTICO DEL SIGUIENTE PISO", "enemy": "", "traits": [],
-             "whisper": "Esto no es una salida. Es una transición.", "items": [],
-             "traps": [Vector2(350, 350), Vector2(610, 350), Vector2(290, 500), Vector2(670, 500)],
-             "inscription": [Vector2(480, 300), "Los que cruzaron antes dejaron sus nombres en la piedra. Ninguno dejó una salida."]},
-        ],
-    },
-    {
-        # Inspiración: la traición durante la recolección de almas.
-        "number": "II", "title": "LOS PEREGRINOS", "state": "PRIMERAS GRIETAS", "wear": 1.0,
-        "eco": "nuca",
-        "rooms": [
-            {"scene": 0, "name": "I · ATRIO DE LOS PEREGRINOS", "enemy": "", "traits": ["almas", "peregrino"],
-             "whisper": "Alguien más respira en la oscuridad.", "items": []},
-            {"scene": 2, "name": "II · NAVE DEL AGUA", "enemy": "", "traits": ["almas"],
-             "whisper": "El agua corre hacia abajo. Las almas también.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "traps": [Vector2(320, 380), Vector2(640, 380), Vector2(380, 470), Vector2(580, 470)],
-             "inscription": [Vector2(330, 182), "El agua baja. Las almas también. Todo baja hacia algo que tiene hambre."]},
-            {"scene": 4, "name": "III · CRIPTA DEL REPARTO", "enemy": "", "traits": ["almas", "cosecha"],
-             "whisper": "Aquí se reparte lo reunido. Siempre sobra alguien.", "items": []},
-            {"scene": 3, "name": "IV · UMBRAL DEL TERCER PISO", "enemy": "", "traits": [],
-             "whisper": "Nadie llega a esta puerta acompañado.", "items": []},
-        ],
-    },
-    {
-        # Inspiración: la misión «matar al rápido», en grupo y con bajas.
-        "number": "III", "title": "LA CACERÍA", "state": "EL TEMPLO TIENE HAMBRE", "wear": 1.5,
-        "eco": "reflejos",
-        "rooms": [
-            {"scene": 1, "name": "I · CLAUSTRO DEL ENCARGO", "enemy": "", "traits": ["aliados"],
-             "whisper": "Una voz sin boca: «Cazad al rápido. Solo entonces bajaréis».",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "inscription": [Vector2(330, 182), "La caza es una ofrenda. El cazador, también."]},
-            {"scene": 2, "name": "II · NAVE DE LOS HILOS", "enemy": "segador", "traits": ["caza", "huida"],
-             "whisper": "Algo cruza la nave más rápido que tu luz.", "items": [],
-             "mission": {"goal": "ahuyentar", "required": true, "reward": 6, "text": "Hiere al Segador hasta que huya"}},
-            {"scene": 3, "name": "III · CORO DESGARRADO", "enemy": "segador", "traits": ["caza"],
-             "whisper": "Hilos rojos cuelgan de cada columna. Siguen tensos.",
-             "items": [["fosforos", "Fosforos", Vector2(230, 460)]],
-             "traps": [Vector2(330, 455), Vector2(630, 455), Vector2(250, 320), Vector2(710, 320)],
-             "mission": {"goal": "desterrar", "required": true, "reward": 15, "text": "Mata al Segador de Hilos"}},
-            {"scene": 4, "name": "IV · UMBRAL DEL CUARTO PISO", "enemy": "", "traits": ["recuento"],
-             "whisper": "Los que siguen vivos cuentan los pasos de los que no.", "items": []},
-        ],
-    },
-    {
-        # Inspiración: las arañas de árbol, vencidas con fuego.
-        "number": "IV", "title": "EL CLAUSTRO ENRAIZADO", "state": "LA PIEDRA SE AGRIETA", "wear": 1.8,
-        "eco": "piel",
-        "rooms": [
-            {"scene": 0, "name": "I · ATRIO DE LAS RAÍCES", "enemy": "", "traits": ["raices_puerta"],
-             "whisper": "Raíces vivas sellan la puerta. Las secas, en cambio, arden.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "vines": [[Vector2(200, 470), Vector2(800, 470)], [Vector2(800, 470), Vector2(830, 410)]]},
-            {"scene": 1, "name": "II · CLAUSTRO ENRAIZADO", "enemy": "tejedora", "traits": [],
-             "whisper": "Algo cruje entre las columnas, como un árbol que camina.", "items": [],
-             "vines": [[Vector2(140, 410), Vector2(840, 410)], [Vector2(140, 530), Vector2(840, 530)],
-                 [Vector2(300, 410), Vector2(300, 530)], [Vector2(660, 410), Vector2(660, 530)]],
-             "mission": {"goal": "desterrar", "required": true, "reward": 12, "text": "Quema a la Tejedora de Raíz"}},
-            {"scene": 2, "name": "III · JARDÍN DE CENIZA", "enemy": "tejedora", "traits": [],
-             "whisper": "Aquí ya ardió algo antes. Las raíces volvieron a crecer.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "vines": [[Vector2(120, 380), Vector2(840, 380)], [Vector2(140, 172), Vector2(840, 172)],
-                 [Vector2(260, 172), Vector2(260, 380)], [Vector2(700, 172), Vector2(700, 380)]],
-             "mission": {"goal": "desterrar", "required": true, "reward": 14, "text": "Quema a la segunda Tejedora"}},
-            {"scene": 4, "name": "IV · MURO DE LOS NOMBRES", "enemy": "", "traits": [],
-             "whisper": "La pared está cubierta de nombres grabados a uña.", "items": [],
-             "inscription": [Vector2(480, 350), "Cientos de nombres de quienes volvieron. Entre ellos, recién grabado, reconoces el tuyo: {yo}."]},
-        ],
-    },
-    {
-        # Inspiración: el laberinto de los leones enmascarados, demasiado fuertes para ese piso.
-        "number": "V", "title": "EL LABERINTO DE LOS MASTINES", "state": "SE OYEN UÑAS DE BRONCE", "wear": 1.6,
-        "eco": "paso", "fuel": 25.0,
-        "rooms": [
-            {"scene": 0, "name": "V-1 · CORREDOR DE LOS RELICARIOS", "enemy": "", "traits": [],
-             "whisper": "Uñas de bronce sobre la piedra. No te acerques a oscuras.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "walls": [Rect2(250, 384, 180, 16), Rect2(552, 170, 16, 120), Rect2(612, 420, 16, 132)],
-             "hounds": [Vector2(480, 470), Vector2(720, 200)]},
-            {"scene": 1, "name": "V-2 · GALERÍA DEL MANTO", "enemy": "", "traits": [],
-             "whisper": "Alguien grita entre los muros. Los perros también lo oyen.", "items": [],
-             "walls": [Rect2(150, 420, 200, 16), Rect2(560, 420, 220, 16), Rect2(400, 170, 16, 90), Rect2(620, 480, 16, 72)],
-             "hounds": [Vector2(300, 300), Vector2(800, 520)], "rescue": Vector2(700, 470),
-             "mission": {"goal": "rescatar", "required": false, "reward": 10, "text": "Corta el manto del peregrino atrapado"}},
-            {"scene": 3, "name": "V-3 · PERRERA DE BRONCE", "enemy": "", "traits": ["almas"],
-             "whisper": "Huesos roídos. Aquí comen los mastines.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "walls": [Rect2(160, 460, 16, 92), Rect2(784, 460, 16, 92), Rect2(380, 180, 200, 16)],
-             "hounds": [Vector2(480, 470), Vector2(150, 300), Vector2(820, 250)]},
-            {"scene": 2, "name": "V-4 · CANALES DE ALMAS", "enemy": "", "traits": [],
-             "whisper": "Surcos en el suelo. Algo azul corre por ellos, hacia abajo.", "items": [],
-             "walls": [Rect2(300, 440, 16, 112), Rect2(644, 440, 16, 112)],
-             "hounds": [Vector2(800, 470)], "mask": Vector2(480, 300),
-             "channels": [[Vector2(140, 520), Vector2(840, 520)], [Vector2(480, 330), Vector2(480, 520)], [Vector2(140, 200), Vector2(140, 520)]],
-             "mission": {"goal": "mascara", "required": true, "reward": 8, "text": "Toma la Máscara de Porcelana"}},
-        ],
-    },
-    {
-        # Inspiración: el vendedor ambulante y el protagonista que se vuelve líder.
-        # Piso de respiro: sin entidades. La regla es del Mercader.
-        "number": "VI", "title": "LA OFRENDA", "state": "EL TEMPLO CONTIENE EL ALIENTO", "wear": 1.2,
-        "eco": "huesos",
-        "rooms": [
-            {"scene": 0, "name": "VI-1 · ATRIO DE LOS GUÍAS", "enemy": "", "traits": ["guias"],
-             "whisper": "Voces bajas junto a la estatua. Por primera vez, nadie grita.",
-             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
-             "guides": [Vector2(250, 480), Vector2(320, 515), Vector2(390, 480), Vector2(180, 430)],
-             "mission": {"goal": "guiar", "required": false, "reward": 6, "text": "Acepta guiar a los peregrinos"}},
-            {"scene": 1, "name": "VI-2 · PUESTO DEL MERCADER", "enemy": "", "traits": ["mercader"],
-             "whisper": "Una figura alta y quieta. Delante, un cuenco vacío.", "items": [],
-             "merchant": Vector2(480, 360),
-             "inscription": [Vector2(250, 470), "Se paga primero. Nunca metas la mano bajo su manto: lo que hay debajo no es tuyo, y tu mano tampoco lo será."]},
-            {"scene": 3, "name": "VI-3 · REFECTORIO VACÍO", "enemy": "", "traits": [],
-             "whisper": "Mesas largas y platos limpios. Aquí comía alguien. O algo.",
-             "items": [["pan", "Pan", Vector2(250, 470)]],
-             "inscription": [Vector2(700, 470), "Aquí no se servía pan. Se servía miedo. Y lo que come arriba engorda con cada desesperanza."]},
-            {"scene": 4, "name": "VI-4 · ESCALERA DEL SÉPTIMO", "enemy": "", "traits": ["despedida"],
-             "whisper": "Peldaños que bajan hacia un silencio que mira.", "items": []},
-        ],
-    },
-    {
-        # Inspiración: la sala de la mirada; mueren quienes gritan o se adelantan.
-        "number": "VII", "title": "LA QUE NO APARTA LA VISTA", "state": "ALGO TE MIRA SIN PARPADEAR", "wear": 1.9,
-        "eco": "serena", "followers": true,
-        "rooms": [
-            {"scene": 0, "name": "VII-1 · ANTESALA DE LOS OJOS", "enemy": "", "traits": [],
-             "whisper": "Las estatuas tienen los ojos arrancados. Alguien los coleccionó.",
-             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
-             "inscription": [Vector2(480, 470), "Mírala. No corras. No le des la espalda. Quien grita, se queda."]},
-            {"scene": 2, "name": "VII-2 · SALA DE LA MIRADA", "enemy": "", "traits": [],
-             "whisper": "Un yelmo flota en la penumbra. Debajo, una hilera de ojos se abre.", "items": [],
-             "gaze": 45.0,
-             "mission": {"goal": "mirada", "required": true, "reward": 10, "text": "Aguanta su mirada 45 s"}},
-            {"scene": 1, "name": "VII-3 · CORO DE LOS CIEGOS", "enemy": "", "traits": ["almas"],
-             "whisper": "Hay almas en el suelo. Para recogerlas tendrás que moverte sin dejar de mirarla.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "gaze": 60.0,
-             "mission": {"goal": "mirada", "required": true, "reward": 14, "text": "Aguanta su mirada 60 s"}},
-            {"scene": 4, "name": "VII-4 · UMBRAL DEL OCTAVO", "enemy": "", "traits": ["recuento_guias"],
-             "whisper": "Detrás, los ojos se cierran. Delante, el templo empieza a cambiar.", "items": []},
-        ],
-    },
-    {
-        # Inspiración: L.A.G. cambia y la memoria del protagonista falla.
-        # Las salas del Piso I, alteradas: estatuas del revés, el Testigo con
-        # la regla invertida, el sello en otra sala y pistas falsas «tuyas».
-        "number": "VIII", "title": "EL TEMPLO QUE CAMBIA", "state": "ESTO YA LO HAS VISTO. ¿O NO?", "wear": 0.4,
-        "eco": "memoria", "mirror": true, "inverted": true,
-        "rooms": [
-            {"scene": 0, "name": "VIII-1 · UMBRAL QUE NO RECUERDAS", "enemy": "", "traits": [],
-             "whisper": "Conoces esta sala. Pero las estatuas miran hacia el otro lado.",
-             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
-             "inscription": [Vector2(480, 470), "{yo}: soy tú, de otra vida. El sello sigue en la Sala del Testigo. Cuando abra el ojo, quédate quieto. Confía en mí."]},
-            {"scene": 2, "name": "VIII-2 · SALA DEL TESTIGO", "enemy": "testigo", "traits": ["almas"],
-             "whisper": "El ojo del muro te sigue. Esta vez parece esperar a que te detengas.", "items": [],
-             "mission": {"goal": "desterrar", "required": false, "reward": 14, "text": "Destierra al Testigo invertido"}},
-            {"scene": 3, "name": "VIII-3 · ARCHIVO QUE SE REESCRIBE", "enemy": "ghoul", "traits": ["sello", "archivo"],
-             "whisper": "El sello está aquí, sobre los papeles. No donde decía la inscripción.",
-             "items": [["fosforos", "Fosforos", Vector2(230, 460)]],
-             "seal": Vector2(480, 440),
-             "letter": "Carta con tu letra: 'No confíes en las inscripciones. Las escribí yo... ¿o el templo escribió con mi mano?'",
-             "mission": {"goal": "desterrar", "required": false, "reward": 10, "text": "Destierra al Ghoul del archivo"}},
-            {"scene": 4, "name": "VIII-4 · PÓRTICO QUE NO ES EL MISMO", "enemy": "", "traits": [],
-             "whisper": "La inscripción del pórtico ha cambiado. Esta vez dice la verdad.", "items": [],
-             "traps": [Vector2(290, 350), Vector2(670, 350), Vector2(350, 500), Vector2(610, 500)],
-             "inscription": [Vector2(480, 300), "Esto no es un templo. Es una fábrica: el miedo entra, las almas salen. Y tú eres parte del turno."]},
-        ],
-    },
-]
+const Pisos := preload("res://scripts/datos/pisos.gd")
+const FLOORS = Pisos.FLOORS
 
 const RELICS := [
     Vector2(280, 245), Vector2(500, 465), Vector2(725, 230)
@@ -262,6 +75,7 @@ const ICONS := {
     "eco_huesos": preload("res://assets/visual/iconos/eco_huesos.png"),
     "eco_serena": preload("res://assets/visual/iconos/eco_serena.png"),
     "eco_memoria": preload("res://assets/visual/iconos/eco_memoria.png"),
+    "eco_fuerza": preload("res://assets/visual/iconos/eco_fuerza.png"),
     "pan": preload("res://assets/visual/iconos/pan.png"),
     "brazalete": preload("res://assets/visual/iconos/brazalete.png"),
     "amuleto": preload("res://assets/visual/iconos/amuleto.png"),
@@ -313,6 +127,7 @@ const ECOS := {
     "huesos": ["HUESOS FIRMES", "Una vez por piso, un golpe mortal te deja con 1 de vida."],
     "serena": ["MENTE SERENA", "El miedo al máximo ya no te hace daño."],
     "memoria": ["MEMORIA DE ECO", "Ves tu silueta donde moriste en otras vidas."],
+    "fuerza": ["FUERZA ACUMULADA", "Tu golpe hace un 4 % más de daño por cada Eco que tienes."],
 }
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
@@ -856,7 +671,7 @@ func _enter_room() -> void:
     for entry in _room()["items"]:
         if not items_taken.has("%s:%s" % [_room_key(), entry[0]]):
             room_items.append({"kind": entry[0], "pos": _marker(entry[1], entry[2])})
-    enemy_max = maxf(1.0, float(ENEMY_MAX_HP.get(_enemy_kind(), 1.0)))
+    enemy_max = maxf(1.0, float(ENEMY_MAX_HP.get(_enemy_kind(), 1.0)) * _depth_mult()) # más fuertes cuanto más abajo
     enemy_hp = enemy_max
     if _enemy_kind() == "segador":
         _segador_enter_room()
@@ -874,6 +689,7 @@ func _enter_room() -> void:
     _load_labyrinth()
     _load_merchant()
     _load_gaze()
+    _load_colossus_room()
     if _fountain_here():
         obstacles.append(Rect2(FOUNTAIN_POS.x - 12.0, FOUNTAIN_POS.y - 10.0, 24.0, 10.0))
     door_state = "unknown"
@@ -1936,6 +1752,7 @@ func _torch_strike() -> bool:
                 pilgrim_pos = shove
     _try_ignite(player_pos + strike_dir * 28.0)
     _strike_hounds_and_rescue()
+    _strike_rams_and_pillars()
     for cr in critters:
         if bool(cr["alive"]):
             var to_c: Vector2 = Vector2(cr["pos"]) - player_pos
@@ -2322,6 +2139,8 @@ func _update_play(dt: float) -> void:
     _update_regen(dt)
     _update_offering(dt)
     _update_gaze(dt)
+    _update_rams(dt)
+    _update_colossus(dt)
     if hp <= 0.0 and ecos.has("huesos") and not bones_used:
         _bones_hold()
     if hp <= 0.0:
@@ -2401,7 +2220,7 @@ func _update_enemy(dt: float) -> void:
             ball["life"] = float(ball["life"]) - dt
             if p.distance_to(player_pos) < 23.0:
                 if damage_cd <= 0.0:
-                    hp -= 25.0
+                    hp -= 25.0 * _depth_mult()
                     fear = minf(100.0, fear + 13.0)
                     damage_cd = 1.1
                     _say("El conjuro te alcanza. Busca cobertura.", 2.6)
@@ -2413,7 +2232,7 @@ func _update_enemy(dt: float) -> void:
                 fireballs[i] = ball
     if (_enemy_kind() == "ghoul" or _enemy_kind() == "testigo") and enemy_alert and enemy_stun <= 0.0:
         if enemy_pos.distance_to(player_pos) < 31.0 and damage_cd <= 0.0:
-            hp -= 33.0 if _enemy_kind() == "ghoul" else 42.0
+            hp -= (33.0 if _enemy_kind() == "ghoul" else 42.0) * _depth_mult()
             fear = minf(100.0, fear + 21.0)
             damage_cd = 1.5
             var away := (player_pos - enemy_pos).normalized()
@@ -2541,6 +2360,7 @@ func _draw_room() -> void:
     _draw_labyrinth_glow()
     _draw_merchant_glow()
     _draw_mark_aura()
+    _draw_ram_warnings()
     _draw_critter_eyes()
     _draw_light_rays()
     _draw_fog()
@@ -2740,6 +2560,12 @@ func _draw_depth_sorted() -> void:
         items.append([Vector2(_room()["merchant"]).y, "merchant", null])
     if gaze_active:
         items.append([gaze_pos.y, "vigia", null])
+    for i in range(rams.size()):
+        items.append([Vector2(rams[i]["pos"]).y, "ram", i])
+    for i in range(pillars.size()):
+        items.append([Vector2(pillars[i]["pos"]).y + 6.0, "pillar", i])
+    if colossus_active:
+        items.append([colossus_pos.y, "colossus", null])
     if _fountain_here():
         items.append([FOUNTAIN_POS.y, "fountain", null])
     if _has("archivo"):
@@ -2771,6 +2597,12 @@ func _draw_depth_sorted() -> void:
                 _draw_merchant()
             "vigia":
                 _draw_vigia()
+            "ram":
+                _draw_ram(item[2])
+            "pillar":
+                _draw_pillar(item[2])
+            "colossus":
+                _draw_colossus()
             "fountain":
                 _draw_fountain()
             "altar":
@@ -2797,6 +2629,7 @@ func _draw_object_labels() -> void:
     _draw_rescue_label()
     _draw_offering_labels()
     _draw_gaze_hud()
+    _draw_colossus_hud()
     _draw_fountain_label()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
@@ -5543,7 +5376,7 @@ func _segador_fire() -> void:
         if dash_left > 0.0:
             float_fx.append({"pos": player_pos + Vector2(0, -60), "text": "ESQUIVA", "color": SOUL, "t": 0.0})
         elif damage_cd <= 0.0:
-            hp -= SEG_DAMAGE
+            hp -= SEG_DAMAGE * _depth_mult()
             fear = minf(100.0, fear + 24.0)
             damage_cd = 1.2
             _say("El hilo te atraviesa. Sal de la línea antes de que dispare.", 3.0)
@@ -5980,85 +5813,7 @@ func _draw_mission_banner() -> void:
 # --- Diálogos ----------------------------------------------------------------------
 ## Conversaciones al entrar en salas con más personajes. «{yo}» es tu nombre.
 ## Las líneas de quien ya no está (aliado muerto, sin Peregrino) se omiten.
-const ROOM_TALKS := {
-    "1:0": [
-        ["PEREGRINO", "¿Tú también despertaste aquí? Tranquilo, no muerdo."],
-        ["{yo}", "¿Quién eres? ¿Cuánto llevas en este sitio?"],
-        ["PEREGRINO", "Lo bastante para saber que las puertas de este piso solo se abren con almas."],
-        ["PEREGRINO", "Busquemos juntos. Hay para los dos."],
-    ],
-    "1:1": [
-        ["PEREGRINO", "Escucha el agua. Siempre baja... como nosotros."],
-        ["{yo}", "Quédate donde pueda verte."],
-        ["PEREGRINO", "Claro, claro. A tu lado."],
-    ],
-    "2:0": [
-        ["ODÓN", "Otro más. Bien. La voz ya habló: hay que cazar al rápido."],
-        ["BRUNA", "Lo llaman el Segador. Tensa hilos rojos antes de atacar. Vi cómo partía a un hombre en dos."],
-        ["CIRO", "Yo... yo solo quiero bajar. Iré detrás de ti, si no te importa."],
-        ["{yo}", "Detrás de mí es justo donde no quieres estar."],
-        ["ODÓN", "Entonces marca tú el paso. Nosotros te seguimos."],
-    ],
-    "2:1": [
-        ["BRUNA", "Ahí está. ¿Lo oyes? Cuerdas que se tensan."],
-        ["ODÓN", "Cuando dispara se queda clavado a sus hilos. Ese es el momento de golpear."],
-        ["CIRO", "Y que la línea no nos pille a nosotros, por favor."],
-    ],
-    "4:0": [
-        ["{yo}", "Ladridos sin aliento... Son de bronce. Los golpes no les harán nada."],
-        ["{yo}", "Pero se apartan de la luz. Mientras la antorcha arda, no se acercarán."],
-        ["{yo}", "Y aquí la antorcha se consume. Tengo que medir los fósforos."],
-    ],
-    "5:0": [
-        ["IRENE", "Alto. No traemos armas, mira. Solo queremos bajar."],
-        ["TEO", "Te vimos cruzar el laberinto con la antorcha. Los perros te respetaban."],
-        ["BAS", "Nosotros no sabemos leer este sitio. Tú sí."],
-        ["SAÚL", "¡{yo}! Sigues vivo. Les dije que volverías a aparecer."],
-        ["IRENE", "Guíanos. Te seguiremos y no estorbaremos. Habla conmigo cuando lo decidas."],
-    ],
-    "5:1": [
-        ["{yo}", "Un mercader... no dice nada. Hay una inscripción junto a la entrada.", "solo"],
-        ["TEO", "Algo brilla bajo su manto. Solo quiero mirar..."],
-        ["IRENE", "¡Teo, no!"],
-        ["TEO", "¡AAAH! ¡Mi mano! ¡¿Dónde está mi mano?!"],
-        ["IRENE", "Se paga primero. Y no se toca. Lo pone en la pared, Teo."],
-        ["{yo}", "Nadie más acerca la mano a ese manto."],
-    ],
-    "5:3": [
-        ["IRENE", "La escalera baja. Dicen que abajo hay algo que mira."],
-        ["BAS", "Contigo delante, quizá lleguemos."],
-        ["SAÚL", "Te debía una. Ahora te debo dos."],
-    ],
-    "7:0": [
-        ["{yo}", "Esta sala... es la primera. El Umbral del despertar. Pero las estatuas miran al revés."],
-        ["{yo}", "Y esa inscripción tiene mi nombre. ¿La escribí yo en otra vida?"],
-    ],
-    "7:1": [
-        ["{yo}", "El Testigo. Aquí aprendí a quedarme quieto cuando abre el ojo... si es que sigue igual."],
-    ],
-    "6:0": [
-        ["{yo}", "Ojos arrancados en cada estatua... Lo que vive aquí no soporta que la ignoren.", "solo"],
-        ["IRENE", "Mira la inscripción. «No corras, no le des la espalda.»"],
-        ["BAS", "¿Y si nos mira a nosotros?"],
-        ["{yo}", "Entonces la miráis vosotros también. Pase lo que pase, nadie corre.", "grupo"],
-        ["SAÚL", "Contigo delante no correré. Lo prometo."],
-    ],
-    "6:1": [
-        ["{yo}", "Ahí está. Si me doy la vuelta o echo a correr, viene a por mí.", "solo"],
-        ["IRENE", "No le quitéis los ojos de encima. Ni un segundo."],
-    ],
-    "3:0": [
-        ["{yo}", "Raíces secas por todas partes. Una chispa y esto arde entero."],
-        ["{yo}", "Y las de la puerta están vivas... habrá que hacerles llegar el fuego."],
-    ],
-    "3:1": [
-        ["{yo}", "Esa cosa es corteza. Los golpes no le harán nada. El fuego, sí."],
-    ],
-    "2:2": [
-        ["CIRO", "Está herido... Esta vez no tiene adónde huir."],
-        ["BRUNA", "Las columnas cortan sus hilos. Úsalas."],
-    ],
-}
+const ROOM_TALKS = Pisos.ROOM_TALKS
 
 
 func _room_talk() -> void:
@@ -6621,16 +6376,7 @@ const CRITTER_CHASE := 92.0
 const CRITTER_BITE := 6.0
 const CRITTER_RESPAWN := 9.0
 ## Verdad que revela cada piso (del diseño de los diez pisos).
-const FLOOR_TRUTHS := [
-    "Estás atrapado en un templo. Y no eres el primero.",
-    "Las almas se pueden robar. El templo te enfrenta con los demás.",
-    "La caza también es una ofrenda. Algo se alimenta de cada muerte.",
-    "Otros también vuelven. Sus nombres están en el muro, y entre ellos, el tuyo.",
-    "Las almas no se pierden: corren por canales hacia abajo. El templo las recoge.",
-    "El miedo y la desesperanza alimentan algo. Por eso el templo te deja descansar: para que vuelvas a esperar.",
-    "Ella no caza: vigila. El templo quiere que veas morir a los demás; el miedo ajeno también alimenta.",
-    "El edificio es un sistema de producción: el miedo entra, las almas salen.",
-]
+const FLOOR_TRUTHS = Pisos.FLOOR_TRUTHS
 var critters: Array = [] # {pos, a, b, to_b, alive, dead_t, respawn, flip, bite_cd}
 var life_corpse: Dictionary = {}
 var door_state: String = "unknown" # unknown | locked | open
@@ -7189,7 +6935,7 @@ func _update_tejedora(dt: float) -> void:
                 teje_t = 0.35
                 shake = maxf(shake, 0.25)
                 if d < TEJE_REACH + 16.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                    hp -= TEJE_DAMAGE
+                    hp -= TEJE_DAMAGE * _depth_mult()
                     fear = minf(100.0, fear + 12.0)
                     damage_cd = 0.8
                     _on_hurt()
@@ -7316,7 +7062,7 @@ func _update_hounds(dt: float) -> void:
                     h["bite_t"] = 0.25
                     h["flee"] = 0.5 # muerde y se aparta un instante
                     if dash_left <= 0.0 and damage_cd <= 0.0:
-                        hp -= HOUND_BITE
+                        hp -= HOUND_BITE * _depth_mult()
                         fear = minf(100.0, fear + 14.0)
                         damage_cd = 0.8
                         _on_hurt()
@@ -7540,7 +7286,8 @@ var guides_rewarded: bool = false
 
 
 func _strike_damage() -> float:
-    return STRIKE_DAMAGE * (1.0 + 0.1 * float(_trinket_level("brazalete"))) * _level_power()
+    var fuerza: float = 1.0 + (0.04 * float(ecos.size()) if ecos.has("fuerza") else 0.0)
+    return STRIKE_DAMAGE * (1.0 + 0.1 * float(_trinket_level("brazalete"))) * _level_power() * fuerza
 
 
 func _stamina_regen() -> float:
@@ -8086,7 +7833,7 @@ func _update_gaze(dt: float) -> void:
         "golpe":
             gaze_pos = gaze_pos.move_toward(gaze_target, 560.0 * dt)
             if gaze_pos.distance_to(player_pos) < 34.0 and damage_cd <= 0.0 and dash_left <= 0.0:
-                hp -= GAZE_DAMAGE * (0.75 if ecos.has("piel") else 1.0)
+                hp -= GAZE_DAMAGE * _depth_mult()
                 fear = minf(100.0, fear + 20.0)
                 damage_cd = 1.0
                 shake = maxf(shake, 0.5)
@@ -8577,7 +8324,7 @@ func _fountain_here() -> bool:
     for t in ["tutorial", "mercader", "guias"]:
         if t in _room()["traits"]:
             return false
-    return not (_room().has("hounds") or _room().has("gaze"))
+    return not (_room().has("hounds") or _room().has("gaze") or _room().has("rams") or _room().has("colossus"))
 
 
 func _use_fountain() -> bool:
@@ -8625,3 +8372,338 @@ func _draw_fountain_label() -> void:
         _label_center("RELICARIO VACÍO", FOUNTAIN_POS + Vector2(0, -68), Color("#8a8574"))
     else:
         _label_center(_prompt("RELICARIO DE VIDA · +%d" % int(FOUNTAIN_HEAL)), FOUNTAIN_POS + Vector2(0, -68), Color("#ff8a8a"))
+
+
+# ------------------------------------------------------------ ENEMIGOS MÁS FUERTES CUANTO MÁS ABAJO
+## Las entidades de siempre (Ghoul, Testigo, Hechicero, Segador, Tejedora,
+## mastines, la Vigía) tienen más vida y pegan más fuerte cuanto más profundo
+## es el piso: +12 % por piso. Valores PROVISIONALES.
+const DEPTH_STEP := 0.12
+
+
+func _depth_mult() -> float:
+    return 1.0 + DEPTH_STEP * float(current_floor) if not in_tutorial else 1.0
+
+
+# ------------------------------------------------------------ PISO IX · EL COLOSO DEL PÓRTICO
+## Arietes de Piedra: golems bajos con cuernos. Son de piedra (los golpes no
+## les hacen nada) hasta que embisten: si te alineas con ellos en horizontal o
+## en vertical, se preparan 0,6 s (línea roja) y cargan en línea recta. Si
+## chocan contra un muro o una columna quedan aturdidos 2 s: entonces se rompen.
+## El Coloso: estatua viva inmune a golpes y a la Resonancia. Pisa fuerte
+## (aviso con un círculo rojo). Hay que atraerlo junto a una columna agrietada
+## y golpear la columna: cae sobre él. Tres columnas lo derriban.
+const RAM_TEX := preload("res://assets/visual/enemies/ariete.png")
+const COLOSSUS_TEX := preload("res://assets/visual/enemies/coloso.png")
+const RAM_HP := 70.0
+const RAM_SIGHT := 330.0
+const RAM_ALIGN := 24.0
+const RAM_WINDUP := 0.6
+const RAM_SPEED := 430.0
+const RAM_DAMAGE := 28.0
+const RAM_STUN := 2.0
+const COLOSSUS_SPEED := 40.0
+const COLOSSUS_STOMP_RADIUS := 130.0
+const COLOSSUS_WINDUP := 0.85
+const COLOSSUS_DAMAGE := 32.0
+const COLOSSUS_HITS := 3
+const PILLAR_REACH := 160.0 # distancia del Coloso a la columna para que le caiga encima
+var rams: Array = [] # {pos, prev, home, state, t, dir, hp, facing, cd}
+var pillars: Array = [] # {pos, fallen, fall_dir, fall_t}
+var colossus_active: bool = false
+var colossus_pos: Vector2 = Vector2.ZERO
+var colossus_hits: int = 0
+var colossus_state: String = "walk" # walk | raise | stomp | stun
+var colossus_t: float = 0.0
+var colossus_cd: float = 2.0
+
+
+func _load_colossus_room() -> void:
+    rams.clear()
+    pillars.clear()
+    colossus_active = false
+    if in_tutorial:
+        return
+    var dead_rams: Array = banished.get(_room_key() + ":arietes", [])
+    var spots: Array = _room().get("rams", [])
+    for i in range(spots.size()):
+        if dead_rams.has(i):
+            continue
+        rams.append({"pos": spots[i], "prev": spots[i], "home": spots[i], "state": "idle", "t": randf_range(0.5, 1.5),
+            "dir": Vector2.ZERO, "hp": RAM_HP, "max": RAM_HP, "facing": 3, "cd": 1.0, "id": i, "wander": spots[i]})
+    for at in _room().get("pillars", []):
+        pillars.append({"pos": at, "fallen": false, "fall_dir": Vector2.DOWN, "fall_t": 0.0})
+        obstacles.append(Rect2(at.x - 14.0, at.y - 10.0, 28.0, 12.0))
+    if _room().has("colossus") and not banished.has(_room_key()):
+        colossus_active = true
+        colossus_pos = _room()["colossus"]
+        colossus_hits = 0
+        colossus_state = "walk"
+        colossus_cd = 2.5
+
+
+func _update_rams(dt: float) -> void:
+    for r in rams:
+        var pos: Vector2 = r["pos"]
+        r["cd"] = maxf(0.0, float(r["cd"]) - dt)
+        match str(r["state"]):
+            "idle":
+                var d: Vector2 = player_pos - pos
+                var aligned_x: bool = absf(d.y) < RAM_ALIGN and absf(d.x) < RAM_SIGHT
+                var aligned_y: bool = absf(d.x) < RAM_ALIGN and absf(d.y) < RAM_SIGHT
+                if float(r["cd"]) <= 0.0 and (aligned_x or aligned_y):
+                    r["state"] = "aim"
+                    r["t"] = RAM_WINDUP
+                    r["dir"] = Vector2(signf(d.x), 0) if aligned_x else Vector2(0, signf(d.y))
+                    _sfx("k_piedra", -8.0, 0.7)
+                else:
+                    r["t"] = float(r["t"]) - dt
+                    if float(r["t"]) <= 0.0:
+                        r["t"] = randf_range(1.2, 2.4)
+                        r["wander"] = Vector2(r["home"]) + Vector2(randf_range(-60, 60), randf_range(-40, 40))
+                    var nxt: Vector2 = pos.move_toward(r["wander"], 30.0 * dt)
+                    if not _is_blocked(nxt):
+                        r["pos"] = nxt
+            "aim":
+                r["t"] = float(r["t"]) - dt
+                if float(r["t"]) <= 0.0:
+                    r["state"] = "charge"
+                    r["t"] = 1.6
+                    _sfx("k_golpe", -8.0, 0.6)
+            "charge":
+                r["t"] = float(r["t"]) - dt
+                var step: Vector2 = Vector2(r["dir"]) * RAM_SPEED * dt
+                var nxt2: Vector2 = pos + step
+                if _is_blocked(nxt2) or float(r["t"]) <= 0.0:
+                    r["state"] = "stun"
+                    r["t"] = RAM_STUN
+                    shake = maxf(shake, 0.3)
+                    _sfx("k_piedra", -4.0, 0.5)
+                    _emit(pos + Vector2(r["dir"]) * 20.0 + Vector2(0, -14), 16, Color(0.6, 0.58, 0.52), 30.0, 110.0, 0.7, 2.0, 120.0, -Vector2(r["dir"]), 1.2)
+                else:
+                    r["pos"] = nxt2
+                    if nxt2.distance_to(player_pos) < 30.0 and dash_left <= 0.0 and damage_cd <= 0.0:
+                        hp -= RAM_DAMAGE
+                        fear = minf(100.0, fear + 12.0)
+                        damage_cd = 1.0
+                        _on_hurt()
+                        var push: Vector2 = player_pos + Vector2(r["dir"]) * 34.0
+                        if not _is_blocked(push):
+                            player_pos = push
+            "stun":
+                r["t"] = float(r["t"]) - dt
+                if float(r["t"]) <= 0.0:
+                    r["state"] = "idle"
+                    r["cd"] = 1.2
+        var moved: Vector2 = Vector2(r["pos"]) - Vector2(r["prev"])
+        var look: Vector2 = Vector2(r["dir"]) if str(r["state"]) in ["aim", "charge"] else (moved if moved.length() > 0.1 else player_pos - Vector2(r["pos"]))
+        if look.length() > 0.1:
+            r["facing"] = (2 if look.x > 0.0 else 3) if absf(look.x) > absf(look.y) else (0 if look.y > 0.0 else 1)
+        r["moving"] = moved.length() > 4.0 * dt
+        r["prev"] = r["pos"]
+
+
+func _strike_rams_and_pillars() -> void:
+    for i in range(rams.size() - 1, -1, -1):
+        var r: Dictionary = rams[i]
+        var to_r: Vector2 = Vector2(r["pos"]) - player_pos
+        if to_r.length() > STRIKE_RANGE + 12.0 or (to_r.length() > 24.0 and to_r.normalized().dot(strike_dir) < 0.2):
+            continue
+        if str(r["state"]) != "stun":
+            float_fx.append({"pos": Vector2(r["pos"]) + Vector2(0, -50), "text": "PIEDRA", "color": Color("#b4bba8"), "t": 0.0})
+            _sfx("k_metal", -10.0, 0.7)
+            continue
+        r["hp"] = float(r["hp"]) - _strike_damage() * 1.5
+        float_fx.append({"pos": Vector2(r["pos"]) + Vector2(0, -50), "text": "-%d" % int(_strike_damage() * 1.5), "color": Color("#ffd36b"), "t": 0.0})
+        _sfx("k_piedra", -6.0, 1.2)
+        if float(r["hp"]) <= 0.0:
+            _ram_break(i)
+    # Columnas agrietadas: caen hacia el Coloso si está cerca.
+    for p in pillars:
+        if bool(p["fallen"]) or player_pos.distance_to(p["pos"]) > 60.0:
+            continue
+        if colossus_active and colossus_pos.distance_to(p["pos"]) < PILLAR_REACH:
+            _pillar_fall(p)
+        else:
+            float_fx.append({"pos": Vector2(p["pos"]) + Vector2(0, -70), "text": "CRUJE", "color": Color("#b4bba8"), "t": 0.0})
+            _say("La columna cruje, pero aguanta. Atrae al Coloso junto a ella y golpéala entonces.", 3.0)
+            _sfx("k_piedra", -10.0, 0.9)
+
+
+func _ram_break(i: int) -> void:
+    var r: Dictionary = rams[i]
+    var key: String = _room_key() + ":arietes"
+    var dead: Array = banished.get(key, [])
+    dead.append(int(r["id"]))
+    banished[key] = dead
+    drops.append({"pos": r["pos"], "value": 6})
+    _gain_xp(15)
+    _emit(Vector2(r["pos"]) + Vector2(0, -16), 26, Color(0.55, 0.53, 0.48), 30.0, 130.0, 0.9, 3.0, 220.0, Vector2.UP, 1.6)
+    shake = maxf(shake, 0.25)
+    rams.remove_at(i)
+    if rams.is_empty() and _mission().get("goal", "") == "arietes":
+        _complete_mission()
+
+
+func _pillar_fall(p: Dictionary) -> void:
+    p["fallen"] = true
+    p["fall_dir"] = (colossus_pos - Vector2(p["pos"])).normalized()
+    p["fall_t"] = 0.0
+    for i in range(obstacles.size()):
+        if (obstacles[i] as Rect2).get_center().distance_to(Vector2(p["pos"]) + Vector2(0, -4)) < 2.0:
+            obstacles.remove_at(i)
+            break
+    colossus_hits += 1
+    colossus_state = "stun"
+    colossus_t = 2.5
+    shake = maxf(shake, 0.8)
+    _sfx("k_piedra", -2.0, 0.4)
+    _sfx("k_golpe", -4.0, 0.5)
+    _emit(colossus_pos + Vector2(0, -80), 40, Color(0.6, 0.58, 0.52), 40.0, 160.0, 1.0, 3.0, 200.0, Vector2.UP, 1.6)
+    float_fx.append({"pos": colossus_pos + Vector2(0, -170), "text": "¡%d / %d!" % [colossus_hits, COLOSSUS_HITS], "color": Color("#ffd36b"), "t": 0.0})
+    if colossus_hits >= COLOSSUS_HITS:
+        _colossus_defeat()
+
+
+func _colossus_defeat() -> void:
+    colossus_active = false
+    banished[_room_key()] = true
+    drops.append({"pos": colossus_pos, "value": 30})
+    _gain_xp(80)
+    _complete_mission()
+    dissolve_fx.append({"pos": colossus_pos, "kind": "coloso", "facing": 0, "frame": 6, "t": 0.0})
+    _emit(colossus_pos + Vector2(0, -60), 60, Color(0.6, 0.58, 0.52), 40.0, 180.0, 1.4, 3.0, 150.0, Vector2.UP, 1.8)
+    _say("El Coloso se derrumba. Entre sus piedras brillan almas.", 4.0)
+    _sfx("destierro", -2.0, 0.6)
+
+
+func _update_colossus(dt: float) -> void:
+    for p in pillars:
+        if bool(p["fallen"]):
+            p["fall_t"] = minf(1.0, float(p["fall_t"]) + dt * 3.0)
+    if not colossus_active:
+        return
+    colossus_cd = maxf(0.0, colossus_cd - dt)
+    colossus_t = maxf(0.0, colossus_t - dt)
+    fear = minf(100.0, fear + dt * 1.5)
+    var d: float = colossus_pos.distance_to(player_pos)
+    match colossus_state:
+        "walk":
+            var target: Vector2 = colossus_pos.move_toward(player_pos, COLOSSUS_SPEED * (1.0 + 0.25 * float(colossus_hits)) * dt)
+            colossus_pos = Vector2(clampf(target.x, 110.0, 850.0), clampf(target.y, 220.0, 540.0))
+            if d < COLOSSUS_STOMP_RADIUS and colossus_cd <= 0.0:
+                colossus_state = "raise"
+                colossus_t = COLOSSUS_WINDUP - 0.12 * float(colossus_hits) # cada vez pisa antes
+                _sfx("k_piedra", -10.0, 0.5)
+        "raise":
+            if colossus_t <= 0.0:
+                colossus_state = "stomp"
+                colossus_t = 0.35
+                shake = maxf(shake, 0.6)
+                _sfx("k_golpe", -2.0, 0.4)
+                _emit(colossus_pos, 30, Color(0.55, 0.5, 0.45), 60.0, 200.0, 0.8, 3.0, 60.0, Vector2.UP, 3.0)
+                if d < COLOSSUS_STOMP_RADIUS and dash_left <= 0.0 and damage_cd <= 0.0:
+                    hp -= COLOSSUS_DAMAGE
+                    fear = minf(100.0, fear + 18.0)
+                    damage_cd = 1.0
+                    _on_hurt()
+        "stomp":
+            if colossus_t <= 0.0:
+                colossus_state = "walk"
+                colossus_cd = maxf(1.0, 2.2 - 0.4 * float(colossus_hits))
+        "stun":
+            if colossus_t <= 0.0:
+                colossus_state = "walk"
+                colossus_cd = 1.5
+
+
+func _draw_ram(i: int) -> void:
+    var r: Dictionary = rams[i]
+    var frame: int
+    match str(r["state"]):
+        "aim":
+            frame = 6
+        "charge":
+            frame = 2 + int(elapsed * 14.0) % 4
+        "stun":
+            frame = 7
+        _:
+            frame = 2 + int(elapsed * 8.0) % 4 if bool(r.get("moving", false)) else int(elapsed * 2.0 + float(i)) % 2
+    var pos: Vector2 = Vector2(r["pos"]).round()
+    _draw_soft_shadow(pos + Vector2(0, 3), 16.0)
+    var tint := Color(1.0, 0.85, 0.6) if str(r["state"]) == "stun" else Color.WHITE
+    draw_texture_rect_region(RAM_TEX, Rect2(pos.x - 24.0, pos.y + 4.0 - ENEMY_FEET_Y, 48, 64), Rect2(float(frame) * 48.0, float(r["facing"]) * 64.0, 48, 64), tint)
+    if str(r["state"]) == "stun":
+        var bar := Rect2(pos.x - 20.0, pos.y - 62.0, 40, 4)
+        draw_rect(bar.grow(1.0), Color(0, 0, 0, 0.7))
+        draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(float(r["hp"]) / float(r["max"]), 0.0, 1.0), bar.size.y)), Color("#ffd36b"))
+
+
+## Línea roja de aviso antes de embestir: siempre visible (juego limpio).
+func _draw_ram_warnings() -> void:
+    for r in rams:
+        if str(r["state"]) != "aim":
+            continue
+        var from: Vector2 = Vector2(r["pos"]) + Vector2(0, -12)
+        var k: float = 1.0 - clampf(float(r["t"]) / RAM_WINDUP, 0.0, 1.0)
+        draw_line(from, from + Vector2(r["dir"]) * 360.0, Color(1.0, 0.25, 0.25, 0.25 + 0.5 * k), 2.0 + 4.0 * k)
+
+
+func _draw_pillar(i: int) -> void:
+    var p: Dictionary = pillars[i]
+    var at: Vector2 = p["pos"]
+    if bool(p["fallen"]):
+        # Columna caída: tambores de piedra en línea hacia donde estaba el Coloso.
+        var dir: Vector2 = p["fall_dir"]
+        var k: float = float(p["fall_t"])
+        for n in range(5):
+            var c: Vector2 = at + dir * (14.0 + float(n) * 22.0) * k
+            draw_rect(Rect2(c - Vector2(12, 8), Vector2(24, 16)), Color("#6a665e"))
+            draw_rect(Rect2(c - Vector2(12, 8), Vector2(24, 3)), Color("#8a857b"))
+        return
+    _draw_soft_shadow(at + Vector2(0, 2), 16.0)
+    var body := Rect2(at.x - 12.0, at.y - 92.0, 24, 92)
+    draw_rect(body, Color("#7d7a72"))
+    draw_rect(Rect2(body.position, Vector2(5, body.size.y)), Color("#a8a49a"))
+    draw_rect(Rect2(at.x - 16.0, at.y - 98.0, 32, 8), Color("#8a857b"))
+    draw_rect(Rect2(at.x - 16.0, at.y - 8.0, 32, 8), Color("#5f5b54"))
+    # Grieta que brilla: aquí se golpea.
+    var glow: float = 0.5 + 0.5 * sin(elapsed * 3.0 + at.x)
+    draw_polyline(PackedVector2Array([Vector2(at.x - 4, at.y - 70), Vector2(at.x + 4, at.y - 54), Vector2(at.x - 2, at.y - 36), Vector2(at.x + 3, at.y - 22)]), Color(1.0, 0.75, 0.35, 0.5 + 0.5 * glow), 2.0)
+    if colossus_active and colossus_pos.distance_to(at) < PILLAR_REACH:
+        draw_rect(body.grow(3.0), Color(1.0, 0.8, 0.4, 0.5 + 0.3 * glow), false, 2.0)
+
+
+func _draw_colossus() -> void:
+    var frame: int
+    match colossus_state:
+        "raise":
+            frame = 4
+        "stomp":
+            frame = 5
+        "stun":
+            frame = 6
+        _:
+            frame = 2 + int(elapsed * 3.0) % 2
+    var pos: Vector2 = colossus_pos.round()
+    _draw_soft_shadow(pos + Vector2(0, 4), 56.0, 1.2)
+    draw_texture_rect_region(COLOSSUS_TEX, Rect2(pos.x - 64.0, pos.y + 6.0 - 154.0, 128, 160), Rect2(float(frame) * 128.0, 0, 128, 160))
+    if colossus_state == "raise":
+        var k: float = 1.0 - clampf(colossus_t / COLOSSUS_WINDUP, 0.0, 1.0)
+        _draw_ellipse(pos, COLOSSUS_STOMP_RADIUS * k, COLOSSUS_STOMP_RADIUS * 0.45 * k, Color(1.0, 0.2, 0.2, 0.12 + 0.18 * k))
+        draw_arc(pos, COLOSSUS_STOMP_RADIUS, 0, TAU, 48, Color(1.0, 0.3, 0.3, 0.3 + 0.4 * k), 2.0)
+
+
+func _draw_colossus_hud() -> void:
+    if not colossus_active:
+        return
+    var box := Rect2(300, 116, 360, 34)
+    _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_GOLD)
+    _text_outline("EL COLOSO DEL PÓRTICO", Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
+    for i in range(COLOSSUS_HITS):
+        var seg := Rect2(box.position.x + 10.0 + float(i) * 114.0, box.position.y + 21.0, 108, 7)
+        draw_rect(seg, Color(0, 0, 0, 0.7))
+        if i >= colossus_hits:
+            draw_rect(seg, Color("#b3263a"))
+    if colossus_state == "raise" and colossus_pos.distance_to(player_pos) < COLOSSUS_STOMP_RADIUS:
+        _label_center("¡SAL DEL CÍRCULO O ESQUIVA!", player_pos + Vector2(0, -80), Color("#ffd36b"))
