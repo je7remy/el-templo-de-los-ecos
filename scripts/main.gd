@@ -1417,7 +1417,7 @@ func _draw_mobile_controls() -> void:
             "esquivar":
                 label = "ESQUIVA"
                 icon = "vigor"
-                wait = _vigor_wait(_dash_cost())
+                wait = _dash_wait()
             "resonancia":
                 label = "RUGIDO" if has_mask else "ONDA"
                 icon = "resonancia"
@@ -3366,7 +3366,7 @@ func _draw_weapon_panel() -> void:
     draw_texture_rect(ICONS["llama_interior" if has_inner_flame else "fosforos"], Rect2(648, 608, 20, 20), false)
     _text_outline(ammo, Vector2(672, 624), 12, ammo_col)
     _draw_torch_fuel()
-    _draw_ability_icon(Rect2(780, 583, 48, 48), "vigor", true, _vigor_wait(_dash_cost()), _short_key("esquivar"))
+    _draw_ability_icon(Rect2(780, 583, 48, 48), "vigor", true, _dash_wait(), _short_key("esquivar"))
     _draw_ability_icon(Rect2(838, 583, 48, 48), "golpe", has_torch and torch_on, maxf(strike_cd / 0.6, _vigor_wait(10.0)), _short_key("interactuar"))
     _draw_ability_icon(Rect2(896, 583, 48, 48), "resonancia", has_pulse, _vigor_wait(RESONANCE_COST), _short_key("resonancia"))
 
@@ -4523,7 +4523,7 @@ func _draw_settings() -> void:
             _draw_text_block(_t("privacidad_resumen"), Rect2(140, 178, 680, 60), 15, Color("#d0c8b0"))
             _draw_text_block(_t("privacidad_ruta") % [_save_path(), Ajustes.ruta()], Rect2(140, 262, 680, 40), 12, Color("#9a957f"))
             if confirm_delete:
-                _text_outline("Se borrará el progreso y los ajustes." if Ajustes.obtener("idioma") == "es" else "Progress and settings will be deleted.", Vector2(490, 420), 12, RED)
+                _text_outline("Se borrará todo (campaña, Vigilia y ajustes) y empezarás de cero." if Ajustes.obtener("idioma") == "es" else "Everything (campaign, Vigil and settings) will be deleted; you will start over.", Vector2(490, 420), 12, RED)
 
 
 func _slider_track(r: Rect2) -> Rect2:
@@ -4594,12 +4594,7 @@ func _settings_activate(w: Dictionary, at: Vector2 = Vector2(-1, -1)) -> void:
                     _start_intro("title" if settings_return in ["splash", "title"] else "title")
                 "borrar":
                     if confirm_delete:
-                        Ajustes.borrar_todo(_save_path())
-                        Ajustes.aplicar_audio()
-                        _reset_progress_vars()
-                        confirm_delete = false
-                        _say(_t("borrado"), 2.5)
-                        _back_to_splash()
+                        _wipe_everything()
                     else:
                         confirm_delete = true
 
@@ -4650,6 +4645,30 @@ func _settings_key(k: int) -> void:
         settings_sel = 0
 
 
+## Borrar perfil: se borran el progreso de la campaña, los récords de la
+## Vigilia y los ajustes, y el juego se reinicia desde cero (intro, tutorial
+## y creación del personaje, con todos los pisos bloqueados salvo el I).
+const VIGILIA_SAVES := ["user://vigilia_claustro_records.json", "user://prueba_vigilia.json"]
+
+
+func _wipe_everything() -> void:
+    Ajustes.borrar_todo(_save_path())
+    for path in VIGILIA_SAVES:
+        if (path.contains("prueba") == Engine.has_meta("modo_prueba")) and FileAccess.file_exists(path):
+            DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+    Ajustes.aplicar_audio()
+    confirm_delete = false
+    if Engine.has_meta("splash_visto"):
+        Engine.remove_meta("splash_visto")
+    if Engine.has_meta("modo_prueba"):
+        # En las pruebas no se recarga la escena: se vacía el estado aquí mismo.
+        _reset_progress_vars()
+        _say(_t("borrado"), 2.5)
+        _back_to_splash()
+        return
+    get_tree().call_deferred("reload_current_scene")
+
+
 func _reset_progress_vars() -> void:
     player_level = 1
     xp = 0
@@ -4663,6 +4682,18 @@ func _reset_progress_vars() -> void:
     ability_level = 0
     ecos.clear()
     remembered_rule = false
+    player_name = ""
+    player_gender = "masculino"
+    max_floor = 0
+    has_mask = false
+    rescued = []
+    guided = []
+    death_marks = {}
+    trinkets = []
+    trinket_levels = {}
+    bag = {}
+    karma = 0
+    souls = 0
 
 
 # ------------------------------------------------------------ PAUSA
@@ -4742,14 +4773,14 @@ const INTRO := [
 ]
 
 
+## Primera partida: intro, tutorial y, al terminarlo, crear el personaje.
 func _start_explore() -> void:
-    if player_name == "":
-        _start_creation("explore")
-        return
     if not bool(Ajustes.obtener("intro_vista")):
         _start_intro("tutorial")
     elif not bool(Ajustes.obtener("tutorial_hecho")):
         _start_tutorial()
+    elif player_name == "":
+        _start_creation("explore")
     else:
         _new_run()
 
@@ -4780,7 +4811,7 @@ func _end_intro() -> void:
     if intro_then == "tutorial" and not bool(Ajustes.obtener("tutorial_hecho")):
         _start_tutorial()
     elif intro_then == "tutorial":
-        _new_run()
+        _start_explore()
     else:
         game_mode = "title"
 
@@ -4900,6 +4931,9 @@ func _start_tutorial() -> void:
 func _end_tutorial() -> void:
     Ajustes.poner("tutorial_hecho", true)
     in_tutorial = false
+    if player_name == "":
+        _start_creation("explore") # tras el tutorial, tu nombre y tu género
+        return
     _new_run()
     _say("PISO I · EL DESPERTAR. A partir de aquí, nadie te guía.", 4.0)
 
@@ -5279,8 +5313,20 @@ func _dash_cost() -> float:
 
 
 ## Segundos que tarda la barra en recuperar un coste desde vacío (para textos).
+## Recarga propia de esquivar: un 50 % más larga que lo que tarda la barra
+## en recuperar su coste. Reflejos (menos coste), el amuleto y los niveles
+## (más recarga del vigor) la acortan.
+const DASH_COOLDOWN_MULT := 1.5
+var dash_cd_max: float = 1.0
+
+
 func _dash_cooldown() -> float:
-    return _dash_cost() / _stamina_regen()
+    return DASH_COOLDOWN_MULT * _dash_cost() / _stamina_regen()
+
+
+## Fracción que falta para poder esquivar (vigor o recarga, lo que tarde más).
+func _dash_wait() -> float:
+    return maxf(_vigor_wait(_dash_cost()), clampf(dash_cd / maxf(0.01, dash_cd_max), 0.0, 1.0))
 
 
 ## Fracción que falta para poder usar algo que cuesta «cost» de vigor (0 = listo).
@@ -5692,7 +5738,8 @@ func _start_dash() -> void:
     var move: Vector2 = _controls_axis()
     dash_dir = move.normalized() if move.length() > 0.1 else (player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT)
     dash_left = DASH_TIME
-    dash_cd = ABILITY_LOCK
+    dash_cd = _dash_cooldown()
+    dash_cd_max = dash_cd
     stamina -= _dash_cost()
     _emit(player_pos, 12, Color(0.62, 0.57, 0.5, 0.6), 30.0, 90.0, 0.55, 3.0, -20.0, -dash_dir, 1.1)
     _emit(player_pos + Vector2(0, -24), 8, Color(0.56, 0.78, 0.84, 0.7), 20.0, 60.0, 0.4, 2.0, 0.0, -dash_dir, 0.6, true)
@@ -6033,7 +6080,7 @@ func _ability_rows() -> Array:
         ["resonancia", ("RUGIDO" if has_mask else "RESONANCIA") + " · NIVEL %d" % ability_level, _key_label("resonancia"),
             ("Con la Máscara de Porcelana la onda llega más lejos y espanta a los mastines 5 s. " if has_mask else "") + "Aturde a las entidades cercanas y les hace %d de daño." % int(_pulse_damage()), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
         ["vigor", "ESQUIVAR", _key_label("esquivar"),
-            "Impulso hacia donde te mueves o, quieto, hacia donde miras. Pasas por encima de las trampas.", true, "%d vigor · se recarga con la barra" % int(_dash_cost())],
+            "Impulso hacia donde te mueves o, quieto, hacia donde miras. Pasas por encima de las trampas.", true, "%d vigor · %.1f s de recarga" % [int(_dash_cost()), _dash_cooldown()]],
         ["llama_interior", "LLAMA INTERIOR", "PASIVA",
             "Enciendes la antorcha sin gastar fósforos.", has_inner_flame, "altar"],
         ["corazon", "RESPIRO", "PASIVA",
@@ -6370,8 +6417,11 @@ func _choose_floor(i: int) -> void:
         _say("Aún no has llegado tan abajo. Supera el piso anterior.", 2.6)
         _sfx("toque", -10.0)
         return
-    if player_name == "":
-        _start_creation("piso:%d" % i)
+    if player_name == "" or i == 0:
+        if i == 0:
+            _start_explore()
+        else:
+            _start_creation("piso:%d" % i)
         return
     _start_floor(i)
 
@@ -7391,8 +7441,13 @@ func _stamina_regen() -> float:
     return STAMINA_REGEN * (1.0 + 0.1 * float(_trinket_level("amuleto"))) * (1.0 + LEVEL_VIGOR * float(player_level - 1))
 
 
+## Daño de la Resonancia: un 90 % menos que antes (era demasiado fuerte).
+## Las mejoras del altar o el puesto y los niveles lo van subiendo.
+const PULSE_DAMAGE_MULT := 0.1
+
+
 func _pulse_damage() -> float:
-    return (30.0 + 10.0 * float(ability_level)) * _level_power()
+    return (30.0 + 10.0 * float(ability_level)) * _level_power() * PULSE_DAMAGE_MULT
 
 
 ## Huesos firmes: una vez por piso, el golpe mortal te deja con 1 de vida.
