@@ -1486,7 +1486,7 @@ func _draw_reward() -> void:
         _text_center(["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][clampi(tier - 1, 0, 3)], Rect2(card.position.x, card.end.y - 22.0, card.size.x, 14), 11, tier_col)
     var pulse: float = 0.6 + 0.4 * sin(tick * 3.0)
     _center_text("TOCA O PULSA ENTER: FASE %d%s" % [stage + 1, " (JEFE)" if (stage + 1) % 5 == 0 else ""], 418, 18, Color(GOLD_HI.r, GOLD_HI.g, GOLD_HI.b, pulse))
-    _center_text("ESC o SALIR: volver al templo con lo ganado", 452, 12, CREAM)
+    _center_text("ESC o SALIR: volver con lo ganado", 452, 12, CREAM)
 
 
 func _draw_lost() -> void:
