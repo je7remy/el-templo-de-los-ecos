@@ -19,6 +19,10 @@ run/main_scene="res://scenes/main.tscn"
 config/icon="res://assets/branding/icon.svg"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
+[autoload]
+
+ConfirmarSalida="*res://scenes/confirmar_salida.tscn"
+
 [display]
 
 window/size/viewport_width=960

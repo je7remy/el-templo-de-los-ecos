@@ -30,6 +30,11 @@
   - **Piso VII · La Que No Aparta la Vista**, cuatro salas. Una figura con yelmo y ojos en el pecho rodea la sala: solo ataca si le das la espalda o corres. Hay que aguantar su mirada para que la puerta se abra mientras te provoca con amagos y ruidos a tu espalda. Los peregrinos que guiaste pueden entrar en pánico: cálmalos antes de que echen a correr.
   - **Piso VIII · El Templo que Cambia**, las salas del Piso I alteradas: las estatuas miran al otro lado, el Testigo persigue al que se queda quieto, el sello está en el Archivo y una inscripción firmada con tu nombre miente.
 - **Niveles**: ganas experiencia con almas, alimañas, entidades desterradas, misiones y pisos. Cada nivel sube la vida máxima (+6), el daño (+4 %) y la recarga del vigor (+3 %) y te cura. El nivel se ve en el retrato del HUD y en el perfil.
+- **Objetos y mejoras**: el perfil tiene una pestaña OBJETOS con lo equipado (brazalete, amuleto, máscara) y la bolsa (pan), que se usa desde ahí. Comprar otra vez el brazalete o el amuleto los sube de nivel (hasta 5), y la Resonancia se mejora con almas en el altar o el puesto. En el puesto se ve cuánto llevas de cada cosa y el número salta al comprar.
+- **Vida extra**: curarte con la vida llena suma hasta +50 por encima del máximo (franja dorada en la barra).
+- **Relicarios de vida** en las salas sin entidad: una cura de 60 por sala y partida.
+- **Bendición y maldición**: ayudar a quien lo pide (liberar a Saúl, guiar al grupo, calmar a un peregrino) suma; dejarlo atrás o fallarle resta. Con la bendición confían en ti, te regalan cosas y el Mercader cobra menos; con la maldición te temen, se apartan, no te siguen y el Mercader cobra más.
+- **Menú más simple**: JUGAR abre los pisos (el I empieza desde el principio) y salir del juego pide confirmación.
 - **Pensado para móvil**: joystick flotante, botón de ACCIÓN que cambia según lo que tengas cerca, botones grandes al alcance del pulgar y textos de ayuda que hablan de toques, no de teclas.
 - **Herencia del primer juego**: alimañas que mueren de un esquive y salen de nidos, tu cuerpo de la vida anterior en la sala donde caíste, transiciones con máscara, resumen al superar cada piso, sonidos de Kenney con variantes, cursor propio y créditos.
 - **Dirección de arte gótica**: rótulos con tipografía gótica de píxel, interfaz oscura con dorado envejecido, bloom, niebla, haces de luz, partículas y fundidos. **Menú de pisos** para volver a cualquier piso alcanzado.
@@ -80,6 +85,10 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Menú.** Rótulo gótico, paneles oscuros con dorado envejecido. | **Pisos.** Los diez pisos del templo; se puede volver a cualquiera ya alcanzado. |
 | ![Nave del Agua con niebla y haces de luz](docs/galeria/26_arte_nave.png) | ![Muerte](docs/galeria/27_arte_muerte.png) |
 | **Atmósfera.** Haces de luz, niebla baja, polvo, bloom y viñeta. | **Muerte.** El alma se desprende; te levantas en una columna de luz. |
+| ![Objetos en el perfil](docs/galeria/46_objetos.png) | ![Puesto con mejoras](docs/galeria/47_puesto_mejoras.png) |
+| **Objetos.** Lo equipado con su nivel y la bolsa, que se usa desde aquí. | **El puesto.** Cuánto llevas de cada cosa y las mejoras por nivel. |
+| ![Relicario de vida](docs/galeria/48_relicario.png) | ![Menú](docs/galeria/49_menu_jugar.png) |
+| **Relicario de vida.** En las salas sin entidad; la vida extra se ve en dorado. | **Menú.** JUGAR lleva a los pisos; SALIR pide confirmación. |
 | ![Umbral que no recuerdas](docs/galeria/44_piso8_umbral.png) | ![Testigo invertido](docs/galeria/45_piso8_testigo.png) |
 | **Piso VIII.** La primera sala, cambiada, con una inscripción que te miente y tu silueta donde moriste. | **Testigo invertido.** Ahora viene si te quedas quieto. |
 | ![La Que No Aparta la Vista](docs/galeria/40_piso7_mirada.png) | ![Piso VII en el móvil](docs/galeria/41_piso7_movil.png) |
@@ -166,7 +175,8 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 
 | Tecla | Acción |
 | --- | --- |
-| Enter | Iniciar la exploración o reiniciar |
+| Enter | En el menú, JUGAR (elegir piso); tras morir, levantarte |
+| O (perfil) | Cambiar entre EQUIPO y OBJETOS; Enter usa el objeto señalado |
 | H | Abrir Vigilia del Claustro desde el menú |
 | W / A / S / D o flechas | Moverse |
 | E | Interactuar (sello, carta, altar). Si no hay nada cerca y la antorcha arde, golpear. Almas, objetos y puertas abiertas funcionan al tocarlos |

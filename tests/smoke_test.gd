@@ -688,6 +688,10 @@ func _run_checks() -> void:
     if not teo_maimed:
         _fail("Teo no paga la regla del manto al entrar con el grupo.")
         return
+    if int(game.get("karma")) < 2:
+        _fail("Liberar a Saúl y guiar al grupo no dan la bendición.")
+        return
+    game.set("karma", 0) # precios sin marca para comprobar las cuentas
     game.set("souls", 30)
     var merchant: Vector2 = (game.call("_room") as Dictionary)["merchant"]
     game.set("player_pos", merchant + Vector2(0, 44))
@@ -699,8 +703,15 @@ func _run_checks() -> void:
     game.call("_shop_key", KEY_DOWN)
     game.call("_shop_key", KEY_ENTER)
     if not (game.get("trinkets") as Array).has("brazalete") or int(game.get("souls")) != 18 \
-            or float(game.call("_strike_damage")) <= 18.0 or bool(game.call("_shop_buy", 2)):
-        _fail("El Brazalete de bronce no se compra, no se cobra primero o se vende dos veces.")
+            or float(game.call("_strike_damage")) <= 18.0:
+        _fail("El Brazalete de bronce no se compra o no se cobra primero.")
+        return
+    # Comprarlo otra vez lo mejora: nivel 2 por el doble de almas.
+    var dmg_b1: float = float(game.call("_strike_damage"))
+    game.set("souls", 24)
+    if not bool(game.call("_shop_buy", 2)) or int(game.call("_trinket_level", "brazalete")) != 2 \
+            or int(game.get("souls")) != 0 or float(game.call("_strike_damage")) <= dmg_b1:
+        _fail("El Brazalete no sube de nivel al comprarlo otra vez.")
         return
     game.call("_shop_key", KEY_ESCAPE)
     var mh0: float = float(game.get("max_hp"))
@@ -711,9 +722,16 @@ func _run_checks() -> void:
     if not bool(game.get("hand_lost")) or float(game.get("max_hp")) != mh0 - 25.0:
         _fail("Meter la mano bajo el manto no cuesta vida máxima.")
         return
+    (game.get("bag") as Dictionary).clear()
+    game.set("souls", 6)
     game.call("_shop_buy", 0)
-    if float(game.get("max_hp")) != mh0 - 15.0 or float(game.get("hp")) != mh0 - 15.0:
-        _fail("El pan del Mercader no devuelve vida máxima.")
+    if int((game.get("bag") as Dictionary).get("pan", 0)) != 1:
+        _fail("El pan del Mercader no va a la bolsa.")
+        return
+    game.set("hp", float(game.get("max_hp")) - 5.0)
+    game.call("_use_bag_item", "pan")
+    if float(game.get("max_hp")) != mh0 - 15.0 or float(game.get("hp")) <= float(game.get("max_hp")):
+        _fail("El pan no devuelve vida máxima o no deja vida extra por encima del máximo.")
         return
     (game.get("ecos") as Array).append("huesos")
     game.set("hp", -5.0)
@@ -742,6 +760,7 @@ func _run_checks() -> void:
     game.set("player_level", 1)
     game.set("xp", 0)
     game.set("max_hp", game.call("_base_max_hp"))
+    game.set("hp", 10.0)
     var dmg1: float = float(game.call("_strike_damage"))
     var hp1: float = float(game.get("max_hp"))
     game.call("_gain_xp", int(game.call("_xp_needed", 1)) + 5)
@@ -883,6 +902,99 @@ func _run_checks() -> void:
     game.set("current_floor", 0)
     game.set("game_mode", "play")
     print("OK: Piso VIII, salas cambiadas, Testigo invertido, sello movido y Memoria de eco.")
+
+    # Cerrar el juego pregunta antes (autoload ConfirmarSalida) y pausa mientras tanto.
+    var confirm: Node = root.get_node_or_null("ConfirmarSalida")
+    if confirm == null:
+        _fail("Falta el autoload ConfirmarSalida.")
+        return
+    game.call("_ask_quit")
+    if not bool(confirm.call("abierta")) or not paused:
+        _fail("Salir no pide confirmación.")
+        return
+    confirm.call("_responder", false)
+    if bool(confirm.call("abierta")) or paused:
+        _fail("Responder NO no vuelve al juego.")
+        return
+    print("OK: confirmación al salir.")
+
+    # Relicario de vida en las salas sin entidad: cura y deja vida extra; una vez por partida.
+    game.set("current_floor", 0)
+    game.set("current_room", 4)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    if not bool(game.call("_fountain_here")):
+        _fail("El Pórtico (sala sin entidad) no tiene relicario de vida.")
+        return
+    game.set("hp", float(game.get("max_hp")) - 10.0)
+    game.set("player_pos", Vector2(game.get("FOUNTAIN_POS")) + Vector2(40, 0))
+    game.call("_interact")
+    var over: float = float(game.get("hp"))
+    if over <= float(game.get("max_hp")):
+        _fail("El relicario no cura por encima del máximo.")
+        return
+    game.set("regen_wait", 0.0)
+    game.call("_update_regen", 1.0)
+    if float(game.get("hp")) < over:
+        _fail("La regeneración borra la vida extra.")
+        return
+    game.call("_interact")
+    if float(game.get("hp")) > over + 0.01:
+        _fail("El relicario cura dos veces en la misma partida.")
+        return
+    # Objetos en el perfil: la pestaña OBJETOS muestra lo equipado y deja usar el pan.
+    game.set("bag", {"pan": 2})
+    game.set("trinkets", ["brazalete"])
+    game.call("_open_inventory")
+    game.call("_profile_switch_tab")
+    var slots: Array = game.call("_object_slots")
+    var pan_i: int = -1
+    var has_brazalete := false
+    for i in range(slots.size()):
+        if slots[i][0] == "pan":
+            pan_i = i
+        if slots[i][0] == "brazalete":
+            has_brazalete = true
+    if pan_i < 0 or not has_brazalete:
+        _fail("La pestaña OBJETOS no muestra el pan o el brazalete equipado.")
+        return
+    game.set("inventory_sel", pan_i)
+    game.call("_profile_use_selected")
+    if int((game.get("bag") as Dictionary).get("pan", 0)) != 1:
+        _fail("No se puede usar el pan desde el perfil.")
+        return
+    game.call("_close_inventory")
+    # Mejorar la Resonancia en el altar con almas.
+    game.set("has_pulse", true)
+    game.set("ability_level", 1)
+    game.set("souls", 100)
+    game.call("_buy_upgrade", 1)
+    if int(game.get("ability_level")) != 2 or int(game.get("souls")) != 100 - 18:
+        _fail("El altar no mejora la Resonancia con almas.")
+        return
+    # Maldición: el Mercader cobra más y el grupo del Piso VI no te sigue.
+    game.set("karma", -3)
+    var cursed_price: int = int(game.call("_shop_price", 1))
+    game.set("current_floor", 5)
+    game.set("current_room", 0)
+    game.call("_on_floor_start")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.call("_accept_guides")
+    game.call("_dialog_skip")
+    if bool(game.get("guiding")) or cursed_price <= 5:
+        _fail("Con la maldición el grupo te sigue igual o el Mercader no cobra más.")
+        return
+    game.set("karma", 0)
+    game.set("bag", {})
+    game.set("trinkets", [])
+    game.set("ability_level", 0)
+    game.set("has_pulse", false)
+    game.call("_on_floor_start")
+    game.set("current_floor", 0)
+    game.set("game_mode", "play")
+    print("OK: relicario de vida, vida extra, objetos, mejoras con almas y bendición/maldición.")
 
     game.set("current_room", 2)
     game.call("_enter_room")

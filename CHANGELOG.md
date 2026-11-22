@@ -1,5 +1,21 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Tanda A: objetos, mejoras, marca y menús
+
+- **Menú**: se quita EXPLORAR. JUGAR abre el menú de pisos (el Piso I empieza desde el principio, con intro y tutorial la primera vez). Hay un botón SALIR.
+- **Confirmación al salir**: cerrar la ventana, pulsar «Atrás» en Android, SALIR o ESC en el menú preguntan «¿Salir del templo?». Es una escena de interfaz propia (`scenes/confirmar_salida.tscn`, autoload `ConfirmarSalida`) que pausa el juego y funciona con ratón, toque, teclado y mando.
+- **Pestaña OBJETOS en el perfil** (tecla O, botón Y o tocar la pestaña): lo equipado con su nivel (Brazalete, Amuleto, Máscara) y la bolsa. El pan ya no se come al comprarlo: va a la bolsa y se usa desde ahí (+50 de vida, vigor lleno y +10 de vida máxima perdida). La bolsa se guarda.
+- **Mejoras con almas**: comprar otra vez el Brazalete o el Amuleto los sube de nivel (+10 % por nivel, hasta el 5; 12, 24, 36... almas). La Resonancia se mejora hasta el nivel 5 en el altar o en el puesto (10 + 8 por nivel).
+- **Puesto del Mercader**: cada fila muestra cuánto llevas (LLEVAS ×N o NV N). Al comprar, el número salta y la fila brilla. Cinco filas: pan, fósforos, brazalete, amuleto y mejorar Resonancia.
+- **Vida extra**: curarse con la vida llena suma hasta +50 por encima del máximo. Se ve en dorado en la barra y no se regenera.
+- **Relicarios de vida**: en las salas sin entidad (las que quedan entre encuentros) hay una máquina de latón con un vial de sangre. Cura 60, una vez por sala y partida.
+- **Bendición y maldición** (se guardan):
+  - Suman: liberar a Saúl, aceptar guiar al grupo y calmar a un peregrino.
+  - Restan: salir de una sala dejando atrás a quien pedía ayuda o guía, no llegar a calmar a un peregrino y atacar a un Peregrino sincero (−2).
+  - Con +2 llevas la **bendición** (placa BEN y motas doradas): el Peregrino del Piso II traiciona la mitad de veces, el grupo del Piso VI te regala un pan y el Mercader cobra un 20 % menos.
+  - Con −2 llevas la **maldición** (placa MAL y humo carmesí): el Peregrino siempre traiciona, el grupo se niega a seguirte, los aliados caminan lejos de ti y el Mercader cobra un 20 % más.
+- Valores provisionales (precios, curas, umbrales de la marca).
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Piso VIII: El Templo que Cambia
 
 Las salas del Piso I, alteradas para que creas saber qué hacer. Cuatro salas: Umbral que no recuerdas, Sala del Testigo, Archivo que se reescribe y Pórtico que no es el mismo.
