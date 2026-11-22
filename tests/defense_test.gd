@@ -46,12 +46,37 @@ func _run() -> void:
         return
     mode.call("_advance", 136.0)
     if mode.get("phase") != "won":
-        _fail("No se alcanza el amanecer.")
+        _fail("No se supera la fase.")
+        return
+    # Botín: la fase da un objeto que se guarda en el progreso de la campaña.
+    var rewards: Array = mode.get("rewards")
+    var saved = JSON.parse_string(FileAccess.get_file_as_string("user://prueba_progreso.json")) if FileAccess.file_exists("user://prueba_progreso.json") else null
+    if rewards.size() != 1 or not (saved is Dictionary):
+        _fail("Superar la fase no da botín para la campaña.")
+        return
+    # Fases sin fin: la siguiente es más dura (más vida en las entidades).
+    var hp1: float = float((mode.get("hunters") as Array)[0]["max"]) if not (mode.get("hunters") as Array).is_empty() else 84.0
+    mode.call("_next_stage")
+    if mode.get("phase") != "play" or int(mode.get("stage")) != 2 or float((mode.get("hunters") as Array)[0]["max"]) <= hp1:
+        _fail("La fase 2 no empieza o no es más difícil.")
+        return
+    # Fase de jefe (cada 5): sale un jefe y da dos objetos de mejor nivel.
+    mode.set("stage", 5)
+    mode.call("_begin_stage")
+    if not bool((mode.get("hunters") as Array)[0]["boss"]):
+        _fail("La fase 5 no trae jefe.")
+        return
+    mode.call("_advance", 91.0)
+    if (mode.get("rewards") as Array).size() != 2:
+        _fail("La fase de jefe no da dos objetos.")
+        return
+    var botin = load("res://scripts/botin.gd")
+    if int(botin.nivel(9)) <= int(botin.nivel(1)):
+        _fail("El botín no mejora con la fase.")
         return
     mode.call("_start", 0)
     mode.set("gate_hp", 1.0)
-    mode.set("hunter_x", 735.0)
-    mode.set("hunter_cooldown", 0.0)
+    mode.call("_debug_hunter_at_door")
     mode.call("_advance", 0.1)
     if mode.get("phase") != "lost":
         _fail("La caida de la puerta no provoca derrota.")
@@ -83,8 +108,7 @@ func _run() -> void:
         _fail("No se puede activar el escudo.")
         return
     var preserved_hp: float = mode.get("gate_hp")
-    mode.set("hunter_x", 735.0)
-    mode.set("hunter_cooldown", 0.0)
+    mode.call("_debug_hunter_at_door")
     mode.call("_advance", 0.1)
     if float(mode.get("gate_hp")) < preserved_hp:
         _fail("El escudo no protege la puerta.")

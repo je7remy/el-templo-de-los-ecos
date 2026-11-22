@@ -27,7 +27,14 @@ func _run() -> void:
     Ajustes.poner("tutorial_hecho", true)
     # Sin personaje guardado, EXPLORAR abre la creación: nombre y luego género.
     game.set("player_name", "")
-    game.call("_mobile_touch", 1, Vector2(220, 490), true)
+    game.call("_mobile_touch", 1, Vector2(300, 470), true) # JUGAR
+    game.call("_mobile_touch", 1, Vector2(300, 470), false)
+    if game.get("game_mode") != "floors":
+        _fail("JUGAR no abre el menú de pisos.")
+        return
+    var card: Vector2 = (game.call("_floor_card", 0) as Rect2).get_center()
+    game.call("_mobile_tap", card) # Piso I: el primer toque lo elige,
+    game.call("_mobile_tap", card) # el segundo desciende
     if game.get("game_mode") != "create":
         _fail("Explorar sin personaje no abre la creación.")
         return

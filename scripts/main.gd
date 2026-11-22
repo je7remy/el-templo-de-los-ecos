@@ -33,195 +33,8 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ##   vines (opcional): tramos de enredadera seca que arden y propagan el fuego.
 ##           Rasgo "raices_puerta": raíces vivas tapan la puerta; solo arden
 ##           si les llega el fuego de las secas.
-const FLOORS := [
-    {
-        "number": "I", "title": "EL DESPERTAR", "state": "TEMPLO CONSERVADO", "wear": 0.0,
-        "eco": "respiracion",
-        "rooms": [
-            {"scene": 0, "name": "I · UMBRAL DEL DESPERTAR", "enemy": "", "traits": ["tutorial"],
-             "whisper": "Una inscripción dice: 'La esperanza es parte del mecanismo'.",
-             "items": [["madera", "Madera", Vector2(300, 470)], ["fosforos", "Fosforos", Vector2(660, 470)]]},
-            {"scene": 1, "name": "II · CLAUSTRO DE LAS OFRENDAS", "enemy": "ghoul", "traits": ["altar"],
-             "whisper": "Las piedras tienen marcas de quienes estuvieron antes que tú.", "items": [],
-             "mission": {"goal": "desterrar", "required": true, "reward": 8, "text": "Destierra al Ghoul de brasas"}},
-            {"scene": 2, "name": "III · SALA DEL TESTIGO", "enemy": "testigo", "traits": ["sello"],
-             "whisper": "No todos los ojos necesitan luz para verte.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "mission": {"goal": "desterrar", "required": false, "reward": 12, "text": "Destierra al Testigo"}},
-            {"scene": 3, "name": "IV · ARCHIVO DE LOS AUSENTES", "enemy": "hechicero", "traits": ["archivo"],
-             "whisper": "Algunas cartas parecen escritas por personas que regresaron.",
-             "items": [["fosforos", "Fosforos", Vector2(230, 460)]],
-             "mission": {"goal": "desterrar", "required": true, "reward": 10, "text": "Destierra al Hechicero del archivo"}},
-            {"scene": 4, "name": "V · PÓRTICO DEL SIGUIENTE PISO", "enemy": "", "traits": [],
-             "whisper": "Esto no es una salida. Es una transición.", "items": [],
-             "traps": [Vector2(350, 350), Vector2(610, 350), Vector2(290, 500), Vector2(670, 500)],
-             "inscription": [Vector2(480, 300), "Los que cruzaron antes dejaron sus nombres en la piedra. Ninguno dejó una salida."]},
-        ],
-    },
-    {
-        # Inspiración: la traición durante la recolección de almas.
-        "number": "II", "title": "LOS PEREGRINOS", "state": "PRIMERAS GRIETAS", "wear": 1.0,
-        "eco": "nuca",
-        "rooms": [
-            {"scene": 0, "name": "I · ATRIO DE LOS PEREGRINOS", "enemy": "", "traits": ["almas", "peregrino"],
-             "whisper": "Alguien más respira en la oscuridad.", "items": []},
-            {"scene": 2, "name": "II · NAVE DEL AGUA", "enemy": "", "traits": ["almas"],
-             "whisper": "El agua corre hacia abajo. Las almas también.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "traps": [Vector2(320, 380), Vector2(640, 380), Vector2(380, 470), Vector2(580, 470)],
-             "inscription": [Vector2(330, 182), "El agua baja. Las almas también. Todo baja hacia algo que tiene hambre."]},
-            {"scene": 4, "name": "III · CRIPTA DEL REPARTO", "enemy": "", "traits": ["almas", "cosecha"],
-             "whisper": "Aquí se reparte lo reunido. Siempre sobra alguien.", "items": []},
-            {"scene": 3, "name": "IV · UMBRAL DEL TERCER PISO", "enemy": "", "traits": [],
-             "whisper": "Nadie llega a esta puerta acompañado.", "items": []},
-        ],
-    },
-    {
-        # Inspiración: la misión «matar al rápido», en grupo y con bajas.
-        "number": "III", "title": "LA CACERÍA", "state": "EL TEMPLO TIENE HAMBRE", "wear": 1.5,
-        "eco": "reflejos",
-        "rooms": [
-            {"scene": 1, "name": "I · CLAUSTRO DEL ENCARGO", "enemy": "", "traits": ["aliados"],
-             "whisper": "Una voz sin boca: «Cazad al rápido. Solo entonces bajaréis».",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "inscription": [Vector2(330, 182), "La caza es una ofrenda. El cazador, también."]},
-            {"scene": 2, "name": "II · NAVE DE LOS HILOS", "enemy": "segador", "traits": ["caza", "huida"],
-             "whisper": "Algo cruza la nave más rápido que tu luz.", "items": [],
-             "mission": {"goal": "ahuyentar", "required": true, "reward": 6, "text": "Hiere al Segador hasta que huya"}},
-            {"scene": 3, "name": "III · CORO DESGARRADO", "enemy": "segador", "traits": ["caza"],
-             "whisper": "Hilos rojos cuelgan de cada columna. Siguen tensos.",
-             "items": [["fosforos", "Fosforos", Vector2(230, 460)]],
-             "traps": [Vector2(330, 455), Vector2(630, 455), Vector2(250, 320), Vector2(710, 320)],
-             "mission": {"goal": "desterrar", "required": true, "reward": 15, "text": "Mata al Segador de Hilos"}},
-            {"scene": 4, "name": "IV · UMBRAL DEL CUARTO PISO", "enemy": "", "traits": ["recuento"],
-             "whisper": "Los que siguen vivos cuentan los pasos de los que no.", "items": []},
-        ],
-    },
-    {
-        # Inspiración: las arañas de árbol, vencidas con fuego.
-        "number": "IV", "title": "EL CLAUSTRO ENRAIZADO", "state": "LA PIEDRA SE AGRIETA", "wear": 1.8,
-        "eco": "piel",
-        "rooms": [
-            {"scene": 0, "name": "I · ATRIO DE LAS RAÍCES", "enemy": "", "traits": ["raices_puerta"],
-             "whisper": "Raíces vivas sellan la puerta. Las secas, en cambio, arden.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "vines": [[Vector2(200, 470), Vector2(800, 470)], [Vector2(800, 470), Vector2(830, 410)]]},
-            {"scene": 1, "name": "II · CLAUSTRO ENRAIZADO", "enemy": "tejedora", "traits": [],
-             "whisper": "Algo cruje entre las columnas, como un árbol que camina.", "items": [],
-             "vines": [[Vector2(140, 410), Vector2(840, 410)], [Vector2(140, 530), Vector2(840, 530)],
-                 [Vector2(300, 410), Vector2(300, 530)], [Vector2(660, 410), Vector2(660, 530)]],
-             "mission": {"goal": "desterrar", "required": true, "reward": 12, "text": "Quema a la Tejedora de Raíz"}},
-            {"scene": 2, "name": "III · JARDÍN DE CENIZA", "enemy": "tejedora", "traits": [],
-             "whisper": "Aquí ya ardió algo antes. Las raíces volvieron a crecer.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "vines": [[Vector2(120, 380), Vector2(840, 380)], [Vector2(140, 172), Vector2(840, 172)],
-                 [Vector2(260, 172), Vector2(260, 380)], [Vector2(700, 172), Vector2(700, 380)]],
-             "mission": {"goal": "desterrar", "required": true, "reward": 14, "text": "Quema a la segunda Tejedora"}},
-            {"scene": 4, "name": "IV · MURO DE LOS NOMBRES", "enemy": "", "traits": [],
-             "whisper": "La pared está cubierta de nombres grabados a uña.", "items": [],
-             "inscription": [Vector2(480, 350), "Cientos de nombres de quienes volvieron. Entre ellos, recién grabado, reconoces el tuyo: {yo}."]},
-        ],
-    },
-    {
-        # Inspiración: el laberinto de los leones enmascarados, demasiado fuertes para ese piso.
-        "number": "V", "title": "EL LABERINTO DE LOS MASTINES", "state": "SE OYEN UÑAS DE BRONCE", "wear": 1.6,
-        "eco": "paso", "fuel": 25.0,
-        "rooms": [
-            {"scene": 0, "name": "V-1 · CORREDOR DE LOS RELICARIOS", "enemy": "", "traits": [],
-             "whisper": "Uñas de bronce sobre la piedra. No te acerques a oscuras.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "walls": [Rect2(250, 384, 180, 16), Rect2(552, 170, 16, 120), Rect2(612, 420, 16, 132)],
-             "hounds": [Vector2(480, 470), Vector2(720, 200)]},
-            {"scene": 1, "name": "V-2 · GALERÍA DEL MANTO", "enemy": "", "traits": [],
-             "whisper": "Alguien grita entre los muros. Los perros también lo oyen.", "items": [],
-             "walls": [Rect2(150, 420, 200, 16), Rect2(560, 420, 220, 16), Rect2(400, 170, 16, 90), Rect2(620, 480, 16, 72)],
-             "hounds": [Vector2(300, 300), Vector2(800, 520)], "rescue": Vector2(700, 470),
-             "mission": {"goal": "rescatar", "required": false, "reward": 10, "text": "Corta el manto del peregrino atrapado"}},
-            {"scene": 3, "name": "V-3 · PERRERA DE BRONCE", "enemy": "", "traits": ["almas"],
-             "whisper": "Huesos roídos. Aquí comen los mastines.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "walls": [Rect2(160, 460, 16, 92), Rect2(784, 460, 16, 92), Rect2(380, 180, 200, 16)],
-             "hounds": [Vector2(480, 470), Vector2(150, 300), Vector2(820, 250)]},
-            {"scene": 2, "name": "V-4 · CANALES DE ALMAS", "enemy": "", "traits": [],
-             "whisper": "Surcos en el suelo. Algo azul corre por ellos, hacia abajo.", "items": [],
-             "walls": [Rect2(300, 440, 16, 112), Rect2(644, 440, 16, 112)],
-             "hounds": [Vector2(800, 470)], "mask": Vector2(480, 300),
-             "channels": [[Vector2(140, 520), Vector2(840, 520)], [Vector2(480, 330), Vector2(480, 520)], [Vector2(140, 200), Vector2(140, 520)]],
-             "mission": {"goal": "mascara", "required": true, "reward": 8, "text": "Toma la Máscara de Porcelana"}},
-        ],
-    },
-    {
-        # Inspiración: el vendedor ambulante y el protagonista que se vuelve líder.
-        # Piso de respiro: sin entidades. La regla es del Mercader.
-        "number": "VI", "title": "LA OFRENDA", "state": "EL TEMPLO CONTIENE EL ALIENTO", "wear": 1.2,
-        "eco": "huesos",
-        "rooms": [
-            {"scene": 0, "name": "VI-1 · ATRIO DE LOS GUÍAS", "enemy": "", "traits": ["guias"],
-             "whisper": "Voces bajas junto a la estatua. Por primera vez, nadie grita.",
-             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
-             "guides": [Vector2(250, 480), Vector2(320, 515), Vector2(390, 480), Vector2(180, 430)],
-             "mission": {"goal": "guiar", "required": false, "reward": 6, "text": "Acepta guiar a los peregrinos"}},
-            {"scene": 1, "name": "VI-2 · PUESTO DEL MERCADER", "enemy": "", "traits": ["mercader"],
-             "whisper": "Una figura alta y quieta. Delante, un cuenco vacío.", "items": [],
-             "merchant": Vector2(480, 360),
-             "inscription": [Vector2(250, 470), "Se paga primero. Nunca metas la mano bajo su manto: lo que hay debajo no es tuyo, y tu mano tampoco lo será."]},
-            {"scene": 3, "name": "VI-3 · REFECTORIO VACÍO", "enemy": "", "traits": [],
-             "whisper": "Mesas largas y platos limpios. Aquí comía alguien. O algo.",
-             "items": [["pan", "Pan", Vector2(250, 470)]],
-             "inscription": [Vector2(700, 470), "Aquí no se servía pan. Se servía miedo. Y lo que come arriba engorda con cada desesperanza."]},
-            {"scene": 4, "name": "VI-4 · ESCALERA DEL SÉPTIMO", "enemy": "", "traits": ["despedida"],
-             "whisper": "Peldaños que bajan hacia un silencio que mira.", "items": []},
-        ],
-    },
-    {
-        # Inspiración: la sala de la mirada; mueren quienes gritan o se adelantan.
-        "number": "VII", "title": "LA QUE NO APARTA LA VISTA", "state": "ALGO TE MIRA SIN PARPADEAR", "wear": 1.9,
-        "eco": "serena", "followers": true,
-        "rooms": [
-            {"scene": 0, "name": "VII-1 · ANTESALA DE LOS OJOS", "enemy": "", "traits": [],
-             "whisper": "Las estatuas tienen los ojos arrancados. Alguien los coleccionó.",
-             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
-             "inscription": [Vector2(480, 470), "Mírala. No corras. No le des la espalda. Quien grita, se queda."]},
-            {"scene": 2, "name": "VII-2 · SALA DE LA MIRADA", "enemy": "", "traits": [],
-             "whisper": "Un yelmo flota en la penumbra. Debajo, una hilera de ojos se abre.", "items": [],
-             "gaze": 45.0,
-             "mission": {"goal": "mirada", "required": true, "reward": 10, "text": "Aguanta su mirada 45 s"}},
-            {"scene": 1, "name": "VII-3 · CORO DE LOS CIEGOS", "enemy": "", "traits": ["almas"],
-             "whisper": "Hay almas en el suelo. Para recogerlas tendrás que moverte sin dejar de mirarla.",
-             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
-             "gaze": 60.0,
-             "mission": {"goal": "mirada", "required": true, "reward": 14, "text": "Aguanta su mirada 60 s"}},
-            {"scene": 4, "name": "VII-4 · UMBRAL DEL OCTAVO", "enemy": "", "traits": ["recuento_guias"],
-             "whisper": "Detrás, los ojos se cierran. Delante, el templo empieza a cambiar.", "items": []},
-        ],
-    },
-    {
-        # Inspiración: L.A.G. cambia y la memoria del protagonista falla.
-        # Las salas del Piso I, alteradas: estatuas del revés, el Testigo con
-        # la regla invertida, el sello en otra sala y pistas falsas «tuyas».
-        "number": "VIII", "title": "EL TEMPLO QUE CAMBIA", "state": "ESTO YA LO HAS VISTO. ¿O NO?", "wear": 0.4,
-        "eco": "memoria", "mirror": true, "inverted": true,
-        "rooms": [
-            {"scene": 0, "name": "VIII-1 · UMBRAL QUE NO RECUERDAS", "enemy": "", "traits": [],
-             "whisper": "Conoces esta sala. Pero las estatuas miran hacia el otro lado.",
-             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
-             "inscription": [Vector2(480, 470), "{yo}: soy tú, de otra vida. El sello sigue en la Sala del Testigo. Cuando abra el ojo, quédate quieto. Confía en mí."]},
-            {"scene": 2, "name": "VIII-2 · SALA DEL TESTIGO", "enemy": "testigo", "traits": ["almas"],
-             "whisper": "El ojo del muro te sigue. Esta vez parece esperar a que te detengas.", "items": [],
-             "mission": {"goal": "desterrar", "required": false, "reward": 14, "text": "Destierra al Testigo invertido"}},
-            {"scene": 3, "name": "VIII-3 · ARCHIVO QUE SE REESCRIBE", "enemy": "ghoul", "traits": ["sello", "archivo"],
-             "whisper": "El sello está aquí, sobre los papeles. No donde decía la inscripción.",
-             "items": [["fosforos", "Fosforos", Vector2(230, 460)]],
-             "seal": Vector2(480, 440),
-             "letter": "Carta con tu letra: 'No confíes en las inscripciones. Las escribí yo... ¿o el templo escribió con mi mano?'",
-             "mission": {"goal": "desterrar", "required": false, "reward": 10, "text": "Destierra al Ghoul del archivo"}},
-            {"scene": 4, "name": "VIII-4 · PÓRTICO QUE NO ES EL MISMO", "enemy": "", "traits": [],
-             "whisper": "La inscripción del pórtico ha cambiado. Esta vez dice la verdad.", "items": [],
-             "traps": [Vector2(290, 350), Vector2(670, 350), Vector2(350, 500), Vector2(610, 500)],
-             "inscription": [Vector2(480, 300), "Esto no es un templo. Es una fábrica: el miedo entra, las almas salen. Y tú eres parte del turno."]},
-        ],
-    },
-]
+const Pisos := preload("res://scripts/datos/pisos.gd")
+const FLOORS = Pisos.FLOORS
 
 const RELICS := [
     Vector2(280, 245), Vector2(500, 465), Vector2(725, 230)
@@ -262,9 +75,14 @@ const ICONS := {
     "eco_huesos": preload("res://assets/visual/iconos/eco_huesos.png"),
     "eco_serena": preload("res://assets/visual/iconos/eco_serena.png"),
     "eco_memoria": preload("res://assets/visual/iconos/eco_memoria.png"),
+    "eco_fuerza": preload("res://assets/visual/iconos/eco_fuerza.png"),
     "pan": preload("res://assets/visual/iconos/pan.png"),
     "brazalete": preload("res://assets/visual/iconos/brazalete.png"),
     "amuleto": preload("res://assets/visual/iconos/amuleto.png"),
+    "vial": preload("res://assets/visual/iconos/vial.png"),
+    "incienso": preload("res://assets/visual/iconos/incienso.png"),
+    "bolsa_almas": preload("res://assets/visual/iconos/bolsa_almas.png"),
+    "reliquia": preload("res://assets/visual/iconos/reliquia.png"),
     "habilidades": preload("res://assets/visual/iconos/habilidades.png"),
     "pinchos": preload("res://assets/visual/iconos/pinchos.png"),
     "calavera": preload("res://assets/visual/iconos/calavera.png"),
@@ -309,6 +127,7 @@ const ECOS := {
     "huesos": ["HUESOS FIRMES", "Una vez por piso, un golpe mortal te deja con 1 de vida."],
     "serena": ["MENTE SERENA", "El miedo al máximo ya no te hace daño."],
     "memoria": ["MEMORIA DE ECO", "Ves tu silueta donde moriste en otras vidas."],
+    "fuerza": ["FUERZA ACUMULADA", "Tu golpe hace un 4 % más de daño por cada Eco que tienes."],
 }
 ## Casillas del inventario: [clave, nombre, descripción].
 const INVENTORY_SLOTS := [
@@ -718,6 +537,11 @@ func _load_progress() -> void:
         xp = maxi(0, int(data.get("xp", 0)))
         var saved_guided = data.get("guided", [])
         guided = (saved_guided as Array).map(func(e): return str(e)) if saved_guided is Array else []
+        var saved_bag = data.get("bag", {})
+        bag = saved_bag if saved_bag is Dictionary else {}
+        var saved_levels = data.get("trinket_levels", {})
+        trinket_levels = saved_levels if saved_levels is Dictionary else {}
+        karma = int(data.get("karma", 0))
         var saved_trinkets = data.get("trinkets", [])
         trinkets = (saved_trinkets as Array).filter(func(e): return str(e) in ["brazalete", "amuleto"]) if saved_trinkets is Array else []
 
@@ -744,7 +568,10 @@ func _save_progress() -> void:
             "player_level": player_level,
             "death_marks": death_marks,
             "xp": xp,
-            "trinkets": trinkets
+            "trinkets": trinkets,
+            "trinket_levels": trinket_levels,
+            "bag": bag,
+            "karma": karma
         }))
 
 
@@ -782,6 +609,7 @@ func _new_run() -> void:
     rescue_state = ""
     hand_lost = false
     guiding = false
+    fountains_used.clear()
     floor_t0 = Time.get_ticks_msec()
     floor_souls0 = 0
     floor_deaths = 0
@@ -843,7 +671,7 @@ func _enter_room() -> void:
     for entry in _room()["items"]:
         if not items_taken.has("%s:%s" % [_room_key(), entry[0]]):
             room_items.append({"kind": entry[0], "pos": _marker(entry[1], entry[2])})
-    enemy_max = maxf(1.0, float(ENEMY_MAX_HP.get(_enemy_kind(), 1.0)))
+    enemy_max = maxf(1.0, float(ENEMY_MAX_HP.get(_enemy_kind(), 1.0)) * _depth_mult()) # más fuertes cuanto más abajo
     enemy_hp = enemy_max
     if _enemy_kind() == "segador":
         _segador_enter_room()
@@ -861,6 +689,9 @@ func _enter_room() -> void:
     _load_labyrinth()
     _load_merchant()
     _load_gaze()
+    _load_colossus_room()
+    if _fountain_here():
+        obstacles.append(Rect2(FOUNTAIN_POS.x - 12.0, FOUNTAIN_POS.y - 10.0, 24.0, 10.0))
     door_state = "unknown"
     if game_mode == "floor_intro":
         toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
@@ -1041,7 +872,7 @@ func _input(event: InputEvent) -> void:
         return
     if game_mode == "title":
         if k == KEY_ENTER or k == KEY_KP_ENTER:
-            _start_explore()
+            _open_floors() # los pisos son la entrada al juego
         elif k == KEY_C:
             _start_creation("title")
         elif k == KEY_P:
@@ -1049,7 +880,7 @@ func _input(event: InputEvent) -> void:
         elif k == KEY_H:
             _open_defense()
         elif k == KEY_ESCAPE:
-            game_mode = "splash"
+            _ask_quit()
     elif game_mode == "floor_intro":
         if k in [KEY_ENTER, KEY_KP_ENTER, KEY_E, KEY_SPACE]:
             _enter_floor()
@@ -1071,6 +902,10 @@ func _input(event: InputEvent) -> void:
             _close_inventory()
         elif k == _key("habilidades"):
             _open_abilities()
+        elif k == KEY_O:
+            _profile_switch_tab()
+        elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+            _profile_use_selected()
         elif k in [KEY_RIGHT, KEY_D]:
             inventory_sel = (inventory_sel % 100 + 1) % INVENTORY_SLOTS.size()
         elif k in [KEY_LEFT, KEY_A]:
@@ -1203,7 +1038,11 @@ func _pad_button(b: int) -> void:
             match b:
                 JOY_BUTTON_RIGHT_SHOULDER:
                     _pad_key(_key("habilidades"))
-                JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK, JOY_BUTTON_START:
+                JOY_BUTTON_A:
+                    _pad_key(KEY_ENTER)
+                JOY_BUTTON_Y:
+                    _pad_key(KEY_O)
+                JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK, JOY_BUTTON_START:
                     _pad_key(KEY_ESCAPE)
             return
         "abilities":
@@ -1423,7 +1262,7 @@ func _mobile_tap(at: Vector2) -> void:
                         settings_tab = 3
                         legal_page = "acuerdo"
                     "salir":
-                        get_tree().quit()
+                        _ask_quit()
         return
     if game_mode == "intro":
         if INTRO_SKIP_BTN.has_point(at):
@@ -1458,8 +1297,8 @@ func _mobile_tap(at: Vector2) -> void:
             _open_floors()
         elif VIGIL_BTN.has_point(at):
             _open_defense()
-        else:
-            _start_explore()
+        elif QUIT_BTN.has_point(at):
+            _ask_quit()
         return
     if game_mode == "dead" or game_mode == "victory":
         _after_end()
@@ -1489,8 +1328,15 @@ func _mobile_tap(at: Vector2) -> void:
         if PROFILE_ABIL_BTN.has_point(at):
             _open_abilities()
             return
+        for t in range(2):
+            if _profile_tab_rect(t).has_point(at):
+                if profile_tab != t:
+                    _profile_switch_tab()
+                return
         var slot: int = _inventory_slot_at(at)
         if slot >= 0:
+            if slot == inventory_sel and profile_tab == 1:
+                _profile_use_selected() # segundo toque: usar
             inventory_sel = slot
         else:
             _close_inventory()
@@ -1580,7 +1426,19 @@ func _buy_upgrade(choice: int) -> void:
     if choice != 1:
         return
     if has_pulse:
-        _say("Ya adquiriste Resonancia. Nivel actual: %d." % ability_level)
+        # Ya la tienes: el altar la mejora de nivel con almas.
+        if ability_level >= ABILITY_LEVEL_MAX:
+            _say("Tu Resonancia ya está al nivel máximo (%d)." % ability_level)
+            return
+        var up_price: int = RESONANCE_UPGRADE_BASE + RESONANCE_UPGRADE_STEP * ability_level
+        if souls < up_price:
+            _say("Mejorar la Resonancia cuesta %d almas." % up_price)
+            return
+        souls -= up_price
+        ability_level += 1
+        _save_progress()
+        _sfx("sello", -6.0, 1.35)
+        _say("Resonancia mejorada a nivel %d: más daño." % ability_level, 3.0)
         return
     # Precio y balance de esta prueba vertical: PROVISIONALES, no canon definitivo.
     var price: int = 14
@@ -1687,7 +1545,7 @@ func _take_item(i: int) -> void:
         label = "+MADERA"
         _say("Madera seca y una tira de tela: el cuerpo de una antorcha.", 3.0)
     elif kind == "pan":
-        hp = minf(max_hp, hp + 40.0)
+        _heal(40.0)
         stamina = 100.0
         label = "+40 VIDA"
         _say("Un mendrugo olvidado. Duro, pero es comida.", 3.0)
@@ -1894,6 +1752,7 @@ func _torch_strike() -> bool:
                 pilgrim_pos = shove
     _try_ignite(player_pos + strike_dir * 28.0)
     _strike_hounds_and_rescue()
+    _strike_rams_and_pillars()
     for cr in critters:
         if bool(cr["alive"]):
             var to_c: Vector2 = Vector2(cr["pos"]) - player_pos
@@ -1924,6 +1783,8 @@ func _interact() -> void:
         return
     if _calm_ally():
         return
+    if _use_fountain():
+        return
     if _offering_interact():
         return
     if _has("altar") and player_pos.distance_to(altar_pos) < 64.0:
@@ -1948,6 +1809,7 @@ func _interact() -> void:
     _say("La piedra no responde a tu tacto.", 1.3)
 
 func _go_through_door() -> void:
+    _karma_on_leave()
     if current_room == _room_count() - 1:
         _finish_floor()
     else:
@@ -2149,6 +2011,8 @@ func _process(delta: float) -> void:
     elapsed += delta
     _update_pad_repeat(delta)
     _update_level_fx(delta)
+    for i in shop_flash.keys():
+        shop_flash[i] = maxf(0.0, float(shop_flash[i]) - delta * 1.8)
     toast_left = maxf(0.0, toast_left - delta)
     visual_interaction_left = maxf(0.0, visual_interaction_left - delta)
     bump_left = maxf(0.0, bump_left - delta)
@@ -2275,6 +2139,8 @@ func _update_play(dt: float) -> void:
     _update_regen(dt)
     _update_offering(dt)
     _update_gaze(dt)
+    _update_rams(dt)
+    _update_colossus(dt)
     if hp <= 0.0 and ecos.has("huesos") and not bones_used:
         _bones_hold()
     if hp <= 0.0:
@@ -2354,7 +2220,7 @@ func _update_enemy(dt: float) -> void:
             ball["life"] = float(ball["life"]) - dt
             if p.distance_to(player_pos) < 23.0:
                 if damage_cd <= 0.0:
-                    hp -= 25.0
+                    hp -= 25.0 * _depth_mult()
                     fear = minf(100.0, fear + 13.0)
                     damage_cd = 1.1
                     _say("El conjuro te alcanza. Busca cobertura.", 2.6)
@@ -2366,7 +2232,7 @@ func _update_enemy(dt: float) -> void:
                 fireballs[i] = ball
     if (_enemy_kind() == "ghoul" or _enemy_kind() == "testigo") and enemy_alert and enemy_stun <= 0.0:
         if enemy_pos.distance_to(player_pos) < 31.0 and damage_cd <= 0.0:
-            hp -= 33.0 if _enemy_kind() == "ghoul" else 42.0
+            hp -= (33.0 if _enemy_kind() == "ghoul" else 42.0) * _depth_mult()
             fear = minf(100.0, fear + 21.0)
             damage_cd = 1.5
             var away := (player_pos - enemy_pos).normalized()
@@ -2493,6 +2359,8 @@ func _draw_room() -> void:
     _draw_tejedora_fire()
     _draw_labyrinth_glow()
     _draw_merchant_glow()
+    _draw_mark_aura()
+    _draw_ram_warnings()
     _draw_critter_eyes()
     _draw_light_rays()
     _draw_fog()
@@ -2692,6 +2560,14 @@ func _draw_depth_sorted() -> void:
         items.append([Vector2(_room()["merchant"]).y, "merchant", null])
     if gaze_active:
         items.append([gaze_pos.y, "vigia", null])
+    for i in range(rams.size()):
+        items.append([Vector2(rams[i]["pos"]).y, "ram", i])
+    for i in range(pillars.size()):
+        items.append([Vector2(pillars[i]["pos"]).y + 6.0, "pillar", i])
+    if colossus_active:
+        items.append([colossus_pos.y, "colossus", null])
+    if _fountain_here():
+        items.append([FOUNTAIN_POS.y, "fountain", null])
     if _has("archivo"):
         items.append([book_pos.y + 37.0, "book", null]) # justo después de la mesa
     for i in range(room_props.size()):
@@ -2721,6 +2597,14 @@ func _draw_depth_sorted() -> void:
                 _draw_merchant()
             "vigia":
                 _draw_vigia()
+            "ram":
+                _draw_ram(item[2])
+            "pillar":
+                _draw_pillar(item[2])
+            "colossus":
+                _draw_colossus()
+            "fountain":
+                _draw_fountain()
             "altar":
                 _draw_altar(altar_pos)
             "book":
@@ -2745,6 +2629,8 @@ func _draw_object_labels() -> void:
     _draw_rescue_label()
     _draw_offering_labels()
     _draw_gaze_hud()
+    _draw_colossus_hud()
+    _draw_fountain_label()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
 
@@ -3245,6 +3131,11 @@ func _draw_player_panel() -> void:
     _panel(Rect2(16, 82, 72, 17), Color("#2a1d22"), UI_GOLD)
     _text_outline(_hero_name(), Vector2(16, 95), 12, CREAM, 72.0)
     # Nivel: placa en la esquina del retrato y barra de experiencia.
+    if _mark() != "":
+        var mk := Rect2(54, 6, 34, 18)
+        var bless: bool = _mark() == "bendicion"
+        _panel(mk, Color("#4a3a12") if bless else Color("#4a121a"), Color("#ffd36b") if bless else UI_CRIMSON)
+        _text_outline("BEN" if bless else "MAL", Vector2(mk.position.x, mk.position.y + 14.0), 11, CREAM, mk.size.x)
     var badge := Rect2(10, 6, 34, 18)
     _panel(badge, Color("#3b2550"), UI_GOLD)
     _text_outline("NV%d" % player_level, Vector2(badge.position.x, badge.position.y + 14.0), 11, CREAM, badge.size.x)
@@ -3252,7 +3143,7 @@ func _draw_player_panel() -> void:
     draw_rect(xpbar, Color(0, 0, 0, 0.7))
     draw_rect(Rect2(xpbar.position, Vector2(xpbar.size.x * _xp_fraction(), xpbar.size.y)), Color("#c9a25e").lerp(Color.WHITE, 0.4 * level_flash))
     var bars := [
-        ["corazon", hp, max_hp, BAR_HP, "%d/%d" % [int(ceil(hp)), int(max_hp)]],
+        ["corazon", minf(hp, max_hp), max_hp, BAR_HP, ("%d/%d" % [int(ceil(hp)), int(max_hp)]) if hp <= max_hp else ("%d/%d +%d" % [int(max_hp), int(max_hp), int(ceil(hp - max_hp))])],
         ["vigor", stamina, 100.0, BAR_VIGOR, "%d/100" % int(stamina)],
         ["miedo", fear, 100.0, BAR_FEAR, "MIEDO %d%%" % int(fear)],
     ]
@@ -3261,6 +3152,11 @@ func _draw_player_panel() -> void:
         var b: Array = bars[i]
         draw_texture_rect(ICONS[b[0]], Rect2(96, y - 1.0, 22, 22), false)
         _px_bar(Rect2(122, y, 196, 20), float(b[1]) / float(b[2]), b[3], b[4])
+    if hp > max_hp:
+        # Vida extra por encima del máximo: franja dorada sobre la barra.
+        var k_over: float = clampf((hp - max_hp) / OVERHEAL_MAX, 0.0, 1.0)
+        draw_rect(Rect2(124, 15, 192.0 * k_over, 4), Color("#ffd36b"))
+        draw_rect(Rect2(122, 15, 196, 20), Color(1.0, 0.85, 0.4, 0.35 + 0.2 * sin(elapsed * 4.0)), false, 2.0)
     if fear > 70.0:
         # Al borde del pánico la barra de miedo late.
         var k: float = 0.5 + 0.5 * sin(elapsed * 9.0)
@@ -3524,11 +3420,14 @@ func _draw_title() -> void:
     draw_rect(Rect2(318, 376, 324, 2), UI_GOLD.darkened(0.3))
     _text_outline("ROGUELIKE DE TERROR · PISOS I–%s · REGLAS POR DESCUBRIR" % FLOORS[FLOORS.size() - 1]["number"], Vector2(149, 398), 12, SOUL, main.size.x)
     _text_outline("No conoces las reglas. Aún.", Vector2(149, 422), 15, Color("#b9b29b"), main.size.x)
-    ## Botones: misma zona táctil que antes (izquierda explorar, derecha vigilia).
-    _big_button(EXPLORE_BTN, "EXPLORAR", "antorcha_encendida", Color("#1d3a40"), SOUL)
-    _big_button(FLOORS_BTN, "PISOS", "calavera", Color("#3b2550"), Color("#a988d0"))
+    ## Botones: los PISOS son la entrada al juego (el Piso I empieza desde el
+    ## principio); la VIGILIA es el modo aparte.
+    _big_button(FLOORS_BTN, "JUGAR", "antorcha_encendida", Color("#3b2550"), Color("#a988d0"))
     _big_button(VIGIL_BTN, "VIGILIA", "descansar", Color("#43301a"), UI_GOLD)
-    _text_outline(_hint("ENTER  explorar   ·   P  pisos   ·   H  vigilia", "Toca un botón para empezar", _t("mando_titulo")), Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
+    var hot_q: bool = QUIT_BTN.has_point(ui_hover)
+    _panel(QUIT_BTN, Color("#3a1a20") if hot_q else Color("#141922"), UI_CRIMSON if hot_q else UI_LIGHT)
+    _text_outline("SALIR", QUIT_BTN.position + Vector2(0, 19), 12, CREAM if hot_q else Color("#b9b29b"), QUIT_BTN.size.x)
+    _text_outline(_hint("ENTER  jugar (elegir piso)   ·   H  vigilia   ·   ESC  salir", "Toca JUGAR para elegir piso", _t("mando_titulo")), Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
     # Ficha rápida del personaje.
     if player_name != "":
         draw_texture_rect(_portrait(false), Rect2(171, 510, 40, 40), false)
@@ -3569,7 +3468,7 @@ func _draw_altar_overlay() -> void:
     _center("EL MERCADER SILENCIOSO", 200, 26, CREAM)
     _center("'Todo préstamo tiene un dueño que no conoces.'", 232, 15, SOUL)
     var offers := [
-        ["resonancia", "[1] RESONANCIA", "Onda (Q) que daña y aturde a las entidades cercanas.", 14, has_pulse, "NIVEL %d" % ability_level],
+        ["resonancia", "[1] RESONANCIA" if not has_pulse else "[1] MEJORAR RESONANCIA", "Onda (Q) que daña y aturde a las entidades cercanas." if not has_pulse else "Nivel %d → %d: la onda hace más daño." % [ability_level, ability_level + 1], 14 if not has_pulse else RESONANCE_UPGRADE_BASE + RESONANCE_UPGRADE_STEP * ability_level, has_pulse and ability_level >= ABILITY_LEVEL_MAX, "NIVEL MÁXIMO"],
         ["llama_interior", "[2] LLAMA INTERIOR", "Enciendes la antorcha sin gastar fósforos.", INNER_FLAME_PRICE, has_inner_flame, "ADQUIRIDA"],
     ]
     for i in range(offers.size()):
@@ -3609,7 +3508,7 @@ func _draw_inventory_overlay() -> void:
     _text_outline("NIVEL %d" % player_level, Vector2(252, 204), 14, UI_GOLD)
     var xp_label: String = "MÁXIMO" if player_level >= LEVEL_MAX else "%d/%d XP" % [xp, _xp_needed(player_level)]
     _px_bar(Rect2(252, 210, 108, 14), _xp_fraction(), Color("#c9a25e"), xp_label)
-    _px_bar(Rect2(102, 236, 238, 18), hp / max_hp, BAR_HP, "VIDA %d/%d" % [int(ceil(hp)), int(max_hp)])
+    _px_bar(Rect2(102, 236, 238, 18), minf(1.0, hp / max_hp), BAR_HP, ("VIDA %d/%d" % [int(ceil(hp)), int(max_hp)]) + ((" +%d" % int(ceil(hp - max_hp))) if hp > max_hp else ""))
     _px_bar(Rect2(102, 258, 238, 18), stamina / 100.0, BAR_VIGOR, "VIGOR %d" % int(stamina))
     _px_bar(Rect2(102, 280, 238, 18), fear / 100.0, BAR_FEAR, "MIEDO %d%%" % int(fear))
     var stats := [
@@ -3620,7 +3519,7 @@ func _draw_inventory_overlay() -> void:
         ["Retornos", "%d" % reincarnations],
         ["Pisos superados", "%d" % cleared],
         ["Vida máxima", "%d" % int(max_hp)],
-        ["Objetos", ", ".join(trinkets.map(func(t): return "Brazalete" if t == "brazalete" else "Amuleto")) if not trinkets.is_empty() else "—"],
+        ["Marca", {"bendicion": "Bendición", "maldicion": "Maldición"}.get(_mark(), "Ninguna") + " (%+d)" % karma],
     ]
     _panel(Rect2(96, 310, 250, 268), Color("#0f1218"))
     for i in range(stats.size()):
@@ -3629,9 +3528,13 @@ func _draw_inventory_overlay() -> void:
         draw_string(font, Vector2(112, y), stats[i][1], HORIZONTAL_ALIGNMENT_RIGHT, 220.0, 15, CREAM)
         if i < stats.size() - 1:
             draw_rect(Rect2(112, y + 11.0, 220, 1), Color(1, 1, 1, 0.06))
-    # --- Columna derecha: equipo/mochila (casillas seleccionables).
-    _text_outline("EQUIPO Y MOCHILA", Vector2(372, 92), 13, UI_GOLD)
-    for i in range(INVENTORY_SLOTS.size()):
+    # --- Columna derecha: pestañas EQUIPO / OBJETOS (casillas seleccionables).
+    for t in range(2):
+        var tr: Rect2 = _profile_tab_rect(t)
+        var on: bool = profile_tab == t
+        _panel(tr, Color("#2a1d22") if on else Color("#141922"), UI_GOLD if on else UI_EDGE)
+        _text_outline(["EQUIPO Y MOCHILA", "OBJETOS (%d)" % _object_slots().size()][t], Vector2(tr.position.x, tr.position.y + 17.0), 12, CREAM if on else Color("#9a957f"), tr.size.x)
+    for i in range(INVENTORY_SLOTS.size() if profile_tab == 0 else 0):
         var box: Rect2 = _inventory_slot_rect(i)
         var owned: bool = _slot_owned(i)
         var sel: bool = inventory_sel == i
@@ -3644,6 +3547,8 @@ func _draw_inventory_overlay() -> void:
         if INVENTORY_SLOTS[i][0] == "fosforos" and owned:
             title = "FÓSFOROS x%d" % matches
         _text_outline(title, Vector2(box.position.x, box.end.y - 10.0), 11, CREAM if owned else Color("#5d5a52"), box.size.x)
+    if profile_tab == 1:
+        _draw_object_slots()
     # --- Ecos: iconos compactos (caben los diez pisos); el detalle está en HABILIDADES.
     _text_outline("ECOS", Vector2(372, 368), 13, UI_GOLD)
     var keys: Array = ECOS.keys()
@@ -3665,6 +3570,8 @@ func _draw_inventory_overlay() -> void:
         var has_e: bool = ecos.has(ek)
         _text_outline(("ECO · " + ECOS[ek][0]) if has_e else "ECO SIN DESPERTAR", Vector2(388, 478), 15, SOUL if has_e else Color("#6d6a60"))
         draw_string(font, Vector2(388, 502), ECOS[ek][1] if has_e else "Supera un piso para despertarlo.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, CREAM if has_e else Color("#8a8778"))
+    elif profile_tab == 1:
+        _draw_object_desc()
     else:
         var owned_sel: bool = _slot_owned(inventory_sel)
         _text_outline(INVENTORY_SLOTS[inventory_sel][1] if owned_sel else "???", Vector2(388, 478), 15, CREAM if owned_sel else Color("#6d6a60"))
@@ -3746,7 +3653,9 @@ func _pilgrim_reset() -> void:
     for room in _floor()["rooms"]:
         if "peregrino" in room["traits"]:
             pilgrim_state = "waiting"
-    pilgrim_traitor = randf() < PILGRIM_TRAITOR_CHANCE
+    # La marca cambia cómo te ven: con bendición confía más; con maldición, nunca.
+    var chance: float = {"bendicion": 0.35, "maldicion": 1.0}.get(_mark(), PILGRIM_TRAITOR_CHANCE)
+    pilgrim_traitor = randf() < chance
     pilgrim_hp = PILGRIM_MAX_HP
     pilgrim_souls = 0
     pilgrim_wronged = false
@@ -3915,7 +3824,7 @@ func _pilgrim_harvest() -> void:
         var gift: int = pilgrim_souls / 2
         souls += gift
         pilgrim_souls -= gift
-        hp = minf(max_hp, hp + 30.0)
+        _heal(30.0)
         souls_flash = 0.8
         _pilgrim_say("Toma, bebe. Y la mitad de lo mío. Nadie debería cruzar esto solo.", 4.5)
         _say("El Peregrino era sincero: +%d almas y agua (+30 de vida)." % gift, 4.0)
@@ -3926,6 +3835,8 @@ func _damage_pilgrim(amount: float) -> void:
     if pilgrim_state in ["follow", "friend"]:
         # Atacarlo primero: el traidor lo admite; el sincero no lo entiende.
         pilgrim_wronged = not pilgrim_traitor
+        if pilgrim_wronged:
+            _karma(-2, "Atacaste a quien confiaba en ti")
         _pilgrim_say("Así que lo sabías." if pilgrim_traitor else "¿Por qué...? Yo solo quería salir.", 3.0)
         pilgrim_state = "hostile"
         pilgrim_timer = 0.0
@@ -4221,8 +4132,8 @@ const T := {
         "GAMEPAD: stick/D-pad move · A use/strike · RT strike · B/LT dodge · X torch · Y resonance"],
     "mando_esquema2": ["LB perfil · RB habilidades · START pausa · en menús: A aceptar, B volver, LB/RB pestañas",
         "LB profile · RB abilities · START pause · in menus: A accept, B back, LB/RB tabs"],
-    "mando_titulo": ["A  explorar   ·   Y  pisos   ·   X  personaje   ·   RB  vigilia   ·   SELECT  ajustes",
-        "A  explore   ·   Y  floors   ·   X  character   ·   RB  vigil   ·   SELECT  settings"],
+    "mando_titulo": ["A  jugar   ·   X  personaje   ·   RB  vigilia   ·   SELECT  ajustes   ·   B  salir",
+        "A  play   ·   X  character   ·   RB  vigil   ·   SELECT  settings   ·   B  quit"],
     "clic_cambiar": ["Haz clic en una acción para cambiar su tecla. Las flechas siempre mueven.", "Click an action to change its key. Arrow keys always move."],
     "nota_idioma": ["La traducción al inglés cubre los menús nuevos; el resto llegará más adelante.", "English covers the new menus; the rest of the game is still in Spanish."],
     "volver": ["VOLVER", "BACK"],
@@ -5465,7 +5376,7 @@ func _segador_fire() -> void:
         if dash_left > 0.0:
             float_fx.append({"pos": player_pos + Vector2(0, -60), "text": "ESQUIVA", "color": SOUL, "t": 0.0})
         elif damage_cd <= 0.0:
-            hp -= SEG_DAMAGE
+            hp -= SEG_DAMAGE * _depth_mult()
             fear = minf(100.0, fear + 24.0)
             damage_cd = 1.2
             _say("El hilo te atraviesa. Sal de la línea antes de que dispare.", 3.0)
@@ -5587,7 +5498,7 @@ func _update_allies(dt: float) -> void:
                 speed = 215.0
         else:
             # Te siguen en abanico, un poco por detrás.
-            target = player_pos + back * 52.0 + side * float(idx - 1) * 38.0
+            target = player_pos + back * (120.0 if _mark() == "maldicion" else 52.0) + side * float(idx - 1) * 38.0
             if _is_blocked(target):
                 # Pegado a una pared: se reparten a tus lados.
                 target = player_pos + side * (float(idx) - 1.0) * 46.0 + Vector2(0.0, 34.0 if idx == 1 else 0.0)
@@ -5902,85 +5813,7 @@ func _draw_mission_banner() -> void:
 # --- Diálogos ----------------------------------------------------------------------
 ## Conversaciones al entrar en salas con más personajes. «{yo}» es tu nombre.
 ## Las líneas de quien ya no está (aliado muerto, sin Peregrino) se omiten.
-const ROOM_TALKS := {
-    "1:0": [
-        ["PEREGRINO", "¿Tú también despertaste aquí? Tranquilo, no muerdo."],
-        ["{yo}", "¿Quién eres? ¿Cuánto llevas en este sitio?"],
-        ["PEREGRINO", "Lo bastante para saber que las puertas de este piso solo se abren con almas."],
-        ["PEREGRINO", "Busquemos juntos. Hay para los dos."],
-    ],
-    "1:1": [
-        ["PEREGRINO", "Escucha el agua. Siempre baja... como nosotros."],
-        ["{yo}", "Quédate donde pueda verte."],
-        ["PEREGRINO", "Claro, claro. A tu lado."],
-    ],
-    "2:0": [
-        ["ODÓN", "Otro más. Bien. La voz ya habló: hay que cazar al rápido."],
-        ["BRUNA", "Lo llaman el Segador. Tensa hilos rojos antes de atacar. Vi cómo partía a un hombre en dos."],
-        ["CIRO", "Yo... yo solo quiero bajar. Iré detrás de ti, si no te importa."],
-        ["{yo}", "Detrás de mí es justo donde no quieres estar."],
-        ["ODÓN", "Entonces marca tú el paso. Nosotros te seguimos."],
-    ],
-    "2:1": [
-        ["BRUNA", "Ahí está. ¿Lo oyes? Cuerdas que se tensan."],
-        ["ODÓN", "Cuando dispara se queda clavado a sus hilos. Ese es el momento de golpear."],
-        ["CIRO", "Y que la línea no nos pille a nosotros, por favor."],
-    ],
-    "4:0": [
-        ["{yo}", "Ladridos sin aliento... Son de bronce. Los golpes no les harán nada."],
-        ["{yo}", "Pero se apartan de la luz. Mientras la antorcha arda, no se acercarán."],
-        ["{yo}", "Y aquí la antorcha se consume. Tengo que medir los fósforos."],
-    ],
-    "5:0": [
-        ["IRENE", "Alto. No traemos armas, mira. Solo queremos bajar."],
-        ["TEO", "Te vimos cruzar el laberinto con la antorcha. Los perros te respetaban."],
-        ["BAS", "Nosotros no sabemos leer este sitio. Tú sí."],
-        ["SAÚL", "¡{yo}! Sigues vivo. Les dije que volverías a aparecer."],
-        ["IRENE", "Guíanos. Te seguiremos y no estorbaremos. Habla conmigo cuando lo decidas."],
-    ],
-    "5:1": [
-        ["{yo}", "Un mercader... no dice nada. Hay una inscripción junto a la entrada.", "solo"],
-        ["TEO", "Algo brilla bajo su manto. Solo quiero mirar..."],
-        ["IRENE", "¡Teo, no!"],
-        ["TEO", "¡AAAH! ¡Mi mano! ¡¿Dónde está mi mano?!"],
-        ["IRENE", "Se paga primero. Y no se toca. Lo pone en la pared, Teo."],
-        ["{yo}", "Nadie más acerca la mano a ese manto."],
-    ],
-    "5:3": [
-        ["IRENE", "La escalera baja. Dicen que abajo hay algo que mira."],
-        ["BAS", "Contigo delante, quizá lleguemos."],
-        ["SAÚL", "Te debía una. Ahora te debo dos."],
-    ],
-    "7:0": [
-        ["{yo}", "Esta sala... es la primera. El Umbral del despertar. Pero las estatuas miran al revés."],
-        ["{yo}", "Y esa inscripción tiene mi nombre. ¿La escribí yo en otra vida?"],
-    ],
-    "7:1": [
-        ["{yo}", "El Testigo. Aquí aprendí a quedarme quieto cuando abre el ojo... si es que sigue igual."],
-    ],
-    "6:0": [
-        ["{yo}", "Ojos arrancados en cada estatua... Lo que vive aquí no soporta que la ignoren.", "solo"],
-        ["IRENE", "Mira la inscripción. «No corras, no le des la espalda.»"],
-        ["BAS", "¿Y si nos mira a nosotros?"],
-        ["{yo}", "Entonces la miráis vosotros también. Pase lo que pase, nadie corre.", "grupo"],
-        ["SAÚL", "Contigo delante no correré. Lo prometo."],
-    ],
-    "6:1": [
-        ["{yo}", "Ahí está. Si me doy la vuelta o echo a correr, viene a por mí.", "solo"],
-        ["IRENE", "No le quitéis los ojos de encima. Ni un segundo."],
-    ],
-    "3:0": [
-        ["{yo}", "Raíces secas por todas partes. Una chispa y esto arde entero."],
-        ["{yo}", "Y las de la puerta están vivas... habrá que hacerles llegar el fuego."],
-    ],
-    "3:1": [
-        ["{yo}", "Esa cosa es corteza. Los golpes no le harán nada. El fuego, sí."],
-    ],
-    "2:2": [
-        ["CIRO", "Está herido... Esta vez no tiene adónde huir."],
-        ["BRUNA", "Las columnas cortan sus hilos. Úsalas."],
-    ],
-}
+const ROOM_TALKS = Pisos.ROOM_TALKS
 
 
 func _room_talk() -> void:
@@ -6176,9 +6009,9 @@ func _eco_floor(key: String) -> String:
 ## Capas visuales nuevas: tipografía gótica de rótulos, partículas, niebla,
 ## rayos de luz, fundidos y un postproceso con bloom, gradación y viñeta.
 const FADE_TIME := 0.5
-const EXPLORE_BTN := Rect2(180, 440, 190, 64)
-const FLOORS_BTN := Rect2(385, 440, 190, 64)
-const VIGIL_BTN := Rect2(590, 440, 190, 64)
+const FLOORS_BTN := Rect2(190, 440, 330, 64)
+const VIGIL_BTN := Rect2(540, 440, 230, 64)
+const QUIT_BTN := Rect2(700, 162, 96, 26)
 var title_font: Font
 var motes: Array = [] # {p, v, s, f, ph}
 var fx_parts: Array = [] # {p, v, life, max, size, col, grav, glow}
@@ -6543,16 +6376,7 @@ const CRITTER_CHASE := 92.0
 const CRITTER_BITE := 6.0
 const CRITTER_RESPAWN := 9.0
 ## Verdad que revela cada piso (del diseño de los diez pisos).
-const FLOOR_TRUTHS := [
-    "Estás atrapado en un templo. Y no eres el primero.",
-    "Las almas se pueden robar. El templo te enfrenta con los demás.",
-    "La caza también es una ofrenda. Algo se alimenta de cada muerte.",
-    "Otros también vuelven. Sus nombres están en el muro, y entre ellos, el tuyo.",
-    "Las almas no se pierden: corren por canales hacia abajo. El templo las recoge.",
-    "El miedo y la desesperanza alimentan algo. Por eso el templo te deja descansar: para que vuelvas a esperar.",
-    "Ella no caza: vigila. El templo quiere que veas morir a los demás; el miedo ajeno también alimenta.",
-    "El edificio es un sistema de producción: el miedo entra, las almas salen.",
-]
+const FLOOR_TRUTHS = Pisos.FLOOR_TRUTHS
 var critters: Array = [] # {pos, a, b, to_b, alive, dead_t, respawn, flip, bite_cd}
 var life_corpse: Dictionary = {}
 var door_state: String = "unknown" # unknown | locked | open
@@ -7111,7 +6935,7 @@ func _update_tejedora(dt: float) -> void:
                 teje_t = 0.35
                 shake = maxf(shake, 0.25)
                 if d < TEJE_REACH + 16.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                    hp -= TEJE_DAMAGE
+                    hp -= TEJE_DAMAGE * _depth_mult()
                     fear = minf(100.0, fear + 12.0)
                     damage_cd = 0.8
                     _on_hurt()
@@ -7238,7 +7062,7 @@ func _update_hounds(dt: float) -> void:
                     h["bite_t"] = 0.25
                     h["flee"] = 0.5 # muerde y se aparta un instante
                     if dash_left <= 0.0 and damage_cd <= 0.0:
-                        hp -= HOUND_BITE
+                        hp -= HOUND_BITE * _depth_mult()
                         fear = minf(100.0, fear + 14.0)
                         damage_cd = 0.8
                         _on_hurt()
@@ -7275,6 +7099,7 @@ func _strike_hounds_and_rescue() -> void:
 
 func _free_rescue() -> void:
     rescue_state = "libre"
+    _karma(1, "Liberaste a quien pedía ayuda")
     if not rescued.has("SAÚL"):
         rescued.append("SAÚL")
     matches += 2
@@ -7439,12 +7264,16 @@ const MERCHANT_CELL := Vector2(64, 96)
 const MERCHANT_BASE := 92.0
 const HAND_LOSS := 25.0 # vida máxima que cuesta meter la mano bajo el manto
 const GUIDE_SOULS := 3 # almas que da cada peregrino que llega contigo a la escalera
-## Puesto del Mercader: [icono, nombre, precio, descripción].
+## Puesto del Mercader: [clave, nombre, precio base, descripción]. El pan se
+## guarda en la bolsa (se usa desde el perfil); el brazalete y el amuleto se
+## equipan y, si ya los llevas, comprarlos otra vez los mejora de nivel. La
+## Resonancia también se mejora aquí si ya la tienes.
 const SHOP := [
-    ["pan", "PAN DE CENIZA", 6, "Recupera toda la vida y el vigor, y 10 de vida máxima perdida."],
+    ["pan", "PAN DE CENIZA", 6, "A la bolsa. Úsalo desde el perfil: +50 de vida, aunque pase del máximo."],
     ["fosforos", "FÓSFOROS ×3", 5, "Tres fósforos más para la antorcha."],
-    ["brazalete", "BRAZALETE DE BRONCE", 12, "+10 % al daño del golpe de antorcha. Se queda contigo."],
-    ["amuleto", "AMULETO DE HUESO", 12, "El vigor se recupera un 10 % más rápido. Se queda contigo."],
+    ["brazalete", "BRAZALETE DE BRONCE", 12, "+10 % al daño del golpe por nivel. Se queda contigo."],
+    ["amuleto", "AMULETO DE HUESO", 12, "+10 % a la recarga del vigor por nivel. Se queda contigo."],
+    ["resonancia", "MEJORAR RESONANCIA", 10, "+1 nivel: la onda hace más daño."],
 ]
 var guiding: bool = false
 var guided: Array = [] # peregrinos que bajaron contigo (para el Piso VII)
@@ -7457,11 +7286,12 @@ var guides_rewarded: bool = false
 
 
 func _strike_damage() -> float:
-    return STRIKE_DAMAGE * (1.1 if trinkets.has("brazalete") else 1.0) * _level_power()
+    var fuerza: float = 1.0 + (0.04 * float(ecos.size()) if ecos.has("fuerza") else 0.0)
+    return STRIKE_DAMAGE * (1.0 + 0.1 * float(_trinket_level("brazalete"))) * _level_power() * fuerza
 
 
 func _stamina_regen() -> float:
-    return STAMINA_REGEN * (1.1 if trinkets.has("amuleto") else 1.0) * (1.0 + LEVEL_VIGOR * float(player_level - 1))
+    return STAMINA_REGEN * (1.0 + 0.1 * float(_trinket_level("amuleto"))) * (1.0 + LEVEL_VIGOR * float(player_level - 1))
 
 
 func _pulse_damage() -> float:
@@ -7542,7 +7372,16 @@ func _offering_interact() -> bool:
 
 
 func _accept_guides() -> void:
+    if _mark() == "maldicion":
+        _dialog([["IRENE", "No. Hemos oído lo que dejaste atrás. No vamos a seguirte."],
+            ["BAS", "Tienes la marca. Aléjate de nosotros."]])
+        _sfx("toque", -8.0, 0.7)
+        return
     guiding = true
+    _karma(1, "Aceptaste guiar al grupo")
+    if _mark() == "bendicion":
+        bag["pan"] = int(bag.get("pan", 0)) + 1
+        float_fx.append({"pos": player_pos + Vector2(0, -64), "text": "+1 PAN (REGALO)", "color": Color("#ffd36b"), "t": 0.0})
     for ally in allies:
         ally["waiting"] = false
     _complete_mission()
@@ -7615,11 +7454,43 @@ func _close_shop() -> void:
 
 
 func _shop_row(i: int) -> Rect2:
-    return Rect2(180, 196 + float(i) * 76.0, 600, 68)
+    return Rect2(180, 190 + float(i) * 64.0, 600, 58)
 
 
-func _shop_owned(i: int) -> bool:
-    return str(SHOP[i][0]) in ["brazalete", "amuleto"] and trinkets.has(SHOP[i][0])
+## Precio real: crece con el nivel de lo que mejoras y cambia con tu marca.
+func _shop_price(i: int) -> int:
+    var key: String = SHOP[i][0]
+    var base: float = float(SHOP[i][2])
+    match key:
+        "brazalete", "amuleto":
+            base *= float(_trinket_level(key) + 1) # comprar: 12; mejorar a NV 2: 24; a NV 3: 36...
+        "resonancia":
+            base = float(RESONANCE_UPGRADE_BASE + RESONANCE_UPGRADE_STEP * ability_level)
+    return maxi(1, int(roundf(base * _karma_price_factor())))
+
+
+func _shop_maxed(i: int) -> bool:
+    var key: String = SHOP[i][0]
+    if key in ["brazalete", "amuleto"]:
+        return _trinket_level(key) >= ITEM_LEVEL_MAX
+    if key == "resonancia":
+        return not has_pulse or ability_level >= ABILITY_LEVEL_MAX
+    return false
+
+
+## Lo que llevas de cada cosa, para verlo crecer al comprar.
+func _shop_owned_text(i: int) -> String:
+    match str(SHOP[i][0]):
+        "pan":
+            return "LLEVAS ×%d" % int(bag.get("pan", 0))
+        "fosforos":
+            return "LLEVAS ×%d" % matches
+        "brazalete", "amuleto":
+            var lv: int = _trinket_level(SHOP[i][0])
+            return "NV %d" % lv if lv > 0 else "NO LO TIENES"
+        "resonancia":
+            return ("NV %d" % ability_level) if has_pulse else "SIN RESONANCIA"
+    return ""
 
 
 func _shop_key(k: int) -> void:
@@ -7631,7 +7502,7 @@ func _shop_key(k: int) -> void:
         shop_sel = (shop_sel + SHOP.size() - 1) % SHOP.size()
     elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
         _shop_buy(shop_sel)
-    elif k >= KEY_1 and k <= KEY_4:
+    elif k >= KEY_1 and k <= KEY_5:
         shop_sel = int(k) - int(KEY_1)
         _shop_buy(shop_sel)
 
@@ -7648,9 +7519,10 @@ func _shop_tap(at: Vector2) -> void:
 ## Se paga primero: las almas van al cuenco y después él entrega.
 func _shop_buy(i: int) -> bool:
     var item: Array = SHOP[i]
-    var price: int = int(item[2])
-    if _shop_owned(i):
-        _say("Ya lo llevas. El Mercader no vende dos veces lo mismo.", 2.4)
+    var key: String = item[0]
+    var price: int = _shop_price(i)
+    if _shop_maxed(i):
+        _say("Todavía no tienes Resonancia: se consigue en el altar." if key == "resonancia" and not has_pulse else "Ya está al nivel máximo.", 2.4)
         _sfx("toque", -10.0)
         return false
     if souls < price:
@@ -7658,45 +7530,64 @@ func _shop_buy(i: int) -> bool:
         _sfx("toque", -10.0)
         return false
     souls -= price
-    match str(item[0]):
+    var got: String = _tc(str(item[1]))
+    match key:
         "pan":
-            max_hp = minf(_base_max_hp(), max_hp + 10.0)
-            hp = max_hp
-            stamina = 100.0
+            bag["pan"] = int(bag.get("pan", 0)) + 1
         "fosforos":
             matches += 3
+        "resonancia":
+            ability_level += 1
+            got = "Resonancia nivel %d" % ability_level
         _:
-            trinkets.append(item[0])
-            _save_progress()
+            if trinkets.has(key):
+                trinket_levels[key] = _trinket_level(key) + 1
+                got = "%s nivel %d" % [got, _trinket_level(key)]
+            else:
+                trinkets.append(key)
+                trinket_levels[key] = 1
+    shop_flash[i] = 1.0
+    _save_progress()
     _sfx("alma", -6.0, 0.8)
     _sfx("objeto", -8.0, 0.9)
-    _say("Dejas %d almas en el cuenco. Sin una palabra, el Mercader te entrega: %s." % [price, _tc(str(item[1]))], 3.2)
+    _say("Dejas %d almas en el cuenco. Sin una palabra, el Mercader te entrega: %s." % [price, got], 3.2)
     return true
 
 
 func _draw_shop() -> void:
     _overlay()
-    var panel := Rect2(150, 96, 660, 470)
+    var panel := Rect2(150, 86, 660, 494)
     _panel(panel, Color(0.05, 0.045, 0.06, 0.97), UI_GOLD)
-    _title_text("El Mercader Silencioso", Vector2(150, 146), 40, CREAM, panel.size.x)
-    _text_outline("Se paga primero. No se toca el manto.", Vector2(150, 176), 14, Color("#d1747b"), panel.size.x)
+    _title_text("El Mercader Silencioso", Vector2(150, 134), 40, CREAM, panel.size.x)
+    var mark_note: String = ""
+    match _mark():
+        "bendicion":
+            mark_note = "  ·  BENDICIÓN: te cobra menos"
+        "maldicion":
+            mark_note = "  ·  MALDICIÓN: te cobra más"
+    _text_outline("Se paga primero. No se toca el manto." + mark_note, Vector2(150, 164), 13, Color("#d1747b"), panel.size.x)
     for i in range(SHOP.size()):
         var row: Rect2 = _shop_row(i)
         var item: Array = SHOP[i]
         var sel: bool = shop_sel == i
-        var owned: bool = _shop_owned(i)
-        _panel(row, Color("#241c2c") if sel else Color("#141018"), UI_GOLD if sel else UI_EDGE)
-        draw_texture_rect(ICONS[item[0]], Rect2(row.position + Vector2(14, 10), Vector2(48, 48)), false, Color(1, 1, 1, 0.5) if owned else Color.WHITE)
-        _text("[%d] %s" % [i + 1, item[1]], row.position + Vector2(78, 28), 17, CREAM)
-        _text(item[3], row.position + Vector2(78, 52), 12, Color("#b9b29b"))
-        var right: String = "LO LLEVAS" if owned else "%d ALMAS" % int(item[2])
-        var tone: Color = SOUL if owned else (CREAM if souls >= int(item[2]) else RED)
-        draw_string(font, row.position + Vector2(0, 28), right, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, 15, tone)
-    draw_texture_rect(ICONS["alma"], Rect2(180, 512, 26, 26), false)
-    _text("ALMAS: %d" % souls, Vector2(212, 532), 16, SOUL)
-    _text("VIDA MÁXIMA: %d" % int(max_hp), Vector2(360, 532), 14, RED if hand_lost else CREAM)
-    var hint: String = _hint("ENTER comprar · ESC salir", "Toca un objeto para comprarlo · fuera para salir", "A comprar · B salir")
-    draw_string(font, Vector2(180, 532), hint, HORIZONTAL_ALIGNMENT_RIGHT, 600, 14, CREAM)
+        var maxed: bool = _shop_maxed(i)
+        var flash: float = float(shop_flash.get(i, 0.0))
+        _panel(row, Color("#241c2c").lerp(Color("#5a4a2a"), flash) if sel or flash > 0.0 else Color("#141018"), UI_GOLD if sel else UI_EDGE)
+        draw_texture_rect(ICONS[item[0]], Rect2(row.position + Vector2(12, 7), Vector2(44, 44)), false, Color(1, 1, 1, 0.5) if maxed else Color.WHITE)
+        _text("[%d] %s" % [i + 1, item[1]], row.position + Vector2(70, 24), 16, CREAM)
+        _text(item[3], row.position + Vector2(70, 46), 11, Color("#b9b29b"))
+        var right: String = "MÁXIMO" if maxed else "%d ALMAS" % _shop_price(i)
+        var tone: Color = SOUL if maxed else (CREAM if souls >= _shop_price(i) else RED)
+        draw_string(font, row.position + Vector2(0, 24), right, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, 15, tone)
+        # Lo que ya llevas: el número salta al comprar.
+        var owned: String = _shop_owned_text(i)
+        var pop: float = 1.0 + 0.5 * flash
+        draw_string(font, row.position + Vector2(0, 46), owned, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, int(13.0 * pop), Color("#ffd36b").lerp(SOUL, 1.0 - flash))
+    draw_texture_rect(ICONS["alma"], Rect2(180, 520, 26, 26), false)
+    _text("ALMAS: %d" % souls, Vector2(212, 540), 16, SOUL)
+    _text("VIDA MÁXIMA: %d" % int(max_hp), Vector2(360, 540), 14, RED if hand_lost else CREAM)
+    var hint: String = _hint("ENTER comprar · ESC salir", "Toca para comprar · fuera para salir", "A comprar · B salir")
+    draw_string(font, Vector2(180, 566), hint, HORIZONTAL_ALIGNMENT_RIGHT, 600, 13, CREAM)
     if toast_left > 0.0:
         _draw_toast()
 
@@ -7799,7 +7690,7 @@ func _gain_xp(amount: int) -> void:
 func _level_up(ups: int) -> void:
     # La vida máxima crece lo mismo aunque la hayas perdido bajo el manto.
     max_hp += LEVEL_HP * float(ups)
-    hp = max_hp
+    hp = maxf(hp, max_hp) # cura sin borrar la vida extra
     level_flash = 1.0
     level_banner_t = 3.4
     _save_progress()
@@ -7942,7 +7833,7 @@ func _update_gaze(dt: float) -> void:
         "golpe":
             gaze_pos = gaze_pos.move_toward(gaze_target, 560.0 * dt)
             if gaze_pos.distance_to(player_pos) < 34.0 and damage_cd <= 0.0 and dash_left <= 0.0:
-                hp -= GAZE_DAMAGE * (0.75 if ecos.has("piel") else 1.0)
+                hp -= GAZE_DAMAGE * _depth_mult()
                 fear = minf(100.0, fear + 20.0)
                 damage_cd = 1.0
                 shake = maxf(shake, 0.5)
@@ -7961,6 +7852,7 @@ func _update_gaze(dt: float) -> void:
             if gaze_pos.distance_to(gaze_prey["pos"]) < 30.0:
                 gaze_prey["flee"] = false
                 _ally_die(gaze_prey)
+                _karma(-1, "No llegaste a calmarlo")
                 _emit(Vector2(gaze_prey["pos"]) + Vector2(0, -20), 30, Color(0.6, 0.05, 0.1), 40.0, 160.0, 0.9, 3.0, 300.0, Vector2.UP, 1.6)
                 gaze_prey = {}
                 gaze_state = "mira"
@@ -8024,6 +7916,7 @@ func _calm_ally() -> bool:
     for ally in allies:
         if float(ally.get("panic", 0.0)) > 0.0 and bool(ally["alive"]) and player_pos.distance_to(ally["pos"]) < 80.0:
             ally["panic"] = 0.0
+            _karma(1, "Calmaste a un peregrino")
             ally["line"] = "...Vale. Vale. No corro."
             ally["line_t"] = 2.5
             float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -60), "text": "CALMADO", "color": Color("#9fd8b0"), "t": 0.0})
@@ -8122,6 +8015,8 @@ func _touch_context() -> Array:
             return ["¿LA MANO?", "calavera", false, true]
         if player_pos.distance_to(Vector2(_room()["merchant"]) + Vector2(0, 40)) < 56.0:
             return ["COMPRAR", "alma", false, true]
+    if _fountain_here() and player_pos.distance_to(FOUNTAIN_POS) < FOUNTAIN_REACH and not fountains_used.has(_room_key()):
+        return ["CURAR", "corazon", false, true]
     if _has("sello") and not seal_acquired and player_pos.distance_to(seal_pos) < 60.0:
         return ["SELLO", "llama_interior", false, true]
     if _has("altar") and player_pos.distance_to(altar_pos) < 64.0:
@@ -8197,3 +8092,618 @@ func _draw_death_marks() -> void:
                 Color(0.7, 0.95, 1.0, 0.38 + 0.15 * pulse))
         if player_pos.distance_to(at) < 150.0:
             _label_center("AQUÍ MORISTE", at + Vector2(0, -62), Color(0.62, 0.86, 0.95, 0.6 + 0.4 * pulse))
+
+
+## Cierre con confirmación (autoload ConfirmarSalida, scenes/confirmar_salida.tscn).
+func _ask_quit() -> void:
+    var confirm: Node = get_node_or_null("/root/ConfirmarSalida")
+    if confirm != null:
+        confirm.call("preguntar")
+    else:
+        get_tree().quit()
+
+
+# ------------------------------------------------------------ OBJETOS, MEJORAS Y VIDA EXTRA
+## La bolsa guarda consumibles (pan y lo que traiga la Vigilia) entre partidas.
+## El brazalete y el amuleto se mejoran con almas hasta el nivel 5; la
+## Resonancia, hasta el 5 en el altar o el puesto del Mercader.
+## Curarse por encima del máximo deja vida extra (hasta +50) que no se regenera.
+const ITEM_LEVEL_MAX := 5
+const ABILITY_LEVEL_MAX := 5
+const RESONANCE_UPGRADE_BASE := 10
+const RESONANCE_UPGRADE_STEP := 8
+const OVERHEAL_MAX := 50.0
+## Consumibles de la bolsa: [nombre, descripción, icono]. Los de la Vigilia
+## (scripts/botin.gd) llegan aquí.
+const BAG_ITEMS := {
+    "pan": ["PAN DE CENIZA", "+50 de vida (pasa del máximo), vigor lleno y +10 de vida máx. perdida.", "pan"],
+    "fosforos_caja": ["CAJA DE FÓSFOROS", "+3 fósforos para la antorcha.", "fosforos"],
+    "vial": ["VIAL DE SANGRE", "+80 de vida, aunque pase del máximo.", "vial"],
+    "incienso": ["INCIENSO", "El miedo baja a cero.", "incienso"],
+    "bolsa_almas": ["BOLSA DE ALMAS", "+25 almas.", "bolsa_almas"],
+    "reliquia": ["RELIQUIA DE ECOS", "+60 de experiencia.", "reliquia"],
+}
+var bag: Dictionary = {} # clave -> cantidad
+var trinket_levels: Dictionary = {} # clave -> nivel
+var profile_tab: int = 0 # 0 equipo, 1 objetos
+var shop_flash: Dictionary = {}
+
+
+func _trinket_level(key: String) -> int:
+    if not trinkets.has(key):
+        return 0
+    return clampi(int(trinket_levels.get(key, 1)), 1, ITEM_LEVEL_MAX)
+
+
+## Cura; con «overflow», lo que sobra del máximo queda como vida extra.
+func _heal(amount: float, overflow: bool = true) -> void:
+    var cap: float = max_hp + (OVERHEAL_MAX if overflow else 0.0)
+    if hp >= cap:
+        return
+    var before: float = hp
+    hp = minf(cap, hp + amount)
+    hp_prev = hp
+    float_fx.append({"pos": player_pos + Vector2(0, -60), "text": "+%d" % int(round(hp - before)), "color": Color("#9fd8b0") if hp <= max_hp else Color("#ffd36b"), "t": 0.0})
+
+
+func _profile_tab_rect(t: int) -> Rect2:
+    return Rect2(372.0 + float(t) * 168.0, 72.0, 160.0, 24.0)
+
+
+func _profile_switch_tab() -> void:
+    profile_tab = 1 - profile_tab
+    inventory_sel = 0
+    _sfx("toque", -14.0, 1.0)
+
+
+## Casillas de la pestaña OBJETOS: [icono, nombre, detalle, descripción, se usa].
+func _object_slots() -> Array:
+    var list: Array = []
+    for key in ["brazalete", "amuleto"]:
+        if trinkets.has(key):
+            var info: Array = SHOP[2] if key == "brazalete" else SHOP[3]
+            list.append([key, info[1], "EQUIPADO · NV %d" % _trinket_level(key),
+                "%s Ahora: +%d %%. Se mejora con almas en el puesto del Mercader." % [info[3].split(".")[0] + ".", 10 * _trinket_level(key)], false, key])
+    if has_mask:
+        list.append(["mascara", "MÁSCARA DE PORCELANA", "EQUIPADA", "Tu Resonancia es Rugido: llega un 50 % más lejos y espanta a los mastines.", false, "mascara"])
+    for key in bag:
+        if int(bag[key]) > 0 and BAG_ITEMS.has(key):
+            list.append([BAG_ITEMS[key][2], BAG_ITEMS[key][0], "×%d · USAR" % int(bag[key]), BAG_ITEMS[key][1], true, key])
+    return list
+
+
+func _profile_use_selected() -> void:
+    if profile_tab != 1:
+        return
+    var list: Array = _object_slots()
+    if inventory_sel < 0 or inventory_sel >= list.size() or not bool(list[inventory_sel][4]):
+        return
+    _use_bag_item(str(list[inventory_sel][5]))
+
+
+func _use_bag_item(key: String) -> bool:
+    if int(bag.get(key, 0)) <= 0:
+        return false
+    bag[key] = int(bag[key]) - 1
+    if int(bag[key]) <= 0:
+        bag.erase(key)
+    match key:
+        "pan":
+            max_hp = minf(_base_max_hp(), max_hp + 10.0) # devuelve vida máxima perdida
+            _heal(50.0)
+            stamina = 100.0
+        "fosforos_caja":
+            matches += 3
+        "vial":
+            _heal(80.0)
+        "incienso":
+            fear = 0.0
+        "bolsa_almas":
+            souls += 25
+            souls_flash = 0.8
+        "reliquia":
+            _gain_xp(60)
+    _save_progress()
+    _sfx("objeto", -6.0, 1.1)
+    _say("Usas %s." % _tc(str(BAG_ITEMS.get(key, [key])[0])), 2.0)
+    return true
+
+
+func _draw_object_slots() -> void:
+    var list: Array = _object_slots()
+    for i in range(INVENTORY_SLOTS.size()):
+        var box: Rect2 = _inventory_slot_rect(i)
+        var sel: bool = inventory_sel == i
+        _panel(box, Color("#222c39") if sel else Color("#141922"), UI_GOLD if sel else UI_EDGE)
+        if i >= list.size():
+            _text_outline("—", Vector2(box.position.x, box.get_center().y + 6.0), 16, Color("#4a4740"), box.size.x)
+            continue
+        var o: Array = list[i]
+        draw_texture_rect(ICONS[o[0]], Rect2(box.position + Vector2(roundf(box.size.x * 0.5) - 24.0, 8), Vector2(48, 48)), false)
+        _text_outline(str(o[2]), Vector2(box.position.x, box.position.y + 74.0), 11, Color("#ffd36b") if bool(o[4]) else SOUL, box.size.x)
+        _text_outline(str(o[1]), Vector2(box.position.x, box.end.y - 10.0), 11, CREAM, box.size.x)
+
+
+func _draw_object_desc() -> void:
+    var list: Array = _object_slots()
+    if inventory_sel < 0 or inventory_sel >= list.size():
+        _text_outline("SIN OBJETOS", Vector2(388, 478), 15, Color("#6d6a60"))
+        draw_string(font, Vector2(388, 502), "Cómpralos al Mercader del Piso VI o gánalos en la Vigilia.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, Color("#8a8778"))
+        return
+    var o: Array = list[inventory_sel]
+    _text_outline(str(o[1]), Vector2(388, 478), 15, CREAM)
+    draw_string(font, Vector2(388, 502), str(o[3]), HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, SOUL)
+    if bool(o[4]):
+        draw_string(font, Vector2(388, 522), _hint("ENTER: usar", "Toca otra vez: usar", "A: usar"), HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, Color("#ffd36b"))
+
+
+# ------------------------------------------------------------ MARCA: BENDICIÓN Y MALDICIÓN
+## Ayudar a quien lo pide suma; dejarlo atrás o fallarle resta. Con +2 llevas
+## la bendición: los peregrinos confían en ti, te regalan cosas y el Mercader
+## cobra menos. Con −2, la maldición: te temen, se apartan, no te siguen, el
+## Peregrino siempre te traiciona y el Mercader cobra más. Se guarda.
+const KARMA_MARK := 2
+var karma: int = 0
+
+
+func _mark() -> String:
+    if karma >= KARMA_MARK:
+        return "bendicion"
+    if karma <= -KARMA_MARK:
+        return "maldicion"
+    return ""
+
+
+func _karma(delta: int, reason: String) -> void:
+    if in_tutorial:
+        return
+    var before: String = _mark()
+    karma = clampi(karma + delta, -9, 9)
+    float_fx.append({"pos": player_pos + Vector2(0, -84), "text": reason.to_upper(), "color": Color("#ffd36b") if delta > 0 else RED, "t": 0.0})
+    var now: String = _mark()
+    if now != before:
+        match now:
+            "bendicion":
+                mission_banner = "BENDICIÓN · Los peregrinos confían en ti"
+                _sfx("k_campana", -6.0, 1.3)
+            "maldicion":
+                mission_banner = "MALDICIÓN · Los peregrinos te temen"
+                _sfx("k_campana", -6.0, 0.5)
+            _:
+                mission_banner = "La marca se borra"
+        mission_banner_t = 3.2
+    _save_progress()
+
+
+## Salir de una sala dejando atrás a quien pedía ayuda.
+func _karma_on_leave() -> void:
+    if _room().has("rescue") and rescue_state == "atrapado":
+        _karma(-1, "Dejaste atrás a quien pedía ayuda")
+    if _has("guias") and not guiding and _mark() != "maldicion":
+        _karma(-1, "Ignoraste a quien te pidió guía")
+
+
+func _karma_price_factor() -> float:
+    match _mark():
+        "bendicion":
+            return 0.8
+        "maldicion":
+            return 1.2
+    return 1.0
+
+
+func _draw_mark_aura() -> void:
+    if game_mode != "play" and game_mode != "dialog":
+        return
+    match _mark():
+        "bendicion":
+            for k in range(5):
+                var a: float = elapsed * 1.4 + float(k) * TAU / 5.0
+                var p: Vector2 = player_pos + Vector2(cos(a) * 18.0, -26.0 + sin(a) * 8.0 - fmod(elapsed * 10.0 + float(k) * 7.0, 20.0))
+                draw_rect(Rect2(p.round(), Vector2(2, 2)), Color(1.0, 0.85, 0.45, 0.7))
+        "maldicion":
+            _draw_ellipse(player_pos + Vector2(0, 3), 20.0, 7.0, Color(0.5, 0.05, 0.1, 0.25 + 0.1 * sin(elapsed * 3.0)))
+            for k in range(4):
+                var p2: Vector2 = player_pos + Vector2(-12.0 + float(k) * 8.0, -fmod(elapsed * 16.0 + float(k) * 9.0, 40.0))
+                draw_circle(p2, 3.0, Color(0.25, 0.02, 0.06, 0.4))
+
+
+# ------------------------------------------------------------ RELICARIOS DE VIDA
+## En las salas sin entidad (entre los encuentros) hay una máquina de vida:
+## un relicario de latón con un vial rojo. Se usa una vez por sala y partida y
+## cura 60 (puede dejar vida extra).
+const FOUNTAIN_POS := Vector2(150, 500)
+const FOUNTAIN_REACH := 58.0
+const FOUNTAIN_HEAL := 60.0
+var fountains_used: Dictionary = {}
+
+
+func _fountain_here() -> bool:
+    if in_tutorial or str(_room()["enemy"]) != "":
+        return false
+    for t in ["tutorial", "mercader", "guias"]:
+        if t in _room()["traits"]:
+            return false
+    return not (_room().has("hounds") or _room().has("gaze") or _room().has("rams") or _room().has("colossus"))
+
+
+func _use_fountain() -> bool:
+    if not _fountain_here() or player_pos.distance_to(FOUNTAIN_POS) >= FOUNTAIN_REACH:
+        return false
+    if fountains_used.has(_room_key()):
+        _say("El vial está vacío. Se rellenará en otra partida.", 2.2)
+        return true
+    fountains_used[_room_key()] = true
+    _heal(FOUNTAIN_HEAL)
+    _sfx("k_metal", -8.0, 0.9)
+    _sfx("alma", -8.0, 0.7)
+    _emit(FOUNTAIN_POS + Vector2(0, -30), 24, Color(0.9, 0.2, 0.25), 15.0, 60.0, 1.0, 2.0, -40.0, Vector2.UP, 1.0, true)
+    return true
+
+
+func _draw_fountain() -> void:
+    var p: Vector2 = FOUNTAIN_POS
+    var used: bool = fountains_used.has(_room_key())
+    _draw_soft_shadow(p + Vector2(0, 2), 18.0)
+    # Base de piedra y cuerpo de latón con engranajes.
+    draw_rect(Rect2(p.x - 16.0, p.y - 10.0, 32, 10), Color("#3a363c"))
+    draw_rect(Rect2(p.x - 12.0, p.y - 34.0, 24, 24), Color("#8a6a3a"))
+    draw_rect(Rect2(p.x - 12.0, p.y - 34.0, 24, 3), Color("#c9a25e"))
+    var spin: float = 0.0 if used else elapsed * 2.0
+    for side in [-1.0, 1.0]:
+        var g: Vector2 = p + Vector2(side * 14.0, -22.0)
+        draw_circle(g, 5.0, Color("#6a5030"))
+        draw_line(g + Vector2.from_angle(spin) * 5.0, g - Vector2.from_angle(spin) * 5.0, Color("#c9a25e"), 1.0)
+    # Vial con sangre que late; vacío si ya lo usaste.
+    var vial := Rect2(p.x - 6.0, p.y - 54.0, 12, 20)
+    draw_rect(vial, Color(0.6, 0.7, 0.75, 0.35))
+    if not used:
+        var pulse: float = 0.5 + 0.5 * sin(elapsed * 3.0)
+        draw_rect(Rect2(vial.position + Vector2(2, 6), Vector2(8, 13)), Color(0.75, 0.08, 0.14).lerp(Color(0.95, 0.2, 0.25), pulse))
+        draw_circle(vial.get_center(), 14.0, Color(0.9, 0.15, 0.2, 0.08 + 0.06 * pulse))
+    draw_rect(vial, Color(0.85, 0.85, 0.9, 0.6), false, 1.0)
+    draw_rect(Rect2(p.x - 8.0, p.y - 57.0, 16, 4), Color("#c9a25e"))
+
+
+func _draw_fountain_label() -> void:
+    if not _fountain_here() or player_pos.distance_to(FOUNTAIN_POS) > 150.0:
+        return
+    if fountains_used.has(_room_key()):
+        _label_center("RELICARIO VACÍO", FOUNTAIN_POS + Vector2(0, -68), Color("#8a8574"))
+    else:
+        _label_center(_prompt("RELICARIO DE VIDA · +%d" % int(FOUNTAIN_HEAL)), FOUNTAIN_POS + Vector2(0, -68), Color("#ff8a8a"))
+
+
+# ------------------------------------------------------------ ENEMIGOS MÁS FUERTES CUANTO MÁS ABAJO
+## Las entidades de siempre (Ghoul, Testigo, Hechicero, Segador, Tejedora,
+## mastines, la Vigía) tienen más vida y pegan más fuerte cuanto más profundo
+## es el piso: +12 % por piso. Valores PROVISIONALES.
+const DEPTH_STEP := 0.12
+
+
+func _depth_mult() -> float:
+    return 1.0 + DEPTH_STEP * float(current_floor) if not in_tutorial else 1.0
+
+
+# ------------------------------------------------------------ PISO IX · EL COLOSO DEL PÓRTICO
+## Arietes de Piedra: golems bajos con cuernos. Son de piedra (los golpes no
+## les hacen nada) hasta que embisten: si te alineas con ellos en horizontal o
+## en vertical, se preparan 0,6 s (línea roja) y cargan en línea recta. Si
+## chocan contra un muro o una columna quedan aturdidos 2 s: entonces se rompen.
+## El Coloso: estatua viva inmune a golpes y a la Resonancia. Pisa fuerte
+## (aviso con un círculo rojo). Hay que atraerlo junto a una columna agrietada
+## y golpear la columna: cae sobre él. Tres columnas lo derriban.
+const RAM_TEX := preload("res://assets/visual/enemies/ariete.png")
+const COLOSSUS_TEX := preload("res://assets/visual/enemies/coloso.png")
+const RAM_HP := 70.0
+const RAM_SIGHT := 330.0
+const RAM_ALIGN := 24.0
+const RAM_WINDUP := 0.6
+const RAM_SPEED := 430.0
+const RAM_DAMAGE := 28.0
+const RAM_STUN := 2.0
+const COLOSSUS_SPEED := 40.0
+const COLOSSUS_STOMP_RADIUS := 130.0
+const COLOSSUS_WINDUP := 0.85
+const COLOSSUS_DAMAGE := 32.0
+const COLOSSUS_HITS := 3
+const PILLAR_REACH := 160.0 # distancia del Coloso a la columna para que le caiga encima
+var rams: Array = [] # {pos, prev, home, state, t, dir, hp, facing, cd}
+var pillars: Array = [] # {pos, fallen, fall_dir, fall_t}
+var colossus_active: bool = false
+var colossus_pos: Vector2 = Vector2.ZERO
+var colossus_hits: int = 0
+var colossus_state: String = "walk" # walk | raise | stomp | stun
+var colossus_t: float = 0.0
+var colossus_cd: float = 2.0
+
+
+func _load_colossus_room() -> void:
+    rams.clear()
+    pillars.clear()
+    colossus_active = false
+    if in_tutorial:
+        return
+    var dead_rams: Array = banished.get(_room_key() + ":arietes", [])
+    var spots: Array = _room().get("rams", [])
+    for i in range(spots.size()):
+        if dead_rams.has(i):
+            continue
+        rams.append({"pos": spots[i], "prev": spots[i], "home": spots[i], "state": "idle", "t": randf_range(0.5, 1.5),
+            "dir": Vector2.ZERO, "hp": RAM_HP, "max": RAM_HP, "facing": 3, "cd": 1.0, "id": i, "wander": spots[i]})
+    for at in _room().get("pillars", []):
+        pillars.append({"pos": at, "fallen": false, "fall_dir": Vector2.DOWN, "fall_t": 0.0})
+        obstacles.append(Rect2(at.x - 14.0, at.y - 10.0, 28.0, 12.0))
+    if _room().has("colossus") and not banished.has(_room_key()):
+        colossus_active = true
+        colossus_pos = _room()["colossus"]
+        colossus_hits = 0
+        colossus_state = "walk"
+        colossus_cd = 2.5
+
+
+func _update_rams(dt: float) -> void:
+    for r in rams:
+        var pos: Vector2 = r["pos"]
+        r["cd"] = maxf(0.0, float(r["cd"]) - dt)
+        match str(r["state"]):
+            "idle":
+                var d: Vector2 = player_pos - pos
+                var aligned_x: bool = absf(d.y) < RAM_ALIGN and absf(d.x) < RAM_SIGHT
+                var aligned_y: bool = absf(d.x) < RAM_ALIGN and absf(d.y) < RAM_SIGHT
+                if float(r["cd"]) <= 0.0 and (aligned_x or aligned_y):
+                    r["state"] = "aim"
+                    r["t"] = RAM_WINDUP
+                    r["dir"] = Vector2(signf(d.x), 0) if aligned_x else Vector2(0, signf(d.y))
+                    _sfx("k_piedra", -8.0, 0.7)
+                else:
+                    r["t"] = float(r["t"]) - dt
+                    if float(r["t"]) <= 0.0:
+                        r["t"] = randf_range(1.2, 2.4)
+                        r["wander"] = Vector2(r["home"]) + Vector2(randf_range(-60, 60), randf_range(-40, 40))
+                    var nxt: Vector2 = pos.move_toward(r["wander"], 30.0 * dt)
+                    if not _is_blocked(nxt):
+                        r["pos"] = nxt
+            "aim":
+                r["t"] = float(r["t"]) - dt
+                if float(r["t"]) <= 0.0:
+                    r["state"] = "charge"
+                    r["t"] = 1.6
+                    _sfx("k_golpe", -8.0, 0.6)
+            "charge":
+                r["t"] = float(r["t"]) - dt
+                var step: Vector2 = Vector2(r["dir"]) * RAM_SPEED * dt
+                var nxt2: Vector2 = pos + step
+                if _is_blocked(nxt2) or float(r["t"]) <= 0.0:
+                    r["state"] = "stun"
+                    r["t"] = RAM_STUN
+                    shake = maxf(shake, 0.3)
+                    _sfx("k_piedra", -4.0, 0.5)
+                    _emit(pos + Vector2(r["dir"]) * 20.0 + Vector2(0, -14), 16, Color(0.6, 0.58, 0.52), 30.0, 110.0, 0.7, 2.0, 120.0, -Vector2(r["dir"]), 1.2)
+                else:
+                    r["pos"] = nxt2
+                    if nxt2.distance_to(player_pos) < 30.0 and dash_left <= 0.0 and damage_cd <= 0.0:
+                        hp -= RAM_DAMAGE
+                        fear = minf(100.0, fear + 12.0)
+                        damage_cd = 1.0
+                        _on_hurt()
+                        var push: Vector2 = player_pos + Vector2(r["dir"]) * 34.0
+                        if not _is_blocked(push):
+                            player_pos = push
+            "stun":
+                r["t"] = float(r["t"]) - dt
+                if float(r["t"]) <= 0.0:
+                    r["state"] = "idle"
+                    r["cd"] = 1.2
+        var moved: Vector2 = Vector2(r["pos"]) - Vector2(r["prev"])
+        var look: Vector2 = Vector2(r["dir"]) if str(r["state"]) in ["aim", "charge"] else (moved if moved.length() > 0.1 else player_pos - Vector2(r["pos"]))
+        if look.length() > 0.1:
+            r["facing"] = (2 if look.x > 0.0 else 3) if absf(look.x) > absf(look.y) else (0 if look.y > 0.0 else 1)
+        r["moving"] = moved.length() > 4.0 * dt
+        r["prev"] = r["pos"]
+
+
+func _strike_rams_and_pillars() -> void:
+    for i in range(rams.size() - 1, -1, -1):
+        var r: Dictionary = rams[i]
+        var to_r: Vector2 = Vector2(r["pos"]) - player_pos
+        if to_r.length() > STRIKE_RANGE + 12.0 or (to_r.length() > 24.0 and to_r.normalized().dot(strike_dir) < 0.2):
+            continue
+        if str(r["state"]) != "stun":
+            float_fx.append({"pos": Vector2(r["pos"]) + Vector2(0, -50), "text": "PIEDRA", "color": Color("#b4bba8"), "t": 0.0})
+            _sfx("k_metal", -10.0, 0.7)
+            continue
+        r["hp"] = float(r["hp"]) - _strike_damage() * 1.5
+        float_fx.append({"pos": Vector2(r["pos"]) + Vector2(0, -50), "text": "-%d" % int(_strike_damage() * 1.5), "color": Color("#ffd36b"), "t": 0.0})
+        _sfx("k_piedra", -6.0, 1.2)
+        if float(r["hp"]) <= 0.0:
+            _ram_break(i)
+    # Columnas agrietadas: caen hacia el Coloso si está cerca.
+    for p in pillars:
+        if bool(p["fallen"]) or player_pos.distance_to(p["pos"]) > 60.0:
+            continue
+        if colossus_active and colossus_pos.distance_to(p["pos"]) < PILLAR_REACH:
+            _pillar_fall(p)
+        else:
+            float_fx.append({"pos": Vector2(p["pos"]) + Vector2(0, -70), "text": "CRUJE", "color": Color("#b4bba8"), "t": 0.0})
+            _say("La columna cruje, pero aguanta. Atrae al Coloso junto a ella y golpéala entonces.", 3.0)
+            _sfx("k_piedra", -10.0, 0.9)
+
+
+func _ram_break(i: int) -> void:
+    var r: Dictionary = rams[i]
+    var key: String = _room_key() + ":arietes"
+    var dead: Array = banished.get(key, [])
+    dead.append(int(r["id"]))
+    banished[key] = dead
+    drops.append({"pos": r["pos"], "value": 6})
+    _gain_xp(15)
+    _emit(Vector2(r["pos"]) + Vector2(0, -16), 26, Color(0.55, 0.53, 0.48), 30.0, 130.0, 0.9, 3.0, 220.0, Vector2.UP, 1.6)
+    shake = maxf(shake, 0.25)
+    rams.remove_at(i)
+    if rams.is_empty() and _mission().get("goal", "") == "arietes":
+        _complete_mission()
+
+
+func _pillar_fall(p: Dictionary) -> void:
+    p["fallen"] = true
+    p["fall_dir"] = (colossus_pos - Vector2(p["pos"])).normalized()
+    p["fall_t"] = 0.0
+    for i in range(obstacles.size()):
+        if (obstacles[i] as Rect2).get_center().distance_to(Vector2(p["pos"]) + Vector2(0, -4)) < 2.0:
+            obstacles.remove_at(i)
+            break
+    colossus_hits += 1
+    colossus_state = "stun"
+    colossus_t = 2.5
+    shake = maxf(shake, 0.8)
+    _sfx("k_piedra", -2.0, 0.4)
+    _sfx("k_golpe", -4.0, 0.5)
+    _emit(colossus_pos + Vector2(0, -80), 40, Color(0.6, 0.58, 0.52), 40.0, 160.0, 1.0, 3.0, 200.0, Vector2.UP, 1.6)
+    float_fx.append({"pos": colossus_pos + Vector2(0, -170), "text": "¡%d / %d!" % [colossus_hits, COLOSSUS_HITS], "color": Color("#ffd36b"), "t": 0.0})
+    if colossus_hits >= COLOSSUS_HITS:
+        _colossus_defeat()
+
+
+func _colossus_defeat() -> void:
+    colossus_active = false
+    banished[_room_key()] = true
+    drops.append({"pos": colossus_pos, "value": 30})
+    _gain_xp(80)
+    _complete_mission()
+    dissolve_fx.append({"pos": colossus_pos, "kind": "coloso", "facing": 0, "frame": 6, "t": 0.0})
+    _emit(colossus_pos + Vector2(0, -60), 60, Color(0.6, 0.58, 0.52), 40.0, 180.0, 1.4, 3.0, 150.0, Vector2.UP, 1.8)
+    _say("El Coloso se derrumba. Entre sus piedras brillan almas.", 4.0)
+    _sfx("destierro", -2.0, 0.6)
+
+
+func _update_colossus(dt: float) -> void:
+    for p in pillars:
+        if bool(p["fallen"]):
+            p["fall_t"] = minf(1.0, float(p["fall_t"]) + dt * 3.0)
+    if not colossus_active:
+        return
+    colossus_cd = maxf(0.0, colossus_cd - dt)
+    colossus_t = maxf(0.0, colossus_t - dt)
+    fear = minf(100.0, fear + dt * 1.5)
+    var d: float = colossus_pos.distance_to(player_pos)
+    match colossus_state:
+        "walk":
+            var target: Vector2 = colossus_pos.move_toward(player_pos, COLOSSUS_SPEED * (1.0 + 0.25 * float(colossus_hits)) * dt)
+            colossus_pos = Vector2(clampf(target.x, 110.0, 850.0), clampf(target.y, 220.0, 540.0))
+            if d < COLOSSUS_STOMP_RADIUS and colossus_cd <= 0.0:
+                colossus_state = "raise"
+                colossus_t = COLOSSUS_WINDUP - 0.12 * float(colossus_hits) # cada vez pisa antes
+                _sfx("k_piedra", -10.0, 0.5)
+        "raise":
+            if colossus_t <= 0.0:
+                colossus_state = "stomp"
+                colossus_t = 0.35
+                shake = maxf(shake, 0.6)
+                _sfx("k_golpe", -2.0, 0.4)
+                _emit(colossus_pos, 30, Color(0.55, 0.5, 0.45), 60.0, 200.0, 0.8, 3.0, 60.0, Vector2.UP, 3.0)
+                if d < COLOSSUS_STOMP_RADIUS and dash_left <= 0.0 and damage_cd <= 0.0:
+                    hp -= COLOSSUS_DAMAGE
+                    fear = minf(100.0, fear + 18.0)
+                    damage_cd = 1.0
+                    _on_hurt()
+        "stomp":
+            if colossus_t <= 0.0:
+                colossus_state = "walk"
+                colossus_cd = maxf(1.0, 2.2 - 0.4 * float(colossus_hits))
+        "stun":
+            if colossus_t <= 0.0:
+                colossus_state = "walk"
+                colossus_cd = 1.5
+
+
+func _draw_ram(i: int) -> void:
+    var r: Dictionary = rams[i]
+    var frame: int
+    match str(r["state"]):
+        "aim":
+            frame = 6
+        "charge":
+            frame = 2 + int(elapsed * 14.0) % 4
+        "stun":
+            frame = 7
+        _:
+            frame = 2 + int(elapsed * 8.0) % 4 if bool(r.get("moving", false)) else int(elapsed * 2.0 + float(i)) % 2
+    var pos: Vector2 = Vector2(r["pos"]).round()
+    _draw_soft_shadow(pos + Vector2(0, 3), 16.0)
+    var tint := Color(1.0, 0.85, 0.6) if str(r["state"]) == "stun" else Color.WHITE
+    draw_texture_rect_region(RAM_TEX, Rect2(pos.x - 24.0, pos.y + 4.0 - ENEMY_FEET_Y, 48, 64), Rect2(float(frame) * 48.0, float(r["facing"]) * 64.0, 48, 64), tint)
+    if str(r["state"]) == "stun":
+        var bar := Rect2(pos.x - 20.0, pos.y - 62.0, 40, 4)
+        draw_rect(bar.grow(1.0), Color(0, 0, 0, 0.7))
+        draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(float(r["hp"]) / float(r["max"]), 0.0, 1.0), bar.size.y)), Color("#ffd36b"))
+
+
+## Línea roja de aviso antes de embestir: siempre visible (juego limpio).
+func _draw_ram_warnings() -> void:
+    for r in rams:
+        if str(r["state"]) != "aim":
+            continue
+        var from: Vector2 = Vector2(r["pos"]) + Vector2(0, -12)
+        var k: float = 1.0 - clampf(float(r["t"]) / RAM_WINDUP, 0.0, 1.0)
+        draw_line(from, from + Vector2(r["dir"]) * 360.0, Color(1.0, 0.25, 0.25, 0.25 + 0.5 * k), 2.0 + 4.0 * k)
+
+
+func _draw_pillar(i: int) -> void:
+    var p: Dictionary = pillars[i]
+    var at: Vector2 = p["pos"]
+    if bool(p["fallen"]):
+        # Columna caída: tambores de piedra en línea hacia donde estaba el Coloso.
+        var dir: Vector2 = p["fall_dir"]
+        var k: float = float(p["fall_t"])
+        for n in range(5):
+            var c: Vector2 = at + dir * (14.0 + float(n) * 22.0) * k
+            draw_rect(Rect2(c - Vector2(12, 8), Vector2(24, 16)), Color("#6a665e"))
+            draw_rect(Rect2(c - Vector2(12, 8), Vector2(24, 3)), Color("#8a857b"))
+        return
+    _draw_soft_shadow(at + Vector2(0, 2), 16.0)
+    var body := Rect2(at.x - 12.0, at.y - 92.0, 24, 92)
+    draw_rect(body, Color("#7d7a72"))
+    draw_rect(Rect2(body.position, Vector2(5, body.size.y)), Color("#a8a49a"))
+    draw_rect(Rect2(at.x - 16.0, at.y - 98.0, 32, 8), Color("#8a857b"))
+    draw_rect(Rect2(at.x - 16.0, at.y - 8.0, 32, 8), Color("#5f5b54"))
+    # Grieta que brilla: aquí se golpea.
+    var glow: float = 0.5 + 0.5 * sin(elapsed * 3.0 + at.x)
+    draw_polyline(PackedVector2Array([Vector2(at.x - 4, at.y - 70), Vector2(at.x + 4, at.y - 54), Vector2(at.x - 2, at.y - 36), Vector2(at.x + 3, at.y - 22)]), Color(1.0, 0.75, 0.35, 0.5 + 0.5 * glow), 2.0)
+    if colossus_active and colossus_pos.distance_to(at) < PILLAR_REACH:
+        draw_rect(body.grow(3.0), Color(1.0, 0.8, 0.4, 0.5 + 0.3 * glow), false, 2.0)
+
+
+func _draw_colossus() -> void:
+    var frame: int
+    match colossus_state:
+        "raise":
+            frame = 4
+        "stomp":
+            frame = 5
+        "stun":
+            frame = 6
+        _:
+            frame = 2 + int(elapsed * 3.0) % 2
+    var pos: Vector2 = colossus_pos.round()
+    _draw_soft_shadow(pos + Vector2(0, 4), 56.0, 1.2)
+    draw_texture_rect_region(COLOSSUS_TEX, Rect2(pos.x - 64.0, pos.y + 6.0 - 154.0, 128, 160), Rect2(float(frame) * 128.0, 0, 128, 160))
+    if colossus_state == "raise":
+        var k: float = 1.0 - clampf(colossus_t / COLOSSUS_WINDUP, 0.0, 1.0)
+        _draw_ellipse(pos, COLOSSUS_STOMP_RADIUS * k, COLOSSUS_STOMP_RADIUS * 0.45 * k, Color(1.0, 0.2, 0.2, 0.12 + 0.18 * k))
+        draw_arc(pos, COLOSSUS_STOMP_RADIUS, 0, TAU, 48, Color(1.0, 0.3, 0.3, 0.3 + 0.4 * k), 2.0)
+
+
+func _draw_colossus_hud() -> void:
+    if not colossus_active:
+        return
+    var box := Rect2(300, 116, 360, 34)
+    _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_GOLD)
+    _text_outline("EL COLOSO DEL PÓRTICO", Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
+    for i in range(COLOSSUS_HITS):
+        var seg := Rect2(box.position.x + 10.0 + float(i) * 114.0, box.position.y + 21.0, 108, 7)
+        draw_rect(seg, Color(0, 0, 0, 0.7))
+        if i >= colossus_hits:
+            draw_rect(seg, Color("#b3263a"))
+    if colossus_state == "raise" and colossus_pos.distance_to(player_pos) < COLOSSUS_STOMP_RADIUS:
+        _label_center("¡SAL DEL CÍRCULO O ESQUIVA!", player_pos + Vector2(0, -80), Color("#ffd36b"))

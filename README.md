@@ -11,7 +11,7 @@
 
 **El Templo de los Ecos** es un juego independiente de terror psicológico y cósmico, supervivencia y elementos roguelite, desarrollado en **Godot Engine 4** con **GDScript**. El jugador explora un templo cuyo funcionamiento desconoce. Cada entidad obedece reglas propias, y entenderlas vale tanto como cualquier habilidad.
 
-> **Estado:** prototipo con ocho pisos jugables. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
+> **Estado:** prototipo con nueve pisos jugables. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
 
 ![Sala del Testigo: el ojo del muro está abierto y el Testigo vigila el sello](docs/galeria/04_testigo.png)
 
@@ -20,7 +20,7 @@
 ## ¿Qué incluye el prototipo?
 
 - **Tu personaje**: antes de la primera exploración eliges nombre (teclado o letras en pantalla) y género (masculino o femenino, cada uno con su sprite y su retrato). El nombre aparece en el HUD, el perfil y el menú; se puede cambiar desde el menú (C).
-- **Ocho pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
+- **Nueve pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
   - **Piso I · El Despertar**, cinco salas: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
   - **Piso II · Los Peregrinos**, cuatro salas con las primeras grietas del templo. Un Peregrino se ofrece a reunir almas contigo… y en la mayoría de las vidas te traiciona al llegar a la Cripta del Reparto. Tiene indicios: se queda a tu espalda y miente sobre cuántas almas lleva. Si lo atacas primero y era sincero, lo pagas.
   - **Piso III · La Cacería**, cuatro salas. El templo ordena cazar al **Segador de Hilos** con tres peregrinos aliados. Antes de atacar tensa una línea roja: lo que esté sobre ella (tú o tus aliados, también los que van detrás de ti) recibe el hilo. Después queda enganchado y solo entonces se le puede herir. A media vida huye a la sala siguiente; la puerta no se abre mientras viva.
@@ -29,13 +29,21 @@
   - **Piso VI · La Ofrenda**, cuatro salas sin entidades (piso de respiro). Un grupo de peregrinos pide que lo guíes (Saúl va con ellos si lo salvaste). El **Mercader Silencioso** abre su puesto: pan, fósforos y objetos con porcentajes. Se paga primero y **nunca se mete la mano bajo su manto**: quien lo hace pierde vida máxima en esa vida.
   - **Piso VII · La Que No Aparta la Vista**, cuatro salas. Una figura con yelmo y ojos en el pecho rodea la sala: solo ataca si le das la espalda o corres. Hay que aguantar su mirada para que la puerta se abra mientras te provoca con amagos y ruidos a tu espalda. Los peregrinos que guiaste pueden entrar en pánico: cálmalos antes de que echen a correr.
   - **Piso VIII · El Templo que Cambia**, las salas del Piso I alteradas: las estatuas miran al otro lado, el Testigo persigue al que se queda quieto, el sello está en el Archivo y una inscripción firmada con tu nombre miente.
+  - **Piso IX · El Coloso del Pórtico**, cuatro salas. Los **Arietes de Piedra** embisten en línea recta si te alineas con ellos y solo se rompen aturdidos tras chocar. El **Coloso**, una estatua viva inmune a golpes, se derriba atrayéndolo junto a columnas agrietadas y golpeándolas para que caigan sobre él.
+- **Enemigos más fuertes cuanto más abajo**: las entidades tienen más vida y daño en los pisos profundos (+12 % por piso).
 - **Niveles**: ganas experiencia con almas, alimañas, entidades desterradas, misiones y pisos. Cada nivel sube la vida máxima (+6), el daño (+4 %) y la recarga del vigor (+3 %) y te cura. El nivel se ve en el retrato del HUD y en el perfil.
+- **Objetos y mejoras**: el perfil tiene una pestaña OBJETOS con lo equipado (brazalete, amuleto, máscara) y la bolsa (pan), que se usa desde ahí. Comprar otra vez el brazalete o el amuleto los sube de nivel (hasta 5), y la Resonancia se mejora con almas en el altar o el puesto. En el puesto se ve cuánto llevas de cada cosa y el número salta al comprar.
+- **Vida extra**: curarte con la vida llena suma hasta +50 por encima del máximo (franja dorada en la barra).
+- **Relicarios de vida** en las salas sin entidad: una cura de 60 por sala y partida.
+- **Bendición y maldición**: ayudar a quien lo pide (liberar a Saúl, guiar al grupo, calmar a un peregrino) suma; dejarlo atrás o fallarle resta. Con la bendición confían en ti, te regalan cosas y el Mercader cobra menos; con la maldición te temen, se apartan, no te siguen y el Mercader cobra más.
+- **Vigilia renovada**: defensa de una celda vista en planta, con rejilla, lecho, puerta y pasillo (estilo de defensa de cuarto, con arte propio). **Fases sin fin**, cada una más dura: más vida, velocidad y daño, más entidades a la vez y un **jefe cada 5 fases**. Cada fase superada da un **objeto al azar para la campaña** (pan, fósforos, vial de sangre, incienso, bolsa de almas, mejoras del brazalete, el amuleto o la Resonancia, reliquia de experiencia); cuanto más alta la fase, mejor el botín.
+- **Menú más simple**: JUGAR abre los pisos (el I empieza desde el principio) y salir del juego pide confirmación.
 - **Pensado para móvil**: joystick flotante, botón de ACCIÓN que cambia según lo que tengas cerca, botones grandes al alcance del pulgar y textos de ayuda que hablan de toques, no de teclas.
 - **Herencia del primer juego**: alimañas que mueren de un esquive y salen de nidos, tu cuerpo de la vida anterior en la sala donde caíste, transiciones con máscara, resumen al superar cada piso, sonidos de Kenney con variantes, cursor propio y créditos.
 - **Dirección de arte gótica**: rótulos con tipografía gótica de píxel, interfaz oscura con dorado envejecido, bloom, niebla, haces de luz, partículas y fundidos. **Menú de pisos** para volver a cualquier piso alcanzado.
 - **Diálogos, misiones y trampas**: conversaciones que avanzan con clic, misiones con premio en las salas con monstruo, pinchos con aviso e inscripciones de lore. La vida se recupera poco a poco y esquivar funciona aunque estés quieto. Pantalla de habilidades con la tecla K.
 - **Morir no cuesta progreso (temporal, modo de pruebas)**: te levantas en la entrada de la misma sala con almas, objetos, habilidades y Ecos. Se desactiva con `MUERTE_SIN_PERDIDA` en `scripts/main.gd`.
-- **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría, Reflejos, Piel curtida, Paso ligero, Huesos firmes, Mente serena y Memoria de eco). Se conservan si tu alma regresa y se pierden si es absorbida.
+- **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría, Reflejos, Piel curtida, Paso ligero, Huesos firmes, Mente serena, Memoria de eco y Fuerza acumulada). Se conservan si tu alma regresa y se pierden si es absorbida.
 - **Tres entidades con reglas que se pueden aprender**, con arte propio en vista cenital y cuatro direcciones:
   - **Testigo**: solo persigue si el ojo está abierto y el jugador se mueve. Solo recibe daño con el ojo cerrado.
   - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
@@ -80,6 +88,14 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Menú.** Rótulo gótico, paneles oscuros con dorado envejecido. | **Pisos.** Los diez pisos del templo; se puede volver a cualquiera ya alcanzado. |
 | ![Nave del Agua con niebla y haces de luz](docs/galeria/26_arte_nave.png) | ![Muerte](docs/galeria/27_arte_muerte.png) |
 | **Atmósfera.** Haces de luz, niebla baja, polvo, bloom y viñeta. | **Muerte.** El alma se desprende; te levantas en una columna de luz. |
+| ![El Coloso](docs/galeria/52_piso9_coloso.png) | ![Arietes](docs/galeria/53_piso9_arietes.png) |
+| **Piso IX.** El Coloso pisa fuerte: sal del círculo rojo y atráelo junto a una columna agrietada. | **Arietes de Piedra.** Embisten en línea recta; aturdidos, se rompen. |
+| ![Vigilia por fases](docs/galeria/50_vigilia_fases.png) | ![Botín de la Vigilia](docs/galeria/51_vigilia_botin.png) |
+| **Vigilia.** La celda en planta, centinelas, generadores y un jefe en la puerta. | **Botín.** Cada fase da objetos que pasan a la campaña. |
+| ![Objetos en el perfil](docs/galeria/46_objetos.png) | ![Puesto con mejoras](docs/galeria/47_puesto_mejoras.png) |
+| **Objetos.** Lo equipado con su nivel y la bolsa, que se usa desde aquí. | **El puesto.** Cuánto llevas de cada cosa y las mejoras por nivel. |
+| ![Relicario de vida](docs/galeria/48_relicario.png) | ![Menú](docs/galeria/49_menu_jugar.png) |
+| **Relicario de vida.** En las salas sin entidad; la vida extra se ve en dorado. | **Menú.** JUGAR lleva a los pisos; SALIR pide confirmación. |
 | ![Umbral que no recuerdas](docs/galeria/44_piso8_umbral.png) | ![Testigo invertido](docs/galeria/45_piso8_testigo.png) |
 | **Piso VIII.** La primera sala, cambiada, con una inscripción que te miente y tu silueta donde moriste. | **Testigo invertido.** Ahora viene si te quedas quieto. |
 | ![La Que No Aparta la Vista](docs/galeria/40_piso7_mirada.png) | ![Piso VII en el móvil](docs/galeria/41_piso7_movil.png) |
@@ -135,6 +151,8 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 Puedes descargar el [APK de prueba de v0.4.2-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.4.2-alpha) para teléfonos Android ARM64. No está publicado en Google Play y necesita pruebas en dispositivos reales. **Ese APK es anterior a la renovación visual** que muestran las capturas; los cambios llegarán en el próximo release.
 
+La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+
 Para los controles móviles y sus limitaciones, consulta la [guía Android y Vigilia](docs/MOVIL_Y_VIGILIA.md).
 
 ## Descargar y ejecutar en Fedora / Linux
@@ -166,7 +184,8 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 
 | Tecla | Acción |
 | --- | --- |
-| Enter | Iniciar la exploración o reiniciar |
+| Enter | En el menú, JUGAR (elegir piso); tras morir, levantarte |
+| O (perfil) | Cambiar entre EQUIPO y OBJETOS; Enter usa el objeto señalado |
 | H | Abrir Vigilia del Claustro desde el menú |
 | W / A / S / D o flechas | Moverse |
 | E | Interactuar (sello, carta, altar). Si no hay nada cerca y la antorcha arde, golpear. Almas, objetos y puertas abiertas funcionan al tocarlos |
