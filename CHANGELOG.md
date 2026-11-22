@@ -1,5 +1,27 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Tanda B: Vigilia por fases con botín
+
+- **Nuevo aspecto** (estilo de defensa de cuarto, con arte e interfaz propios):
+  - la celda en planta sobre una rejilla de baldosas, con alfombra, velas, lecho con dosel y puerta con barra de vida y nivel en puntos;
+  - el pasillo oscuro por donde llegan las entidades;
+  - barra superior con la fase, el tiempo, los ecos y la energía;
+  - ocho botones grandes abajo con icono, nombre y coste;
+  - se puede tocar el mundo: el lecho para dormir, una casilla vacía para construir un centinela y la puerta para repararla.
+- **Fases sin fin** de 90 s. Ecos, defensas y mejoras se conservan entre fases; la puerta recupera un 25 %. Cada fase es más dura:
+  - las entidades tienen más vida (crece cada vez más rápido), más velocidad y más daño;
+  - llegan más a la vez (hasta 5);
+  - van apareciendo el Mastín, el Segador y la Tejedora;
+  - **cada 5 fases hay un jefe** (más grande, con 4 veces más vida y el doble de daño).
+- **Botín para la campaña**: cada fase superada da un objeto al azar (dos en las de jefe), que se guarda en el progreso del personaje.
+  - Fases 1-2: pan y caja de fósforos.
+  - Desde la 3: vial de sangre e incienso.
+  - Desde la 5: bolsa de almas y mejoras del brazalete o el amuleto.
+  - Desde la 7: mejora de la Resonancia y reliquia de experiencia.
+  - Los de la bolsa se usan desde la pestaña OBJETOS del perfil.
+- Récord de la mejor fase. Mando: cruceta, A, START (pausa) y B (salir).
+- Valores provisionales (curva de dificultad y probabilidades del botín).
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Tanda A: objetos, mejoras, marca y menús
 
 - **Menú**: se quita EXPLORAR. JUGAR abre el menú de pisos (el Piso I empieza desde el principio, con intro y tutorial la primera vez). Hay un botón SALIR.

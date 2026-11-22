@@ -265,6 +265,10 @@ const ICONS := {
     "pan": preload("res://assets/visual/iconos/pan.png"),
     "brazalete": preload("res://assets/visual/iconos/brazalete.png"),
     "amuleto": preload("res://assets/visual/iconos/amuleto.png"),
+    "vial": preload("res://assets/visual/iconos/vial.png"),
+    "incienso": preload("res://assets/visual/iconos/incienso.png"),
+    "bolsa_almas": preload("res://assets/visual/iconos/bolsa_almas.png"),
+    "reliquia": preload("res://assets/visual/iconos/reliquia.png"),
     "habilidades": preload("res://assets/visual/iconos/habilidades.png"),
     "pinchos": preload("res://assets/visual/iconos/pinchos.png"),
     "calavera": preload("res://assets/visual/iconos/calavera.png"),
@@ -8362,8 +8366,15 @@ const ABILITY_LEVEL_MAX := 5
 const RESONANCE_UPGRADE_BASE := 10
 const RESONANCE_UPGRADE_STEP := 8
 const OVERHEAL_MAX := 50.0
+## Consumibles de la bolsa: [nombre, descripción, icono]. Los de la Vigilia
+## (scripts/botin.gd) llegan aquí.
 const BAG_ITEMS := {
-    "pan": ["PAN DE CENIZA", "+50 de vida (pasa del máximo), vigor lleno y +10 de vida máx. perdida."],
+    "pan": ["PAN DE CENIZA", "+50 de vida (pasa del máximo), vigor lleno y +10 de vida máx. perdida.", "pan"],
+    "fosforos_caja": ["CAJA DE FÓSFOROS", "+3 fósforos para la antorcha.", "fosforos"],
+    "vial": ["VIAL DE SANGRE", "+80 de vida, aunque pase del máximo.", "vial"],
+    "incienso": ["INCIENSO", "El miedo baja a cero.", "incienso"],
+    "bolsa_almas": ["BOLSA DE ALMAS", "+25 almas.", "bolsa_almas"],
+    "reliquia": ["RELIQUIA DE ECOS", "+60 de experiencia.", "reliquia"],
 }
 var bag: Dictionary = {} # clave -> cantidad
 var trinket_levels: Dictionary = {} # clave -> nivel
@@ -8405,12 +8416,12 @@ func _object_slots() -> Array:
         if trinkets.has(key):
             var info: Array = SHOP[2] if key == "brazalete" else SHOP[3]
             list.append([key, info[1], "EQUIPADO · NV %d" % _trinket_level(key),
-                "%s Ahora: +%d %%. Se mejora con almas en el puesto del Mercader." % [info[3].split(".")[0] + ".", 10 * _trinket_level(key)], false])
+                "%s Ahora: +%d %%. Se mejora con almas en el puesto del Mercader." % [info[3].split(".")[0] + ".", 10 * _trinket_level(key)], false, key])
     if has_mask:
-        list.append(["mascara", "MÁSCARA DE PORCELANA", "EQUIPADA", "Tu Resonancia es Rugido: llega un 50 % más lejos y espanta a los mastines.", false])
+        list.append(["mascara", "MÁSCARA DE PORCELANA", "EQUIPADA", "Tu Resonancia es Rugido: llega un 50 % más lejos y espanta a los mastines.", false, "mascara"])
     for key in bag:
         if int(bag[key]) > 0 and BAG_ITEMS.has(key):
-            list.append([key, BAG_ITEMS[key][0], "×%d · USAR" % int(bag[key]), BAG_ITEMS[key][1], true])
+            list.append([BAG_ITEMS[key][2], BAG_ITEMS[key][0], "×%d · USAR" % int(bag[key]), BAG_ITEMS[key][1], true, key])
     return list
 
 
@@ -8420,7 +8431,7 @@ func _profile_use_selected() -> void:
     var list: Array = _object_slots()
     if inventory_sel < 0 or inventory_sel >= list.size() or not bool(list[inventory_sel][4]):
         return
-    _use_bag_item(str(list[inventory_sel][0]))
+    _use_bag_item(str(list[inventory_sel][5]))
 
 
 func _use_bag_item(key: String) -> bool:
@@ -8434,6 +8445,17 @@ func _use_bag_item(key: String) -> bool:
             max_hp = minf(_base_max_hp(), max_hp + 10.0) # devuelve vida máxima perdida
             _heal(50.0)
             stamina = 100.0
+        "fosforos_caja":
+            matches += 3
+        "vial":
+            _heal(80.0)
+        "incienso":
+            fear = 0.0
+        "bolsa_almas":
+            souls += 25
+            souls_flash = 0.8
+        "reliquia":
+            _gain_xp(60)
     _save_progress()
     _sfx("objeto", -6.0, 1.1)
     _say("Usas %s." % _tc(str(BAG_ITEMS.get(key, [key])[0])), 2.0)

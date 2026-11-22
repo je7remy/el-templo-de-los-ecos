@@ -36,3 +36,9 @@ Inspirado en mecánicas generales de defensa de habitación y supervivencia: **n
 - **Pausa**, reinicio, variaciones Ghoul/Wizard/Angel por oleada, récord local y puntuación al terminar.
 - El estado de la Vigilia se guarda en un archivo propio `user://vigilia_claustro_records.json`; no se comparte con el archivo de reencarnación.
 - Los cuatro botones de tecnología están sobre la fila inferior. Teclado: 6 generador, 7 potenciar, 8 escudo, P pausa; 1-5 siguen como antes.
+
+
+## Vigilia por fases (Tanda B)
+- La partida ya no termina al amanecer: son **fases de 90 s sin fin**, cada una más difícil, con un **jefe cada 5 fases**.
+- Cada fase superada da **botín para la campaña** (se guarda en el archivo del personaje y se usa desde la pestaña OBJETOS del perfil). Cuanto más alta la fase, mejor el botín.
+- En el móvil se puede tocar el lecho (dormir), una casilla vacía (centinela) y la puerta (reparar), además de los ocho botones de abajo.

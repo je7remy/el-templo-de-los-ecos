@@ -952,7 +952,7 @@ func _run_checks() -> void:
     var pan_i: int = -1
     var has_brazalete := false
     for i in range(slots.size()):
-        if slots[i][0] == "pan":
+        if slots[i][5] == "pan":
             pan_i = i
         if slots[i][0] == "brazalete":
             has_brazalete = true
@@ -963,6 +963,15 @@ func _run_checks() -> void:
     game.call("_profile_use_selected")
     if int((game.get("bag") as Dictionary).get("pan", 0)) != 1:
         _fail("No se puede usar el pan desde el perfil.")
+        return
+    # Botín de la Vigilia en la bolsa: vial (vida extra) y bolsa de almas.
+    game.set("bag", {"vial": 1, "bolsa_almas": 1})
+    game.set("hp", float(game.get("max_hp")))
+    var souls_v: int = int(game.get("souls"))
+    game.call("_use_bag_item", "vial")
+    game.call("_use_bag_item", "bolsa_almas")
+    if float(game.get("hp")) <= float(game.get("max_hp")) or int(game.get("souls")) != souls_v + 25:
+        _fail("El vial o la bolsa de almas de la Vigilia no funcionan en la campaña.")
         return
     game.call("_close_inventory")
     # Mejorar la Resonancia en el altar con almas.

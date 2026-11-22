@@ -1,0 +1,83 @@
+extends RefCounted
+## Botín de la Vigilia: cada fase superada da un objeto al azar que pasa a la
+## campaña (se escribe en el archivo de progreso del personaje). Cuanto más
+## alta la fase, mejor el botín.
+##
+## Uso:  const Botin := preload("res://scripts/botin.gd")
+##       var clave := Botin.sortear(fase)
+##       var texto := Botin.aplicar(clave)
+
+const RUTA := "user://templo_personaje_v03.json"
+const RUTA_PRUEBA := "user://prueba_progreso.json"
+
+## clave: [nombre, descripción, nivel de botín (1-4), icono]
+const OBJETOS := {
+    "pan": ["PAN DE CENIZA", "A la bolsa: +50 de vida y vigor lleno.", 1, "pan"],
+    "fosforos_caja": ["CAJA DE FÓSFOROS", "A la bolsa: +3 fósforos al usarla.", 1, "fosforos"],
+    "vial": ["VIAL DE SANGRE", "A la bolsa: +80 de vida, aunque pase del máximo.", 2, "vial"],
+    "incienso": ["INCIENSO", "A la bolsa: el miedo baja a cero.", 2, "incienso"],
+    "bolsa_almas": ["BOLSA DE ALMAS", "A la bolsa: +25 almas al abrirla.", 3, "bolsa_almas"],
+    "brazalete_up": ["BRONCE TEMPLADO", "Brazalete de bronce +1 nivel (o lo consigues).", 3, "brazalete"],
+    "amuleto_up": ["HUESO PULIDO", "Amuleto de hueso +1 nivel (o lo consigues).", 3, "amuleto"],
+    "resonancia_up": ["ECO PROFUNDO", "Resonancia +1 nivel (o la despiertas).", 4, "resonancia"],
+    "reliquia": ["RELIQUIA DE ECOS", "A la bolsa: +60 de experiencia al usarla.", 4, "reliquia"],
+}
+const NIVEL_OBJETO_MAX := 5
+const NIVEL_HABILIDAD_MAX := 5
+
+
+static func ruta() -> String:
+    return RUTA_PRUEBA if Engine.has_meta("modo_prueba") else RUTA
+
+
+## Nivel de botín según la fase: 1-2 → 1, 3-4 → 2, 5-6 → 3, 7 o más → 4.
+static func nivel(fase: int) -> int:
+    return clampi(1 + (fase - 1) / 2, 1, 4)
+
+
+## Elige un objeto: los del nivel de la fase pesan el triple que los de abajo.
+static func sortear(fase: int, rng: RandomNumberGenerator = null) -> String:
+    var top: int = nivel(fase)
+    var bolsa: Array = []
+    for clave in OBJETOS:
+        var n: int = int(OBJETOS[clave][2])
+        if n > top:
+            continue
+        for i in range(3 if n == top else 1):
+            bolsa.append(clave)
+    var r: int = rng.randi_range(0, bolsa.size() - 1) if rng != null else randi() % bolsa.size()
+    return bolsa[r]
+
+
+## Aplica el objeto al progreso de la campaña y devuelve su nombre.
+static func aplicar(clave: String) -> String:
+    var datos: Dictionary = {}
+    if FileAccess.file_exists(ruta()):
+        var leido = JSON.parse_string(FileAccess.get_file_as_string(ruta()))
+        if leido is Dictionary:
+            datos = leido
+    var bolsa: Dictionary = datos.get("bag", {}) if datos.get("bag", {}) is Dictionary else {}
+    var objetos: Array = datos.get("trinkets", []) if datos.get("trinkets", []) is Array else []
+    var niveles: Dictionary = datos.get("trinket_levels", {}) if datos.get("trinket_levels", {}) is Dictionary else {}
+    match clave:
+        "brazalete_up", "amuleto_up":
+            var t: String = clave.trim_suffix("_up")
+            if objetos.has(t):
+                niveles[t] = mini(NIVEL_OBJETO_MAX, int(niveles.get(t, 1)) + 1)
+            else:
+                objetos.append(t)
+                niveles[t] = 1
+        "resonancia_up":
+            if bool(datos.get("has_pulse", false)):
+                datos["ability_level"] = mini(NIVEL_HABILIDAD_MAX, int(datos.get("ability_level", 0)) + 1)
+            else:
+                datos["has_pulse"] = true
+        _:
+            bolsa[clave] = int(bolsa.get(clave, 0)) + 1
+    datos["bag"] = bolsa
+    datos["trinkets"] = objetos
+    datos["trinket_levels"] = niveles
+    var archivo := FileAccess.open(ruta(), FileAccess.WRITE)
+    if archivo != null:
+        archivo.store_string(JSON.stringify(datos))
+    return str(OBJETOS.get(clave, [clave])[0])

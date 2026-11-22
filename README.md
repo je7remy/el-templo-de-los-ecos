@@ -34,6 +34,7 @@
 - **Vida extra**: curarte con la vida llena suma hasta +50 por encima del máximo (franja dorada en la barra).
 - **Relicarios de vida** en las salas sin entidad: una cura de 60 por sala y partida.
 - **Bendición y maldición**: ayudar a quien lo pide (liberar a Saúl, guiar al grupo, calmar a un peregrino) suma; dejarlo atrás o fallarle resta. Con la bendición confían en ti, te regalan cosas y el Mercader cobra menos; con la maldición te temen, se apartan, no te siguen y el Mercader cobra más.
+- **Vigilia renovada**: defensa de una celda vista en planta, con rejilla, lecho, puerta y pasillo (estilo de defensa de cuarto, con arte propio). **Fases sin fin**, cada una más dura: más vida, velocidad y daño, más entidades a la vez y un **jefe cada 5 fases**. Cada fase superada da un **objeto al azar para la campaña** (pan, fósforos, vial de sangre, incienso, bolsa de almas, mejoras del brazalete, el amuleto o la Resonancia, reliquia de experiencia); cuanto más alta la fase, mejor el botín.
 - **Menú más simple**: JUGAR abre los pisos (el I empieza desde el principio) y salir del juego pide confirmación.
 - **Pensado para móvil**: joystick flotante, botón de ACCIÓN que cambia según lo que tengas cerca, botones grandes al alcance del pulgar y textos de ayuda que hablan de toques, no de teclas.
 - **Herencia del primer juego**: alimañas que mueren de un esquive y salen de nidos, tu cuerpo de la vida anterior en la sala donde caíste, transiciones con máscara, resumen al superar cada piso, sonidos de Kenney con variantes, cursor propio y créditos.
@@ -85,6 +86,8 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Menú.** Rótulo gótico, paneles oscuros con dorado envejecido. | **Pisos.** Los diez pisos del templo; se puede volver a cualquiera ya alcanzado. |
 | ![Nave del Agua con niebla y haces de luz](docs/galeria/26_arte_nave.png) | ![Muerte](docs/galeria/27_arte_muerte.png) |
 | **Atmósfera.** Haces de luz, niebla baja, polvo, bloom y viñeta. | **Muerte.** El alma se desprende; te levantas en una columna de luz. |
+| ![Vigilia por fases](docs/galeria/50_vigilia_fases.png) | ![Botín de la Vigilia](docs/galeria/51_vigilia_botin.png) |
+| **Vigilia.** La celda en planta, centinelas, generadores y un jefe en la puerta. | **Botín.** Cada fase da objetos que pasan a la campaña. |
 | ![Objetos en el perfil](docs/galeria/46_objetos.png) | ![Puesto con mejoras](docs/galeria/47_puesto_mejoras.png) |
 | **Objetos.** Lo equipado con su nivel y la bolsa, que se usa desde aquí. | **El puesto.** Cuánto llevas de cada cosa y las mejoras por nivel. |
 | ![Relicario de vida](docs/galeria/48_relicario.png) | ![Menú](docs/galeria/49_menu_jugar.png) |

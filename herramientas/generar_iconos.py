@@ -437,6 +437,52 @@ def eco_memoria() -> Image.Image:
     return i.fin()
 
 
+def vial() -> Image.Image:
+    """Vial de sangre (botín de la Vigilia)."""
+    i = Icono()
+    i.r(13, 3, 19, 8, c("#c9a25e"))
+    i.r(14, 8, 18, 12, c("#b8c4cc"))
+    i.e(7, 11, 25, 29, c("#b8c4cc"))
+    i.e(9, 15, 23, 28, c("#9e1f2a"))
+    i.e(10, 16, 18, 22, c("#d23a3a"))
+    i.px(11, 17, c("#ffd0d0"))
+    return i.fin()
+
+
+def incienso() -> Image.Image:
+    """Varilla de incienso con humo: el miedo baja."""
+    i = Icono()
+    i.r(5, 25, 27, 28, c("#6b5238"))
+    i.ln([(16, 25), (16, 12)], c("#8a5a35"), 2)
+    i.px(16, 11, c("#ff9a3c"))
+    for k, (x, y) in enumerate(((15, 8), (18, 5), (14, 2))):
+        i.e(x - 2, y - 2, x + 2, y + 2, c("#b8b0c8"))
+    return i.fin()
+
+
+def bolsa_almas() -> Image.Image:
+    """Bolsa de cuero que brilla con almas."""
+    i = Icono()
+    i.e(6, 10, 26, 29, c("#6b4c37"))
+    i.p([(11, 11), (21, 11), (19, 5), (13, 5)], c("#5a3f2c"))
+    i.ln([(10, 11), (22, 11)], c("#c9a25e"), 2)
+    i.e(12, 15, 20, 24, c("#8fc7d7"))
+    i.e(14, 17, 18, 21, c("#e8fbff"))
+    return i.fin()
+
+
+def reliquia() -> Image.Image:
+    """Reliquia de ecos: relicario dorado con una llama azul."""
+    i = Icono()
+    i.r(8, 22, 24, 28, c("#a37a3d"))
+    i.r(11, 9, 21, 22, c("#e3bd7b"))
+    i.r(13, 11, 19, 20, c("#2a2e38"))
+    i.e(14, 13, 18, 19, c("#8fc7d7"))
+    i.px(16, 14, c("#e8fbff"))
+    i.p([(11, 9), (21, 9), (16, 3)], c("#e3bd7b"))
+    return i.fin()
+
+
 def pan() -> Image.Image:
     """Pan de ceniza del Mercader: corteza gris con miga clara."""
     i = Icono()
@@ -539,7 +585,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "eco_serena": eco_serena, "eco_memoria": eco_memoria, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "eco_serena": eco_serena, "eco_memoria": eco_memoria, "vial": vial, "incienso": incienso, "bolsa_almas": bolsa_almas, "reliquia": reliquia, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
 }
 
 
