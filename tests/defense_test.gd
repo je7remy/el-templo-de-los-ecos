@@ -226,6 +226,44 @@ func _run() -> void:
         _fail("Al terminar el tutorial no empieza una Vigilia limpia.")
         return
     mode.call("_start", 0)
+    # El menú abierto se actualiza solo cuando los ecos alcanzan el precio.
+    mode.set("income", 0.0)
+    mode.call("_build", "centinela", Vector2i(5, 3))
+    mode.set("income", 0.0)
+    var free_t: Vector2i = mode.call("_free_tile")
+    mode.call("_open_popup_for", free_t)
+    if bool((mode.get("popup")["options"] as Array)[0]["enabled"]):
+        _fail("Se puede construir sin ecos.")
+        return
+    mode.set("income", 9999.0)
+    mode.call("_process", 0.016)
+    if not bool((mode.get("popup")["options"] as Array)[0]["enabled"]):
+        _fail("El menú no se actualiza al llegar los ecos al precio.")
+        return
+    mode.set("popup", {})
+    # Salir guarda la fase; volver la continúa; perder la borra.
+    mode.set("stage", 4)
+    mode.set("phase", "play")
+    mode.set("tut_step", -1)
+    mode.call("_build", "generador", Vector2i(1, 1))
+    mode.call("_save_records")
+    mode.set("saved_run", {})
+    mode.call("_load_records")
+    mode.set("phase", "selection")
+    if not bool(mode.call("_has_saved_run")):
+        _fail("Salir de la Vigilia no guarda la fase.")
+        return
+    mode.call("_choose_start")
+    if int(mode.get("stage")) != 4 or not (mode.get("structs") as Dictionary).has(Vector2i(1, 1)):
+        _fail("Volver a la Vigilia no continúa la fase guardada.")
+        return
+    mode.set("gate_hp", 0.0)
+    mode.call("_advance", 0.1)
+    mode.call("_load_records")
+    if bool(mode.call("_has_saved_run")):
+        _fail("Perder no borra la vigilia guardada.")
+        return
+    mode.call("_start", 0)
     print("OK: defensa tactil, ingreso, mejoras, centinelas, reparacion, victoria y derrota.")
     mode.free()
     mode = null

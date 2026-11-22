@@ -675,6 +675,9 @@ func _run_checks() -> void:
     print("OK: mando de Xbox y similares en el juego y los menús.")
 
     # Piso VI: grupo que pide guía, Mercader (se paga primero, no se toca el manto) y Huesos firmes.
+    # (Antes, en el Piso III, murieron dos cazadores: eso ya restó a la marca.
+    # Aquí se parte de lo ganado al liberar a Saúl.)
+    game.set("karma", 1)
     game.set("current_floor", 5)
     game.set("current_room", 0)
     game.call("_on_floor_start")
@@ -917,7 +920,12 @@ func _run_checks() -> void:
         return
     game.set("player_pos", game.get("seal_pos"))
     game.call("_interact")
-    if not bool(game.get("seal_acquired")) or not bool(game.call("_room_ready")):
+    # Con el sello no basta: el Ghoul del Archivo también sella la puerta.
+    if not bool(game.get("seal_acquired")) or bool(game.call("_room_ready")):
+        _fail("El sello del Piso VIII no está en el Archivo, o la puerta abre con el Ghoul vivo.")
+        return
+    (game.get("banished") as Dictionary)[str(game.call("_room_key"))] = true
+    if not bool(game.call("_room_ready")):
         _fail("El sello del Piso VIII no está en el Archivo o no abre la puerta.")
         return
     game.set("seal_acquired", false)
@@ -1032,6 +1040,11 @@ func _run_checks() -> void:
     for b in brs:
         game.set("player_pos", Vector2(b["pos"]) + Vector2(-40, 0))
         game.call("_interact")
+    # La misión queda cumplida, pero el Ghoul de la galería también sella la puerta.
+    if bool(game.call("_mission_pending", true)) or bool(game.call("_room_ready")):
+        _fail("Encender los braseros no cumple la misión, o la puerta abre con el Ghoul vivo.")
+        return
+    (game.get("banished") as Dictionary)[str(game.call("_room_key"))] = true
     if not bool(game.call("_room_ready")):
         _fail("Encender los braseros no cumple la misión.")
         return
@@ -1355,6 +1368,77 @@ func _run_checks() -> void:
         _fail("Faltan alimañas: %s" % str(kinds.keys()))
         return
     print("OK: mobiliario del templo, llamaradas, péndulos, murciélagos y arañas.")
+
+    # Pantalla de muerte: un toque de más no la cierra antes de leerla.
+    game.set("game_mode", "dead")
+    game.set("end_t", 0.0)
+    game.call("_mobile_tap", Vector2(480, 400))
+    if str(game.get("game_mode")) != "dead":
+        _fail("Un toque cierra la pantalla de muerte al instante.")
+        return
+    game.set("end_t", 5.0)
+    game.set("game_mode", "play")
+    # Vida extra sin tope al consumir objetos.
+    game.set("max_hp", 100.0)
+    game.set("hp", 100.0)
+    for i in range(4):
+        game.call("_heal", 80.0)
+    if float(game.get("hp")) < 420.0:
+        _fail("La vida extra sigue con tope: %d." % int(game.get("hp")))
+        return
+    game.set("hp", 100.0)
+    # Toda la hoja del péndulo hiere, no solo su centro.
+    game.set("current_floor", 1)
+    game.set("current_room", 3)
+    game.call("_enter_room")
+    var pd: Dictionary = (game.get("pendulums") as Array)[0]
+    var tip: Vector2 = Vector2(game.call("_pendulum_blade", pd)) + Vector2(26, 0)
+    if not bool(game.call("_pendulum_hits", pd, tip)) or bool(game.call("_pendulum_hits", pd, tip + Vector2(0, 60))):
+        _fail("El filo entero del péndulo no hiere (o hiere lejos de la hoja).")
+        return
+    # Salas con entidad: la puerta no abre hasta desterrarla.
+    if bool(game.call("_room_ready")) or not bool(game.call("_enemy_blocks_door")):
+        _fail("La puerta abre con el Hechicero vivo.")
+        return
+    # Mensaje de Mara para Odón (Piso III).
+    game.set("current_floor", 2)
+    game.set("current_room", 0)
+    game.call("_allies_reset")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("odon_told", false)
+    (game.get("chests_opened") as Dictionary)["2:0"] = "pan"
+    var odon: Dictionary = {}
+    for a in game.get("allies"):
+        if str(a["name"]) == "ODÓN":
+            odon = a
+    if odon.is_empty() or not bool(game.call("_odon_message_ready")):
+        _fail("No aparece la opción de darle a Odón el mensaje de Mara.")
+        return
+    game.set("player_pos", Vector2(odon["pos"]) + Vector2(30, 0))
+    game.call("_interact")
+    game.call("_dialog_skip")
+    if not bool(game.get("odon_told")) or int((game.get("bag") as Dictionary).get("reliquia", 0)) < 1:
+        _fail("Odón no recibe el mensaje de Mara.")
+        return
+    # Al despedirse, el grupo sale por un paso lateral y ya no te sigue.
+    game.set("game_mode", "play")
+    game.call("_allies_part_ways", "prueba")
+    for k in range(200):
+        game.call("_update_allies", 0.05)
+    for a in game.get("allies"):
+        if bool(a["alive"]) and not bool(a.get("gone", false)):
+            _fail("%s no se separa por la puerta lateral." % a["name"])
+            return
+    # Objetos: doce huecos en la pestaña OBJETOS.
+    game.set("profile_tab", 1)
+    if int(game.call("_inventory_slot_count")) < 12:
+        _fail("La pestaña OBJETOS sigue con seis huecos.")
+        return
+    game.set("profile_tab", 0)
+    game.call("_allies_reset")
+    print("OK: muerte legible, vida sin tope, péndulo entero, puertas con entidad, mensaje a Odón, PNJ que se separan y doce huecos.")
 
     var Ajustes = load("res://scripts/ajustes.gd")
     # Borrar perfil: todo el progreso fuera y vuelta a empezar (intro, tutorial, personaje).

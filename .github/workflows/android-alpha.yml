@@ -1,4 +1,4 @@
-name: Verificar y publicar alpha (APK Android e instalador de Windows)
+name: Verificar y publicar alpha (Android, Windows y Linux)
 
 on:
   push:
@@ -72,9 +72,11 @@ jobs:
           unzip -j -q "$RUNNER_TEMP/templates.tpz" \
             'templates/android_debug.apk' 'templates/android_release.apk' \
             'templates/windows_release_x86_64.exe' 'templates/windows_debug_x86_64.exe' \
+            'templates/linux_release.x86_64' 'templates/linux_debug.x86_64' \
             -d "$HOME/.local/share/godot/export_templates/4.3.stable/"
           test -s "$HOME/.local/share/godot/export_templates/4.3.stable/android_debug.apk"
           test -s "$HOME/.local/share/godot/export_templates/4.3.stable/windows_release_x86_64.exe"
+          test -s "$HOME/.local/share/godot/export_templates/4.3.stable/linux_release.x86_64"
 
       - name: Configurar SDK y firma de depuracion temporal
         shell: bash
@@ -147,7 +149,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" \
             | tee "$RUNNER_TEMP/android-badging.txt"
           grep -Fq "package: name='org.je7remy.temploecos'" "$RUNNER_TEMP/android-badging.txt"
-          grep -Fq "versionName='0.5.4-alpha'" "$RUNNER_TEMP/android-badging.txt"
+          grep -Fq "versionName='0.5.5-alpha'" "$RUNNER_TEMP/android-badging.txt"
           ls -lh "$APK"
 
       - name: Guardar APK como artefacto
@@ -186,17 +188,39 @@ jobs:
           (cd build/windows && zip -q -9 "../ElTemploDeLosEcos-v$VERSION-Windows-Portable.zip" ElTemploDeLosEcos.exe LEEME.txt)
           ls -lh build/*.exe build/*.zip
 
-      - name: Guardar Windows como artefacto
+      - name: Generar juego de Linux (x86_64)
+        shell: bash
+        run: |
+          mkdir -p build/linux
+          godot --headless --path . --export-release "Linux" \
+            build/linux/ElTemploDeLosEcos.x86_64 2>&1 | tee "$RUNNER_TEMP/export-linux.log"
+          test -s build/linux/ElTemploDeLosEcos.x86_64
+          if grep -E 'ERROR:|SCRIPT ERROR|Parse Error' "$RUNNER_TEMP/export-linux.log"; then
+            echo "Godot registro errores en la exportacion de Linux."
+            exit 1
+          fi
+          file build/linux/ElTemploDeLosEcos.x86_64 | grep -Fq 'ELF 64-bit'
+          VERSION="$(sed -n 's/^version\/name="\(.*\)"$/\1/p' export_presets.cfg)"
+          NAME="ElTemploDeLosEcos-v$VERSION-Linux-x86_64"
+          mkdir -p "build/$NAME"
+          cp build/linux/ElTemploDeLosEcos.x86_64 instalador/linux/instalar.sh instalador/linux/desinstalar.sh \
+            instalador/linux/LEEME.txt instalador/linux/icono.png "build/$NAME/"
+          chmod +x "build/$NAME/ElTemploDeLosEcos.x86_64" "build/$NAME/instalar.sh" "build/$NAME/desinstalar.sh"
+          tar -C build -czf "build/$NAME.tar.gz" "$NAME"
+          ls -lh "build/$NAME.tar.gz"
+
+      - name: Guardar Windows y Linux como artefacto
         uses: actions/upload-artifact@v6
         with:
-          name: ElTemploDeLosEcos-Windows
+          name: ElTemploDeLosEcos-Escritorio
           path: |
             build/ElTemploDeLosEcos-*-Windows-Setup.exe
             build/ElTemploDeLosEcos-*-Windows-Portable.zip
+            build/ElTemploDeLosEcos-*-Linux-x86_64.tar.gz
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publicar prerelease con el APK y Windows (solo si esa version no existe)
+      - name: Publicar prerelease con Android, Windows y Linux (solo si esa version no existe)
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -213,11 +237,13 @@ jobs:
           cp build/ElTemploDeLosEcos-Android-Debug.apk "$APK"
           SETUP="build/ElTemploDeLosEcos-$TAG-Windows-Setup.exe"
           PORTABLE="build/ElTemploDeLosEcos-$TAG-Windows-Portable.zip"
+          LINUX="build/ElTemploDeLosEcos-$TAG-Linux-x86_64.tar.gz"
           test -s "$SETUP"
           test -s "$PORTABLE"
-          gh release create "$TAG" "$APK" "$SETUP" "$PORTABLE" \
+          test -s "$LINUX"
+          gh release create "$TAG" "$APK" "$SETUP" "$PORTABLE" "$LINUX" \
             --target "$GITHUB_SHA" \
             --prerelease \
             --title "El Templo de los Ecos $TAG" \
             --notes-file "$NOTES"
-          echo "Publicado $TAG con $APK, $SETUP y $PORTABLE"
+          echo "Publicado $TAG con $APK, $SETUP, $PORTABLE y $LINUX"

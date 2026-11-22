@@ -70,7 +70,9 @@ func _poner_fuentes() -> void:
     if _fuentes_puestas:
         return
     _fuentes_puestas = true
-    var pixel: Font = load("res://assets/fonts/PixelifySans.ttf")
+    var pixel: Font = load("res://assets/fonts/PixelifySans-SinCifras.ttf")
+    if pixel is FontFile and (pixel as FontFile).fallbacks.is_empty():
+        (pixel as FontFile).fallbacks = [load("res://assets/fonts/Silkscreen-Cifras.ttf")]
     var gotica: Font = load("res://assets/fonts/Jacquard24-Regular.ttf")
     for nodo in [$Fondo/Panel/Margen/Caja/Texto, _si, _no]:
         (nodo as Control).add_theme_font_override("font", pixel)

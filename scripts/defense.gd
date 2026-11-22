@@ -16,7 +16,9 @@ const DEFENSE_SAVE := "user://vigilia_claustro_records.json"
 const DEFENSE_SAVE_TEST := "user://prueba_vigilia.json" # pruebas automáticas
 const Botin := preload("res://scripts/botin.gd")
 const Ajustes := preload("res://scripts/ajustes.gd")
-const PIXEL_FONT := preload("res://assets/fonts/PixelifySans.ttf")
+const PIXEL_FONT := preload("res://assets/fonts/PixelifySans-SinCifras.ttf")
+## Los números salen de otra fuente, más clara (herramientas/fuente_cifras.py).
+const DIGIT_FONT := preload("res://assets/fonts/Silkscreen-Cifras.ttf")
 const TITLE_FONT := preload("res://assets/fonts/Jacquard24-Regular.ttf")
 const HERO := preload("res://assets/visual/protagonist_sheet.png")
 const CREAM := Color("#d9d2ba")
@@ -170,6 +172,7 @@ const TUT_STEPS := [
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     font = PIXEL_FONT
+    _font_with_digits(font)
     title_font = TITLE_FONT
     for f in [font, title_font]:
         if f is FontFile:
@@ -208,6 +211,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+    _save_records() # al salir (botón, ESC o cerrar la app) se guarda la fase
     for player in [music, tension] + sfx_pool:
         if is_instance_valid(player):
             player.stop()
@@ -327,12 +331,72 @@ func _load_records() -> void:
         best_time = maxf(0.0, float(parsed.get("best_time", 0.0)))
         best_stage = maxi(0, int(parsed.get("best_stage", 0)))
         tutorial_done = bool(parsed.get("tutorial_done", false))
+        saved_run = parsed.get("partida", {}) if parsed.get("partida", {}) is Dictionary else {}
 
 
 func _save_records() -> void:
     var file := FileAccess.open(_defense_path(), FileAccess.WRITE)
     if file != null:
-        file.store_string(JSON.stringify({"high_score": high_score, "best_time": best_time, "best_stage": best_stage, "tutorial_done": tutorial_done, "version": 3}))
+        saved_run = _run_snapshot()
+        file.store_string(JSON.stringify({"high_score": high_score, "best_time": best_time, "best_stage": best_stage, "tutorial_done": tutorial_done,
+            "partida": saved_run, "version": 4}))
+
+
+# ------------------------------------------------------------ CONTINUAR LA VIGILIA
+## Al salir se guarda la vigilia en curso: al volver se sigue en la misma fase,
+## con lo construido, los ecos, la energía y la puerta como estaban. Si se
+## sale a mitad de fase, esa fase empieza de nuevo; si ya estaba superada,
+## se sigue en la siguiente. Perder la borra.
+var saved_run: Dictionary = {}
+
+
+func _run_snapshot() -> Dictionary:
+    if phase == "selection":
+        return saved_run # aún en la portada: se conserva la guardada
+    if not phase in ["play", "won"] or tut_step >= 0:
+        return {}
+    var list: Array = []
+    for t in structs:
+        list.append([t.x, t.y, str(structs[t]["type"]), int(structs[t]["level"])])
+    var won: bool = phase == "won"
+    return {"stage": stage + (1 if won else 0), "income": income, "income_rate": income_rate, "sparks": sparks,
+        "ward_power": ward_power, "bed_level": bed_level, "gate_level": gate_level, "gate_max": gate_max,
+        "gate_hp": minf(gate_max, gate_hp + (gate_max * 0.25 if won else 0.0)), "structs": list,
+        "total_time": total_time, "slain": slain}
+
+
+func _has_saved_run() -> bool:
+    return tutorial_done and not saved_run.is_empty() and int(saved_run.get("stage", 0)) >= 1
+
+
+func _resume() -> void:
+    var r: Dictionary = saved_run
+    _start()
+    stage = maxi(1, int(r.get("stage", 1)))
+    income = float(r.get("income", income))
+    income_rate = float(r.get("income_rate", income_rate))
+    sparks = float(r.get("sparks", sparks))
+    ward_power = int(r.get("ward_power", ward_power))
+    bed_level = int(r.get("bed_level", bed_level))
+    gate_level = int(r.get("gate_level", gate_level))
+    gate_max = float(r.get("gate_max", gate_max))
+    gate_hp = clampf(float(r.get("gate_hp", gate_max)), 1.0, gate_max)
+    total_time = float(r.get("total_time", 0.0))
+    slain = int(r.get("slain", 0))
+    structs.clear()
+    for e in r.get("structs", []):
+        if e is Array and (e as Array).size() == 4 and STRUCTS.has(str(e[2])):
+            structs[Vector2i(int(e[0]), int(e[1]))] = {"type": str(e[2]), "level": clampi(int(e[3]), 1, STRUCT_MAX), "cd": 0.3}
+    _recount()
+    _begin_stage()
+    _say("Sigues donde lo dejaste: FASE %d.%s" % [stage, " ¡Viene un JEFE!" if _is_boss_stage() else ""])
+
+
+## Empezar de cero aunque haya una vigilia guardada.
+func _new_vigil() -> void:
+    saved_run = {}
+    _start()
+    _save_records()
 
 
 func _record_end(win: bool) -> void:
@@ -715,7 +779,7 @@ func _action(choice: int) -> bool:
 
 
 # ------------------------------------------------------------ MENÚ CONTEXTUAL
-func _open_popup_for(t: Vector2i) -> void:
+func _open_popup_for(t: Vector2i, silent: bool = false) -> void:
     cursor = t
     if t.x < 0:
         popup = {}
@@ -741,18 +805,34 @@ func _open_popup_for(t: Vector2i) -> void:
         for type in ["centinela", "generador", "campana"]:
             opts.append({"id": type, "label": STRUCTS[type][0], "sub": "%d ecos" % _build_cost(type), "icon": STRUCTS[type][1], "enabled": income >= float(_build_cost(type))})
     popup = {"title": title, "tile": t, "anchor": _tile_center(t), "options": opts}
-    popup_sel = 0
-    _sfx("toque", -14.0, 1.1)
+    if not silent:
+        popup_sel = 0
+        _sfx("toque", -14.0, 1.1)
 
 
-func _open_door_popup() -> void:
+## El menú abierto se rehace sin parar: si los ecos llegan al precio mientras
+## lo miras, «MEJORAR» se enciende al momento (sin cerrarlo y abrirlo).
+func _refresh_popup() -> void:
+    if popup.is_empty():
+        return
+    var sel: int = popup_sel
+    var t: Vector2i = popup["tile"]
+    if t.x < 0:
+        _open_door_popup(true)
+    else:
+        _open_popup_for(t, true)
+    popup_sel = clampi(sel, 0, maxi(0, (popup.get("options", []) as Array).size() - 1))
+
+
+func _open_door_popup(silent: bool = false) -> void:
     var opts: Array = [
         {"id": "reparar", "label": "REPARAR", "sub": "%d ecos" % _repair_cost(), "icon": "reparar", "enabled": income >= float(_repair_cost()) and gate_hp < gate_max},
         {"id": "puerta", "label": "REFORZAR", "sub": "MÁXIMO" if gate_level >= DOOR_MAX else "%d ecos" % _door_cost(), "icon": "puerta", "enabled": gate_level < DOOR_MAX and income >= float(_door_cost())},
     ]
     popup = {"title": "PUERTA · NV %d/%d" % [gate_level, DOOR_MAX], "tile": Vector2i(-1, -1), "anchor": DOOR.get_center() + Vector2(-90, 0), "options": opts}
-    popup_sel = 0
-    _sfx("toque", -14.0, 1.1)
+    if not silent:
+        popup_sel = 0
+        _sfx("toque", -14.0, 1.1)
 
 
 func _popup_rect() -> Rect2:
@@ -809,6 +889,8 @@ func _popup_choose(i: int) -> void:
 
 func _process(delta: float) -> void:
     tick += delta
+    if phase == "play":
+        _refresh_popup()
     info_time = maxf(0.0, info_time - delta)
     gate_flash = maxf(0.0, gate_flash - delta * 3.0)
     for s in shots:
@@ -909,10 +991,10 @@ func _advance(dt: float) -> void:
         gate_hp = maxf(gate_hp, 1.0) # en el tutorial la puerta no cae
     if gate_hp <= 0.0:
         gate_hp = 0.0
+        phase = "lost" # antes de guardar: perder borra la vigilia en curso
         _record_end(false)
         sleeping = false
         popup = {}
-        phase = "lost"
         _sfx("muerte", -4.0)
         _say("La puerta ha cedido.")
 
@@ -985,6 +1067,8 @@ func _key(k: Key) -> void:
         "selection":
             if k in [KEY_ENTER, KEY_SPACE]:
                 _choose_start()
+            elif k == KEY_N and _has_saved_run():
+                _new_vigil()
             elif k == KEY_T:
                 _start_tutorial()
             return
@@ -1077,7 +1161,9 @@ func _tap(at: Vector2) -> void:
         _leave()
         return
     if phase == "selection":
-        if TUT_BTN.grow(6.0).has_point(at):
+        if TUT_BTN.grow(6.0).has_point(at) and _has_saved_run():
+            _new_vigil()
+        elif TUT_BTN.grow(6.0).has_point(at):
             if tutorial_done:
                 _start_tutorial()
             else:
@@ -1127,7 +1213,9 @@ func _tap(at: Vector2) -> void:
 
 ## Empezar: la primera vez, con el tutorial guiado.
 func _choose_start() -> void:
-    if tutorial_done:
+    if _has_saved_run():
+        _resume()
+    elif tutorial_done:
         _start()
     else:
         _start_tutorial()
@@ -1461,11 +1549,16 @@ func _draw_selection() -> void:
     _center_text("Centinelas disparan · generadores dan energía · campanas frenan a las entidades.", 344, 13, GOLD_HI)
     var pulse: float = 0.6 + 0.4 * sin(tick * 3.0)
     _panel_box(START_BTN, Color("#2a1d36"), Color(GOLD_HI.r, GOLD_HI.g, GOLD_HI.b, 0.6 + 0.4 * pulse))
-    _text_center("EMPEZAR" if tutorial_done else "EMPEZAR CON TUTORIAL", Rect2(START_BTN.position.x, START_BTN.position.y + 8.0, START_BTN.size.x, 18), 16, CREAM)
+    var resume: bool = _has_saved_run()
+    _text_center(("CONTINUAR · FASE %d" % int(saved_run.get("stage", 1))) if resume else ("EMPEZAR" if tutorial_done else "EMPEZAR CON TUTORIAL"), Rect2(START_BTN.position.x, START_BTN.position.y + 8.0, START_BTN.size.x, 18), 16, CREAM)
     _text_center("ENTER / A", Rect2(START_BTN.position.x, START_BTN.position.y + 30.0, START_BTN.size.x, 12), 10, SOUL)
     _panel_box(TUT_BTN, Color("#141018"), GOLD)
-    _text_center("REPETIR TUTORIAL" if tutorial_done else "SALTAR TUTORIAL", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 8.0, TUT_BTN.size.x, 18), 12, CREAM)
-    _text_center("T / Y" if tutorial_done else "toca aquí", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 30.0, TUT_BTN.size.x, 12), 10, Color("#9a957f"))
+    if resume:
+        _text_center("EMPEZAR DE CERO", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 8.0, TUT_BTN.size.x, 18), 12, CREAM)
+        _text_center("N · se pierde la guardada", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 30.0, TUT_BTN.size.x, 12), 10, Color("#9a957f"))
+    else:
+        _text_center("REPETIR TUTORIAL" if tutorial_done else "SALTAR TUTORIAL", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 8.0, TUT_BTN.size.x, 18), 12, CREAM)
+        _text_center("T / Y" if tutorial_done else "toca aquí", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 30.0, TUT_BTN.size.x, 12), 10, Color("#9a957f"))
     _center_text("MEJOR FASE: %d   ·   MEJOR PUNTUACIÓN: %d" % [best_stage, high_score], 456, 13, CREAM)
 
 
@@ -1598,3 +1691,15 @@ func _fit_screen() -> void:
         backdrop_rect.position = Vector2.ZERO
         backdrop_rect.size = view
     queue_redraw()
+
+
+## Tipografía del juego + cifras claras: los números que no tiene la primera
+## los dibuja la segunda. Todo sin suavizado, como el pixel art.
+static func _font_with_digits(f: Font) -> void:
+    for ff in [f, DIGIT_FONT]:
+        if ff is FontFile:
+            (ff as FontFile).antialiasing = TextServer.FONT_ANTIALIASING_NONE
+            (ff as FontFile).hinting = TextServer.HINTING_NONE
+            (ff as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+    if f is FontFile and not (f as FontFile).fallbacks.has(DIGIT_FONT):
+        (f as FontFile).fallbacks = [DIGIT_FONT]

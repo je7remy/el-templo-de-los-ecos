@@ -1,0 +1,62 @@
+EL TEMPLO DE LOS ECOS - VERSIÓN DE PRUEBA (ALPHA)
+==================================================
+
+Gracias por probar el juego. Es una versión en desarrollo: puede tener errores,
+y encontrarlos es justo lo que necesitamos.
+
+
+CONTROLES (TECLADO Y RATÓN)
+---------------------------
+  WASD o flechas ... moverse
+  Clic / E ......... golpear, usar, hablar
+  F ................ encender o apagar la antorcha
+  Espacio .......... esquivar (te hace inmune a las trampas)
+  Q ................ Resonancia (cuando la tengas)
+  I ................ perfil e inventario
+  K ................ habilidades
+  M ................ mapa del piso
+  Esc .............. pausa y configuración
+
+También funciona con mando de Xbox o similares.
+En Configuración > Sonido puedes cambiar entre ventana y pantalla completa.
+
+
+CÓMO JUGAR EN LINUX
+-------------------
+  Sin instalar:  doble clic en «ElTemploDeLosEcos.x86_64» (o, en una terminal,
+                 ./ElTemploDeLosEcos.x86_64). Si no abre, dale permiso de
+                 ejecución: chmod +x ElTemploDeLosEcos.x86_64
+  Instalado:     ./instalar.sh  → aparece «El Templo de los Ecos» en el menú de
+                 aplicaciones. Para quitarlo: ~/.local/share/el-templo-de-los-ecos/desinstalar.sh
+
+Necesita Linux de 64 bits (x86_64) con OpenGL 3.3 (cualquier tarjeta gráfica
+de los últimos diez años).
+
+
+CÓMO REPORTAR UN ERROR
+----------------------
+Envía a Jeremy, por el medio que te haya dado:
+
+  1. Qué estabas haciendo justo antes del error.
+  2. Qué pasó y qué esperabas que pasara.
+  3. En qué piso y sala estabas (sale arriba, en el centro: por ejemplo «III-4»).
+  4. Una captura de pantalla o un vídeo corto, si puedes.
+  5. Tu distribución (Fedora, Ubuntu…) y la versión del juego.
+  6. EL REGISTRO DEL JUEGO, que es lo más útil. Ciérralo y, SIN volver a
+     abrirlo, envía el archivo:
+
+        ~/.local/share/godot/app_userdata/El Templo de los Ecos/logs/godot.log
+
+
+PROBLEMAS FRECUENTES
+--------------------
+- No abre con doble clic: dale permiso de ejecución (ver arriba) o ábrelo
+  desde una terminal para ver el error, y reporta lo que salga.
+- Pantalla negra o se cierra al abrir: actualiza los controladores de vídeo
+  (mesa) y reporta el error con el registro.
+
+
+ACTUALIZAR
+----------
+Descomprime la versión nueva y vuelve a ejecutar ./instalar.sh: tu partida
+se conserva (está en ~/.local/share/godot/app_userdata/El Templo de los Ecos).
