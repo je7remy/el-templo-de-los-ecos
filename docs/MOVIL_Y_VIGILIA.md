@@ -60,3 +60,9 @@ Inspirado en mecánicas generales de defensa de habitación y supervivencia: **n
   - Enter o A abren el menú o eligen;
   - 1-3 eligen una opción;
   - Esc o B cierran.
+
+
+## Tutorial guiado
+- La primera vez, **EMPEZAR CON TUTORIAL** lanza 15 pasos guiados. La tarjeta de la derecha dice qué hacer y una flecha dorada señala dónde tocar.
+- El reloj de la fase no corre y la puerta no cae mientras dura. Si te faltan ecos o energía para un paso, el juego te los da.
+- **SALTAR** (o Retroceso) lo termina en cualquier momento. Desde la portada se puede repetir con **REPETIR TUTORIAL** (T en el teclado, Y en el mando).

@@ -137,6 +137,34 @@ var sfx_pool: Array[AudioStreamPlayer] = []
 var sfx_streams: Dictionary = {}
 var tension_level: float = 0.0
 var pad_stick: Vector2i = Vector2i.ZERO
+## Tutorial guiado: -1 = apagado; si no, el paso actual de TUT_STEPS.
+var tut_step: int = -1
+var tutorial_done: bool = false
+var tut_flash: float = 0.0 # destello al completar un paso
+var tut_sold: int = 0
+var tut_repaired: int = 0
+const TUT_CARD := Rect2(726, 72, 226, 156)
+const TUT_SKIP := Rect2(822, 192, 122, 28)
+const START_BTN := Rect2(260, 380, 260, 48)
+const TUT_BTN := Rect2(540, 380, 160, 48)
+## [título, texto]. Cada paso espera a que hagas lo que pide (ver _tut_done).
+const TUT_STEPS := [
+    ["BIENVENIDA", "Defiende tu celda: las entidades llegan por el pasillo y golpean la puerta. Toca aquí para seguir."],
+    ["1 · DUERME", "Toca el LECHO y elige DORMIR. Mientras duermes ganas ecos, la moneda de la Vigilia."],
+    ["2 · AHORRA", "Los ecos suben solos mientras duermes (arriba). Espera a tener 20."],
+    ["3 · CONSTRUYE", "Toca la baldosa marcada, junto a la puerta, y construye un CENTINELA."],
+    ["4 · DEFIENDE", "¡Llega una entidad! Tu centinela dispara solo a la más cercana a la puerta."],
+    ["5 · MEJORA", "Toca tu centinela y elige MEJORAR: dispara más fuerte."],
+    ["6 · ENERGÍA", "Toca una baldosa libre y construye un GENERADOR: da energía mientras duermes."],
+    ["7 · POTENCIA", "Con energía, toca POTENCIAR (abajo): todos los centinelas suben de poder."],
+    ["8 · FRENA", "Construye una CAMPANA: su tañido frena a las entidades del pasillo."],
+    ["9 · REFUERZA", "Toca la PUERTA y elige REFORZAR: más vida máxima."],
+    ["10 · REPARA", "La puerta está dañada. Toca REPARAR PUERTA (abajo) o tócala a ella."],
+    ["11 · ESCUDO", "Toca ESCUDO (abajo): 8 s sin daño en la puerta. Guárdalo para los jefes."],
+    ["12 · LECHO", "Toca el LECHO y elige MEJORAR: ganarás más ecos por segundo."],
+    ["13 · VENDE", "¿Algo mal puesto? Tócalo y elige VENDER: recuperas la mitad."],
+    ["¡LISTO!", "Fases de 90 s, cada una más dura; jefe cada 5. Cada fase da botín para la campaña. Toca aquí para empezar."],
+]
 
 
 func _ready() -> void:
@@ -225,6 +253,7 @@ func _start(_choice: int = 0) -> void:
     slain = 0
     rewards.clear()
     popup = {}
+    tut_step = -1
     _begin_stage()
     _say("Toca el lecho para dormir y una baldosa libre para construir.")
     queue_redraw()
@@ -296,12 +325,13 @@ func _load_records() -> void:
         high_score = maxi(0, int(parsed.get("high_score", 0)))
         best_time = maxf(0.0, float(parsed.get("best_time", 0.0)))
         best_stage = maxi(0, int(parsed.get("best_stage", 0)))
+        tutorial_done = bool(parsed.get("tutorial_done", false))
 
 
 func _save_records() -> void:
     var file := FileAccess.open(_defense_path(), FileAccess.WRITE)
     if file != null:
-        file.store_string(JSON.stringify({"high_score": high_score, "best_time": best_time, "best_stage": best_stage, "version": 3}))
+        file.store_string(JSON.stringify({"high_score": high_score, "best_time": best_time, "best_stage": best_stage, "tutorial_done": tutorial_done, "version": 3}))
 
 
 func _record_end(win: bool) -> void:
@@ -333,6 +363,161 @@ func _win_stage() -> void:
         rewards.append(key)
     _record_end(true)
     _sfx("sello", -4.0, 0.8)
+
+
+# ------------------------------------------------------------ TUTORIAL GUIADO
+func _start_tutorial() -> void:
+    _start()
+    tut_step = 0
+    tut_sold = 0
+    tut_repaired = 0
+    income = 6.0
+    sparks = 0.0
+    hunters.clear()
+    _say("Tutorial: sigue las indicaciones de la derecha.")
+
+
+## Termina el tutorial y empieza la Vigilia de verdad, desde cero.
+func _end_tutorial() -> void:
+    tut_step = -1
+    tutorial_done = true
+    _save_records()
+    _start()
+    _say("¡Empieza la vigilia! Duerme y construye.")
+
+
+## Lo que hay que señalar en cada paso (en coordenadas de pantalla).
+func _tut_target() -> Rect2:
+    match tut_step:
+        1, 12:
+            return BED.grow(8.0)
+        2:
+            return Rect2(506, 12, 150, 40)
+        3:
+            return _tile_rect(Vector2i(9, 3))
+        5:
+            for t in structs:
+                if structs[t]["type"] == "centinela":
+                    return _tile_rect(t)
+        6, 8:
+            var ft: Vector2i = _tut_free_tile()
+            return _tile_rect(ft) if ft.x >= 0 else Rect2()
+        7:
+            return _bottom_rect(2)
+        9:
+            return DOOR.grow(10.0)
+        10:
+            return _bottom_rect(1)
+        11:
+            return _bottom_rect(3)
+        13:
+            for t in structs:
+                return _tile_rect(t)
+    return Rect2()
+
+
+## Una baldosa libre cerca de la puerta para los pasos de construir.
+func _tut_free_tile() -> Vector2i:
+    for t in [Vector2i(8, 3), Vector2i(9, 2), Vector2i(9, 4), Vector2i(8, 2), Vector2i(8, 4), Vector2i(7, 3)]:
+        if not structs.has(t):
+            return t
+    return _free_tile()
+
+
+## ¿Se cumplió el paso actual?
+func _tut_done() -> bool:
+    match tut_step:
+        1:
+            return sleeping
+        2:
+            return income >= 20.0
+        3:
+            return _count("centinela") >= 1
+        4:
+            return slain >= 1
+        5:
+            for t in structs:
+                if structs[t]["type"] == "centinela" and int(structs[t]["level"]) >= 2:
+                    return true
+            return false
+        6:
+            return _count("generador") >= 1
+        7:
+            return ward_power >= 2
+        8:
+            return _count("campana") >= 1
+        9:
+            return gate_level >= 2
+        10:
+            return tut_repaired > 0 or gate_hp >= gate_max
+        11:
+            return shield_left > 0.0
+        12:
+            return bed_level >= 2
+        13:
+            return tut_sold > 0
+    return false
+
+
+## Al entrar en un paso: lo necesario para poder hacerlo (sin quedarse atascado).
+func _tut_enter(step: int) -> void:
+    tut_step = step
+    tut_flash = 1.0
+    popup = {}
+    _sfx("sello", -10.0, 1.4)
+    match step:
+        3:
+            income = maxf(income, float(_build_cost("centinela")) + 2.0)
+        4:
+            hunters.clear()
+            _spawn_hunter()
+            hunters[0]["hp"] = 60.0
+            hunters[0]["max"] = 60.0
+            hunters[0]["x"] = 900.0
+        5:
+            var up: int = 15
+            for t in structs:
+                if structs[t]["type"] == "centinela":
+                    up = _upgrade_cost(t)
+            income = maxf(income, float(up) + 2.0)
+        6:
+            income = maxf(income, float(_build_cost("generador")) + 2.0)
+        7:
+            sparks = maxf(sparks, _power_cost() + 1.0)
+        8:
+            income = maxf(income, float(_build_cost("campana")) + 2.0)
+        9:
+            income = maxf(income, float(_door_cost()) + 2.0)
+        10:
+            gate_hp = gate_max * 0.55
+            gate_flash = 1.0
+            income = maxf(income, float(_repair_cost()) + 2.0)
+        11:
+            sparks = maxf(sparks, 15.0)
+        12:
+            income = maxf(income, float(_bed_cost()) + 2.0)
+
+
+func _tut_update(dt: float) -> void:
+    tut_flash = maxf(0.0, tut_flash - dt * 2.0)
+    if tut_step in [0, TUT_STEPS.size() - 1]:
+        return
+    if _tut_done():
+        _tut_enter(tut_step + 1)
+
+
+## Toque durante el tutorial: la tarjeta avanza los pasos de leer; SALTAR termina.
+func _tut_tap(at: Vector2) -> bool:
+    if TUT_SKIP.has_point(at):
+        _end_tutorial()
+        return true
+    if TUT_CARD.has_point(at):
+        if tut_step == 0:
+            _tut_enter(1)
+        elif tut_step == TUT_STEPS.size() - 1:
+            _end_tutorial()
+        return true
+    return false
 
 
 # ------------------------------------------------------------ CONSTRUCCIÓN
@@ -447,6 +632,7 @@ func _sell(t: Vector2i) -> bool:
     for l in range(1, int(st["level"])):
         spent += float(STRUCTS[st["type"]][5]) * pow(1.55, float(l - 1))
     income += roundf(spent * 0.5)
+    tut_sold += 1
     structs.erase(t)
     _recount()
     _say("Vendido: +%d ecos." % int(roundf(spent * 0.5)))
@@ -501,6 +687,7 @@ func _action(choice: int) -> bool:
                 _say("Reparación innecesaria o faltan ecos.")
                 return false
             income -= float(_repair_cost())
+            tut_repaired += 1
             gate_hp = minf(gate_max, gate_hp + maxf(85.0, gate_max * 0.2))
             _say("La puerta ha sido reparada.")
         5:
@@ -654,18 +841,24 @@ func _slow_factor() -> float:
 
 
 func _advance(dt: float) -> void:
-    elapsed += dt
-    total_time += dt
+    var tutorial: bool = tut_step >= 0
+    if not tutorial:
+        elapsed += dt
+        total_time += dt
     waves = 1 + int(elapsed / 25.0)
     shield_left = maxf(0.0, shield_left - dt)
     if sleeping:
         income += dt * income_rate
         sparks += dt * float(generator_level) * 0.45
-    if elapsed >= PHASE_LENGTH:
+    if tutorial:
+        _tut_update(dt)
+        if tut_step < 0:
+            return
+    if not tutorial and elapsed >= PHASE_LENGTH:
         _win_stage()
         return
     spawn_t -= dt
-    if spawn_t <= 0.0 and hunters.size() < _max_hunters():
+    if not tutorial and spawn_t <= 0.0 and hunters.size() < _max_hunters():
         _spawn_hunter()
         spawn_t = maxf(2.0, 8.0 - float(stage) * 0.5)
     var slow: float = _slow_factor()
@@ -711,6 +904,8 @@ func _advance(dt: float) -> void:
                     spawn_t = maxf(spawn_t, 2.4)
                 _say("¡JEFE derrotado!" if bool(tg["boss"]) else "Entidad repelida. Ecos recuperados.")
                 _sfx("alma", -7.0)
+    if tutorial:
+        gate_hp = maxf(gate_hp, 1.0) # en el tutorial la puerta no cae
     if gate_hp <= 0.0:
         gate_hp = 0.0
         _record_end(false)
@@ -784,7 +979,9 @@ func _key(k: Key) -> void:
     match phase:
         "selection":
             if k in [KEY_ENTER, KEY_SPACE]:
-                _start()
+                _choose_start()
+            elif k == KEY_T:
+                _start_tutorial()
             return
         "won":
             if k in [KEY_ENTER, KEY_SPACE]:
@@ -794,6 +991,12 @@ func _key(k: Key) -> void:
             if k == KEY_ENTER:
                 _start(chamber)
             return
+    if tut_step >= 0 and k == KEY_ENTER and tut_step in [0, TUT_STEPS.size() - 1] and popup.is_empty():
+        _tut_tap(TUT_CARD.get_center())
+        return
+    if tut_step >= 0 and k == KEY_BACKSPACE:
+        _end_tutorial()
+        return
     if k == KEY_P:
         _action(8)
     elif k in [KEY_LEFT, KEY_A]:
@@ -845,6 +1048,8 @@ func _pad_button(b: int) -> void:
         JOY_BUTTON_Y:
             if phase == "play":
                 _action(0)
+            elif phase == "selection":
+                _start_tutorial()
         JOY_BUTTON_X:
             if phase == "play":
                 _action(7)
@@ -867,8 +1072,15 @@ func _tap(at: Vector2) -> void:
         _leave()
         return
     if phase == "selection":
-        if at.y > 270.0 and at.y < 515.0:
-            _start()
+        if TUT_BTN.grow(6.0).has_point(at):
+            if tutorial_done:
+                _start_tutorial()
+            else:
+                tutorial_done = true # «saltar tutorial»
+                _save_records()
+                _start()
+        elif at.y > 270.0 and at.y < 515.0:
+            _choose_start()
         return
     if phase == "won":
         if at.y > 300.0:
@@ -884,6 +1096,8 @@ func _tap(at: Vector2) -> void:
         _action(8)
         return
     if paused:
+        return
+    if tut_step >= 0 and _tut_tap(at):
         return
     if not popup.is_empty():
         for i in range((popup["options"] as Array).size()):
@@ -904,6 +1118,14 @@ func _tap(at: Vector2) -> void:
     var t: Vector2i = _tile_at(at)
     if t.x >= 0:
         _open_popup_for(t)
+
+
+## Empezar: la primera vez, con el tutorial guiado.
+func _choose_start() -> void:
+    if tutorial_done:
+        _start()
+    else:
+        _start_tutorial()
 
 
 func _leave() -> void:
@@ -931,6 +1153,8 @@ func _draw() -> void:
     _draw_bottom_bar()
     if info_time > 0.0 and phase == "play" and popup.is_empty():
         _pill(info, Vector2(ROOM.get_center().x, ROOM.end.y - 18.0), 13, GOLD_HI)
+    if tut_step >= 0 and phase == "play":
+        _draw_tutorial()
     if not popup.is_empty() and phase == "play":
         _draw_popup()
     match phase:
@@ -1167,7 +1391,7 @@ func _draw_bottom_bar() -> void:
         draw_texture_rect(ICONS[it[0]], Rect2(r.position + Vector2(16, 24), Vector2(64, 64)), false, Color.WHITE if can else Color(0.45, 0.45, 0.5, 0.8))
         draw_string(font, r.position + Vector2(92, 52), it[1], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 96.0, 15, CREAM)
         draw_string(font, r.position + Vector2(92, 76), ("TOCA" if DisplayServer.is_touchscreen_available() else it[2]) if i == 0 else it[2], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 96.0, 12, SOUL if can else Color("#6d6772"))
-    if phase == "play" and structs.is_empty() and popup.is_empty():
+    if phase == "play" and structs.is_empty() and popup.is_empty() and tut_step < 0:
         var a: float = 0.6 + 0.4 * sin(tick * 3.0)
         _pill("Toca cualquier baldosa libre para construir · toca algo construido para mejorarlo", Vector2(ROOM.get_center().x, ROOM.position.y + 16.0), 12, Color(GOLD_HI.r, GOLD_HI.g, GOLD_HI.b, a))
 
@@ -1192,6 +1416,30 @@ func _draw_popup() -> void:
         _text_center(str(o["sub"]), Rect2(orr.position.x, orr.position.y + 70.0, orr.size.x, 12), 11, SOUL if ok else CRIMSON)
 
 
+func _draw_tutorial() -> void:
+    var target: Rect2 = _tut_target()
+    var a: float = 0.55 + 0.45 * sin(tick * 6.0)
+    if target.size != Vector2.ZERO:
+        draw_rect(target.grow(4.0), Color(1.0, 0.85, 0.4, a), false, 3.0)
+        var tip := Vector2(target.get_center().x, target.position.y - 6.0 - 6.0 * absf(sin(tick * 4.0)))
+        if target.position.y < 110.0:
+            tip = Vector2(target.get_center().x, target.end.y + 6.0 + 6.0 * absf(sin(tick * 4.0)))
+            draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-10, 16), tip + Vector2(10, 16)]), GOLD_HI)
+        else:
+            draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-10, -16), tip + Vector2(10, -16)]), GOLD_HI)
+    var r := TUT_CARD
+    _panel_box(r, Color(0.05, 0.04, 0.07, 0.96), GOLD_HI.lerp(Color.WHITE, tut_flash))
+    var step: Array = TUT_STEPS[tut_step]
+    _label(step[0], r.position + Vector2(12, 22), 15, GOLD_HI)
+    _label("%d/%d" % [tut_step + 1, TUT_STEPS.size()], r.position + Vector2(r.size.x - 44.0, 22), 11, Color("#9a957f"))
+    draw_multiline_string(font, r.position + Vector2(10, 44), step[1], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 18.0, 13, 6, CREAM)
+    if tut_step in [0, TUT_STEPS.size() - 1]:
+        _label("▶ TOCA AQUÍ / ENTER", r.position + Vector2(12, r.size.y - 12.0), 11, Color(SOUL.r, SOUL.g, SOUL.b, a))
+    else:
+        _panel_box(TUT_SKIP, Color("#141018"), EDGE)
+        _text_center("SALTAR", Rect2(TUT_SKIP.position.x, TUT_SKIP.position.y + 6.0, TUT_SKIP.size.x, 14), 11, Color("#9a957f"))
+
+
 func _draw_selection() -> void:
     draw_rect(Rect2(0, 64, W, 440), Color(0, 0, 0, 0.6))
     var panel := Rect2(130, 100, 700, 395)
@@ -1206,7 +1454,12 @@ func _draw_selection() -> void:
         _text_center(steps[i][2], Rect2(cx - 80.0, 298, 160, 16), 11, SOUL)
     _center_text("Centinelas disparan · generadores dan energía · campanas frenan a las entidades.", 344, 13, GOLD_HI)
     var pulse: float = 0.6 + 0.4 * sin(tick * 3.0)
-    _center_text("TOCA O PULSA ENTER PARA EMPEZAR", 404, 18, Color(GOLD_HI.r, GOLD_HI.g, GOLD_HI.b, pulse))
+    _panel_box(START_BTN, Color("#2a1d36"), Color(GOLD_HI.r, GOLD_HI.g, GOLD_HI.b, 0.6 + 0.4 * pulse))
+    _text_center("EMPEZAR" if tutorial_done else "EMPEZAR CON TUTORIAL", Rect2(START_BTN.position.x, START_BTN.position.y + 8.0, START_BTN.size.x, 18), 16, CREAM)
+    _text_center("ENTER / A", Rect2(START_BTN.position.x, START_BTN.position.y + 30.0, START_BTN.size.x, 12), 10, SOUL)
+    _panel_box(TUT_BTN, Color("#141018"), GOLD)
+    _text_center("REPETIR TUTORIAL" if tutorial_done else "SALTAR TUTORIAL", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 8.0, TUT_BTN.size.x, 18), 12, CREAM)
+    _text_center("T / Y" if tutorial_done else "toca aquí", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 30.0, TUT_BTN.size.x, 12), 10, Color("#9a957f"))
     _center_text("MEJOR FASE: %d   ·   MEJOR PUNTUACIÓN: %d" % [best_stage, high_score], 456, 13, CREAM)
 
 
