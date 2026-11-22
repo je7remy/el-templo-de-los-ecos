@@ -1,0 +1,58 @@
+﻿EL TEMPLO DE LOS ECOS - VERSIÓN DE PRUEBA (ALPHA)
+==================================================
+
+Gracias por probar el juego. Es una versión en desarrollo: puede tener errores,
+y encontrarlos es justo lo que necesitamos.
+
+
+CONTROLES (TECLADO Y RATÓN)
+---------------------------
+  WASD o flechas ... moverse
+  Clic / E ......... golpear, usar, hablar
+  F ................ encender o apagar la antorcha
+  Espacio .......... esquivar (te hace inmune a las trampas)
+  Q ................ Resonancia (cuando la tengas)
+  I ................ perfil e inventario
+  K ................ habilidades
+  M ................ mapa del piso
+  Esc .............. pausa y configuración
+
+También funciona con mando de Xbox o similares.
+En Configuración > Sonido puedes cambiar entre ventana y pantalla completa.
+
+
+CÓMO REPORTAR UN ERROR
+----------------------
+Envía a Jeremy, por el medio que te haya dado:
+
+  1. Qué estabas haciendo justo antes del error.
+  2. Qué pasó y qué esperabas que pasara.
+  3. En qué piso y sala estabas (sale arriba, en el centro: por ejemplo «III-4»).
+  4. Una captura de pantalla o un vídeo corto, si puedes (Win + Shift + S).
+  5. Tu Windows (10 u 11) y la versión del juego (sale en el título del
+     instalador y en «Aplicaciones instaladas»).
+  6. EL REGISTRO DEL JUEGO, que es lo más útil. Ciérralo y, SIN volver a
+     abrirlo, pega esto en la barra de direcciones del Explorador de archivos:
+
+        %APPDATA%\Godot\app_userdata\El Templo de los Ecos\logs
+
+     y envía el archivo «godot.log» (el más reciente).
+
+
+PROBLEMAS FRECUENTES
+--------------------
+- «Windows protegió tu PC»: el instalador no está firmado. Pulsa
+  «Más información» y después «Ejecutar de todas formas».
+- El antivirus lo bloquea: es un falso positivo habitual con juegos sin firma.
+  Si no te deja instalarlo, avísale a Jeremy.
+- La pantalla se ve negra o el juego se cierra al abrir: actualiza el
+  controlador de la tarjeta gráfica y reporta el error con el registro.
+
+
+ACTUALIZAR Y DESINSTALAR
+------------------------
+- Para actualizar, instala la versión nueva encima: tu partida se conserva.
+- Para desinstalar: menú Inicio > El Templo de los Ecos > Desinstalar, o desde
+  «Aplicaciones instaladas». La partida guardada se queda en
+  %APPDATA%\Godot\app_userdata\El Templo de los Ecos (bórrala a mano si
+  quieres empezar de cero, o usa «Borrar perfil» dentro del juego).

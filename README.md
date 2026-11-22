@@ -158,11 +158,22 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.5.3-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.3-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
+Puedes descargar el [APK de prueba de v0.5.4-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.4-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
 
 La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
 Para los controles móviles y sus limitaciones, consulta la [guía Android y Vigilia](docs/MOVIL_Y_VIGILIA.md).
+
+## Jugar en Windows (versión de prueba)
+
+Cada release incluye, junto al APK, dos archivos para Windows 10/11 de 64 bits:
+
+- **`ElTemploDeLosEcos-vX-Windows-Setup.exe`**: instalador. No pide permisos de administrador. Instala en `%LOCALAPPDATA%\Programs\El Templo de los Ecos`, crea accesos en el menú Inicio y el escritorio, y se desinstala desde «Aplicaciones instaladas». Para actualizar, se instala la versión nueva encima: la partida se conserva.
+- **`ElTemploDeLosEcos-vX-Windows-Portable.zip`**: el mismo juego sin instalar. Se descomprime y se abre `ElTemploDeLosEcos.exe`.
+
+No está firmado, así que Windows puede avisar con «Windows protegió tu PC»: **Más información → Ejecutar de todas formas**. El instalador trae un `LEEME.txt` (también en el menú Inicio) con los controles y cómo reportar errores. Lo más útil de un reporte es el registro del juego, en `%APPDATA%\Godot\app_userdata\El Templo de los Ecos\logs\godot.log`.
+
+El instalador se genera con NSIS a partir de `instalador/windows/instalador.nsi` (ver el comentario del archivo para compilarlo a mano).
 
 ## Descargar y ejecutar en Fedora / Linux
 
@@ -297,4 +308,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.3-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.4-alpha** (se publica al fusionar esta versión en `main`).

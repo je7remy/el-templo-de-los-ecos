@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.4-alpha — 2026-11-22 · Versión de prueba para Windows
+
+- **Instalador de Windows.** Cada release publica, junto al APK:
+  - `ElTemploDeLosEcos-vX-Windows-Setup.exe`: instala solo para el usuario (sin administrador), con accesos en el menú Inicio y el escritorio, «Jugar ahora» al terminar y desinstalador en «Aplicaciones instaladas». Actualizar encima conserva la partida.
+  - `ElTemploDeLosEcos-vX-Windows-Portable.zip`: el juego sin instalar.
+- **`LEEME.txt` para quien prueba:** controles, cómo reportar un error (qué pasó, piso y sala, captura, versión de Windows y el registro `godot.log`) y problemas frecuentes, como el aviso de SmartScreen.
+- Nuevo preset de exportación «Windows Desktop» (x86_64, un solo `.exe` con los datos dentro). El CI lo exporta, comprueba que no haya errores, arma el instalador con NSIS y sube los dos archivos al mismo prerelease.
+- Versión Android 0.5.4-alpha (código 11).
+
 ## v0.5.3-alpha — 2026-11-22 · Arte de las salas, luz, más alimañas y trampas nuevas
 
 - **Pantalla completa sin rarezas.** Se quitó la copia ampliada de la sala en los lados. Ahora los muros de la propia sala siguen hasta el borde de la pantalla y se apagan hacia la oscuridad, sobre un fondo continuo. La sala parece flotar de lado a lado, sin marco. Igual en la Vigilia: el fondo y las barras llegan de borde a borde.
