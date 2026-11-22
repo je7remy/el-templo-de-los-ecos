@@ -40,6 +40,6 @@ La release alpha presenta el **código fuente de un prototipo de videojuego**, n
 ## Recursos del primer juego del autor (etapa 3)
 - **Sonidos de impacto y pasos** — Kenney, paquete «Impact Sounds», **CC0**: `audio/kenney/` (ver `audio/kenney/LICENCIA.txt`).
 - **Controles en pantalla** — Kenney, paquete «Onscreen Controls», **CC0**: `assets/visual/controles/` (ver su `LICENCIA.txt`).
-- **Máscaras de transición** (`assets/visual/fx/transicion_*.png`), **alimañas** (`assets/visual/enemies/alimana.png`) y **cursor** (`assets/visual/cursor.png`): originales, generados por `herramientas/generar_transiciones.py` y `herramientas/generar_alimanas.py`. Las máscaras del primer juego no se copiaron porque su origen y licencia no constan.
+- **Máscaras de transición** (`assets/visual/fx/transicion_*.png`), **alimañas** (`assets/visual/enemies/alimana.png`, `murcielago.png` y `arana.png`) y **cursor** (`assets/visual/cursor.png`): originales, generados por `herramientas/generar_transiciones.py`, `herramientas/generar_alimanas.py` y `herramientas/generar_bichos.py`. Las máscaras del primer juego no se copiaron porque su origen y licencia no constan.
 - **No se usaron**, por estilo o por licencia dudosa: tiles y personajes de Pixel Platformer, música chiptune, «Competitive – Fired Up», música de Visual Novel Maker, fuentes Pixeldust («All rights reserved») y BitPotion, y la imagen «background clickbait».
 

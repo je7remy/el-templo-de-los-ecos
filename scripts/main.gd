@@ -415,6 +415,7 @@ func _ready() -> void:
     _setup_post()
     _setup_transition()
     _setup_fullscreen()
+    _setup_glow()
     _setup_cursor()
     _apply_window_mode()
     Input.joy_connection_changed.connect(_on_joy_connection)
@@ -698,7 +699,7 @@ func _enter_room() -> void:
     _pilgrim_enter_room()
     _allies_enter_room()
     _load_traps()
-    _load_critters()
+    _load_hazards()
     _load_vines()
     _load_labyrinth()
     _load_merchant()
@@ -708,6 +709,8 @@ func _enter_room() -> void:
     _chest_obstacle()
     if _fountain_here():
         obstacles.append(Rect2(FOUNTAIN_POS.x - 12.0, FOUNTAIN_POS.y - 10.0, 24.0, 10.0))
+    _place_wall_props()
+    _load_critters()
     door_state = "unknown"
     if game_mode == "floor_intro":
         toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
@@ -733,6 +736,7 @@ func _load_room_scene() -> void:
     room_node.modulate = Color(1, 1, 1).lerp(Color(0.80, 0.82, 0.76), clampf(wear * 0.6, 0.0, 1.0))
     add_child(room_node)
     move_child(room_node, 0)
+    _extend_room_tiles()
     obstacles.clear()
     for shape in room_node.find_children("*", "CollisionShape2D", true, false):
         var rect_shape := (shape as CollisionShape2D).shape as RectangleShape2D
@@ -2105,6 +2109,7 @@ func _process(delta: float) -> void:
     if name_edit != null and name_edit.visible and (game_mode != "create" or create_step != 0):
         _name_edit_close()
     elapsed += delta
+    _tick_glow(delta)
     _update_pad_repeat(delta)
     _update_level_fx(delta)
     for i in shop_flash.keys():
@@ -2226,6 +2231,7 @@ func _update_play(dt: float) -> void:
     if fear >= 100.0 and not ecos.has("serena"):
         hp -= dt * 5.0
     _update_traps(dt)
+    _update_hazards(dt)
     _update_fire(dt)
     _update_hounds(dt)
     _update_labyrinth(dt)
@@ -2344,6 +2350,7 @@ func _update_enemy(dt: float) -> void:
 
 func _draw() -> void:
     # El fondo lo pone la escena de la sala (está por debajo).
+    _draw_side_fade()
     if room_node == null:
         draw_rect(_full_rect(), BG)
     elif game_mode in ["title", "create", "floors", "splash", "eula"] or (game_mode == "settings" and settings_return in ["title", "splash"]):
@@ -2421,6 +2428,7 @@ func _draw_room() -> void:
     _draw_room_depth()
     _draw_wear()
     _draw_decor()
+    _draw_kprop_books()
     _draw_prop_shadows()
     # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
     _draw_visual_atmosphere()
@@ -2428,6 +2436,7 @@ func _draw_room() -> void:
     _draw_door()
     _draw_inscription_plaque()
     _draw_traps()
+    _draw_hazards_floor()
     _draw_vines()
     _draw_channels_ground()
     _draw_mask_item()
@@ -2452,6 +2461,7 @@ func _draw_room() -> void:
     for i in range(drops.size()):
         _draw_relic(drops[i]["pos"], 7 + i)
     _draw_depth_sorted()
+    _draw_hazards_air()
     _draw_dissolve_fx()
     if not fireballs.is_empty():
         _draw_fireballs()
@@ -2729,7 +2739,10 @@ func _draw_depth_sorted() -> void:
                 _draw_letter(book_pos)
             "prop":
                 var prop: Dictionary = room_props[item[2]]
-                _draw_texture_flipped(prop["tex"], prop["rect"], prop["flip"])
+                if prop.has("region"):
+                    _draw_kprop(prop)
+                else:
+                    _draw_texture_flipped(prop["tex"], prop["rect"], prop["flip"])
 
 
 func _draw_object_labels() -> void:
@@ -3232,7 +3245,7 @@ func _draw_hand_torch(hand: Vector2) -> void:
 
 func _draw_topbar() -> void:
     ## HUD estilo roguelike de acción: paneles flotantes sobre una franja oscura.
-    _vgradient(Rect2(0, 0, W, 112), Color(0.02, 0.025, 0.035, 0.96), Color(0.02, 0.025, 0.035, 0.55))
+    _vgradient(Rect2(-screen_pad.x, -screen_pad.y, W + screen_pad.x * 2.0, 112.0 + screen_pad.y), Color(0.02, 0.025, 0.035, 0.96), Color(0.02, 0.025, 0.035, 0.55))
     _draw_player_panel()
     _draw_floor_banner()
     _draw_minimap()
@@ -3413,7 +3426,7 @@ func _text_outline(msg: String, at: Vector2, size: int, color: Color, width: flo
 
 func _draw_footer() -> void:
     ## Abajo: misión a la izquierda; arma y habilidades a la derecha.
-    _vgradient(Rect2(0, 572, W, 68), Color(0.02, 0.025, 0.035, 0.55), Color(0.02, 0.025, 0.035, 0.96))
+    _vgradient(Rect2(-screen_pad.x, 572, W + screen_pad.x * 2.0, 68.0 + screen_pad.y), Color(0.02, 0.025, 0.035, 0.55), Color(0.02, 0.025, 0.035, 0.96))
     var task: String = _mission_text()
     var task_color: Color = SOUL if _room_ready() else CREAM
     if _has("sello") and _enemy_active() and _enemy_kind() == "testigo" and watcher_open and not seal_acquired:
@@ -4214,6 +4227,381 @@ func _draw_decor() -> void:
         if d[0] == "velas":
             var c: Vector2 = Vector2(d[1]) + Vector2(11, 6)
             draw_circle(c, 14.0, Color(1.0, 0.7, 0.3, 0.05 + 0.03 * sin(elapsed * 9.0 + c.x)))
+
+
+# ============================================================ LUZ ADITIVA
+## Capa de luz que se SUMA a la imagen (como el «bloom» de los motores grandes):
+## el fuego, las almas y la antorcha brillan de verdad sobre la penumbra.
+## Se dibuja por encima de la sala (es un hijo de este nodo) y solo en juego.
+var glow_node: Node2D = null
+var glow_tex: Texture2D = null
+var sparks: Array = [] # {p, v, life, max, col, size}
+var spark_acc: float = 0.0
+
+
+func _setup_glow() -> void:
+    var grad := Gradient.new()
+    grad.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+    grad.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.35), Color(1, 1, 1, 0)])
+    var tex := GradientTexture2D.new()
+    tex.gradient = grad
+    tex.fill = GradientTexture2D.FILL_RADIAL
+    tex.fill_from = Vector2(0.5, 0.5)
+    tex.fill_to = Vector2(1.0, 0.5)
+    tex.width = 128
+    tex.height = 128
+    glow_tex = tex
+    glow_node = Node2D.new()
+    glow_node.name = "LuzAditiva"
+    var mat := CanvasItemMaterial.new()
+    mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+    glow_node.material = mat
+    glow_node.draw.connect(_draw_glow)
+    # Recortada a la sala: la luz no se derrama sobre los marcadores de arriba.
+    var clip := Control.new()
+    clip.name = "RecorteLuz"
+    clip.clip_contents = true
+    clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    clip.position = ARENA.position
+    clip.size = ARENA.size
+    add_child(clip)
+    glow_node.position = -ARENA.position
+    clip.add_child(glow_node)
+
+
+func _tick_glow(dt: float) -> void:
+    if glow_node == null:
+        return
+    var on: bool = game_mode == "play" and room_node != null and not in_tutorial
+    (glow_node.get_parent() as CanvasItem).visible = on
+    if not on:
+        return
+    _update_sparks(dt)
+    glow_node.queue_redraw()
+
+
+func _glow(at: Vector2, radius: float, col: Color) -> void:
+    glow_node.draw_texture_rect(glow_tex, Rect2(at - Vector2(radius, radius), Vector2(radius, radius) * 2.0), false, col)
+
+
+## Chispas que suben de los braseros y del fuego; motas de alma sobre las almas.
+func _update_sparks(dt: float) -> void:
+    for sp in sparks:
+        sp["life"] = float(sp["life"]) - dt
+        sp["v"] = (sp["v"] as Vector2) + Vector2(sin(elapsed * 3.0 + float(sp["max"]) * 9.0) * 14.0, -10.0) * dt
+        sp["p"] = (sp["p"] as Vector2) + (sp["v"] as Vector2) * dt
+    sparks = sparks.filter(func(sp): return float(sp["life"]) > 0.0 and ARENA.grow(-4.0).has_point(sp["p"]))
+    var cap: int = 60 if touch_enabled else 120
+    spark_acc += dt
+    if spark_acc < 0.06 or sparks.size() >= cap:
+        return
+    spark_acc = 0.0
+    for prop in room_props:
+        if prop["light"] and randf() < 0.5:
+            var r: Rect2 = prop["rect"]
+            _spark(Vector2(r.get_center().x + randf_range(-8, 8), r.position.y + r.size.y * 0.3), Vector2(randf_range(-12, 12), randf_range(-60, -30)),
+                randf_range(0.8, 1.6), Color(1.0, randf_range(0.45, 0.7), 0.2), randf_range(1.0, 2.0))
+    for b in braziers:
+        if bool(b.get("lit", false)) and randf() < 0.5:
+            _spark(Vector2(b["pos"]) + Vector2(randf_range(-6, 6), -30), Vector2(randf_range(-10, 10), randf_range(-60, -30)), randf_range(0.8, 1.4), Color(1.0, 0.55, 0.2), 1.6)
+    for i in range(relics.size()):
+        if not collected[i] and randf() < 0.25:
+            _spark(Vector2(relics[i]) + Vector2(randf_range(-10, 10), -12), Vector2(randf_range(-4, 4), randf_range(-26, -12)), randf_range(1.0, 1.8), Color(0.5, 0.88, 1.0), 1.4)
+    if torch_on and randf() < 0.35:
+        _spark(player_pos + Vector2(10 if player_dir.x >= 0.0 else -10, -40), Vector2(randf_range(-8, 8), randf_range(-40, -20)), randf_range(0.4, 0.8), Color(1.0, 0.6, 0.25), 1.2)
+
+
+func _spark(at: Vector2, vel: Vector2, life: float, col: Color, size: float) -> void:
+    sparks.append({"p": at, "v": vel, "life": life, "max": life, "col": col, "size": size})
+
+
+func _draw_glow() -> void:
+    if glow_tex == null:
+        return
+    var flick: float = 0.9 + 0.1 * sin(elapsed * 11.0) * sin(elapsed * 3.7)
+    # Antorcha del jugador: calor suave alrededor de la llama.
+    if torch_on:
+        _glow(player_pos + Vector2(8 if player_dir.x >= 0.0 else -8, -40), 70.0 * flick, Color(0.55, 0.32, 0.12, 0.55))
+        _glow(player_pos + Vector2(8 if player_dir.x >= 0.0 else -8, -40), 18.0, Color(1.0, 0.7, 0.35, 0.7))
+    for prop in room_props:
+        if prop["light"]:
+            var r: Rect2 = prop["rect"]
+            var c := Vector2(r.get_center().x, r.position.y + r.size.y * 0.32)
+            var f: float = 0.85 + 0.15 * sin(elapsed * 9.0 + r.position.x) * sin(elapsed * 2.9 + r.position.y)
+            _glow(c, 92.0 * f, Color(0.6, 0.32, 0.1, 0.5))
+            _glow(c, 26.0 * f, Color(1.0, 0.75, 0.4, 0.75))
+    for b in braziers:
+        if bool(b.get("lit", false)):
+            _glow(Vector2(b["pos"]) + Vector2(0, -28), 90.0 * flick, Color(0.6, 0.3, 0.1, 0.55))
+    for d in decor_cache:
+        if d[0] == "velas" and decor_cache_key == _room_key():
+            _glow(Vector2(d[1]) + Vector2(11, 6), 30.0 * flick, Color(0.6, 0.4, 0.15, 0.45))
+    for i in range(relics.size()):
+        if not collected[i]:
+            var pulse: float = 0.8 + 0.2 * sin(elapsed * 2.4 + float(i))
+            _glow(Vector2(relics[i]) + Vector2(0, -16), 46.0 * pulse, Color(0.15, 0.45, 0.6, 0.6))
+            _glow(Vector2(relics[i]) + Vector2(0, -16), 12.0, Color(0.6, 0.95, 1.0, 0.8))
+    for drop in drops:
+        _glow(Vector2(drop["pos"]) + Vector2(0, -14), 40.0, Color(0.15, 0.45, 0.6, 0.55))
+    for item in room_items:
+        _glow(Vector2(item["pos"]) + Vector2(0, -10), 30.0, Color(0.45, 0.38, 0.18, 0.4))
+    for ball in fireballs:
+        _glow(ball["pos"], 52.0, Color(0.8, 0.35, 0.1, 0.7))
+    if _enemy_active() and _enemy_kind() == "ghoul":
+        _glow(enemy_pos + Vector2(0, -26), 70.0 * flick, Color(0.6, 0.25, 0.08, 0.5))
+    for v in flame_vents:
+        var t: float = _flame_t(v)
+        if t >= FLAME_ON:
+            _glow(Vector2(v["pos"]) + Vector2(0, -30), 96.0 * flick, Color(0.85, 0.38, 0.1, 0.75))
+        elif t >= FLAME_WARN:
+            _glow(Vector2(v["pos"]), 34.0, Color(0.7, 0.25, 0.05, 0.5 * (t - FLAME_WARN) / (FLAME_ON - FLAME_WARN)))
+    for cell in vines:
+        if str(vines[cell]["state"]) == "fuego":
+            _glow(_cell_center(cell) + Vector2(0, -8), 44.0 * flick, Color(0.7, 0.3, 0.08, 0.35))
+    if _room_ready():
+        _glow(door_pos + Vector2(4, -10), 80.0, Color(0.35, 0.3, 0.2, 0.35))
+    # Destello frío del filo del péndulo al barrer.
+    for pd in pendulums:
+        var vel: float = absf(cos(room_elapsed * TAU / PENDULUM_PERIOD + float(pd["phase"])))
+        _glow(_pendulum_blade(pd) + Vector2(0, -8), 26.0, Color(0.4, 0.45, 0.5, 0.35 * vel))
+    for cr in critters:
+        if bool(cr["alive"]) and str(cr.get("kind", "rata")) != "rata":
+            var at: Vector2 = Vector2(cr["pos"]) + Vector2(0, -12.0 - _critter_lift(cr, 0))
+            _glow(at, 12.0, Color(0.7, 0.1, 0.1, 0.4))
+    for sp in sparks:
+        var k: float = clampf(float(sp["life"]) / float(sp["max"]), 0.0, 1.0)
+        var col: Color = sp["col"]
+        _glow(sp["p"], 6.0 * float(sp["size"]), Color(col.r, col.g, col.b, 0.5 * k))
+        glow_node.draw_rect(Rect2((sp["p"] as Vector2).round(), Vector2(1, 1) * maxf(1.0, round(float(sp["size"])))), Color(col.r, col.g, col.b, k))
+
+
+# ============================================================ MOBILIARIO DEL TEMPLO
+## Piezas del pack «Knowledge Temple» (assets/knowledge) colocadas en cada sala:
+## sarcófagos, mesas de lectura, altares, estatuas, columnas rotas y braseros
+## animados. Siempre las mismas en la misma sala, en espejo, con sombra,
+## colisión baja y comprobación de que todo sigue alcanzable.
+const KPROPS := {
+    "sarcofago": {"tex": preload("res://assets/knowledge/sarcophagus.png"), "region": Rect2(1, 8, 78, 84), "foot": 0.8},
+    "mesa_a": {"tex": preload("res://assets/knowledge/table.png"), "region": Rect2(0, 16, 64, 72), "foot": 0.85},
+    "mesa_b": {"tex": preload("res://assets/knowledge/table.png"), "region": Rect2(64, 16, 64, 72), "foot": 0.85},
+    "mesa_c": {"tex": preload("res://assets/knowledge/table.png"), "region": Rect2(128, 6, 64, 82), "foot": 0.85},
+    "mesa_d": {"tex": preload("res://assets/knowledge/table.png"), "region": Rect2(0, 110, 64, 74), "foot": 0.85},
+    "mesa_e": {"tex": preload("res://assets/knowledge/table.png"), "region": Rect2(128, 112, 64, 72), "foot": 0.85},
+    "altar_mano": {"tex": preload("res://assets/knowledge/altar.png"), "region": Rect2(7, 28, 66, 72), "foot": 0.8},
+    "estatua": {"tex": preload("res://assets/knowledge/statue.png"), "region": Rect2(0, 5, 48, 63), "foot": 0.75},
+    "columna_rota": {"tex": preload("res://assets/knowledge/broken_column.png"), "region": Rect2(0, 0, 48, 116), "foot": 0.6},
+    "brasero": {"tex": preload("res://assets/knowledge/torch_sheet.png"), "region": Rect2(0, 0, 48, 64), "foot": 0.7, "frames": 8, "light": true},
+}
+## Estilo de cada piso: qué piezas aparecen (en orden de preferencia).
+const FLOOR_KPROPS := [
+    ["estatua", "brasero", "columna_rota", "mesa_a"],
+    ["mesa_a", "mesa_b", "brasero", "sarcofago"],
+    ["sarcofago", "columna_rota", "altar_mano", "brasero"],
+    ["columna_rota", "estatua", "mesa_d", "brasero"],
+    ["brasero", "columna_rota", "sarcofago", "estatua"],
+    ["altar_mano", "brasero", "mesa_c", "mesa_e"],
+    ["estatua", "sarcofago", "brasero", "altar_mano"],
+    ["mesa_b", "mesa_c", "estatua", "columna_rota"],
+    ["columna_rota", "sarcofago", "brasero", "estatua"],
+    ["brasero", "altar_mano", "sarcofago", "estatua"],
+]
+## Huecos posibles: [x de la base, y de la base, altura máxima de la pieza].
+## Fila del fondo (junto al muro) y huecos laterales, lejos de la entrada y la salida.
+const KPROP_SLOTS := [
+    [140.0, 206.0, 92.0], [252.0, 206.0, 92.0], [366.0, 206.0, 92.0],
+    [100.0, 262.0, 130.0], [100.0, 478.0, 130.0], [210.0, 546.0, 90.0], [350.0, 546.0, 90.0],
+]
+const KPROP_BOOKS := preload("res://assets/knowledge/books.png")
+var kprop_books: Array = [] # [posición, región] libros caídos junto a las mesas
+
+
+func _place_wall_props() -> void:
+    kprop_books.clear()
+    if in_tutorial or _has("tutorial") or _room().has("walls") or _room().has("colossus"):
+        return
+    var rng := RandomNumberGenerator.new()
+    rng.seed = hash("mobiliario:" + _room_key())
+    var style: Array = FLOOR_KPROPS[clampi(current_floor, 0, FLOOR_KPROPS.size() - 1)]
+    var keep: Array = _kprop_keep_points()
+    var mirror: bool = bool(_floor().get("mirror", false))
+    var wanted: int = 3 + rng.randi_range(0, 1) # parejas (pieza + su reflejo)
+    var slots: Array = KPROP_SLOTS.duplicate()
+    # Barajado estable: cada sala usa sus huecos.
+    for i in range(slots.size() - 1, 0, -1):
+        var j: int = rng.randi_range(0, i)
+        var tmp = slots[i]
+        slots[i] = slots[j]
+        slots[j] = tmp
+    var placed: int = 0
+    var used: Array = [] # cada pieza, una sola pareja por sala: variedad
+    for slot in slots:
+        if placed >= wanted:
+            break
+        var candidates: Array = style.filter(func(kk): return not used.has(kk))
+        if candidates.is_empty():
+            break
+        var first: int = rng.randi_range(0, candidates.size() - 1)
+        for k in range(candidates.size()):
+            var key: String = candidates[(first + k) % candidates.size()]
+            var info: Dictionary = KPROPS[key]
+            var reg: Rect2 = info["region"]
+            if reg.size.y > float(slot[2]):
+                continue
+            var pair: Array = []
+            for side in [0, 1]:
+                var bx: float = float(slot[0]) if side == 0 else 960.0 - float(slot[0])
+                pair.append(_kprop_entry(key, Vector2(bx, float(slot[1])), (side == 1) != mirror))
+            if not (_kprop_fits(pair[0], keep) and _kprop_fits(pair[1], keep)):
+                continue
+            var added: Array = []
+            for e in pair:
+                room_props.append(e)
+                obstacles.append(e["foot_rect"])
+                added.append(e)
+            if _kprop_reachable(keep):
+                placed += 1
+                used.append(key)
+                if key.begins_with("mesa"):
+                    _kprop_scatter_books(pair, rng)
+                break
+            for e in added: # tapaba el paso: fuera
+                room_props.erase(e)
+                obstacles.erase(e["foot_rect"])
+
+
+func _kprop_entry(key: String, base: Vector2, flip: bool) -> Dictionary:
+    var info: Dictionary = KPROPS[key]
+    var reg: Rect2 = info["region"]
+    var rect := Rect2(base.x - reg.size.x * 0.5, base.y - reg.size.y, reg.size.x, reg.size.y)
+    var fw: float = reg.size.x * float(info["foot"])
+    return {"tex": info["tex"], "rect": rect, "base": base.y, "shadow": true, "light": bool(info.get("light", false)),
+        "flip": flip, "region": reg, "frames": int(info.get("frames", 1)), "kkey": key,
+        "foot_rect": Rect2(base.x - fw * 0.5, base.y - 14.0, fw, 12.0)}
+
+
+## Lo que nunca se tapa: almas, objetos, cofre, puerta, entrada, enemigos, PNJ,
+## trampas y todo lo que se usa en la sala.
+func _kprop_keep_points() -> Array:
+    var keep: Array = relics.duplicate()
+    keep.append_array([door_pos, Vector2(115, 359), enemy_pos])
+    for p in [seal_pos, altar_pos, archive_pos, book_pos]:
+        if Vector2(p) != Vector2.ZERO and (_has("sello") or _has("altar") or _has("archivo") or _room().has("seal")):
+            keep.append(p)
+    for item in room_items:
+        keep.append(item["pos"])
+    var rd: Dictionary = _room()
+    for k in ["chest", "inscription"]:
+        if rd.has(k):
+            keep.append(rd[k][0])
+    for k in ["merchant", "elder", "elder_boss", "rescue", "mask"]:
+        if rd.has(k) and rd[k] is Vector2:
+            keep.append(rd[k])
+    for k in ["traps", "flames", "braziers", "rams", "hounds", "pillars", "guides"]:
+        for q in rd.get(k, []):
+            if q is Vector2:
+                keep.append(q)
+    for pd in rd.get("pendulums", []):
+        for t in range(-2, 3):
+            keep.append(Vector2(pd[0]) + Vector2(float(pd[1]) * float(t) * 0.5, 0.0))
+    if _pilgrim_present():
+        keep.append(pilgrim_pos)
+    return keep
+
+
+func _kprop_fits(e: Dictionary, keep: Array) -> bool:
+    var rect: Rect2 = e["rect"]
+    var foot: Rect2 = e["foot_rect"]
+    if foot.position.x < 66.0 or foot.end.x > 894.0:
+        return false
+    for q in keep:
+        var p := Vector2(q)
+        if foot.grow(60.0).has_point(p) or rect.grow(26.0).has_point(p):
+            return false
+    for prop in room_props:
+        if (prop["rect"] as Rect2).grow(6.0).intersects(rect):
+            return false
+    for o in obstacles:
+        if (o as Rect2).grow(20.0).intersects(foot):
+            return false
+    return true
+
+
+## Búsqueda en anchura sobre una rejilla: desde la entrada hay que poder
+## llegar junto a cada punto importante y a la puerta.
+func _kprop_reachable(keep: Array) -> bool:
+    var step: float = 12.0
+    var x0: float = 66.0
+    var y0: float = 158.0
+    var cols: int = int((894.0 - x0) / step)
+    var rows: int = int((550.0 - y0) / step)
+    var seen := PackedByteArray()
+    seen.resize(cols * rows)
+    var start := Vector2i(int((115.0 - x0) / step), int((359.0 - y0) / step))
+    var queue: Array = [start]
+    seen[start.y * cols + start.x] = 1
+    while not queue.is_empty():
+        var c: Vector2i = queue.pop_back()
+        for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+            var n: Vector2i = c + d
+            if n.x < 0 or n.y < 0 or n.x >= cols or n.y >= rows or seen[n.y * cols + n.x] != 0:
+                continue
+            if _is_blocked(Vector2(x0 + float(n.x) * step, y0 + float(n.y) * step)):
+                seen[n.y * cols + n.x] = 2
+                continue
+            seen[n.y * cols + n.x] = 1
+            queue.append(n)
+    var targets: Array = keep.duplicate()
+    targets.append(door_pos + Vector2(-30, 0))
+    for q in targets:
+        var p := Vector2(q)
+        if p.x < x0 or p.y < y0 or p.x > 894.0 or p.y > 550.0:
+            continue
+        var ok: bool = false
+        var cx: int = int((p.x - x0) / step)
+        var cy: int = int((p.y - y0) / step)
+        for dy in range(-4, 5):
+            for dx in range(-4, 5):
+                var nx: int = cx + dx
+                var ny: int = cy + dy
+                if nx >= 0 and ny >= 0 and nx < cols and ny < rows and seen[ny * cols + nx] == 1:
+                    ok = true
+                    break
+            if ok:
+                break
+        if not ok:
+            return false
+    return true
+
+
+func _kprop_scatter_books(pair: Array, rng: RandomNumberGenerator) -> void:
+    for e in pair:
+        var r: Rect2 = e["rect"]
+        for n in range(rng.randi_range(1, 2)):
+            var cell := Vector2i(rng.randi_range(0, 3), rng.randi_range(1, 3))
+            var at := Vector2(r.get_center().x + rng.randf_range(-40.0, 40.0), r.end.y + rng.randf_range(6.0, 22.0))
+            if not _is_blocked(at):
+                kprop_books.append([at, Rect2(float(cell.x) * 32.0, float(cell.y) * 20.0, 32, 20)])
+
+
+func _draw_kprop(prop: Dictionary) -> void:
+    var reg: Rect2 = prop["region"]
+    var frames: int = int(prop.get("frames", 1))
+    if frames > 1:
+        var f: int = int(elapsed * 10.0 + (prop["rect"] as Rect2).position.x * 0.07) % frames
+        reg = Rect2(reg.position + Vector2(float(f) * reg.size.x, 0.0), reg.size)
+    var rect: Rect2 = prop["rect"]
+    var tint := Color(1, 1, 1).lerp(Color(0.80, 0.82, 0.76), clampf(float(_floor().get("wear", 0.0)) * 0.6, 0.0, 1.0))
+    if bool(prop["flip"]):
+        draw_set_transform(Vector2(rect.end.x, rect.position.y), 0.0, Vector2(-1, 1))
+        draw_texture_rect_region(prop["tex"], Rect2(Vector2.ZERO, rect.size), reg, tint)
+        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    else:
+        draw_texture_rect_region(prop["tex"], rect, reg, tint)
+
+
+func _draw_kprop_books() -> void:
+    for b in kprop_books:
+        draw_texture_rect_region(KPROP_BOOKS, Rect2(Vector2(b[0]) - Vector2(16, 10), Vector2(32, 20)), b[1])
 
 
 # ============================================================ INICIO, AJUSTES, INTRO, TUTORIAL Y PAUSA
@@ -5951,6 +6339,176 @@ func _draw_traps() -> void:
             draw_rect(r.grow(3.0), Color(1.0, 0.35, 0.3, 0.25 + 0.2 * sin(elapsed * 20.0)), false, 1.0)
 
 
+# --- Llamaradas y péndulos ------------------------------------------------------
+## Dos trampas más, con el mismo trato justo que los pinchos: avisan antes de
+## herir, el esquive te hace inmune y también hieren a los aliados.
+##   flames (en los datos de la sala): rejillas que escupen una columna de fuego.
+##   pendulums: [centro, amplitud] — una cuchilla que barre la sala de lado a lado.
+const FLAME_CYCLE := 4.2
+const FLAME_WARN := 2.4 # chispas y brillo: va a salir
+const FLAME_ON := 3.1 # desde aquí quema
+const FLAME_DAMAGE := 16.0
+const PENDULUM_PERIOD := 3.6
+const PENDULUM_HIT := 22.0
+const PENDULUM_DAMAGE := 20.0
+var flame_vents: Array = [] # {pos, phase, warned}
+var pendulums: Array = [] # {center, amp, phase}
+
+
+func _load_hazards() -> void:
+    flame_vents.clear()
+    pendulums.clear()
+    var fl: Array = _room().get("flames", [])
+    for i in range(fl.size()):
+        flame_vents.append({"pos": fl[i], "phase": float(i % 2) * FLAME_CYCLE * 0.5, "warned": false})
+    var pl: Array = _room().get("pendulums", [])
+    for i in range(pl.size()):
+        pendulums.append({"center": pl[i][0], "amp": float(pl[i][1]), "phase": float(i) * 0.9})
+
+
+func _flame_t(v: Dictionary) -> float:
+    return fmod(room_elapsed + float(v["phase"]), FLAME_CYCLE)
+
+
+## Zona que quema: la rejilla y la columna de fuego que sube de ella.
+func _flame_rect(v: Dictionary) -> Rect2:
+    var p: Vector2 = v["pos"]
+    return Rect2(p.x - 18.0, p.y - 20.0, 36.0, 36.0)
+
+
+func _pendulum_blade(pd: Dictionary) -> Vector2:
+    var w: float = TAU / PENDULUM_PERIOD
+    return Vector2(pd["center"]) + Vector2(sin(room_elapsed * w + float(pd["phase"])) * float(pd["amp"]), 0.0)
+
+
+func _pendulum_pivot(pd: Dictionary) -> Vector2:
+    return Vector2(pd["center"]) + Vector2(0.0, -150.0)
+
+
+## ¿Este punto recibe daño de alguna llamarada o péndulo ahora mismo?
+func _hazard_hit(at: Vector2) -> String:
+    for v in flame_vents:
+        if _flame_t(v) >= FLAME_ON and _flame_rect(v).has_point(at):
+            return "llama"
+    for pd in pendulums:
+        if _pendulum_blade(pd).distance_to(at) < PENDULUM_HIT:
+            return "pendulo"
+    return ""
+
+
+func _update_hazards(_dt: float) -> void:
+    for v in flame_vents:
+        var t: float = _flame_t(v)
+        if t >= FLAME_WARN and not bool(v["warned"]):
+            v["warned"] = true
+            if player_pos.distance_to(v["pos"]) < 280.0:
+                _sfx("fuego", -14.0, 1.2)
+        elif t < FLAME_WARN:
+            v["warned"] = false
+        if t >= FLAME_ON and randf() < 0.5:
+            _emit(Vector2(v["pos"]) + Vector2(randf_range(-10, 10), -10), 1, Color(1.0, 0.55, 0.2), 30.0, 70.0, 0.5, 2.0, -120.0, Vector2.UP, 0.4, true)
+        elif t >= FLAME_WARN and randf() < 0.15:
+            _emit(Vector2(v["pos"]) + Vector2(randf_range(-8, 8), -2), 1, Color(1.0, 0.7, 0.3), 10.0, 30.0, 0.4, 1.5, -60.0, Vector2.UP, 0.5, true)
+    if dash_left > 0.0 or damage_cd > 0.0:
+        return # esquivando se cruza el fuego y la cuchilla
+    var hit: String = _hazard_hit(player_pos)
+    if hit == "":
+        return
+    hp -= FLAME_DAMAGE if hit == "llama" else PENDULUM_DAMAGE
+    fear = minf(100.0, fear + 10.0)
+    damage_cd = 1.0
+    if hit == "pendulo":
+        # La cuchilla te empuja en la dirección en que barre.
+        for pd in pendulums:
+            var b: Vector2 = _pendulum_blade(pd)
+            if b.distance_to(player_pos) < PENDULUM_HIT:
+                var push: float = signf(cos(room_elapsed * TAU / PENDULUM_PERIOD + float(pd["phase"])))
+                var to: Vector2 = player_pos + Vector2(push * 34.0, 0.0)
+                if not _is_blocked(to):
+                    player_pos = to
+        _emit(player_pos + Vector2(0, -20), 12, Color(0.6, 0.05, 0.1), 40.0, 140.0, 0.6, 2.0, 260.0, Vector2.UP, 1.2)
+        _sfx("k_metal", -8.0, 0.8)
+        _say("Una cuchilla barre la sala. Esquiva a su paso.", 3.0)
+    else:
+        _emit(player_pos + Vector2(0, -18), 14, Color(1.0, 0.5, 0.15), 30.0, 110.0, 0.6, 2.5, -80.0, Vector2.UP, 0.9, true)
+        _say("El suelo escupe fuego. Espera a que se apague o esquiva.", 3.0)
+    _on_hurt()
+
+
+func _draw_hazards_floor() -> void:
+    for v in flame_vents:
+        var p: Vector2 = v["pos"]
+        var t: float = _flame_t(v)
+        var g := Rect2(p - Vector2(15, 11), Vector2(30, 22))
+        draw_rect(g.grow(3.0), Color(0.03, 0.025, 0.03, 0.6))
+        draw_rect(g, Color("#2a2522"))
+        draw_rect(Rect2(g.position, Vector2(g.size.x, 2)), Color("#544a40"))
+        var heat: float = 0.0
+        if t >= FLAME_ON:
+            heat = 1.0
+        elif t >= FLAME_WARN:
+            heat = (t - FLAME_WARN) / (FLAME_ON - FLAME_WARN)
+        for k in range(4):
+            var slot := Rect2(g.position + Vector2(4.0 + k * 6.5, 5), Vector2(3.5, 12))
+            draw_rect(slot, Color(0.06, 0.04, 0.03).lerp(Color(1.0, 0.45, 0.12), heat * (0.7 + 0.3 * sin(elapsed * 18.0 + k))))
+        # Hollín alrededor.
+        _draw_ellipse(p + Vector2(0, 2), 24.0, 8.0, Color(0.0, 0.0, 0.0, 0.18))
+        if t >= FLAME_WARN and t < FLAME_ON:
+            draw_rect(g.grow(4.0), Color(1.0, 0.5, 0.2, 0.25 + 0.2 * sin(elapsed * 20.0)), false, 1.0)
+    for pd in pendulums:
+        # Surco en el suelo: dice por dónde pasará la cuchilla.
+        var c: Vector2 = pd["center"]
+        var a: float = float(pd["amp"])
+        draw_line(c + Vector2(-a - 10.0, 4), c + Vector2(a + 10.0, 4), Color(0.0, 0.0, 0.0, 0.35), 6.0)
+        draw_line(c + Vector2(-a - 10.0, 3), c + Vector2(a + 10.0, 3), Color(0.55, 0.5, 0.42, 0.18), 1.0)
+        var b: Vector2 = _pendulum_blade(pd)
+        _draw_ellipse(b + Vector2(0, 6), 18.0, 5.0, Color(0, 0, 0, 0.35))
+
+
+## Lo que se alza: la columna de fuego y la cuchilla con su cadena.
+func _draw_hazards_air() -> void:
+    for v in flame_vents:
+        var t: float = _flame_t(v)
+        if t < FLAME_ON:
+            continue
+        var p: Vector2 = v["pos"]
+        var k: float = clampf((t - FLAME_ON) / 0.2, 0.0, 1.0) * clampf((FLAME_CYCLE - t) / 0.25, 0.0, 1.0)
+        for i in range(7):
+            var h: float = (78.0 + 12.0 * sin(elapsed * 14.0 + float(i))) * k
+            var wv: float = (18.0 - float(i) * 2.0) * k
+            var y0: float = p.y - h * (float(i) / 6.0)
+            var col := Color(1.0, 0.35 + 0.1 * float(i), 0.1 + 0.08 * float(i), 0.55 - float(i) * 0.06)
+            draw_polygon(PackedVector2Array([p + Vector2(-wv, 2), p + Vector2(wv, 2), Vector2(p.x + wv * 0.3 + sin(elapsed * 11.0 + i) * 3.0, y0 - 14.0)]),
+                PackedColorArray([col, col, Color(col.r, col.g, col.b, 0.0)]))
+    for pd in pendulums:
+        var pivot: Vector2 = _pendulum_pivot(pd)
+        var b: Vector2 = _pendulum_blade(pd)
+        var lift: Vector2 = b + Vector2(0, -16) # la hoja vuela a la altura del pecho
+        # Cadena por eslabones.
+        var n: int = 14
+        for i in range(n):
+            var q: Vector2 = pivot.lerp(lift, float(i) / float(n))
+            draw_rect(Rect2(q - Vector2(2, 3), Vector2(4, 6)), Color("#14110f"))
+            draw_rect(Rect2(q - Vector2(1, 2), Vector2(2, 4)), Color("#8a857a") if i % 2 == 0 else Color("#5c5850"))
+        var ang: float = (lift - pivot).angle() - PI * 0.5
+        draw_set_transform(lift, ang, Vector2.ONE)
+        # Media luna de acero con filo brillante y contorno oscuro.
+        var blade := PackedVector2Array([Vector2(-30, -2), Vector2(30, -2), Vector2(24, 10), Vector2(10, 17), Vector2(0, 19), Vector2(-10, 17), Vector2(-24, 10)])
+        var outline := blade.duplicate()
+        outline.append(blade[0])
+        draw_colored_polygon(blade, Color("#6f767c"))
+        draw_colored_polygon(PackedVector2Array([Vector2(-26, 0), Vector2(26, 0), Vector2(18, 6), Vector2(-18, 6)]), Color("#4d5358"))
+        draw_polyline(outline, Color("#101214"), 2.0)
+        draw_polyline(PackedVector2Array([Vector2(-24, 10), Vector2(-10, 17), Vector2(0, 19), Vector2(10, 17), Vector2(24, 10)]), Color("#eef3f5"), 2.0)
+        draw_rect(Rect2(-6, -8, 12, 8), Color("#3b2f28"))
+        draw_rect(Rect2(-6, -8, 12, 8), Color("#101214"), false, 1.0)
+        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        # Estela al barrer.
+        var vel: float = cos(room_elapsed * TAU / PENDULUM_PERIOD + float(pd["phase"]))
+        for k in range(1, 4):
+            draw_circle(lift + Vector2(-vel * float(k) * 9.0, 8), 10.0 - float(k) * 2.0, Color(0.85, 0.9, 0.95, 0.06 * absf(vel)))
+
+
 # --- Inscripciones -------------------------------------------------------------
 func _inscription() -> Array:
     return _room().get("inscription", [])
@@ -6664,6 +7222,25 @@ func _draw_floors() -> void:
 ## el cuerpo que queda al morir, transiciones con máscara, resumen al
 ## terminar el piso, cursor propio y controles táctiles de Kenney.
 const ALIMANA_TEX := preload("res://assets/visual/enemies/alimana.png")
+## Más alimañas (herramientas/generar_bichos.py), misma hoja de 4 x 2 celdas.
+const CRITTER_TEX := {
+    "rata": ALIMANA_TEX,
+    "murcielago": preload("res://assets/visual/enemies/murcielago.png"),
+    "arana": preload("res://assets/visual/enemies/arana.png"),
+}
+## Cómo es cada bicho: velocidad, persecución, olfato (px), mordisco y miedo.
+##   murciélago: vuela (cruza columnas), rápido y de mordisco flojo.
+##   araña: lenta al patrullar, pero salta lejos y su veneno da más miedo.
+const CRITTER_KINDS := {
+    "rata": {"speed": 62.0, "chase": 92.0, "smell": 95.0, "bite": 6.0, "fear": 4.0, "fly": false},
+    "murcielago": {"speed": 84.0, "chase": 128.0, "smell": 130.0, "bite": 4.0, "fear": 5.0, "fly": true},
+    "arana": {"speed": 40.0, "chase": 118.0, "smell": 110.0, "bite": 9.0, "fear": 9.0, "fly": false},
+}
+## Qué alimañas viven en cada piso (las salas sin trayectos propios las reparten así).
+const FLOOR_CRITTERS := [
+    ["rata"], ["rata", "murcielago"], ["rata", "arana"], ["arana", "murcielago"], ["rata", "murcielago"],
+    ["murcielago", "rata"], ["arana", "murcielago"], ["rata", "arana"], ["murcielago", "arana"], ["rata", "murcielago", "arana"],
+]
 const CURSOR_TEX := preload("res://assets/visual/cursor.png")
 const JOY_BASE_TEX := preload("res://assets/visual/controles/joystick_base.png")
 const BUTTON_TEX := preload("res://assets/visual/controles/boton.png")
@@ -6702,12 +7279,55 @@ var trans_len: float = 0.0
 # --- Alimañas ---------------------------------------------------------------
 func _load_critters() -> void:
     critters.clear()
-    if in_tutorial or not CRITTER_SPOTS.has(_room_key()):
+    if in_tutorial or _has("tutorial") or _room().has("merchant"):
         return
-    var spot: Dictionary = CRITTER_SPOTS[_room_key()]
-    for path in spot["paths"]:
+    var spot: Dictionary = CRITTER_SPOTS[_room_key()] if CRITTER_SPOTS.has(_room_key()) else _critter_spots_auto()
+    var kinds: Array = spot.get("kinds", [])
+    var paths: Array = spot.get("paths", [])
+    for i in range(paths.size()):
+        var path: Array = paths[i]
         critters.append({"pos": path[0] + (path[1] - path[0]) * randf_range(0.1, 0.9), "a": path[0], "b": path[1], "to_b": randf() < 0.5,
-            "alive": true, "dead_t": 0.0, "respawn": bool(spot["nest"]), "flip": false, "bite_cd": 0.0})
+            "alive": true, "dead_t": 0.0, "respawn": bool(spot.get("nest", false)), "flip": false, "bite_cd": 0.0,
+            "kind": str(kinds[i]) if i < kinds.size() else "rata"})
+
+
+## Trayectos para las salas sin trayectos escritos: siempre los mismos en la
+## misma sala, libres de columnas (los voladores no lo necesitan) y lejos de la
+## entrada para que nada muerda nada más cruzar la puerta.
+func _critter_spots_auto() -> Dictionary:
+    var rng := RandomNumberGenerator.new()
+    rng.seed = hash("bichos:" + _room_key())
+    var pool: Array = FLOOR_CRITTERS[clampi(current_floor, 0, FLOOR_CRITTERS.size() - 1)]
+    var want: int = clampi(1 + current_floor / 3 + rng.randi_range(0, 1), 1, 3)
+    var lanes: Array = [195.0, 290.0, 425.0, 455.0, 505.0, 530.0]
+    var paths: Array = []
+    var kinds: Array = []
+    var tries: int = 0
+    while paths.size() < want and tries < 40:
+        tries += 1
+        var kind: String = pool[rng.randi() % pool.size()]
+        var y: float = lanes[rng.randi() % lanes.size()]
+        if kind == "murcielago":
+            y = rng.randf_range(200.0, 420.0)
+        var x0: float = rng.randf_range(220.0, 420.0)
+        var x1: float = rng.randf_range(560.0, 840.0)
+        var a := Vector2(x0, y)
+        var b := Vector2(x1, y)
+        var ok: bool = true
+        for q in paths:
+            if absf(float(q[0].y) - y) < 40.0:
+                ok = false
+        if ok and kind != "murcielago":
+            var steps: int = int((x1 - x0) / 12.0)
+            for k in range(steps + 1):
+                if _is_blocked(a.lerp(b, float(k) / float(maxi(1, steps)))):
+                    ok = false
+                    break
+        if not ok:
+            continue
+        paths.append([a, b])
+        kinds.append(kind)
+    return {"paths": paths, "kinds": kinds, "nest": current_floor >= 4}
 
 
 func _update_critters(dt: float) -> void:
@@ -6721,19 +7341,21 @@ func _update_critters(dt: float) -> void:
                 cr["to_b"] = true
             continue
         cr["bite_cd"] = maxf(0.0, float(cr["bite_cd"]) - dt)
+        var info: Dictionary = CRITTER_KINDS.get(str(cr.get("kind", "rata")), CRITTER_KINDS["rata"])
         var pos: Vector2 = cr["pos"]
         var d: float = pos.distance_to(player_pos)
         var target: Vector2
-        var speed: float = CRITTER_SPEED
-        if d < 95.0:
+        var speed: float = float(info["speed"])
+        var smell: float = float(info["smell"])
+        if d < smell:
             target = player_pos # huele la sangre y se lanza
-            speed = CRITTER_CHASE
+            speed = float(info["chase"])
         else:
             target = cr["b"] if bool(cr["to_b"]) else cr["a"]
             if pos.distance_to(target) < 6.0:
                 cr["to_b"] = not bool(cr["to_b"]) # al llegar, da media vuelta
         var nxt: Vector2 = pos.move_toward(target, speed * dt)
-        if not _is_blocked(nxt) or d >= 95.0:
+        if bool(info["fly"]) or not _is_blocked(nxt) or d >= smell:
             if absf(nxt.x - pos.x) > 0.01:
                 cr["flip"] = nxt.x < pos.x
             cr["pos"] = nxt
@@ -6743,9 +7365,9 @@ func _update_critters(dt: float) -> void:
                 _critter_die(cr)
             elif float(cr["bite_cd"]) <= 0.0 and damage_cd <= 0.0:
                 cr["bite_cd"] = 1.0
-                hp -= CRITTER_BITE
+                hp -= float(info["bite"])
                 damage_cd = 0.6
-                fear = minf(100.0, fear + 4.0)
+                fear = minf(100.0, fear + float(info["fear"]))
                 _on_hurt()
 
 
@@ -6766,23 +7388,37 @@ func _critter_die(cr: Dictionary) -> void:
     _sfx("toque", -10.0, 2.2)
 
 
+## Altura de vuelo del murciélago (los demás van por el suelo).
+func _critter_lift(cr: Dictionary, i: int) -> float:
+    if str(cr.get("kind", "rata")) != "murcielago":
+        return 0.0
+    if not bool(cr["alive"]):
+        return maxf(0.0, 26.0 - float(cr["dead_t"]) * 90.0) # cae al morir
+    return 26.0 + 6.0 * sin(elapsed * 5.0 + float(i) * 1.7)
+
+
 func _draw_critter(i: int) -> void:
     var cr: Dictionary = critters[i]
+    var kind: String = str(cr.get("kind", "rata"))
+    var tex: Texture2D = CRITTER_TEX.get(kind, ALIMANA_TEX)
     var at: Vector2 = Vector2(cr["pos"]).round()
     var region: Rect2
     if bool(cr["alive"]):
-        var frame: int = int(elapsed * 10.0 + float(i) * 1.3) % 4
+        var fps: float = 16.0 if kind == "murcielago" else (13.0 if kind == "arana" else 10.0)
+        var frame: int = int(elapsed * fps + float(i) * 1.3) % 4
         region = Rect2(float(frame) * 24.0, 0, 24, 16)
     else:
         var df: int = mini(3, int(float(cr["dead_t"]) * 8.0))
         region = Rect2(float(df) * 24.0, 16, 24, 16)
-    _draw_soft_shadow(at + Vector2(0, 2), 10.0)
+    var lift: float = _critter_lift(cr, i)
+    _draw_soft_shadow(at + Vector2(0, 2), 10.0 - lift * 0.15, 1.0 - lift * 0.015)
+    var y: float = at.y - 28.0 - lift
     if bool(cr["flip"]):
         draw_set_transform(Vector2(at.x, 0), 0.0, Vector2(-1, 1))
-        draw_texture_rect_region(ALIMANA_TEX, Rect2(-24.0, at.y - 28.0, 48, 32), region)
+        draw_texture_rect_region(tex, Rect2(-24.0, y, 48, 32), region)
         draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
     else:
-        draw_texture_rect_region(ALIMANA_TEX, Rect2(at.x - 24.0, at.y - 28.0, 48, 32), region)
+        draw_texture_rect_region(tex, Rect2(at.x - 24.0, y, 48, 32), region)
 
 
 # --- El cuerpo de tu vida anterior -------------------------------------------
@@ -6959,8 +7595,9 @@ func _draw_critter_eyes() -> void:
         var cr: Dictionary = critters[i]
         if not bool(cr["alive"]):
             continue
-        var at: Vector2 = Vector2(cr["pos"]).round()
-        var eye: Vector2 = at + Vector2(-12.0 if bool(cr["flip"]) else 12.0, -12.0)
+        var at: Vector2 = Vector2(cr["pos"]).round() + Vector2(0.0, -_critter_lift(cr, i))
+        var kind: String = str(cr.get("kind", "rata"))
+        var eye: Vector2 = at + (Vector2(0.0, -14.0) if kind == "murcielago" else Vector2((-8.0 if bool(cr["flip"]) else 8.0) if kind == "arana" else (-12.0 if bool(cr["flip"]) else 12.0), -12.0))
         var blink: float = 0.0 if int(elapsed * 1.3 + float(i) * 0.7) % 5 == 0 and fmod(elapsed * 1.3, 1.0) < 0.12 else 1.0
         draw_circle(eye, 5.0, Color(1.0, 0.15, 0.15, 0.12 * blink))
         draw_rect(Rect2(eye - Vector2(1, 1), Vector2(2, 2)), Color(1.0, 0.3, 0.3, 0.9 * blink))
@@ -7591,6 +8228,7 @@ var trinkets: Array = [] # objetos del Mercader que se quedan contigo
 var hand_lost: bool = false
 var bones_used: bool = false
 var shop_sel: int = 0
+var shop_info: bool = false # ficha de la Vigilia abierta antes de pagar
 var merchant_open_t: float = 0.0
 var guides_rewarded: bool = false
 
@@ -7758,6 +8396,7 @@ func _offering_after_talk() -> void:
 func _open_shop() -> void:
     game_mode = "shop"
     shop_sel = 0
+    shop_info = false
     mobile_axis = Vector2.ZERO
     mobile_finger = -1
     _sfx("interfaz", -8.0, 0.8)
@@ -7815,6 +8454,14 @@ func _shop_owned_text(i: int) -> String:
 
 
 func _shop_key(k: int) -> void:
+    if shop_info:
+        if k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_1]:
+            shop_info = false
+            _shop_buy(shop_sel)
+        elif k in [KEY_ESCAPE, KEY_E, KEY_2, KEY_BACKSPACE, _key("interactuar")]:
+            shop_info = false
+            _sfx("interfaz", -12.0, 0.9)
+        return
     if k in [KEY_ESCAPE, KEY_E, _key("interactuar")]:
         _close_shop()
     elif k in [KEY_DOWN, KEY_S, KEY_RIGHT, KEY_D]:
@@ -7822,19 +8469,44 @@ func _shop_key(k: int) -> void:
     elif k in [KEY_UP, KEY_W, KEY_LEFT, KEY_A]:
         shop_sel = (shop_sel + SHOP.size() - 1) % SHOP.size()
     elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
-        _shop_buy(shop_sel)
+        _shop_choose(shop_sel)
     elif k >= KEY_1 and int(k) < int(KEY_1) + SHOP.size():
         shop_sel = int(k) - int(KEY_1)
-        _shop_buy(shop_sel)
+        _shop_choose(shop_sel)
 
 
 func _shop_tap(at: Vector2) -> void:
+    if shop_info:
+        if _vigil_info_button(0).has_point(at):
+            shop_info = false
+            _shop_buy(shop_sel)
+        elif _vigil_info_button(1).has_point(at) or not _vigil_info_rect().has_point(at):
+            shop_info = false
+            _sfx("interfaz", -12.0, 0.9)
+        return
     for i in range(SHOP.size()):
         if _shop_row(i).has_point(at):
             shop_sel = i
-            _shop_buy(i)
+            _shop_choose(i)
             return
     _close_shop()
+
+
+## La llave de la Vigilia no se compra a ciegas: antes se explica qué abre.
+func _shop_choose(i: int) -> void:
+    if str(SHOP[i][0]) == "vigilia" and not _shop_maxed(i):
+        shop_info = true
+        _sfx("interfaz", -8.0, 0.8)
+        return
+    _shop_buy(i)
+
+
+func _vigil_info_rect() -> Rect2:
+    return Rect2(170, 96, 620, 474)
+
+
+func _vigil_info_button(i: int) -> Rect2:
+    return Rect2(230 + float(i) * 260.0, 500, 240, 50)
 
 
 ## Se paga primero: las almas van al cuenco y después él entrega.
@@ -7912,8 +8584,65 @@ func _draw_shop() -> void:
     _text("VIDA MÁXIMA: %d" % int(max_hp), Vector2(360, 540), 14, RED if hand_lost else CREAM)
     var hint: String = _hint("ENTER comprar · ESC salir", "Toca para comprar · fuera para salir", "A comprar · B salir")
     draw_string(font, Vector2(180, 566), hint, HORIZONTAL_ALIGNMENT_RIGHT, 600, 13, CREAM)
+    if shop_info:
+        _draw_vigil_info()
     if toast_left > 0.0:
         _draw_toast()
+
+
+const VIGIL_INFO := [
+    ["QUÉ ES", "Un modo aparte, fuera del descenso: una celda que defiendes fase tras fase, sin final."],
+    ["CÓMO SE JUEGA", "Duermes en el lecho para ganar ecos; con ellos levantas centinelas, campanas y generadores en las losas, y reparas la puerta."],
+    ["EL PELIGRO", "Cada fase trae cazadores más duros que golpean la puerta. Si la puerta cae, la vigilia termina."],
+    ["LA RECOMPENSA", "Cada fase superada te da un objeto al azar que pasa a tu campaña. Cuanto más aguantas, mejor: de pan y fósforos a viales de sangre, incienso, bolsas de almas, mejoras gratis y reliquias de ecos."],
+    ["DÓNDE", "Una vez comprada, entras desde el menú principal, botón VIGILIA. Un tutorial guiado te enseña los primeros pasos."],
+]
+
+
+## Corta un texto en líneas que caben en «width» con la fuente del juego.
+func _wrap_lines(msg: String, width: float, size: int) -> PackedStringArray:
+    var out := PackedStringArray()
+    var line: String = ""
+    for word in msg.split(" ", false):
+        var test: String = word if line == "" else line + " " + word
+        if font.get_string_size(test, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width and line != "":
+            out.append(line)
+            line = word
+        else:
+            line = test
+    if line != "":
+        out.append(line)
+    return out
+
+
+const VIGIL_ICON := preload("res://assets/visual/iconos/lecho.png")
+
+
+func _draw_vigil_info() -> void:
+    _overlay()
+    var r := _vigil_info_rect()
+    _panel(r, Color(0.045, 0.035, 0.06, 0.985), UI_GOLD)
+    draw_texture_rect(VIGIL_ICON, Rect2(r.position + Vector2(22, 18), Vector2(48, 48)), false)
+    _title_text("La Vigilia del Claustro", Vector2(r.position.x + 40.0, r.position.y + 52.0), 34, CREAM, r.size.x - 40.0)
+    _text_outline("Lo que compras con la llave", Vector2(r.position.x, r.position.y + 80.0), 13, Color("#d1747b"), r.size.x)
+    var y: float = r.position.y + 112.0
+    for row in VIGIL_INFO:
+        _text(str(row[0]), Vector2(r.position.x + 34.0, y), 13, UI_GOLD)
+        var lines: int = 0
+        for ln in _wrap_lines(str(row[1]), r.size.x - 220.0, 13):
+            draw_string(font, Vector2(r.position.x + 190.0, y + float(lines) * 18.0), ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, CREAM)
+            lines += 1
+        y += maxf(1.0, float(lines)) * 18.0 + 14.0
+    var price: int = _shop_price(shop_sel)
+    var can: bool = souls >= price
+    for i in range(2):
+        var b := _vigil_info_button(i)
+        var hot: bool = b.has_point(ui_hover)
+        _panel(b, Color("#3a2a18") if i == 0 and can else (Color("#241c2c") if hot else Color("#141018")), UI_GOLD if hot or (i == 0 and can) else UI_EDGE)
+        var label: String = ("[1] COMPRAR · %d ALMAS" % price) if i == 0 else "[2] AHORA NO"
+        draw_string(font, b.position + Vector2(0, 31), label, HORIZONTAL_ALIGNMENT_CENTER, b.size.x, 15, (CREAM if can else RED) if i == 0 else CREAM)
+    if not can:
+        draw_string(font, Vector2(r.position.x, r.end.y - 12.0), "Tienes %d almas: te faltan %d." % [souls, price - souls], HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 12, Color("#b9b29b"))
 
 
 # --- Dibujo ----------------------------------------------------------------------
@@ -9826,6 +10555,11 @@ func _ally_hazards(ally: Dictionary, dt: float) -> void:
     for trap in traps:
         if _trap_t(trap) >= TRAP_UP and _trap_rect(trap).has_point(pos):
             _hurt_ally(ally, TRAP_DAMAGE * 0.6)
+    match _hazard_hit(pos):
+        "llama":
+            _hurt_ally(ally, FLAME_DAMAGE * 0.6)
+        "pendulo":
+            _hurt_ally(ally, PENDULUM_DAMAGE * 0.6)
     # Alimañas: las aplastan antes de que muerdan.
     for cr in critters:
         if bool(cr["alive"]) and pos.distance_to(cr["pos"]) < 26.0:
@@ -9966,26 +10700,53 @@ func _draw_guides_request() -> void:
 ## controles táctiles se pegan a los bordes reales de la pantalla.
 var screen_pad: Vector2 = Vector2.ZERO # margen a cada lado (en píxeles del juego)
 var backdrop_rect: TextureRect
-var backdrop_shade: ColorRect
 
 
 func _setup_fullscreen() -> void:
     var layer := CanvasLayer.new()
     layer.layer = -1 # por debajo de todo
     add_child(layer)
+    # Fondo continuo: el mismo azul oscuro que rodea la sala, apagándose hacia
+    # los bordes. Sin copias ampliadas de la sala: la sala parece flotar en la
+    # oscuridad, de lado a lado, sin «marco» visible.
+    var grad := Gradient.new()
+    grad.set_color(0, Color8(26, 31, 44))
+    grad.set_color(1, Color8(5, 6, 9))
+    var tex := GradientTexture2D.new()
+    tex.gradient = grad
+    tex.fill = GradientTexture2D.FILL_RADIAL
+    tex.fill_from = Vector2(0.5, 0.5)
+    tex.fill_to = Vector2(1.05, 0.5)
+    tex.width = 256
+    tex.height = 256
     backdrop_rect = TextureRect.new()
     backdrop_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    backdrop_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-    backdrop_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    backdrop_rect.stretch_mode = TextureRect.STRETCH_SCALE
     backdrop_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    backdrop_rect.modulate = Color(0.42, 0.4, 0.48)
+    backdrop_rect.texture = tex
     layer.add_child(backdrop_rect)
-    backdrop_shade = ColorRect.new()
-    backdrop_shade.color = Color(0.02, 0.018, 0.03, 0.55)
-    backdrop_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    layer.add_child(backdrop_shade)
     get_viewport().size_changed.connect(_fit_screen)
     _fit_screen()
+
+
+## Márgenes: los muros siguen, pero se apagan hacia el borde de la pantalla.
+func _draw_side_fade() -> void:
+    if screen_pad == Vector2.ZERO:
+        return
+    var dark := Color(0.02, 0.022, 0.032)
+    var steps: int = 14
+    var inner: float = 44.0 # empieza justo en el muro de la sala
+    for side in [-1, 1]:
+        var width: float = screen_pad.x + inner
+        for i in range(steps):
+            var t0: float = float(i) / float(steps)
+            var a: float = lerpf(0.72, 1.0, t0)
+            var seg: float = width / float(steps)
+            var x: float = inner - seg * float(i + 1) if side < 0 else W - inner + seg * float(i)
+            draw_rect(Rect2(x, -screen_pad.y, seg + 1.0, H + screen_pad.y * 2.0), Color(dark.r, dark.g, dark.b, a))
+    if screen_pad.y > 0.0:
+        draw_rect(Rect2(-screen_pad.x, H, W + screen_pad.x * 2.0, screen_pad.y), dark)
+        draw_rect(Rect2(-screen_pad.x, -screen_pad.y, W + screen_pad.x * 2.0, screen_pad.y), dark)
 
 
 ## Toda la pantalla, en coordenadas del juego (incluye los márgenes).
@@ -10003,7 +10764,11 @@ func _fit_screen() -> void:
         name_edit.position = NAME_BOX.position + screen_pad
     if mobile_finger < 0:
         joy_center = _joy_home()
-    for r in [backdrop_rect, backdrop_shade, post_rect, trans_rect]:
+    if post_rect != null and post_rect.material is ShaderMaterial:
+        var pm := post_rect.material as ShaderMaterial
+        pm.set_shader_parameter("canvas_size", view)
+        pm.set_shader_parameter("arena", Vector4(40.0 + screen_pad.x, 122.0 + screen_pad.y, 920.0 + screen_pad.x, 580.0 + screen_pad.y))
+    for r in [backdrop_rect, post_rect, trans_rect]:
         if r != null:
             (r as Control).position = Vector2.ZERO
             (r as Control).size = view
@@ -10012,12 +10777,45 @@ func _fit_screen() -> void:
 
 
 func _update_backdrop() -> void:
-    if backdrop_rect == null:
+    _extend_room_tiles()
+
+
+## Alarga los muros exteriores de la sala (sus tiles de borde) hasta cubrir los
+## márgenes de la pantalla: la sala continúa de lado a lado, sin recuadro.
+func _extend_room_tiles() -> void:
+    if room_node == null or screen_pad == Vector2.ZERO:
         return
-    var scene_i: int = int(_room().get("scene", 0)) if not FLOORS.is_empty() else 0
-    var path: String = "res://assets/visual/rooms/room_%d.png" % scene_i
-    if ResourceLoader.exists(path):
-        backdrop_rect.texture = load(path)
+    var tm := room_node.get_node_or_null("Arquitectura") as TileMapLayer
+    if tm == null:
+        return
+    var used: Rect2i = tm.get_used_rect()
+    if used.size.x <= 0:
+        return
+    var tile: float = 32.0
+    var extra_x: int = int(ceil(screen_pad.x / tile)) + 2
+    var extra_y: int = int(ceil(screen_pad.y / tile)) + 2
+    # Ya alargada lo suficiente (al cambiar el tamaño de la ventana solo se
+    # añade lo que falta).
+    var done: Vector2i = tm.get_meta("extendida", Vector2i(-1, -1))
+    if done.x >= extra_x and done.y >= extra_y:
+        return
+    tm.set_meta("extendida", Vector2i(extra_x, extra_y))
+    var x0: int = used.position.x
+    var x1: int = used.end.x - 1
+    var y0: int = used.position.y
+    var y1: int = used.end.y - 1
+    for y in range(y0, y1 + 1):
+        var left := Vector2i(x0, y)
+        var right := Vector2i(x1, y)
+        for k in range(1, extra_x + 1):
+            tm.set_cell(Vector2i(x0 - k, y), tm.get_cell_source_id(left), tm.get_cell_atlas_coords(left), tm.get_cell_alternative_tile(left))
+            tm.set_cell(Vector2i(x1 + k, y), tm.get_cell_source_id(right), tm.get_cell_atlas_coords(right), tm.get_cell_alternative_tile(right))
+    for x in range(x0 - extra_x, x1 + extra_x + 1):
+        var top := Vector2i(clampi(x, x0, x1), y0)
+        var bottom := Vector2i(clampi(x, x0, x1), y1)
+        for k in range(0, extra_y + 1):
+            tm.set_cell(Vector2i(x, y0 - k), tm.get_cell_source_id(top), tm.get_cell_atlas_coords(top), tm.get_cell_alternative_tile(top))
+            tm.set_cell(Vector2i(x, y1 + k), tm.get_cell_source_id(bottom), tm.get_cell_atlas_coords(bottom), tm.get_cell_alternative_tile(bottom))
 
 
 ## Botones táctiles: anclados a la esquina inferior derecha real de la pantalla.
