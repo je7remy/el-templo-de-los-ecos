@@ -7,10 +7,9 @@ on:
       - project.godot
       - export_presets.cfg
       - .github/workflows/android-alpha.yml
-      - scripts/main.gd
-      - scripts/defense.gd
-      - scenes/defense.tscn
-      - docs/releases/v0.4.2-alpha.md
+      - scripts/**
+      - scenes/**
+      - docs/releases/v0.5.0-alpha.md
       - assets/branding/**
       - tests/balance_test.gd
       - tests/visual_asset_test.gd
@@ -145,7 +144,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" \
             | tee "$RUNNER_TEMP/android-badging.txt"
           grep -Fq "package: name='org.je7remy.temploecos'" "$RUNNER_TEMP/android-badging.txt"
-          grep -Fq "versionName='0.4.2-alpha'" "$RUNNER_TEMP/android-badging.txt"
+          grep -Fq "versionName='0.5.0-alpha'" "$RUNNER_TEMP/android-badging.txt"
           ls -lh "$APK"
 
       - name: Guardar APK como artefacto
@@ -156,9 +155,24 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Confirmar artefacto de CI sin modificar releases existentes
+      - name: Publicar prerelease con el APK (solo si esa version no existe)
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "APK generado y conservado como artefacto de GitHub Actions."
-          echo "El release v0.4.2-alpha publicado es inmutable."
-          echo "Publicar una version nueva requiere etiqueta y notas nuevas."
+          VERSION="$(sed -n 's/^version\/name="\(.*\)"$/\1/p' export_presets.cfg)"
+          TAG="v$VERSION"
+          NOTES="docs/releases/$TAG.md"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "El release $TAG ya existe y es inmutable: no se toca."
+            exit 0
+          fi
+          test -s "$NOTES"
+          APK="build/ElTemploDeLosEcos-$TAG-Android.apk"
+          cp build/ElTemploDeLosEcos-Android-Debug.apk "$APK"
+          gh release create "$TAG" "$APK" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "El Templo de los Ecos $TAG" \
+            --notes-file "$NOTES"
+          echo "Publicado $TAG con $APK"

@@ -1135,6 +1135,51 @@ func _run_checks() -> void:
     game.set("dash_cd", 0.0)
     print("OK: pisos por orden, Resonancia y esquivar ajustados.")
 
+    # Cofres: se abren una vez, dan un objeto y una nota; se guardan.
+    game.set("current_floor", 0)
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    if not bool(game.call("_chest_here")):
+        _fail("La sala I-2 no tiene cofre.")
+        return
+    game.set("bag", {})
+    game.set("trinkets", [])
+    game.set("has_pulse", false)
+    game.set("player_pos", Vector2(game.call("_chest_pos")) + Vector2(0, 40))
+    game.call("_interact")
+    var opened: Dictionary = game.get("chests_opened")
+    if not opened.has("0:1"):
+        _fail("El cofre no se abre.")
+        return
+    if (game.get("bag") as Dictionary).is_empty() and (game.get("trinkets") as Array).is_empty() and not bool(game.get("has_pulse")):
+        _fail("El cofre no da ningún objeto.")
+        return
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    var bag_before: Dictionary = (game.get("bag") as Dictionary).duplicate()
+    game.call("_interact")
+    if (game.get("bag") as Dictionary) != bag_before or (game.get("chests_opened") as Dictionary).size() != 1:
+        _fail("El cofre se puede abrir dos veces.")
+        return
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    # Mapa grande: tocar el minimapa lo abre; dos pestañas; se cierra.
+    game.call("_mobile_tap", (game.get("MINIMAP_RECT") as Rect2).get_center())
+    if str(game.get("game_mode")) != "map":
+        _fail("Tocar el minimapa no abre el mapa grande.")
+        return
+    game.call("_map_key", KEY_TAB)
+    if int(game.get("map_tab")) != 1:
+        _fail("El mapa no cambia a la pestaña del descenso.")
+        return
+    game.call("_map_key", KEY_M)
+    if str(game.get("game_mode")) != "play":
+        _fail("El mapa no se cierra.")
+        return
+    print("OK: cofres con notas y mapa grande con el descenso.")
+
     var Ajustes = load("res://scripts/ajustes.gd")
     # Borrar perfil: todo el progreso fuera y vuelta a empezar (intro, tutorial, personaje).
     game.set("player_name", "SELENE")
@@ -1147,7 +1192,7 @@ func _run_checks() -> void:
     Ajustes.poner("tutorial_hecho", true)
     Ajustes.poner("intro_vista", true)
     game.call("_wipe_everything")
-    if str(game.get("player_name")) != "" or int(game.get("max_floor")) != 0 or int(game.get("souls")) != 0:
+    if str(game.get("player_name")) != "" or int(game.get("max_floor")) != 0 or int(game.get("souls")) != 0 or not (game.get("chests_opened") as Dictionary).is_empty():
         _fail("Borrar el perfil no vacía el progreso.")
         return
     if FileAccess.file_exists("user://prueba_progreso.json") or FileAccess.file_exists("user://prueba_vigilia.json"):
