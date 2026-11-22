@@ -71,6 +71,50 @@ func _run() -> void:
     if bool(game.get("torch_on")) == prev:
         _fail("No funciona el boton tactil de la linterna.")
         return
+    # Un toque llega como ScreenTouch y además como clic emulado: solo debe contar una vez.
+    game.set("game_mode", "play")
+    var t := InputEventScreenTouch.new()
+    t.index = 3
+    t.pressed = true
+    t.position = Vector2(150, 50) # retrato: abre el perfil
+    game._input(t)
+    var m := InputEventMouseButton.new()
+    m.device = InputEvent.DEVICE_ID_EMULATION
+    m.button_index = MOUSE_BUTTON_LEFT
+    m.pressed = true
+    m.position = Vector2(150, 50)
+    game._input(m)
+    if str(game.get("game_mode")) != "inventory":
+        _fail("Tocar el retrato abre y cierra el perfil a la vez (toque doble).")
+        return
+    game.set("game_mode", "play")
+    t.position = (game.get("MINIMAP_RECT") as Rect2).get_center()
+    m.position = t.position
+    game._input(t)
+    game._input(m)
+    if str(game.get("game_mode")) != "map":
+        _fail("Tocar el minimapa abre y cierra el mapa a la vez (toque doble).")
+        return
+    game.set("game_mode", "play")
+    # Teclado en pantalla: cada letra una sola vez, y el campo nativo del móvil filtra igual.
+    game.set("touch_enabled", true)
+    game.call("_start_creation", "title")
+    game.set("create_buf", "")
+    var keys: Array = game.call("_create_name_keys")
+    var key_a: Rect2 = keys[0][0]
+    t.position = key_a.get_center()
+    m.position = t.position
+    game._input(t)
+    game._input(m)
+    if (game.get("create_buf") as String).length() != 1:
+        _fail("El teclado en pantalla escribe la letra dos veces.")
+        return
+    game.call("_on_name_edit_changed", "ana1  b")
+    if str(game.get("create_buf")) != "ANA B":
+        _fail("El teclado del móvil no filtra el nombre como el del juego.")
+        return
+    game.call("_create_back")
+    game.set("touch_enabled", false)
     game.free()
     game = null
     a = null

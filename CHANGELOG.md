@@ -1,13 +1,19 @@
 # Historial de versiones
 
-## v0.5.0-alpha — 2026-11-22 · Cofres, mapa grande, mapa del descenso y APK al día
+## v0.5.2-alpha — 2026-11-22 · Pantalla completa real y arreglos táctiles
 
-- **Mapa grande:** se abre tocando o haciendo clic en el minimapa, con M o con SELECT del mando. Tiene dos pestañas:
-  - **Este piso:** sala por sala, con nombre, misión (✓ si está hecha), cofre y dónde caíste. Las salas sin visitar salen como «???».
-  - **Descenso:** un pozo que se dibuja a medida que bajas. Muestra cada piso alcanzado, si está superado, tus caídas y los cofres abiertos, y abajo «PISO ???». Al pie, la última verdad descubierta.
-- **Cofres** en 12 salas, al menos uno por piso. Cada uno guarda un objeto del botín (mejor cuanto más hondo) y una nota de quien lo dejó. Se abren una sola vez por perfil y se guardan. Borrar el perfil también los vacía.
-- **Android al día:** versión 0.5.0-alpha (código 7). Al fusionar en `main`, el CI compila el APK y publica la prerelease `v0.5.0-alpha` con él. Si esa versión ya existe, no la toca. Hay que desinstalar la versión anterior del teléfono antes de instalar la nueva.
-- Mando: SELECT abre el mapa; el perfil sigue en LB.
+- **Pantalla completa de verdad, sin bordes negros**, en cualquier pantalla: teléfono 20:9, tableta 4:3 o portátil 16:9.
+  - La ventana usa `expand` y el juego mide la pantalla al arrancar y cada vez que cambia de tamaño.
+  - La zona de juego (960×640) queda centrada, sin deformar el pixel art. Lo que sobra a los lados se rellena con la propia sala, ampliada y en penumbra.
+  - Los controles táctiles se pegan a los bordes reales: el joystick a la esquina inferior izquierda, los botones a la inferior derecha.
+  - Lo mismo en la Vigilia.
+- **Toques que contaban dos veces (móvil).** Cada toque llegaba como toque y como clic emulado. Ahora se ignora el clic emulado. Eso arregla:
+  - el perfil, el mapa y el inventario, que se abrían y cerraban con el mismo toque;
+  - el teclado del nombre, que escribía y borraba dos letras;
+  - en la Vigilia, los botones que se activaban dos veces (por ejemplo, dormir y levantarse a la vez).
+- **Teclado del móvil para el nombre.** En pantallas táctiles, al crear el personaje se abre el teclado del teléfono; también al tocar el recuadro del nombre. Lo escrito pasa por el mismo filtro que el teclado del juego (mayúsculas y letras, hasta el máximo), y el teclado en pantalla sigue disponible.
+- El subtítulo del menú ya no da pistas («Despiertas a oscuras. Nadie te dice por qué.»).
+- Pruebas: un toque con clic emulado abre el perfil o el mapa una sola vez y escribe una sola letra, y el campo del teléfono filtra el nombre.
 
 ## v0.5.1-alpha — 2026-11-22 · Experiencia de juego: Vigilia por llave, puntos de control y PNJ vivos
 
@@ -26,6 +32,15 @@
   - Antes de entrar a un piso: «RECOMPENSA AL SUPERAR ESTE PISO: ECO «…» (habilidad pasiva)».
   - En el resumen: «POR SUPERAR EL PISO … GANAS EL ECO «…»».
   - Al entrar al siguiente piso se recuerda qué ganaste en el anterior.
+
+## v0.5.0-alpha — 2026-11-22 · Cofres, mapa grande, mapa del descenso y APK al día
+
+- **Mapa grande:** se abre tocando o haciendo clic en el minimapa, con M o con SELECT del mando. Tiene dos pestañas:
+  - **Este piso:** sala por sala, con nombre, misión (✓ si está hecha), cofre y dónde caíste. Las salas sin visitar salen como «???».
+  - **Descenso:** un pozo que se dibuja a medida que bajas. Muestra cada piso alcanzado, si está superado, tus caídas y los cofres abiertos, y abajo «PISO ???». Al pie, la última verdad descubierta.
+- **Cofres** en 12 salas, al menos uno por piso. Cada uno guarda un objeto del botín (mejor cuanto más hondo) y una nota de quien lo dejó. Se abren una sola vez por perfil y se guardan. Borrar el perfil también los vacía.
+- **Android al día:** versión 0.5.0-alpha (código 7). Al fusionar en `main`, el CI compila el APK y publica la prerelease `v0.5.0-alpha` con él. Si esa versión ya existe, no la toca. Hay que desinstalar la versión anterior del teléfono antes de instalar la nueva.
+- Mando: SELECT abre el mapa; el perfil sigue en LB.
 
 ## En `main` (sin nuevo release) — 2026-11-22 · El Peregrino ya no se delata por un golpe accidental
 
