@@ -1,5 +1,27 @@
 # Historial de versiones
 
+## v0.5.3-alpha — 2026-11-22 · Arte de las salas, luz, más alimañas y trampas nuevas
+
+- **Pantalla completa sin rarezas.** Se quitó la copia ampliada de la sala en los lados. Ahora los muros de la propia sala siguen hasta el borde de la pantalla y se apagan hacia la oscuridad, sobre un fondo continuo. La sala parece flotar de lado a lado, sin marco. Igual en la Vigilia: el fondo y las barras llegan de borde a borde.
+- **Salas amuebladas** con piezas de Knowledge Temple que antes no se usaban: sarcófagos, mesas de lectura (con libros caídos alrededor), altares, estatuas encapuchadas, columnas rotas y braseros animados.
+  - Cada piso tiene su estilo: libros en los Peregrinos, sarcófagos y altares en la Cacería, braseros en el Laberinto, etc.
+  - Siempre las mismas en la misma sala, en espejo, con sombra y una base que no se atraviesa.
+  - Nunca tapan almas, objetos, cofres, trampas, PNJ ni la puerta: el juego comprueba al colocarlas que desde la entrada se llega a todo.
+- **Luz de motor grande.** Una capa de luz aditiva (como el *bloom*) hace que el fuego, las almas, la antorcha, las bolas de fuego y la salida abierta brillen sobre la penumbra. Los braseros sueltan chispas; las almas, motas azules.
+- **Estatuas completas.** A las estatuas de arquero les faltaba el fuste entre el capitel y el pedestal; ahora tienen su columna de piedra (`herramientas/completar_estatuas.py`).
+- **Más alimañas, en todos los pisos** (salvo el tutorial y el puesto del Mercader):
+  - **Murciélagos** (nuevo): vuelan por encima de columnas y muros, rápidos pero de mordisco flojo.
+  - **Arañas** (nuevo): lentas al patrullar, pero huelen desde lejos, saltan y su mordisco da más miedo.
+  - Las **ratas** siguen igual. Cada piso mezcla las suyas; desde el Piso V salen de nidos.
+  - Sprites originales en `herramientas/generar_bichos.py` (la rata no se tocó).
+- **Trampas nuevas.** Avisan antes de herir, el esquive las cruza y también hieren a los aliados.
+  - **Llamaradas:** rejillas que se ponen al rojo y escupen una columna de fuego (III-4, VII-4, IX-2).
+  - **Péndulos:** una cuchilla colgada de una cadena barre la sala de lado a lado y te empuja. Su surco en el suelo marca por dónde pasa (II-4, IV-4, VII-4, IX-4).
+- **Más entidades:** un Hechicero en II-4 y IX-4 y un Ghoul en IV-4 y VIII-4, salas que antes estaban vacías.
+- **La llave de la Vigilia, explicada.** Al elegirla en el puesto del Mercader se abre una ficha: qué es el modo, cómo se juega, qué lo hace perder y qué da sobrevivir (un objeto para la campaña por cada fase superada, mejor cuanto más aguantas). Solo se paga al confirmar.
+- Pruebas: mobiliario en las salas, llamaradas que queman salvo esquivando, péndulo que hiere, los tres tipos de alimaña presentes y la ficha de la Vigilia antes de cobrar.
+- Versión Android 0.5.3-alpha (código 10).
+
 ## v0.5.2-alpha — 2026-11-22 · Pantalla completa real y arreglos táctiles
 
 - **Pantalla completa de verdad, sin bordes negros**, en cualquier pantalla: teléfono 20:9, tableta 4:3 o portátil 16:9.

@@ -37,6 +37,7 @@
 
     Tus aliados eligen bando según tu marca: con bendición luchan contigo, con maldición le ayudan tirándote piedras, y sin marca se apartan.
 - **Enemigos más fuertes cuanto más abajo**: las entidades tienen más vida y daño en los pisos profundos (+12 % por piso).
+- **Arte y luz**: cada sala se amuebla con piezas de Knowledge Temple (sarcófagos, mesas de lectura con libros caídos, altares, estatuas, columnas rotas y braseros animados) según el estilo de su piso, siempre en espejo y sin tapar el paso. Encima va una capa de luz aditiva: el fuego, las almas y la antorcha brillan y sueltan chispas sobre la penumbra.
 - **Niveles**: ganas experiencia con almas, alimañas, entidades desterradas, misiones y pisos. Cada nivel sube la vida máxima (+6), el daño (+4 %) y la recarga del vigor (+3 %) y te cura. El nivel se ve en el retrato del HUD y en el perfil.
 - **Objetos y mejoras**: el perfil tiene una pestaña OBJETOS con lo equipado (brazalete, amuleto, máscara) y la bolsa (pan), que se usa desde ahí. Comprar otra vez el brazalete o el amuleto los sube de nivel (hasta 5), y la Resonancia se mejora con almas en el altar o el puesto. En el puesto se ve cuánto llevas de cada cosa y el número salta al comprar.
 - **Vida extra**: curarte con la vida llena suma hasta +50 por encima del máximo (franja dorada en la barra).
@@ -45,9 +46,9 @@
 - **Vigilia renovada** (se desbloquea comprando su llave al Mercader del Piso VI por 500 almas): defensa de una celda vista en planta, con rejilla, lecho, puerta y pasillo (estilo de defensa de cuarto, con arte propio). **Fases sin fin**, cada una más dura: más vida, velocidad y daño, más entidades a la vez y un **jefe cada 5 fases**. Cada fase superada da un **objeto al azar para la campaña** (pan, fósforos, vial de sangre, incienso, bolsa de almas, mejoras del brazalete, el amuleto o la Resonancia, reliquia de experiencia); cuanto más alta la fase, mejor el botín.
 - **Menú más simple**: JUGAR abre los pisos (el I empieza desde el principio) y salir del juego pide confirmación.
 - **Pensado para móvil**: joystick flotante, botón de ACCIÓN que cambia según lo que tengas cerca, botones grandes al alcance del pulgar y textos de ayuda que hablan de toques, no de teclas.
-- **Herencia del primer juego**: alimañas que mueren de un esquive y salen de nidos, tu cuerpo de la vida anterior en la sala donde caíste, transiciones con máscara, resumen al superar cada piso, sonidos de Kenney con variantes, cursor propio y créditos.
+- **Herencia del primer juego**: alimañas (ratas, murciélagos que vuelan por encima de las columnas y arañas que saltan desde lejos) que mueren de un esquive o un golpe y salen de nidos, tu cuerpo de la vida anterior en la sala donde caíste, transiciones con máscara, resumen al superar cada piso, sonidos de Kenney con variantes, cursor propio y créditos.
 - **Dirección de arte gótica**: rótulos con tipografía gótica de píxel, interfaz oscura con dorado envejecido, bloom, niebla, haces de luz, partículas y fundidos. **Menú de pisos** para volver a cualquier piso alcanzado.
-- **Diálogos, misiones y trampas**: conversaciones que avanzan con clic, misiones con premio en las salas con monstruo, pinchos con aviso e inscripciones de lore. La vida se recupera poco a poco y esquivar funciona aunque estés quieto. Pantalla de habilidades con la tecla K.
+- **Diálogos, misiones y trampas**: conversaciones que avanzan con clic, misiones con premio en las salas con monstruo, trampas con aviso (pinchos, llamaradas que brotan del suelo y péndulos con cuchilla que barren la sala; el esquive las cruza) e inscripciones de lore. La vida se recupera poco a poco y esquivar funciona aunque estés quieto. Pantalla de habilidades con la tecla K.
 - **Morir no cuesta progreso (temporal, modo de pruebas)**: te levantas en la entrada de la misma sala con almas, objetos, habilidades y Ecos. Se desactiva con `MUERTE_SIN_PERDIDA` en `scripts/main.gd`.
 - **Ecos**: al superar cada piso ganas una pasiva que se acumula (Respiración contenida, Nuca fría, Reflejos, Piel curtida, Paso ligero, Huesos firmes, Mente serena, Memoria de eco y Fuerza acumulada). Se conservan si tu alma regresa y se pierden si es absorbida.
 - **Tres entidades con reglas que se pueden aprender**, con arte propio en vista cenital y cuatro direcciones:
@@ -157,7 +158,7 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.5.2-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.2-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
+Puedes descargar el [APK de prueba de v0.5.3-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.3-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
 
 La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
@@ -296,4 +297,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.2-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.3-alpha** (se publica al fusionar esta versión en `main`).

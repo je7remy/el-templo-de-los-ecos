@@ -1221,9 +1221,16 @@ func _run_checks() -> void:
     if bool(game.get("vigil_unlocked")):
         _fail("La llave de la Vigilia se compra sin almas suficientes.")
         return
+    # Elegirla primero explica el modo; solo se paga al confirmar.
     game.set("souls", 900)
-    game.call("_shop_buy", vk)
-    if not bool(game.get("vigil_unlocked")) or int(game.get("souls")) > 400:
+    game.set("game_mode", "shop")
+    game.set("shop_sel", vk)
+    game.call("_shop_choose", vk)
+    if not bool(game.get("shop_info")) or bool(game.get("vigil_unlocked")):
+        _fail("La llave de la Vigilia se cobra sin explicar antes el modo.")
+        return
+    game.call("_shop_key", KEY_1)
+    if not bool(game.get("vigil_unlocked")) or int(game.get("souls")) > 400 or bool(game.get("shop_info")):
         _fail("Comprar la llave no abre la Vigilia.")
         return
     # Las almas se conservan entre partidas.
@@ -1287,6 +1294,67 @@ func _run_checks() -> void:
     game.set("allies", [])
     game.set("allies_here", false)
     print("OK: Vigilia por llave, almas guardadas, antorcha con la bolsa, puntos de control y PNJ con vida propia.")
+
+    # Arte y peligros nuevos: mobiliario del templo, llamaradas, péndulos y alimañas variadas.
+    game.set("game_mode", "play")
+    game.set("current_floor", 2)
+    game.set("current_room", 3)
+    game.call("_enter_room")
+    var kprops: int = 0
+    for prop in game.get("room_props"):
+        if (prop as Dictionary).has("kkey"):
+            kprops += 1
+    if kprops < 2:
+        _fail("Las salas no reciben mobiliario del templo.")
+        return
+    var vents: Array = game.get("flame_vents")
+    if vents.size() != 4:
+        _fail("Las llamaradas no se cargan.")
+        return
+    game.set("damage_cd", 0.0)
+    game.set("dash_left", 0.0)
+    game.set("hp", 100.0)
+    game.set("room_elapsed", 3.5 - float(vents[0]["phase"]))
+    game.set("player_pos", Vector2(vents[0]["pos"]))
+    game.call("_update_hazards", 0.016)
+    if float(game.get("hp")) >= 100.0:
+        _fail("La llamarada encendida no quema.")
+        return
+    game.set("damage_cd", 0.0)
+    game.set("dash_left", 0.1)
+    game.set("hp", 100.0)
+    game.call("_update_hazards", 0.016)
+    if float(game.get("hp")) < 100.0:
+        _fail("Esquivar no cruza la llamarada.")
+        return
+    game.set("dash_left", 0.0)
+    game.set("current_floor", 1)
+    game.set("current_room", 3)
+    game.call("_enter_room")
+    if (game.get("pendulums") as Array).is_empty() or str(game.call("_enemy_kind")) != "hechicero":
+        _fail("El umbral del tercer piso no tiene su péndulo ni su Hechicero.")
+        return
+    game.set("damage_cd", 0.0)
+    game.set("hp", 100.0)
+    game.set("player_pos", game.call("_pendulum_blade", (game.get("pendulums") as Array)[0]))
+    game.call("_update_hazards", 0.016)
+    if float(game.get("hp")) >= 100.0:
+        _fail("La cuchilla del péndulo no hiere.")
+        return
+    var kinds := {}
+    for f in range(10):
+        for r in range(4):
+            if f >= (game.get("FLOORS") as Array).size() or r >= (game.get("FLOORS")[f]["rooms"] as Array).size():
+                continue
+            game.set("current_floor", f)
+            game.set("current_room", r)
+            game.call("_enter_room")
+            for cr in game.get("critters"):
+                kinds[str(cr.get("kind", "rata"))] = true
+    if not (kinds.has("rata") and kinds.has("murcielago") and kinds.has("arana")):
+        _fail("Faltan alimañas: %s" % str(kinds.keys()))
+        return
+    print("OK: mobiliario del templo, llamaradas, péndulos, murciélagos y arañas.")
 
     var Ajustes = load("res://scripts/ajustes.gd")
     # Borrar perfil: todo el progreso fuera y vuelta a empezar (intro, tutorial, personaje).

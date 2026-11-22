@@ -1143,7 +1143,8 @@ func _defense_path() -> String:
 
 # ------------------------------------------------------------ DIBUJO
 func _draw() -> void:
-    draw_rect(Rect2(0, 0, W, H), Color("#07060a"))
+    # De lado a lado: el fondo de la celda ocupa toda la pantalla, sin recuadro.
+    draw_rect(Rect2(-screen_pad.x, -screen_pad.y, W + screen_pad.x * 2.0, H + screen_pad.y * 2.0), Color("#07060a"))
     _draw_room()
     _draw_corridor()
     _draw_door()
@@ -1354,12 +1355,12 @@ func _draw_shots() -> void:
 func _draw_vignette() -> void:
     for k in range(6):
         var g: float = float(k) * 8.0
-        draw_rect(Rect2(g, g, W - g * 2.0, H - g * 2.0), Color(0, 0, 0, 0.06), false, 8.0)
+        draw_rect(Rect2(g - screen_pad.x, g - screen_pad.y, W + screen_pad.x * 2.0 - g * 2.0, H + screen_pad.y * 2.0 - g * 2.0), Color(0, 0, 0, 0.06), false, 8.0)
 
 
 func _draw_top_bar() -> void:
-    draw_rect(Rect2(0, 0, W, 64), Color(0.02, 0.018, 0.03, 0.95))
-    draw_rect(Rect2(0, 62, W, 2), GOLD)
+    draw_rect(Rect2(-screen_pad.x, -screen_pad.y, W + screen_pad.x * 2.0, 64 + screen_pad.y), Color(0.02, 0.018, 0.03, 0.95))
+    draw_rect(Rect2(-screen_pad.x, 62, W + screen_pad.x * 2.0, 2), GOLD)
     _title("Vigilia", Vector2(16, 44), 36, CREAM, -1.0)
     var badge := Rect2(150, 12, 110, 40)
     _panel_box(badge, Color("#4a1a24") if _is_boss_stage() else VIOLET, GOLD_HI)
@@ -1378,8 +1379,8 @@ func _draw_top_bar() -> void:
 
 ## Abajo, solo lo que se usa a menudo; el resto se toca en la celda.
 func _draw_bottom_bar() -> void:
-    draw_rect(Rect2(0, 504, W, H - 504), Color(0.02, 0.018, 0.03, 0.95))
-    draw_rect(Rect2(0, 504, W, 2), GOLD)
+    draw_rect(Rect2(-screen_pad.x, 504, W + screen_pad.x * 2.0, H - 504 + screen_pad.y), Color(0.02, 0.018, 0.03, 0.95))
+    draw_rect(Rect2(-screen_pad.x, 504, W + screen_pad.x * 2.0, 2), GOLD)
     var items := [
         ["levantar" if sleeping else "descansar", "LEVANTARSE" if sleeping else "DORMIR", "ESPACIO / Y", true],
         ["reparar", "REPARAR PUERTA", "%d ecos" % _repair_cost(), income >= float(_repair_cost()) and gate_hp < gate_max],
@@ -1566,14 +1567,22 @@ func _setup_fullscreen() -> void:
     var layer := CanvasLayer.new()
     layer.layer = -1
     add_child(layer)
+    # Mismo fondo que la campaña: penumbra continua, sin copias ampliadas.
+    var grad := Gradient.new()
+    grad.set_color(0, Color8(22, 18, 28))
+    grad.set_color(1, Color8(4, 3, 7))
+    var tex := GradientTexture2D.new()
+    tex.gradient = grad
+    tex.fill = GradientTexture2D.FILL_RADIAL
+    tex.fill_from = Vector2(0.5, 0.5)
+    tex.fill_to = Vector2(1.05, 0.5)
+    tex.width = 256
+    tex.height = 256
     backdrop_rect = TextureRect.new()
     backdrop_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    backdrop_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-    backdrop_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    backdrop_rect.stretch_mode = TextureRect.STRETCH_SCALE
     backdrop_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    backdrop_rect.modulate = Color(0.3, 0.28, 0.36)
-    if ResourceLoader.exists("res://assets/visual/rooms/vigilia.png"):
-        backdrop_rect.texture = load("res://assets/visual/rooms/vigilia.png")
+    backdrop_rect.texture = tex
     layer.add_child(backdrop_rect)
     get_viewport().size_changed.connect(_fit_screen)
     _fit_screen()
