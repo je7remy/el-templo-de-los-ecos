@@ -1,5 +1,17 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-22 · Borrar perfil de verdad, pisos en orden y ajuste de Resonancia y esquivar
+
+- **Borrar el perfil** (Configuración > Privacidad) borra todo: el progreso de la campaña, los récords de la Vigilia y los ajustes. El juego se reinicia desde cero en este orden:
+  1. intro;
+  2. **tutorial**;
+  3. **creación del personaje** (nombre y género);
+  4. Piso I.
+- **Primera partida en ese orden:** intro, tutorial, personaje y Piso I (antes se creaba el personaje antes del tutorial).
+- **Pisos en orden:** solo el Piso I está abierto al empezar; superar un piso desbloquea el siguiente. No se puede entrar en un piso bloqueado.
+- **Resonancia −90 % de daño** (era demasiado fuerte). Las mejoras del altar o el puesto y los niveles la siguen subiendo. El aturdimiento no cambia.
+- **Esquivar tiene recarga propia, un 50 % más larga** que lo que tarda la barra en recuperar su coste (unos 2,6 s al principio). La acortan Reflejos, el amuleto y los niveles. El icono muestra la recarga.
+
 ## En `main` (sin nuevo release) — 2026-11-22 · Revisión de la historia y sin pistas fáciles
 
 - **Sin referencias al templo dentro del juego.** Ningún texto lo nombra: el jugador descubre por sí mismo dónde está. Solo queda el título del juego, que es la marca.

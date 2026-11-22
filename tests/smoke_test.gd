@@ -1081,6 +1081,80 @@ func _run_checks() -> void:
     game.set("game_mode", "play")
     print("OK: habilidades por páginas, sin salirse del cuadro.")
 
+    # Pisos: se desbloquean uno a uno al superar el anterior.
+    game.set("ecos", [])
+    game.set("max_floor", 0)
+    if int(game.call("_floors_unlocked")) != 0:
+        _fail("Sin progreso hay pisos desbloqueados además del I.")
+        return
+    game.set("current_floor", 0)
+    game.set("current_room", 0)
+    game.call("_finish_floor")
+    game.call("_after_floor_summary")
+    if int(game.call("_floors_unlocked")) != 1:
+        _fail("Superar el Piso I no desbloquea solo el II.")
+        return
+    game.call("_choose_floor", 3)
+    if int(game.get("current_floor")) == 3:
+        _fail("Se puede entrar en un piso bloqueado.")
+        return
+    # Resonancia -90 % y esquivar con recarga propia (+50 %).
+    game.set("ability_level", 0)
+    game.set("player_level", 1)
+    if float(game.call("_pulse_damage")) > 3.5:
+        _fail("La Resonancia sigue haciendo demasiado daño.")
+        return
+    game.set("game_mode", "play")
+    game.set("ecos", [])
+    game.set("dash_cd", 0.0)
+    game.set("stamina", 100.0)
+    game.call("_start_dash")
+    var cd: float = float(game.get("dash_cd"))
+    if absf(cd - 1.5 * float(game.call("_dash_cost")) / float(game.call("_stamina_regen"))) > 0.01:
+        _fail("Esquivar no tiene su recarga del 50 % más.")
+        return
+    game.set("dash_left", 0.0)
+    game.call("_start_dash")
+    if float(game.get("dash_left")) > 0.0:
+        _fail("Se puede esquivar otra vez durante la recarga.")
+        return
+    game.set("dash_cd", 0.0)
+    print("OK: pisos por orden, Resonancia y esquivar ajustados.")
+
+    var Ajustes = load("res://scripts/ajustes.gd")
+    # Borrar perfil: todo el progreso fuera y vuelta a empezar (intro, tutorial, personaje).
+    game.set("player_name", "SELENE")
+    game.set("max_floor", 4)
+    game.set("souls", 99)
+    game.call("_save_progress")
+    var vig := FileAccess.open("user://prueba_vigilia.json", FileAccess.WRITE)
+    vig.store_string("{\"best_stage\": 7}")
+    vig = null
+    Ajustes.poner("tutorial_hecho", true)
+    Ajustes.poner("intro_vista", true)
+    game.call("_wipe_everything")
+    if str(game.get("player_name")) != "" or int(game.get("max_floor")) != 0 or int(game.get("souls")) != 0:
+        _fail("Borrar el perfil no vacía el progreso.")
+        return
+    if FileAccess.file_exists("user://prueba_progreso.json") or FileAccess.file_exists("user://prueba_vigilia.json"):
+        _fail("Borrar el perfil deja archivos de progreso.")
+        return
+    if bool(Ajustes.obtener("tutorial_hecho")) or bool(Ajustes.obtener("intro_vista")):
+        _fail("Tras borrar el perfil no vuelven la intro y el tutorial.")
+        return
+    Ajustes.poner("intro_vista", true)
+    game.call("_start_explore")
+    if not bool(game.get("in_tutorial")):
+        _fail("Tras borrar el perfil no empieza por el tutorial.")
+        return
+    game.call("_end_tutorial")
+    if str(game.get("game_mode")) != "create":
+        _fail("Al terminar el tutorial sin personaje no se abre la creación.")
+        return
+    game.set("game_mode", "title")
+    Ajustes.poner("tutorial_hecho", true)
+    print("OK: borrar perfil reinicia todo: tutorial y creación del personaje.")
+
     # Cerrar el juego pregunta antes (autoload ConfirmarSalida) y pausa mientras tanto.
     var confirm: Node = root.get_node_or_null("ConfirmarSalida")
     if confirm == null:
