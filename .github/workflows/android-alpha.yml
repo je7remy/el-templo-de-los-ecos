@@ -1,4 +1,4 @@
-name: Verificar y compilar APK Android (sin publicar)
+name: Verificar y publicar alpha (APK Android e instalador de Windows)
 
 on:
   push:
@@ -11,6 +11,7 @@ on:
       - scenes/**
       - docs/releases/**
       - assets/branding/**
+      - instalador/**
       - tests/balance_test.gd
       - tests/visual_asset_test.gd
       - herramientas/comprobar_archivos.py
@@ -22,7 +23,7 @@ permissions:
 jobs:
   apk-experimental:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v6
@@ -61,7 +62,7 @@ jobs:
           chmod +x "$RUNNER_TEMP/godot"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
-      - name: Plantillas oficiales Android 4.3
+      - name: Plantillas oficiales Android y Windows 4.3
         shell: bash
         run: |
           curl -fL --retry 3 --silent --show-error \
@@ -70,8 +71,10 @@ jobs:
           mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
           unzip -j -q "$RUNNER_TEMP/templates.tpz" \
             'templates/android_debug.apk' 'templates/android_release.apk' \
+            'templates/windows_release_x86_64.exe' 'templates/windows_debug_x86_64.exe' \
             -d "$HOME/.local/share/godot/export_templates/4.3.stable/"
           test -s "$HOME/.local/share/godot/export_templates/4.3.stable/android_debug.apk"
+          test -s "$HOME/.local/share/godot/export_templates/4.3.stable/windows_release_x86_64.exe"
 
       - name: Configurar SDK y firma de depuracion temporal
         shell: bash
@@ -144,7 +147,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" \
             | tee "$RUNNER_TEMP/android-badging.txt"
           grep -Fq "package: name='org.je7remy.temploecos'" "$RUNNER_TEMP/android-badging.txt"
-          grep -Fq "versionName='0.5.3-alpha'" "$RUNNER_TEMP/android-badging.txt"
+          grep -Fq "versionName='0.5.4-alpha'" "$RUNNER_TEMP/android-badging.txt"
           ls -lh "$APK"
 
       - name: Guardar APK como artefacto
@@ -155,7 +158,45 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publicar prerelease con el APK (solo si esa version no existe)
+      - name: Generar juego de Windows (x86_64)
+        shell: bash
+        run: |
+          mkdir -p build/windows
+          godot --headless --path . --export-release "Windows Desktop" \
+            build/windows/ElTemploDeLosEcos.exe 2>&1 | tee "$RUNNER_TEMP/export-windows.log"
+          test -s build/windows/ElTemploDeLosEcos.exe
+          if grep -E 'ERROR:|SCRIPT ERROR|Parse Error' "$RUNNER_TEMP/export-windows.log"; then
+            echo "Godot registro errores en la exportacion de Windows."
+            exit 1
+          fi
+          file build/windows/ElTemploDeLosEcos.exe | grep -Fq 'PE32+ executable'
+          ls -lh build/windows/ElTemploDeLosEcos.exe
+
+      - name: Instalador y version portable de Windows
+        shell: bash
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q nsis zip
+          VERSION="$(sed -n 's/^version\/name="\(.*\)"$/\1/p' export_presets.cfg)"
+          SETUP="$PWD/build/ElTemploDeLosEcos-v$VERSION-Windows-Setup.exe"
+          makensis -V2 -DVERSION="$VERSION" -DEXE="$PWD/build/windows/ElTemploDeLosEcos.exe" \
+            -DSALIDA="$SETUP" instalador/windows/instalador.nsi
+          test -s "$SETUP"
+          cp instalador/windows/LEEME.txt build/windows/LEEME.txt
+          (cd build/windows && zip -q -9 "../ElTemploDeLosEcos-v$VERSION-Windows-Portable.zip" ElTemploDeLosEcos.exe LEEME.txt)
+          ls -lh build/*.exe build/*.zip
+
+      - name: Guardar Windows como artefacto
+        uses: actions/upload-artifact@v6
+        with:
+          name: ElTemploDeLosEcos-Windows
+          path: |
+            build/ElTemploDeLosEcos-*-Windows-Setup.exe
+            build/ElTemploDeLosEcos-*-Windows-Portable.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar prerelease con el APK y Windows (solo si esa version no existe)
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -170,9 +211,13 @@ jobs:
           test -s "$NOTES"
           APK="build/ElTemploDeLosEcos-$TAG-Android.apk"
           cp build/ElTemploDeLosEcos-Android-Debug.apk "$APK"
-          gh release create "$TAG" "$APK" \
+          SETUP="build/ElTemploDeLosEcos-$TAG-Windows-Setup.exe"
+          PORTABLE="build/ElTemploDeLosEcos-$TAG-Windows-Portable.zip"
+          test -s "$SETUP"
+          test -s "$PORTABLE"
+          gh release create "$TAG" "$APK" "$SETUP" "$PORTABLE" \
             --target "$GITHUB_SHA" \
             --prerelease \
             --title "El Templo de los Ecos $TAG" \
             --notes-file "$NOTES"
-          echo "Publicado $TAG con $APK"
+          echo "Publicado $TAG con $APK, $SETUP y $PORTABLE"
