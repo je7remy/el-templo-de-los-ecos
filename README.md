@@ -91,7 +91,7 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | ![El Coloso](docs/galeria/52_piso9_coloso.png) | ![Arietes](docs/galeria/53_piso9_arietes.png) |
 | **Piso IX.** El Coloso pisa fuerte: sal del círculo rojo y atráelo junto a una columna agrietada. | **Arietes de Piedra.** Embisten en línea recta; aturdidos, se rompen. |
 | ![Vigilia por fases](docs/galeria/50_vigilia_fases.png) | ![Botín de la Vigilia](docs/galeria/51_vigilia_botin.png) |
-| **Vigilia.** La celda en planta, centinelas, generadores y un jefe en la puerta. | **Botín.** Cada fase da objetos que pasan a la campaña. |
+| **Vigilia.** Toca cualquier baldosa para construir centinelas, generadores o campanas. | **Botín.** Cada fase da objetos que pasan a la campaña. |
 | ![Objetos en el perfil](docs/galeria/46_objetos.png) | ![Puesto con mejoras](docs/galeria/47_puesto_mejoras.png) |
 | **Objetos.** Lo equipado con su nivel y la bolsa, que se usa desde aquí. | **El puesto.** Cuánto llevas de cada cosa y las mejoras por nivel. |
 | ![Relicario de vida](docs/galeria/48_relicario.png) | ![Menú](docs/galeria/49_menu_jugar.png) |
@@ -123,7 +123,7 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 
 ![Vigilia del Claustro: lecho, centinelas y puerta frente a una entidad](docs/galeria/08_vigilia.png)
 
-Descansa en el lecho para ganar ecos, levanta centinelas en los pedestales rúnicos y refuerza la puerta hasta que amanezca. Su economía es independiente de la campaña.
+Duerme en el lecho para ganar ecos y construye en cualquier baldosa libre de la celda: centinelas (disparan), generadores (energía) y campanas (frenan a las entidades). Toca cualquier cosa para mejorarla; el lecho, la puerta y cada estructura tienen muchos niveles. Fases sin fin, cada una más dura, con botín para la campaña.
 
 ### Entidades
 
@@ -196,7 +196,8 @@ Si Godot está instalado por Flatpak, sustituye `godot` por `flatpak run org.god
 | Espacio | Esquivar |
 | Q | Resonancia: onda que daña y aturde (después de adquirirla) |
 | K | Habilidades |
-| 1–8 en Vigilia | Descansar, construir, mejorar, reparar y activar tecnología |
+| Flechas/WASD + Enter en Vigilia | Elegir baldosa y abrir su menú (1–3 eligen opción) |
+| Espacio en Vigilia | Dormir o levantarse |
 | P en Vigilia | Pausar o reanudar |
 
 Todas las teclas se pueden cambiar en *Configuración > Controles*; las flechas siempre mueven.
@@ -217,7 +218,7 @@ Basta con conectarlo; el juego avisa al detectarlo y cambia los textos de ayuda 
 | RB | Habilidades | Pestañas · Vigilia (menú) |
 | START | Pausa | Aceptar · Seguir (nombre) |
 
-En la Vigilia, la cruceta elige la acción, A la usa y B sale. El esquema del mando es fijo; las teclas se reasignan con el teclado. Si el mando se desconecta durante la partida, el juego se pausa.
+En la Vigilia, la cruceta mueve el recuadro por las baldosas, A abre el menú o elige, Y duerme, RB potencia, X activa el escudo y B cierra o sale. El esquema del mando es fijo; las teclas se reasignan con el teclado. Si el mando se desconecta durante la partida, el juego se pausa.
 
 **Recorrido:** Umbral del despertar → Claustro de las ofrendas → Sala del Testigo → Archivo de los ausentes → Pórtico del siguiente piso. Algunas reglas de las entidades todavía son provisionales.
 

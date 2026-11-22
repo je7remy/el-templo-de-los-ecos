@@ -41,4 +41,22 @@ Inspirado en mecánicas generales de defensa de habitación y supervivencia: **n
 ## Vigilia por fases (Tanda B)
 - La partida ya no termina al amanecer: son **fases de 90 s sin fin**, cada una más difícil, con un **jefe cada 5 fases**.
 - Cada fase superada da **botín para la campaña** (se guarda en el archivo del personaje y se usa desde la pestaña OBJETOS del perfil). Cuanto más alta la fase, mejor el botín.
-- En el móvil se puede tocar el lecho (dormir), una casilla vacía (centinela) y la puerta (reparar), además de los ocho botones de abajo.
+- En el móvil se puede tocar el lecho (dormir), una casilla vacía (centinela) y la puerta (reparar), además de los ocho botones de abajo. *(Sustituido por la v3.)*
+
+## Vigilia v3: construir en todo el suelo
+- **Toca cualquier baldosa libre** y se abre un menú para construir centinela, generador o campana. Toca algo construido para **mejorarlo o venderlo**, el lecho para **dormir o mejorarlo** y la puerta para **repararla o reforzarla**.
+- El menú se queda abierto tras mejorar, para subir varios niveles seguidos. Tocar fuera lo cierra.
+- Abajo quedan cuatro botones grandes: dormir, reparar, potenciar y escudo. La pausa está arriba, junto a salir.
+- Niveles máximos:
+  - lecho 20;
+  - puerta 20;
+  - cada estructura 15;
+  - poder 15.
+
+  Los costes suben con cada nivel y con cada estructura del mismo tipo.
+- Las entidades tienen más vida y hacen más daño, cada vez más deprisa. Hay hasta 6 a la vez y un jefe cada 5 fases con 5 veces la vida.
+- Teclado y mando:
+  - flechas, WASD o la cruceta mueven el recuadro;
+  - Enter o A abren el menú o eligen;
+  - 1-3 eligen una opción;
+  - Esc o B cierran.

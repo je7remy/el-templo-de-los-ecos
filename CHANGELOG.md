@@ -1,5 +1,35 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Vigilia v3: construir en todo el suelo, más niveles y más dura
+
+- **Más fácil de jugar, sobre todo en el móvil**:
+  - se construye en **cualquier baldosa libre** de la celda (11 × 7, menos el lecho);
+  - al tocar algo se abre un **menú junto a ello**:
+    - una baldosa libre: construir;
+    - una estructura: mejorar o vender;
+    - el lecho: dormir o mejorar;
+    - la puerta: reparar o reforzar;
+  - el menú sigue abierto tras mejorar, con los precios nuevos, para subir varios niveles seguidos;
+  - abajo quedan solo cuatro botones grandes: dormir, reparar, potenciar y escudo; la pausa pasa arriba;
+  - con teclado o mando, un recuadro recorre las baldosas (a la derecha del todo, la puerta). Enter o A abren el menú, izquierda y derecha eligen, y 1-3 eligen directamente.
+- **Estructura nueva: la campana**. Su tañido frena a las entidades del pasillo y sus golpes (5 % por nivel, hasta el 45 %).
+- **Muchos más niveles**, con costes que suben cada vez más:
+  - lecho 20;
+  - puerta 20;
+  - cada estructura 15;
+  - poder de los centinelas 15.
+
+  Cada centinela, generador o campana extra cuesta más que el anterior. Vender devuelve la mitad de lo gastado.
+- **Entidades más duras**:
+  - más vida desde la fase 1 (unas 1,6 veces);
+  - la vida crece más rápido con cada fase;
+  - los jefes tienen 5 veces la vida normal y el Ariete se une a las entidades y los jefes;
+  - el daño a la puerta crece cada vez más;
+  - hasta 6 entidades a la vez;
+  - reparar cuesta más cuanto más reforzada está la puerta.
+- Iconos nuevos originales: campana y vender (`herramientas/generar_iconos.py`; los demás iconos no cambian).
+- Valores provisionales. En la simulación, un jugador automático que construye y mejora sin parar cae hacia la fase 16, sin llegar a subir todo al máximo.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Tanda C: Piso IX, jefes y enemigos más fuertes
 
 - **Piso IX · El Coloso del Pórtico** (cuatro salas: Nave de los Arietes, Galería Agrietada, Pórtico del Coloso y Vitral Roto).
