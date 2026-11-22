@@ -157,7 +157,7 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.4.2-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.4.2-alpha) para teléfonos Android ARM64. No está publicado en Google Play y necesita pruebas en dispositivos reales. **Ese APK es anterior a la renovación visual** que muestran las capturas; los cambios llegarán en el próximo release.
+Puedes descargar el [APK de prueba de v0.5.0-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.0-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
 
 La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
@@ -222,7 +222,8 @@ Basta con conectarlo; el juego avisa al detectarlo y cambia los textos de ayuda 
 | B / LT | Esquivar | Volver |
 | X | Encender o apagar la antorcha | Borrar letra (nombre) |
 | Y | Resonancia | Nombre al azar · Pisos (menú) |
-| LB / SELECT | Perfil | Pestañas (configuración) · SELECT abre la configuración en el menú |
+| SELECT | Mapa grande (piso y descenso) |
+| LB | Perfil | Pestañas (configuración) · SELECT abre la configuración en el menú |
 | RB | Habilidades | Pestañas · Vigilia (menú) |
 | START | Pausa | Aceptar · Seguir (nombre) |
 
@@ -295,4 +296,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release publicado: v0.4.2-alpha.** La rama `main` contiene mejoras posteriores que aún no tienen un release propio.
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.0-alpha** (se publica al fusionar esta versión en `main`).

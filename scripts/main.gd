@@ -542,6 +542,8 @@ func _load_progress() -> void:
         var saved_levels = data.get("trinket_levels", {})
         trinket_levels = saved_levels if saved_levels is Dictionary else {}
         karma = int(data.get("karma", 0))
+        var saved_chests = data.get("chests_opened", {})
+        chests_opened = saved_chests if saved_chests is Dictionary else {}
         var saved_trinkets = data.get("trinkets", [])
         trinkets = (saved_trinkets as Array).filter(func(e): return str(e) in ["brazalete", "amuleto"]) if saved_trinkets is Array else []
 
@@ -571,7 +573,8 @@ func _save_progress() -> void:
             "trinkets": trinkets,
             "trinket_levels": trinket_levels,
             "bag": bag,
-            "karma": karma
+            "karma": karma,
+            "chests_opened": chests_opened
         }))
 
 
@@ -691,6 +694,7 @@ func _enter_room() -> void:
     _load_gaze()
     _load_colossus_room()
     _load_harvest_room()
+    _chest_obstacle()
     if _fountain_here():
         obstacles.append(Rect2(FOUNTAIN_POS.x - 12.0, FOUNTAIN_POS.y - 10.0, 24.0, 10.0))
     door_state = "unknown"
@@ -810,7 +814,7 @@ func _input(event: InputEvent) -> void:
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
         var click_at: Vector2 = make_input_local(event).position
         _click_spark(click_at)
-        if game_mode in ["title", "create", "floors", "floor_summary", "shop", "inventory", "abilities", "dialog", "altar", "floor_intro", "splash", "eula", "intro", "pause", "settings"]:
+        if game_mode in ["title", "create", "floors", "floor_summary", "shop", "inventory", "abilities", "map", "dialog", "altar", "floor_intro", "splash", "eula", "intro", "pause", "settings"]:
             _mobile_tap(click_at)
             return
         if game_mode == "play" and click_at.y < 104.0:
@@ -830,6 +834,10 @@ func _input(event: InputEvent) -> void:
             _dialog_skip()
         elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E] or k == _key("interactuar"):
             _dialog_advance()
+        queue_redraw()
+        return
+    if game_mode == "map":
+        _map_key(k)
         queue_redraw()
         return
     if game_mode == "abilities":
@@ -935,6 +943,8 @@ func _input(event: InputEvent) -> void:
             _open_abilities()
         elif k == _key("resonancia"):
             _use_pulse()
+        elif k == KEY_M:
+            _open_map()
         elif k == _key("pausa") or k == KEY_ESCAPE:
             _open_pause()
     queue_redraw()
@@ -998,8 +1008,10 @@ func _pad_button(b: int) -> void:
                 _pad_key(_key("antorcha"))
             JOY_BUTTON_Y:
                 _pad_key(_key("resonancia"))
-            JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK:
+            JOY_BUTTON_LEFT_SHOULDER:
                 _pad_key(_key("perfil"))
+            JOY_BUTTON_BACK:
+                _open_map()
             JOY_BUTTON_RIGHT_SHOULDER:
                 _pad_key(_key("habilidades"))
             JOY_BUTTON_START:
@@ -1057,6 +1069,13 @@ func _pad_button(b: int) -> void:
                     _pad_key(KEY_O)
                 JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK, JOY_BUTTON_START:
                     _pad_key(KEY_ESCAPE)
+            return
+        "map":
+            if b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_BACK, JOY_BUTTON_START]:
+                _close_map()
+            elif b in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER]:
+                _map_key(KEY_TAB)
+            queue_redraw()
             return
         "abilities":
             if b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_START]:
@@ -1336,6 +1355,9 @@ func _mobile_tap(at: Vector2) -> void:
         else:
             _dialog_advance()
         return
+    if game_mode == "map":
+        _map_tap(at)
+        return
     if game_mode == "abilities":
         if _abil_pages() > 1 and ABIL_PREV_BTN.grow(8.0).has_point(at):
             _abil_turn(-1)
@@ -1370,6 +1392,9 @@ func _mobile_tap(at: Vector2) -> void:
         _open_pause() # botón de pausa del minimapa
         mobile_axis = Vector2.ZERO
         mobile_finger = -1
+        return
+    if MINIMAP_RECT.has_point(at):
+        _open_map() # tocar el minimapa: mapa grande
         return
     if at.y < 104.0 and at.x < 330.0:
         # Tocar el retrato abre el perfil.
@@ -1802,6 +1827,8 @@ func _interact() -> void:
         _save_progress()
         _say("SELLO RECUPERADO. El ojo grabado en la cera mira hacia otro lado." if _floor().get("inverted", false) else "SELLO RECUPERADO. En la cera, un ojo abierto y una figura inmóvil.", 5.0)
         _sfx("sello", -4.0)
+        return
+    if _open_chest():
         return
     if _calm_ally():
         return
@@ -2315,6 +2342,8 @@ func _draw() -> void:
         _draw_inventory_overlay()
     elif game_mode == "abilities":
         _draw_abilities()
+    elif game_mode == "map":
+        _draw_map()
     elif game_mode == "floor_summary":
         _draw_floor_summary()
     elif game_mode == "dialog":
@@ -2594,6 +2623,8 @@ func _draw_depth_sorted() -> void:
         items.append([colossus_pos.y, "colossus", null])
     for i in range(braziers.size()):
         items.append([Vector2(braziers[i]["pos"]).y, "brazier", i])
+    if _chest_here():
+        items.append([_chest_pos().y, "chest", null])
     if elder_active or elder_npc:
         items.append([elder_pos.y, "elder", null])
     for i in range(elder_traitors.size()):
@@ -2637,6 +2668,8 @@ func _draw_depth_sorted() -> void:
                 _draw_colossus()
             "brazier":
                 _draw_brazier(item[2])
+            "chest":
+                _draw_chest()
             "elder":
                 _draw_elder()
             "traitor":
@@ -2669,6 +2702,7 @@ func _draw_object_labels() -> void:
     _draw_gaze_hud()
     _draw_colossus_hud()
     _draw_harvest_hud()
+    _draw_chest_label()
     _draw_fountain_label()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
@@ -3229,7 +3263,9 @@ func _draw_floor_banner() -> void:
 func _draw_minimap() -> void:
     var panel := Rect2(634, 6, 318, 96)
     _panel(panel)
-    _text_outline("MAPA DEL PISO", Vector2(644, 24), 11, Color("#8a8574"))
+    var map_hot: bool = MINIMAP_RECT.has_point(ui_hover)
+    _text_outline("MAPA DEL PISO", Vector2(644, 24), 11, UI_GOLD if map_hot else Color("#8a8574"))
+    _text_outline("M · ampliar" if not DisplayServer.is_touchscreen_available() else "toca: ampliar", Vector2(760, 24), 9, Color("#6d6772"), 128.0)
     var count: int = _room_count()
     var cell := Vector2(28, 22)
     var gap: float = 12.0
@@ -4694,6 +4730,7 @@ func _reset_progress_vars() -> void:
     bag = {}
     karma = 0
     souls = 0
+    chests_opened = {}
 
 
 # ------------------------------------------------------------ PAUSA
@@ -9274,3 +9311,260 @@ func _draw_harvest_hud() -> void:
     if elder_side != "":
         var side_txt: String = {"contigo": "TUS ALIADOS LUCHAN CONTIGO", "contra": "TUS ALIADOS SE UNIERON A ÉL", "apartados": "TUS ALIADOS SE APARTAN"}[elder_side]
         _text_outline(side_txt, Vector2(box.position.x, box.end.y + 14.0), 11, Color("#7fd6a0") if elder_side == "contigo" else (Color("#ff8a8a") if elder_side == "contra" else Color("#9a957f")), box.size.x)
+
+
+# ------------------------------------------------------------ COFRES
+## Cofres que dejaron otros que pasaron antes. Cada uno se abre una sola vez
+## por perfil; dentro hay un objeto al azar (mejor cuanto más hondo) y una
+## nota de quien lo dejó.
+const Botin := preload("res://scripts/botin.gd")
+const CHEST_REACH := 62.0
+var chests_opened: Dictionary = {} # "piso:sala" -> clave del objeto
+var chest_open_t: float = 0.0
+
+
+func _chest_here() -> bool:
+    return not in_tutorial and _room().has("chest")
+
+
+func _chest_pos() -> Vector2:
+    return (_room()["chest"] as Array)[0]
+
+
+func _chest_is_open() -> bool:
+    return chests_opened.has(_room_key())
+
+
+func _chest_obstacle() -> void:
+    if _chest_here():
+        var p: Vector2 = _chest_pos()
+        obstacles.append(Rect2(p.x - 18.0, p.y - 10.0, 36.0, 12.0))
+
+
+func _open_chest() -> bool:
+    if not _chest_here() or _chest_is_open() or player_pos.distance_to(_chest_pos()) > CHEST_REACH:
+        return false
+    var rng := RandomNumberGenerator.new()
+    rng.randomize()
+    var key: String = Botin.sortear(1 + current_floor, rng)
+    chests_opened[_room_key()] = key
+    var item_name: String = _grant_loot(key)
+    chest_open_t = 1.0
+    _save_progress()
+    _sfx("sello", -6.0, 1.3)
+    _sfx("alma", -8.0, 0.9)
+    _emit(_chest_pos() + Vector2(0, -18), 22, Color(1.0, 0.85, 0.45), 20.0, 80.0, 0.9, 2.0, -40.0, Vector2.UP, 0.8, true)
+    var note: String = str((_room()["chest"] as Array)[1]).replace("{yo}", _hero_name())
+    _dialog([["NOTA EN EL COFRE", note]])
+    _say("Dentro del cofre: %s." % item_name, 3.5)
+    return true
+
+
+## Da un objeto del botín a la partida en curso (en memoria; luego se guarda).
+func _grant_loot(key: String) -> String:
+    match key:
+        "brazalete_up", "amuleto_up":
+            var t: String = key.trim_suffix("_up")
+            if trinkets.has(t):
+                trinket_levels[t] = mini(Botin.NIVEL_OBJETO_MAX, int(trinket_levels.get(t, 1)) + 1)
+            else:
+                trinkets.append(t)
+                trinket_levels[t] = 1
+        "resonancia_up":
+            if has_pulse:
+                ability_level = mini(Botin.NIVEL_HABILIDAD_MAX, ability_level + 1)
+            else:
+                has_pulse = true
+        _:
+            bag[key] = int(bag.get(key, 0)) + 1
+    return str(Botin.OBJETOS.get(key, [key])[0])
+
+
+func _draw_chest() -> void:
+    var at: Vector2 = _chest_pos()
+    var opened: bool = _chest_is_open()
+    _draw_soft_shadow(at + Vector2(0, 2), 22.0)
+    var body := Rect2(at.x - 20.0, at.y - 22.0, 40, 22)
+    draw_rect(body, Color("#5a3b22"))
+    draw_rect(Rect2(body.position.x, body.position.y + 8.0, body.size.x, 3), Color("#3a2414"))
+    draw_rect(Rect2(at.x - 3.0, body.position.y, 6, body.size.y), Color("#b8955a"))
+    draw_rect(body, Color("#1b120a"), false, 1.0)
+    if opened:
+        # Tapa abierta, hacia atrás.
+        draw_colored_polygon(PackedVector2Array([Vector2(body.position.x, body.position.y), Vector2(body.end.x, body.position.y), Vector2(body.end.x - 3.0, body.position.y - 14.0), Vector2(body.position.x + 3.0, body.position.y - 14.0)]), Color("#4a2f1a"))
+        draw_rect(Rect2(body.position.x + 3.0, body.position.y - 2.0, body.size.x - 6.0, 3), Color("#140c06"))
+    else:
+        draw_rect(Rect2(body.position.x - 1.0, body.position.y - 8.0, body.size.x + 2.0, 9), Color("#6b4528"))
+        draw_rect(Rect2(at.x - 3.0, body.position.y - 8.0, 6, 9), Color("#c9a25e"))
+        draw_rect(Rect2(at.x - 2.0, body.position.y - 1.0, 4, 4), Color("#2a2420"))
+        var g: float = 0.5 + 0.5 * sin(elapsed * 3.0 + at.x)
+        draw_circle(Vector2(at.x + 12.0, body.position.y - 6.0), 1.5 + g, Color(1.0, 0.9, 0.6, 0.35 + 0.4 * g))
+
+
+func _draw_chest_label() -> void:
+    if not _chest_here() or _chest_is_open() or game_mode != "play":
+        return
+    if player_pos.distance_to(_chest_pos()) < 150.0:
+        _label_center(_prompt("ABRIR COFRE"), _chest_pos() + Vector2(0, -44), Color("#ffd36b"))
+
+
+# ------------------------------------------------------------ MAPA GRANDE Y DESCENSO
+## Tocar el minimapa (o M / Select del mando) abre el mapa a pantalla grande.
+## Pestaña 0: el piso actual sala por sala. Pestaña 1: el descenso, que se va
+## dibujando con cada piso al que bajas.
+const MAP_PANEL := Rect2(48, 34, 864, 572)
+const MAP_TAB_RECTS := [Rect2(330, 92, 140, 34), Rect2(490, 92, 140, 34)]
+const MINIMAP_RECT := Rect2(634, 6, 258, 96)
+var map_tab: int = 0
+var map_return: String = "play"
+
+
+func _open_map() -> void:
+    if not game_mode in ["play", "pause"] or in_tutorial:
+        return
+    map_return = game_mode
+    game_mode = "map"
+    mobile_axis = Vector2.ZERO
+    mobile_finger = -1
+    _sfx("interfaz", -9.0)
+
+
+func _close_map() -> void:
+    game_mode = map_return
+    _sfx("interfaz", -12.0, 0.9)
+
+
+func _map_key(k: int) -> void:
+    if k in [KEY_M, KEY_ESCAPE, KEY_E, KEY_ENTER] or k == _key("interactuar"):
+        _close_map()
+    elif k in [KEY_TAB, KEY_RIGHT, KEY_D, KEY_LEFT, KEY_A, KEY_PAGEDOWN, KEY_PAGEUP]:
+        map_tab = 1 - map_tab
+        _sfx("toque", -14.0, 1.0)
+
+
+func _map_tap(at: Vector2) -> void:
+    for i in range(2):
+        if (MAP_TAB_RECTS[i] as Rect2).grow(6.0).has_point(at):
+            map_tab = i
+            _sfx("toque", -14.0, 1.0)
+            return
+    _close_map()
+
+
+func _floor_reached() -> int:
+    return maxi(max_floor, current_floor)
+
+
+func _floor_cleared(i: int) -> bool:
+    return i < max_floor or (str(FLOORS[i].get("eco", "")) != "" and ecos.has(str(FLOORS[i]["eco"])))
+
+
+func _deaths_on_floor(i: int) -> int:
+    var n: int = 0
+    for key in death_marks:
+        if str(key).begins_with("%d:" % i):
+            n += (death_marks[key] as Array).size()
+    return n
+
+
+func _draw_map() -> void:
+    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.72))
+    _panel(MAP_PANEL, Color(0.035, 0.032, 0.045, 0.97), UI_GOLD)
+    _title_text("Mapa", Vector2(MAP_PANEL.position.x, MAP_PANEL.position.y + 44.0), 40, CREAM, MAP_PANEL.size.x)
+    var names := ["ESTE PISO", "DESCENSO"]
+    for i in range(2):
+        var r: Rect2 = MAP_TAB_RECTS[i]
+        var on: bool = i == map_tab
+        _panel(r, Color("#2a1d36") if on else Color("#141018"), UI_GOLD if on else UI_EDGE)
+        _text_outline(names[i], Vector2(r.position.x, r.position.y + 22.0), 13, CREAM if on else Color("#8a8574"), r.size.x)
+    if map_tab == 0:
+        _draw_map_floor()
+    else:
+        _draw_map_descent()
+    _text_outline(_hint("M / ESC: cerrar · TAB: pestaña", "Toca una pestaña · toca fuera para cerrar", "B: cerrar · cruceta: pestaña"), Vector2(MAP_PANEL.position.x, MAP_PANEL.end.y - 14.0), 11, Color("#8a8574"), MAP_PANEL.size.x)
+
+
+func _draw_map_floor() -> void:
+    var count: int = _room_count()
+    _text_outline("PISO %s · %s" % [_floor()["number"], _tc(_floor()["title"])], Vector2(MAP_PANEL.position.x, 160.0), 16, UI_GOLD, MAP_PANEL.size.x)
+    var card := Vector2(146, 230)
+    var gap: float = 22.0
+    var total: float = float(count) * card.x + float(count - 1) * gap
+    var x0: float = roundf(W * 0.5 - total * 0.5)
+    var y0: float = 196.0
+    for i in range(count):
+        var r := Rect2(x0 + float(i) * (card.x + gap), y0, card.x, card.y)
+        var room: Dictionary = _floor()["rooms"][i]
+        var seen: bool = i <= current_room
+        if i < count - 1:
+            draw_rect(Rect2(r.end.x, r.position.y + card.y * 0.5 - 3.0, gap, 6.0), UI_GOLD if i < current_room else Color("#2a2e38"))
+        var here: bool = i == current_room
+        var pulse: float = 0.6 + 0.4 * sin(elapsed * 4.0)
+        _panel(r, Color(0.78, 0.67, 0.43, 0.18 + 0.1 * pulse) if here else (Color("#1d212b") if seen else Color("#0e1016")), UI_GOLD if here else (UI_LIGHT if seen else Color("#2a2e38")))
+        if not seen:
+            _text_outline("???", Vector2(r.position.x, r.get_center().y + 8.0), 22, Color("#4a4e5a"), r.size.x)
+            continue
+        var parts: PackedStringArray = str(room["name"]).split(" · ")
+        _text_outline(parts[0], Vector2(r.position.x, r.position.y + 26.0), 15, UI_GOLD, r.size.x)
+        draw_multiline_string(font, Vector2(r.position.x + 8.0, r.position.y + 50.0), _tc(parts[parts.size() - 1]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 16.0, 12, 4, CREAM)
+        var y: float = r.position.y + 130.0
+        if room.has("mission"):
+            var done: bool = i < current_room or (here and _room_ready())
+            draw_multiline_string(font, Vector2(r.position.x + 8.0, y - 10.0), ("✓ " if done else "· ") + str(room["mission"]["text"]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 16.0, 10, 3, Color("#7fd6a0") if done else Color("#d9d2ba"))
+            y += 40.0
+        if room.has("chest"):
+            var key: String = "%d:%d" % [current_floor, i]
+            _text_outline("COFRE ABIERTO" if chests_opened.has(key) else "COFRE", Vector2(r.position.x, y), 10, Color("#8a8574") if chests_opened.has(key) else Color("#ffd36b"), r.size.x)
+            y += 20.0
+        var deaths: int = (death_marks.get("%d:%d" % [current_floor, i], []) as Array).size()
+        if deaths > 0:
+            _text_outline("Caíste aquí %d %s" % [deaths, "vez" if deaths == 1 else "veces"], Vector2(r.position.x, y), 10, Color("#ff8a8a"), r.size.x)
+        if here:
+            _text_outline("ESTÁS AQUÍ", Vector2(r.position.x, r.end.y - 12.0), 11, CREAM, r.size.x)
+
+
+## El descenso: solo se dibujan los pisos a los que has bajado, y uno más
+## por descubrir. El pozo crece a medida que avanzas.
+func _draw_map_descent() -> void:
+    var reached: int = _floor_reached()
+    var rows: int = mini(FLOORS.size(), reached + 2)
+    var top: float = 150.0
+    var row_h: float = minf(38.0, 380.0 / float(maxi(rows, 1)))
+    var shaft_x: float = 170.0
+    draw_rect(Rect2(shaft_x - 2.0, top + 8.0, 4.0, row_h * float(rows - 1)), Color("#3a3440"))
+    for i in range(rows):
+        var y: float = top + float(i) * row_h
+        var known: bool = i <= reached
+        var here: bool = i == current_floor
+        var cleared: bool = known and _floor_cleared(i)
+        var dot_col: Color = UI_GOLD if here else (Color("#7fd6a0") if cleared else (CREAM if known else Color("#4a4e5a")))
+        draw_circle(Vector2(shaft_x, y + 10.0), 8.0 if here else 6.0, dot_col)
+        if here:
+            draw_arc(Vector2(shaft_x, y + 10.0), 13.0 + 2.0 * sin(elapsed * 4.0), 0, TAU, 24, UI_GOLD, 2.0)
+        if not known:
+            _text_outline("PISO ???  ·  más abajo", Vector2(shaft_x + 24.0, y + 15.0), 13, Color("#4a4e5a"))
+            continue
+        _text_outline("PISO %s" % FLOORS[i]["number"], Vector2(shaft_x + 24.0, y + 15.0), 13, UI_GOLD)
+        _text_outline(_tc(FLOORS[i]["title"]), Vector2(shaft_x + 110.0, y + 15.0), 13, CREAM)
+        var tag: String = "AQUÍ" if here else ("SUPERADO" if cleared else "")
+        if tag != "":
+            _text_outline(tag, Vector2(560.0, y + 15.0), 11, UI_GOLD if here else Color("#7fd6a0"))
+        var d: int = _deaths_on_floor(i)
+        if d > 0:
+            _text_outline("%d %s" % [d, "caída" if d == 1 else "caídas"], Vector2(660.0, y + 15.0), 11, Color("#ff8a8a"))
+        var opened: int = 0
+        var total_chests: int = 0
+        for r in range((FLOORS[i]["rooms"] as Array).size()):
+            if (FLOORS[i]["rooms"][r] as Dictionary).has("chest"):
+                total_chests += 1
+                if chests_opened.has("%d:%d" % [i, r]):
+                    opened += 1
+        if total_chests > 0:
+            _text_outline("cofres %d/%d" % [opened, total_chests], Vector2(760.0, y + 15.0), 11, Color("#ffd36b") if opened < total_chests else Color("#8a8574"))
+    # Lo descubierto en el último piso superado, como recuerdo del descenso.
+    var last: int = -1
+    for i in range(FLOORS.size()):
+        if i <= reached and _floor_cleared(i):
+            last = i
+    if last >= 0 and last < Pisos.FLOOR_TRUTHS.size():
+        draw_multiline_string(font, Vector2(MAP_PANEL.position.x + 60.0, 560.0), "«%s»" % str(Pisos.FLOOR_TRUTHS[last]), HORIZONTAL_ALIGNMENT_CENTER, MAP_PANEL.size.x - 120.0, 12, 2, Color("#9fb3b3"))

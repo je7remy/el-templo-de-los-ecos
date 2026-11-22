@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.0-alpha — 2026-11-22 · Cofres, mapa grande, mapa del descenso y APK al día
+
+- **Mapa grande:** se abre tocando o haciendo clic en el minimapa, con M o con SELECT del mando. Tiene dos pestañas:
+  - **Este piso:** sala por sala, con nombre, misión (✓ si está hecha), cofre y dónde caíste. Las salas sin visitar salen como «???».
+  - **Descenso:** un pozo que se dibuja a medida que bajas. Muestra cada piso alcanzado, si está superado, tus caídas y los cofres abiertos, y abajo «PISO ???». Al pie, la última verdad descubierta.
+- **Cofres** en 12 salas, al menos uno por piso. Cada uno guarda un objeto del botín (mejor cuanto más hondo) y una nota de quien lo dejó. Se abren una sola vez por perfil y se guardan. Borrar el perfil también los vacía.
+- **Android al día:** versión 0.5.0-alpha (código 7). Al fusionar en `main`, el CI compila el APK y publica la prerelease `v0.5.0-alpha` con él. Si esa versión ya existe, no la toca. Hay que desinstalar la versión anterior del teléfono antes de instalar la nueva.
+- Mando: SELECT abre el mapa; el perfil sigue en LB.
+
 ## En `main` (sin nuevo release) — 2026-11-22 · El Peregrino ya no se delata por un golpe accidental
 
 - En el Piso II, mientras el Peregrino te acompaña **no se le puede tocar**: ni el golpe de antorcha (por ejemplo, al aplastar alimañas a su lado) ni la Resonancia lo hieren ni lo ponen en guardia. La traición llega por sorpresa, en su momento. Solo se le puede herir cuando desenvaina.
