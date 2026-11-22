@@ -1,5 +1,9 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-22 · El Peregrino ya no se delata por un golpe accidental
+
+- En el Piso II, mientras el Peregrino te acompaña **no se le puede tocar**: ni el golpe de antorcha (por ejemplo, al aplastar alimañas a su lado) ni la Resonancia lo hieren ni lo ponen en guardia. La traición llega por sorpresa, en su momento. Solo se le puede herir cuando desenvaina.
+
 ## En `main` (sin nuevo release) — 2026-11-22 · Borrar perfil de verdad, pisos en orden y ajuste de Resonancia y esquivar
 
 - **Borrar el perfil** (Configuración > Privacidad) borra todo: el progreso de la campaña, los récords de la Vigilia y los ajustes. El juego se reinicia desde cero en este orden:

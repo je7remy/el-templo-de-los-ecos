@@ -1506,7 +1506,7 @@ func _use_pulse() -> void:
         if player_pos.distance_to(h["pos"]) < _pulse_radius() + 12.0:
             h["flee"] = 5.0 if has_mask else 3.0
             float_fx.append({"pos": Vector2(h["pos"]) + Vector2(0, -50), "text": "HUYE", "color": SOUL, "t": 0.0})
-    if _pilgrim_present() and pilgrim_state != "dead" and player_pos.distance_to(pilgrim_pos) < PULSE_RADIUS + 12.0:
+    if _pilgrim_present() and _pilgrim_can_be_hit() and player_pos.distance_to(pilgrim_pos) < PULSE_RADIUS + 12.0:
         pilgrim_stun = 1.4
         _damage_pilgrim(_pulse_damage())
     for cr in critters:
@@ -1764,7 +1764,7 @@ func _torch_strike() -> bool:
             dummy_shake = 0.25
             float_fx.append({"pos": DUMMY_POS + Vector2(26, -60), "text": "-%d" % int(_strike_damage()), "color": Color("#ffd36b"), "t": 0.0})
             _sfx("impacto", -8.0, 1.2)
-    if _pilgrim_present() and pilgrim_state != "dead":
+    if _pilgrim_present() and _pilgrim_can_be_hit():
         var to_p := pilgrim_pos - player_pos
         if to_p.length() < STRIKE_RANGE + 10.0 and (to_p.length() < 24.0 or to_p.normalized().dot(strike_dir) > 0.25):
             _damage_pilgrim(_strike_damage())
@@ -3877,16 +3877,16 @@ func _pilgrim_harvest() -> void:
         _sfx("alma", -6.0, 0.9)
 
 
+## Mientras te acompaña no se le puede tocar: los golpes a las alimañas (o
+## la Resonancia) no deben destapar la traición antes de tiempo. Solo se le
+## puede herir cuando desenvaina.
+func _pilgrim_can_be_hit() -> bool:
+    return pilgrim_state in ["tell", "hostile"]
+
+
 func _damage_pilgrim(amount: float) -> void:
-    if pilgrim_state in ["follow", "friend"]:
-        # Atacarlo primero: el traidor lo admite; el sincero no lo entiende.
-        pilgrim_wronged = not pilgrim_traitor
-        if pilgrim_wronged:
-            _karma(-2, "Atacaste a quien confiaba en ti")
-        _pilgrim_say("Así que lo sabías." if pilgrim_traitor else "¿Por qué...? Yo solo quería salir.", 3.0)
-        pilgrim_state = "hostile"
-        pilgrim_timer = 0.0
-        _sfx("cuchillo", -8.0)
+    if not _pilgrim_can_be_hit():
+        return
     pilgrim_hp -= amount
     pilgrim_hit_t = 0.2
     float_fx.append({"pos": pilgrim_pos + Vector2(28.0, -44.0), "text": "-%d" % int(amount), "color": Color("#ffd36b"), "t": 0.0})
