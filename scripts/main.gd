@@ -88,6 +88,7 @@ const ICONS := {
     "calavera": preload("res://assets/visual/iconos/calavera.png"),
     "pausa": preload("res://assets/visual/iconos/pausa.png"),
     "engranaje": preload("res://assets/visual/iconos/engranaje.png"),
+    "descansar": preload("res://assets/visual/iconos/descansar.png"),
 }
 ## Retrato de Mark para el HUD y el perfil (herramientas/generar_retrato.py).
 const DEFENSE_ICONS := {"descansar": preload("res://assets/visual/iconos/descansar.png")}
@@ -542,6 +543,10 @@ func _load_progress() -> void:
         var saved_levels = data.get("trinket_levels", {})
         trinket_levels = saved_levels if saved_levels is Dictionary else {}
         karma = int(data.get("karma", 0))
+        souls = maxi(0, int(data.get("souls", 0)))
+        vigil_unlocked = bool(data.get("vigil_unlocked", false))
+        var saved_cp = data.get("checkpoint", [-1, -1])
+        checkpoint = [int(saved_cp[0]), int(saved_cp[1])] if saved_cp is Array and (saved_cp as Array).size() == 2 else [-1, -1]
         var saved_chests = data.get("chests_opened", {})
         chests_opened = saved_chests if saved_chests is Dictionary else {}
         var saved_trinkets = data.get("trinkets", [])
@@ -574,7 +579,10 @@ func _save_progress() -> void:
             "trinket_levels": trinket_levels,
             "bag": bag,
             "karma": karma,
-            "chests_opened": chests_opened
+            "chests_opened": chests_opened,
+            "souls": souls,
+            "vigil_unlocked": vigil_unlocked,
+            "checkpoint": checkpoint
         }))
 
 
@@ -618,7 +626,8 @@ func _new_run() -> void:
     floor_deaths = 0
     floor_critters = 0
     dialog_queue.clear()
-    souls = 0
+    # Las almas se conservan entre partidas: son tu moneda (se guardan).
+    floor_souls0 = souls
     max_hp = _base_max_hp()
     hp = max_hp
     fear = 0.0
@@ -646,6 +655,7 @@ func _new_run() -> void:
 
 
 func _enter_room() -> void:
+    _set_checkpoint()
     fade_t = FADE_TIME # fundido cinematográfico al cruzar
     _load_room_scene()
     player_pos = _marker("Jugador", Vector2(115.0, 359.0))
@@ -814,7 +824,7 @@ func _input(event: InputEvent) -> void:
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
         var click_at: Vector2 = make_input_local(event).position
         _click_spark(click_at)
-        if game_mode in ["title", "create", "floors", "floor_summary", "shop", "inventory", "abilities", "map", "dialog", "altar", "floor_intro", "splash", "eula", "intro", "pause", "settings"]:
+        if game_mode in ["title", "create", "floors", "floor_summary", "shop", "inventory", "abilities", "map", "choice", "dialog", "altar", "floor_intro", "splash", "eula", "intro", "pause", "settings"]:
             _mobile_tap(click_at)
             return
         if game_mode == "play" and click_at.y < 104.0:
@@ -838,6 +848,10 @@ func _input(event: InputEvent) -> void:
         return
     if game_mode == "map":
         _map_key(k)
+        queue_redraw()
+        return
+    if game_mode == "choice":
+        _choice_key(k)
         queue_redraw()
         return
     if game_mode == "abilities":
@@ -1070,6 +1084,13 @@ func _pad_button(b: int) -> void:
                 JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK, JOY_BUTTON_START:
                     _pad_key(KEY_ESCAPE)
             return
+        "choice":
+            if b == JOY_BUTTON_A:
+                _choice_pick(choice_sel)
+            elif b == JOY_BUTTON_B:
+                _choice_cancel()
+            queue_redraw()
+            return
         "map":
             if b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_BACK, JOY_BUTTON_START]:
                 _close_map()
@@ -1249,7 +1270,17 @@ func _on_joy_connection(device: int, connected: bool) -> void:
     queue_redraw()
 
 
+## La Vigilia se compra al Mercader Silencioso (Piso VI) por VIGIL_PRICE almas.
+## Así, cuando se juega, el botín que da ya tiene sentido en la campaña.
+const VIGIL_PRICE := 500
+var vigil_unlocked: bool = false
+
+
 func _open_defense() -> void:
+    if not vigil_unlocked:
+        _say("La Vigilia está cerrada. Alguien en las profundidades guarda su llave.", 3.2)
+        _sfx("toque", -10.0, 0.8)
+        return
     get_tree().change_scene_to_file("res://scenes/defense.tscn")
 
 func _mobile_touch(finger: int, at: Vector2, pressed: bool) -> void:
@@ -1357,6 +1388,9 @@ func _mobile_tap(at: Vector2) -> void:
         return
     if game_mode == "map":
         _map_tap(at)
+        return
+    if game_mode == "choice":
+        _choice_tap(at)
         return
     if game_mode == "abilities":
         if _abil_pages() > 1 and ABIL_PREV_BTN.grow(8.0).has_point(at):
@@ -1963,6 +1997,7 @@ func _on_floor_start() -> void:
     _pilgrim_reset()
     _allies_reset()
     bones_used = false
+    guides_refused = false
     inverted_seen = false
     guiding = false
     guides_rewarded = false
@@ -1975,6 +2010,7 @@ func _on_floor_start() -> void:
 
 func _win_run() -> void:
     cleared += 1
+    checkpoint = [-1, -1]
     _save_progress()
     game_mode = "victory"
     _sfx("sello", -4.0, 0.8)
@@ -2344,6 +2380,8 @@ func _draw() -> void:
         _draw_abilities()
     elif game_mode == "map":
         _draw_map()
+    elif game_mode == "choice":
+        _draw_choice()
     elif game_mode == "floor_summary":
         _draw_floor_summary()
     elif game_mode == "dialog":
@@ -2703,6 +2741,8 @@ func _draw_object_labels() -> void:
     _draw_colossus_hud()
     _draw_harvest_hud()
     _draw_chest_label()
+    _draw_guides_request()
+    _draw_loot_banner()
     _draw_fountain_label()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
@@ -3498,7 +3538,11 @@ func _draw_title() -> void:
     ## Botones: los PISOS son la entrada al juego (el Piso I empieza desde el
     ## principio); la VIGILIA es el modo aparte.
     _big_button(FLOORS_BTN, "JUGAR", "antorcha_encendida", Color("#3b2550"), Color("#a988d0"))
-    _big_button(VIGIL_BTN, "VIGILIA", "descansar", Color("#43301a"), UI_GOLD)
+    if vigil_unlocked:
+        _big_button(VIGIL_BTN, "VIGILIA", "descansar", Color("#43301a"), UI_GOLD)
+    else:
+        _big_button(VIGIL_BTN, "VIGILIA", "descansar", Color("#1a1620"), Color("#4a4452"))
+        _text_outline("BLOQUEADA", Vector2(VIGIL_BTN.position.x, VIGIL_BTN.end.y + 14.0), 11, Color("#8a5a64"), VIGIL_BTN.size.x)
     var hot_q: bool = QUIT_BTN.has_point(ui_hover)
     _panel(QUIT_BTN, Color("#3a1a20") if hot_q else Color("#141922"), UI_CRIMSON if hot_q else UI_LIGHT)
     _text_outline("SALIR", QUIT_BTN.position + Vector2(0, 19), 12, CREAM if hot_q else Color("#b9b29b"), QUIT_BTN.size.x)
@@ -3676,8 +3720,13 @@ func _draw_floor_intro() -> void:
     _title_text(_tc(_floor()["title"]), Vector2(0, 176), 48, CREAM, W)
     if floor_intro_eco != "":
         var eco: Array = ECOS[floor_intro_eco]
-        _center("ECO ADQUIRIDO: %s" % eco[0], 486, 16, SOUL)
-        _center(eco[1], 510, 14, Color("#b9b29b"))
+        _center("POR SUPERAR EL PISO ANTERIOR GANASTE EL ECO «%s»: %s" % [eco[0], eco[1]], 474, 13, SOUL)
+    # La recompensa de este piso, dicha antes de entrar.
+    var own: String = str(_floor().get("eco", ""))
+    if own != "" and ECOS.has(own):
+        _center("RECOMPENSA AL SUPERAR ESTE PISO: ECO «%s» (habilidad pasiva)%s" % [ECOS[own][0], " · ya lo tienes" if ecos.has(own) else ""], 504, 14, Color("#ffd36b"))
+    elif bool(_floor().get("final", false)):
+        _center("AL SUPERAR ESTE PISO: el final del primer arco", 504, 14, Color("#ffd36b"))
     var pulse: float = 0.6 + 0.4 * sin(elapsed * 3.0)
     _center(_hint("ENTRAR  ·  ENTER", "TOCA PARA ENTRAR", "ENTRAR  ·  A"), 560, 18, Color(0.89, 0.74, 0.48, pulse))
 
@@ -4731,6 +4780,8 @@ func _reset_progress_vars() -> void:
     karma = 0
     souls = 0
     chests_opened = {}
+    vigil_unlocked = false
+    checkpoint = [-1, -1]
 
 
 # ------------------------------------------------------------ PAUSA
@@ -5638,6 +5689,12 @@ func _update_allies(dt: float) -> void:
                 if other != ally and bool(other["alive"]) and pos.distance_to(other["pos"]) < 24.0:
                     var away: Vector2 = pos - Vector2(other["pos"])
                     target += (away.normalized() if away.length() > 0.1 else Vector2(0, 1)) * 30.0
+        # Van a lo suyo: almas, pan o el relicario de vida (si nadie corre peligro).
+        if not bool(ally.get("waiting", false)) and not bool(ally.get("flee", false)) and float(ally.get("panic", 0.0)) <= 0.0 and not tense:
+            var greed = _ally_greed_target(ally)
+            if greed != null:
+                target = greed
+                speed = 165.0
         idx += 1
         var step: Vector2 = pos.move_toward(target, speed * dt) - pos
         var nx := Vector2(pos.x + step.x, pos.y)
@@ -5656,6 +5713,8 @@ func _update_allies(dt: float) -> void:
                 ally["facing"] = 0 if look.y > 0.0 else 1
         ally["prev"] = pos
         ally["pos"] = pos
+        _ally_pickups(ally)
+        _ally_hazards(ally, dt)
 
 
 func _draw_ally(i: int) -> void:
@@ -5680,6 +5739,11 @@ func _draw_ally_labels() -> void:
         _label_center(str(ally["name"]) + (" · SIN MANO" if bool(ally.get("maimed", false)) else ""), pos + Vector2(0.0, -66.0), Color("#d1747b") if bool(ally.get("maimed", false)) else Color("#9fd8b0"))
         if float(ally["line_t"]) > 0.0:
             _label_center("«%s»" % ally["line"], pos + Vector2(0.0, -84.0), CREAM)
+        var ahp: float = float(ally.get("hp", ALLY_HP))
+        if ahp < ALLY_HP:
+            var bar := Rect2(pos.x - 18.0, pos.y - 58.0, 36.0, 4.0)
+            draw_rect(bar.grow(1.0), Color(0, 0, 0, 0.7))
+            draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(ahp / ALLY_HP, 0.0, 1.0), bar.size.y)), Color("#c0464f"))
         if float(ally.get("panic", 0.0)) > 0.0:
             var blink: bool = int(elapsed * 5.0) % 2 == 0
             _label_center(_prompt("¡CÁLMALO!"), pos + Vector2(0.0, -102.0), Color("#ff6b6b") if blink else Color("#ffd36b"))
@@ -6445,6 +6509,42 @@ func _floors_tap(at: Vector2) -> void:
         _choose_floor(floors_sel)
 
 
+## Punto de control: cada sala a la que entras queda guardada. Si cierras el
+## juego o vuelves al menú, el piso se retoma desde esa sala (no desde la I).
+var checkpoint: Array = [-1, -1] # [piso, sala]
+
+
+func _set_checkpoint() -> void:
+    # Solo en partida (el menú también usa _enter_room para el fondo).
+    if in_tutorial or not game_mode in ["play", "floor_intro"] or player_name == "" or current_floor < 0 or current_floor >= FLOORS.size():
+        return
+    if checkpoint == [current_floor, current_room]:
+        return
+    checkpoint = [current_floor, current_room]
+    _save_progress()
+
+
+func _has_checkpoint(i: int) -> bool:
+    return int(checkpoint[0]) == i and int(checkpoint[1]) > 0
+
+
+## Retoma un piso desde la última sala alcanzada, con la antorcha y fósforos.
+func _resume_at(i: int, room: int) -> void:
+    _new_run()
+    current_floor = i
+    current_room = clampi(room, 0, (FLOORS[i]["rooms"] as Array).size() - 1)
+    has_wood = true
+    has_torch = true
+    matches = maxi(matches, MATCHES_FIRST_BOX)
+    floor_intro_eco = ""
+    _on_floor_start()
+    game_mode = "floor_intro"
+    _enter_room()
+    _say("Vuelves a la última sala que alcanzaste: %s." % str(_room()["name"]), 3.5)
+    _sfx("puerta", -4.0, 0.7)
+    _transition("espiral", false, 1.0)
+
+
 func _choose_floor(i: int) -> void:
     if i >= FLOORS.size():
         _say("Este piso todavía se está construyendo en las profundidades.", 2.6)
@@ -6453,6 +6553,9 @@ func _choose_floor(i: int) -> void:
     if i > _floors_unlocked():
         _say("Aún no has llegado tan abajo. Supera el piso anterior.", 2.6)
         _sfx("toque", -10.0)
+        return
+    if player_name != "" and _has_checkpoint(i) and bool(Ajustes.obtener("tutorial_hecho")):
+        _resume_at(i, int(checkpoint[1]))
         return
     if player_name == "" or i == 0:
         if i == 0:
@@ -6516,6 +6619,9 @@ func _draw_floors() -> void:
             var eco: String = str(FLOORS[i].get("eco", ""))
             status = "SUPERADO" if eco != "" and ecos.has(eco) else "DISPONIBLE"
             status_col = SOUL if status == "SUPERADO" else Color("#9fd8b0")
+            if _has_checkpoint(i):
+                status = "SEGUIR · SALA %d" % (int(checkpoint[1]) + 1)
+                status_col = Color("#ffd36b")
         _text_outline(status, Vector2(card.position.x, card.end.y - 14.0), 10, status_col, card.size.x)
         if open and str(FLOORS[i].get("eco", "")) != "" and ecos.has(str(FLOORS[i]["eco"])):
             var ek: String = "eco_" + str(FLOORS[i]["eco"])
@@ -6714,7 +6820,7 @@ func _draw_room_souls_counter() -> void:
     var box := Rect2(ARENA.end.x - 150.0, ARENA.position.y + 6.0, 142.0, 24.0)
     _panel(box, Color(0.035, 0.03, 0.045, 0.7), UI_EDGE)
     draw_texture_rect(ICONS["alma"], Rect2(box.position + Vector2(6, 2), Vector2(20, 20)), false)
-    _text_outline("SALA %d/%d" % [got, relics.size()], Vector2(box.position.x + 30.0, box.position.y + 17.0), 12, SOUL if got == relics.size() else CREAM)
+    _text_outline("ALMAS %d/%d" % [got, relics.size()], Vector2(box.position.x + 30.0, box.position.y + 17.0), 12, SOUL if got == relics.size() else CREAM)
 
 
 # --- Resumen del piso -------------------------------------------------------------
@@ -6755,7 +6861,7 @@ func _draw_floor_summary() -> void:
     var eco: String = str(summary.get("eco", ""))
     if eco != "" and ECOS.has(eco):
         draw_texture_rect(ICONS["eco_" + eco], Rect2(230, 408, 32, 32), false)
-        _text_outline("ECO DESPERTADO · " + ECOS[eco][0], Vector2(272, 422), 14, SOUL)
+        _text_outline("POR SUPERAR EL PISO %s GANAS EL ECO «%s»" % [summary.get("floor", ""), ECOS[eco][0]], Vector2(272, 422), 14, SOUL)
         _text_outline(ECOS[eco][1], Vector2(272, 440), 11, Color("#9a957f"))
     if str(summary.get("truth", "")) != "":
         _text_outline("VERDAD REVELADA", Vector2(230, 476), 11, UI_GOLD)
@@ -7458,6 +7564,7 @@ const SHOP := [
     ["brazalete", "BRAZALETE DE BRONCE", 12, "+10 % al daño del golpe por nivel. Se queda contigo."],
     ["amuleto", "AMULETO DE HUESO", 12, "+10 % a la recarga del vigor por nivel. Se queda contigo."],
     ["resonancia", "MEJORAR RESONANCIA", 10, "+1 nivel: la onda hace más daño."],
+    ["vigilia", "LLAVE DE LA VIGILIA", 500, "Abre la Vigilia del Claustro en el menú. Su botín llega a tu bolsa."],
 ]
 var guiding: bool = false
 var guided: Array = [] # peregrinos que bajaron contigo (para el Piso VII)
@@ -7546,7 +7653,7 @@ func _offering_interact() -> bool:
     if _has("guias") and not guiding:
         for ally in allies:
             if player_pos.distance_to(ally["pos"]) < 72.0:
-                _accept_guides()
+                _ask_guides()
                 return true
     if not _room().has("merchant"):
         return false
@@ -7643,7 +7750,7 @@ func _close_shop() -> void:
 
 
 func _shop_row(i: int) -> Rect2:
-    return Rect2(180, 190 + float(i) * 64.0, 600, 58)
+    return Rect2(180, 182 + float(i) * 55.0, 600, 51)
 
 
 ## Precio real: crece con el nivel de lo que mejoras y cambia con tu marca.
@@ -7655,6 +7762,8 @@ func _shop_price(i: int) -> int:
             base *= float(_trinket_level(key) + 1) # comprar: 12; mejorar a NV 2: 24; a NV 3: 36...
         "resonancia":
             base = float(RESONANCE_UPGRADE_BASE + RESONANCE_UPGRADE_STEP * ability_level)
+        "vigilia":
+            return maxi(VIGIL_PRICE, int(roundf(base * _karma_price_factor()))) # nunca por debajo de 500
     return maxi(1, int(roundf(base * _karma_price_factor())))
 
 
@@ -7664,6 +7773,8 @@ func _shop_maxed(i: int) -> bool:
         return _trinket_level(key) >= ITEM_LEVEL_MAX
     if key == "resonancia":
         return not has_pulse or ability_level >= ABILITY_LEVEL_MAX
+    if key == "vigilia":
+        return vigil_unlocked
     return false
 
 
@@ -7679,6 +7790,8 @@ func _shop_owned_text(i: int) -> String:
             return "NV %d" % lv if lv > 0 else "NO LO TIENES"
         "resonancia":
             return ("NV %d" % ability_level) if has_pulse else "SIN RESONANCIA"
+        "vigilia":
+            return "ES TUYA" if vigil_unlocked else "CERRADA"
     return ""
 
 
@@ -7691,7 +7804,7 @@ func _shop_key(k: int) -> void:
         shop_sel = (shop_sel + SHOP.size() - 1) % SHOP.size()
     elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
         _shop_buy(shop_sel)
-    elif k >= KEY_1 and k <= KEY_5:
+    elif k >= KEY_1 and int(k) < int(KEY_1) + SHOP.size():
         shop_sel = int(k) - int(KEY_1)
         _shop_buy(shop_sel)
 
@@ -7711,7 +7824,7 @@ func _shop_buy(i: int) -> bool:
     var key: String = item[0]
     var price: int = _shop_price(i)
     if _shop_maxed(i):
-        _say("Todavía no tienes Resonancia: se consigue en el altar." if key == "resonancia" and not has_pulse else "Ya está al nivel máximo.", 2.4)
+        _say("Todavía no tienes Resonancia: se consigue en el altar." if key == "resonancia" and not has_pulse else ("La llave ya es tuya." if key == "vigilia" else "Ya está al nivel máximo."), 2.4)
         _sfx("toque", -10.0)
         return false
     if souls < price:
@@ -7728,6 +7841,9 @@ func _shop_buy(i: int) -> bool:
         "resonancia":
             ability_level += 1
             got = "Resonancia nivel %d" % ability_level
+        "vigilia":
+            vigil_unlocked = true
+            got = "la llave de la Vigilia (ya puedes jugarla desde el menú)"
         _:
             if trinkets.has(key):
                 trinket_levels[key] = _trinket_level(key) + 1
@@ -7762,16 +7878,16 @@ func _draw_shop() -> void:
         var maxed: bool = _shop_maxed(i)
         var flash: float = float(shop_flash.get(i, 0.0))
         _panel(row, Color("#241c2c").lerp(Color("#5a4a2a"), flash) if sel or flash > 0.0 else Color("#141018"), UI_GOLD if sel else UI_EDGE)
-        draw_texture_rect(ICONS[item[0]], Rect2(row.position + Vector2(12, 7), Vector2(44, 44)), false, Color(1, 1, 1, 0.5) if maxed else Color.WHITE)
-        _text("[%d] %s" % [i + 1, item[1]], row.position + Vector2(70, 24), 16, CREAM)
-        _text(item[3], row.position + Vector2(70, 46), 11, Color("#b9b29b"))
-        var right: String = "MÁXIMO" if maxed else "%d ALMAS" % _shop_price(i)
+        draw_texture_rect(ICONS.get(item[0], ICONS["descansar"]), Rect2(row.position + Vector2(12, 5), Vector2(40, 40)), false, Color(1, 1, 1, 0.5) if maxed else Color.WHITE)
+        _text("[%d] %s" % [i + 1, item[1]], row.position + Vector2(66, 22), 16, CREAM)
+        _text(item[3], row.position + Vector2(66, 42), 11, Color("#b9b29b"))
+        var right: String = ("COMPRADA" if item[0] == "vigilia" else "MÁXIMO") if maxed else "%d ALMAS" % _shop_price(i)
         var tone: Color = SOUL if maxed else (CREAM if souls >= _shop_price(i) else RED)
-        draw_string(font, row.position + Vector2(0, 24), right, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, 15, tone)
+        draw_string(font, row.position + Vector2(0, 22), right, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, 15, tone)
         # Lo que ya llevas: el número salta al comprar.
         var owned: String = _shop_owned_text(i)
         var pop: float = 1.0 + 0.5 * flash
-        draw_string(font, row.position + Vector2(0, 46), owned, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, int(13.0 * pop), Color("#ffd36b").lerp(SOUL, 1.0 - flash))
+        draw_string(font, row.position + Vector2(0, 42), owned, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, int(13.0 * pop), Color("#ffd36b").lerp(SOUL, 1.0 - flash))
     draw_texture_rect(ICONS["alma"], Rect2(180, 520, 26, 26), false)
     _text("ALMAS: %d" % souls, Vector2(212, 540), 16, SOUL)
     _text("VIDA MÁXIMA: %d" % int(max_hp), Vector2(360, 540), 14, RED if hand_lost else CREAM)
@@ -8382,6 +8498,7 @@ func _use_bag_item(key: String) -> bool:
             stamina = 100.0
         "fosforos_caja":
             matches += 3
+            _try_craft() # con madera, los fósforos de la bolsa también hacen la antorcha
         "vial":
             _heal(80.0)
         "incienso":
@@ -9321,6 +9438,29 @@ const Botin := preload("res://scripts/botin.gd")
 const CHEST_REACH := 62.0
 var chests_opened: Dictionary = {} # "piso:sala" -> clave del objeto
 var chest_open_t: float = 0.0
+var loot_banner: Dictionary = {} # {key, t}: rótulo grande con el objeto que acabas de conseguir
+
+
+func _draw_loot_banner() -> void:
+    if loot_banner.is_empty() or game_mode != "play":
+        return
+    loot_banner["t"] = float(loot_banner["t"]) - get_process_delta_time()
+    if float(loot_banner["t"]) <= 0.0:
+        loot_banner = {}
+        return
+    var key: String = loot_banner["key"]
+    var info: Array = Botin.OBJETOS.get(key, [key, "", 1, "alma"])
+    var a: float = clampf(float(loot_banner["t"]), 0.0, 1.0)
+    var box := Rect2(300, 128, 360, 74)
+    var tier: int = clampi(int(info[2]), 1, 4)
+    var tier_col: Color = [Color("#9a957f"), SOUL, Color("#a988d0"), Color("#e3bd7b")][tier - 1]
+    _panel(box, Color(0.04, 0.035, 0.05, 0.94 * a), Color(tier_col.r, tier_col.g, tier_col.b, a))
+    var icon: String = str(info[3])
+    if ICONS.has(icon):
+        draw_texture_rect(ICONS[icon], Rect2(box.position + Vector2(12, 13), Vector2(48, 48)), false, Color(1, 1, 1, a))
+    _text_outline("OBJETO ENCONTRADO · " + ["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][tier - 1], Vector2(box.position.x + 70.0, box.position.y + 22.0), 11, Color(tier_col.r, tier_col.g, tier_col.b, a))
+    _text_outline(str(info[0]), Vector2(box.position.x + 70.0, box.position.y + 44.0), 17, Color(CREAM.r, CREAM.g, CREAM.b, a))
+    _text_outline("Ya está en tu perfil.", Vector2(box.position.x + 70.0, box.position.y + 62.0), 10, Color(0.62, 0.6, 0.55, a))
 
 
 func _chest_here() -> bool:
@@ -9355,8 +9495,9 @@ func _open_chest() -> bool:
     _sfx("alma", -8.0, 0.9)
     _emit(_chest_pos() + Vector2(0, -18), 22, Color(1.0, 0.85, 0.45), 20.0, 80.0, 0.9, 2.0, -40.0, Vector2.UP, 0.8, true)
     var note: String = str((_room()["chest"] as Array)[1]).replace("{yo}", _hero_name())
-    _dialog([["NOTA EN EL COFRE", note]])
-    _say("Dentro del cofre: %s." % item_name, 3.5)
+    var info: Array = Botin.OBJETOS.get(key, [item_name, "", 1, "alma"])
+    _dialog([["NOTA EN EL COFRE", note], ["OBJETO ENCONTRADO", "%s. %s" % [item_name, str(info[1])]]])
+    loot_banner = {"key": key, "t": 5.0}
     return true
 
 
@@ -9568,3 +9709,230 @@ func _draw_map_descent() -> void:
             last = i
     if last >= 0 and last < Pisos.FLOOR_TRUTHS.size():
         draw_multiline_string(font, Vector2(MAP_PANEL.position.x + 60.0, 560.0), "«%s»" % str(Pisos.FLOOR_TRUTHS[last]), HORIZONTAL_ALIGNMENT_CENTER, MAP_PANEL.size.x - 120.0, 12, 2, Color("#9fb3b3"))
+
+
+
+# ------------------------------------------------------------ PNJ CON VIDA PROPIA
+## Los aliados tienen vida: las trampas y las entidades también les hacen
+## daño, y se defienden (empujan a la entidad y aplastan alimañas). Además van
+## a lo suyo: recogen almas sueltas, fragmentos y pan, y usan el relicario de
+## vida si están heridos. Con la bendición te dan la mitad de lo que cogen.
+const ALLY_HP := 60.0
+const ALLY_GREED_RANGE := 170.0
+const ALLY_ENEMY_DAMAGE := 10.0
+const ALLY_DEFEND_CD := 3.0
+
+
+## Lo más cercano que le interesa y que tiene más a mano que tú (o null).
+func _ally_greed_target(ally: Dictionary):
+    var pos: Vector2 = ally["pos"]
+    var best = null
+    var best_d: float = ALLY_GREED_RANGE
+    var cands: Array = []
+    for d in drops:
+        cands.append(Vector2(d["pos"]))
+    for i in range(relics.size()):
+        if i < collected.size() and not collected[i]:
+            cands.append(Vector2(relics[i]))
+    for it in room_items:
+        if str(it["kind"]) == "pan":
+            cands.append(Vector2(it["pos"]))
+    if float(ally.get("hp", ALLY_HP)) < ALLY_HP * 0.6 and _fountain_here() and not fountains_used.has(_room_key()):
+        cands.append(FOUNTAIN_POS + Vector2(0, 24))
+    for c in cands:
+        var d: float = pos.distance_to(c)
+        if d < best_d and d < player_pos.distance_to(c):
+            best_d = d
+            best = c
+    return best
+
+
+func _ally_share(ally: Dictionary, amount: int, what: String) -> void:
+    var name_a: String = str(ally["name"])
+    if _mark() == "bendicion" and amount > 1:
+        var half: int = amount / 2
+        souls += half
+        souls_flash = 0.6
+        float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -70), "text": "%s COMPARTE +%d" % [name_a, half], "color": Color("#7fd6a0"), "t": 0.0})
+    else:
+        float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -70), "text": "%s SE QUEDA %s" % [name_a, what], "color": Color("#ffb36b"), "t": 0.0})
+
+
+func _ally_pickups(ally: Dictionary) -> void:
+    var pos: Vector2 = ally["pos"]
+    for i in range(drops.size() - 1, -1, -1):
+        if pos.distance_to(drops[i]["pos"]) < 24.0:
+            var v: int = int(drops[i].get("value", BANISH_SOULS))
+            drops.remove_at(i)
+            _ally_share(ally, v, "%d ALMAS" % v)
+            _sfx("alma", -12.0, 1.2)
+    for i in range(relics.size()):
+        if i < collected.size() and not collected[i] and pos.distance_to(relics[i]) < 24.0:
+            collected[i] = true # el fragmento ya no está, aunque las almas se las lleve él
+            _ally_share(ally, 7, "LAS ALMAS")
+            _sfx("k_vidrio", -16.0, 1.2)
+    for i in range(room_items.size() - 1, -1, -1):
+        if str(room_items[i]["kind"]) == "pan" and pos.distance_to(room_items[i]["pos"]) < 24.0:
+            items_taken["%s:pan" % _room_key()] = true
+            room_items.remove_at(i)
+            ally["hp"] = ALLY_HP
+            float_fx.append({"pos": pos + Vector2(0, -70), "text": "%s SE COME EL PAN" % ally["name"], "color": Color("#ffb36b"), "t": 0.0})
+    if _fountain_here() and not fountains_used.has(_room_key()) and float(ally.get("hp", ALLY_HP)) < ALLY_HP * 0.6 and pos.distance_to(FOUNTAIN_POS) < 40.0:
+        fountains_used[_room_key()] = true
+        ally["hp"] = ALLY_HP
+        float_fx.append({"pos": pos + Vector2(0, -70), "text": "%s VACÍA EL RELICARIO" % ally["name"], "color": Color("#ff8a8a"), "t": 0.0})
+        _sfx("k_metal", -10.0, 1.0)
+
+
+func _hurt_ally(ally: Dictionary, amount: float) -> void:
+    if float(ally.get("hurt_cd", 0.0)) > 0.0 or not bool(ally["alive"]):
+        return
+    ally["hp"] = float(ally.get("hp", ALLY_HP)) - amount
+    ally["hurt_cd"] = 0.8
+    float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -56), "text": "-%d" % int(amount), "color": RED, "t": 0.0})
+    _sfx("k_cuerpo", -12.0, 1.2)
+    if float(ally["hp"]) <= 0.0:
+        _ally_die(ally)
+
+
+func _ally_hazards(ally: Dictionary, dt: float) -> void:
+    if not bool(ally["alive"]):
+        return
+    if not ally.has("hp"):
+        ally["hp"] = ALLY_HP
+    ally["hurt_cd"] = maxf(0.0, float(ally.get("hurt_cd", 0.0)) - dt)
+    ally["defend_cd"] = maxf(0.0, float(ally.get("defend_cd", 0.0)) - dt)
+    var pos: Vector2 = ally["pos"]
+    # Trampas: los pinchos también les atraviesan.
+    for trap in traps:
+        if _trap_t(trap) >= TRAP_UP and _trap_rect(trap).has_point(pos):
+            _hurt_ally(ally, TRAP_DAMAGE * 0.6)
+    # Alimañas: las aplastan antes de que muerdan.
+    for cr in critters:
+        if bool(cr["alive"]) and pos.distance_to(cr["pos"]) < 26.0:
+            cr["alive"] = false
+            cr["dead_t"] = 0.0
+            _emit(Vector2(cr["pos"]) + Vector2(0, -6), 8, Color(0.55, 0.06, 0.1), 30.0, 100.0, 0.5, 2.0, 260.0, Vector2.UP, 1.4)
+    # La entidad de la sala: si los alcanza, les hace daño; si está cerca, se defienden.
+    if _enemy_active():
+        var d: float = pos.distance_to(enemy_pos)
+        if d < 34.0:
+            _hurt_ally(ally, ALLY_ENEMY_DAMAGE)
+        if d < 80.0 and float(ally["defend_cd"]) <= 0.0 and bool(ally["alive"]):
+            ally["defend_cd"] = ALLY_DEFEND_CD
+            enemy_stun = maxf(enemy_stun, 0.6)
+            float_fx.append({"pos": pos + Vector2(0, -72), "text": "¡ATRÁS!", "color": Color("#9fd8b0"), "t": 0.0})
+            _sfx("golpe", -12.0, 1.1)
+
+
+
+# ------------------------------------------------------------ ELECCIONES CLARAS
+## Ventana con dos opciones grandes (p. ej. guiar o no al grupo del Piso VI).
+## Teclas 1/2, ←/→ + Enter, toque o mando (cruceta + A; B cancela).
+var choice: Dictionary = {} # {speaker, text, options: [[id, título, detalle]]}
+var choice_sel: int = 0
+var guides_refused: bool = false
+
+
+func _pick_rect(i: int) -> Rect2:
+    return Rect2(196.0 + float(i) * 292.0, 330.0, 276.0, 110.0)
+
+
+func _open_choice(speaker: String, text: String, options: Array) -> void:
+    choice = {"speaker": speaker, "text": text, "options": options}
+    choice_sel = 0
+    game_mode = "choice"
+    mobile_axis = Vector2.ZERO
+    mobile_finger = -1
+    _sfx("interfaz", -9.0)
+
+
+func _choice_pick(i: int) -> void:
+    var opts: Array = choice.get("options", [])
+    if i < 0 or i >= opts.size():
+        return
+    var id: String = opts[i][0]
+    choice = {}
+    game_mode = "play"
+    match id:
+        "guiar":
+            _accept_guides()
+        "rechazar":
+            _refuse_guides()
+
+
+func _choice_cancel() -> void:
+    choice = {}
+    game_mode = "play"
+
+
+func _choice_key(k: int) -> void:
+    var n: int = (choice.get("options", []) as Array).size()
+    if k in [KEY_LEFT, KEY_A, KEY_UP, KEY_W]:
+        choice_sel = (choice_sel + n - 1) % n
+    elif k in [KEY_RIGHT, KEY_D, KEY_DOWN, KEY_S, KEY_TAB]:
+        choice_sel = (choice_sel + 1) % n
+    elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E] or k == _key("interactuar"):
+        _choice_pick(choice_sel)
+    elif k >= KEY_1 and int(k) < int(KEY_1) + n:
+        _choice_pick(int(k) - int(KEY_1))
+    elif k == KEY_ESCAPE:
+        _choice_cancel()
+
+
+func _choice_tap(at: Vector2) -> void:
+    for i in range((choice.get("options", []) as Array).size()):
+        if _pick_rect(i).has_point(at):
+            _choice_pick(i)
+            return
+
+
+func _draw_choice() -> void:
+    draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.62))
+    var panel := Rect2(170, 170, 620, 300)
+    _panel(panel, Color(0.04, 0.035, 0.05, 0.97), UI_GOLD)
+    _text_outline(str(choice.get("speaker", "")), Vector2(panel.position.x, panel.position.y + 34.0), 16, UI_GOLD, panel.size.x)
+    draw_multiline_string(font, Vector2(panel.position.x + 30.0, panel.position.y + 66.0), str(choice.get("text", "")), HORIZONTAL_ALIGNMENT_CENTER, panel.size.x - 60.0, 15, 4, CREAM)
+    var opts: Array = choice.get("options", [])
+    for i in range(opts.size()):
+        var r: Rect2 = _pick_rect(i)
+        var sel: bool = i == choice_sel or r.has_point(ui_hover)
+        var good: bool = i == 0
+        _panel(r, (Color("#1f3326") if good else Color("#3a1a20")) if sel else Color("#141018"), (Color("#7fd6a0") if good else UI_CRIMSON) if sel else UI_EDGE)
+        _text_outline("[%d] %s" % [i + 1, opts[i][1]], Vector2(r.position.x, r.position.y + 36.0), 17, CREAM, r.size.x)
+        draw_multiline_string(font, Vector2(r.position.x + 14.0, r.position.y + 62.0), str(opts[i][2]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 28.0, 12, 3, Color("#b9b29b"))
+    _text_outline(_hint("1 / 2 · ←/→ + ENTER · ESC: pensarlo", "Toca una opción", "Cruceta + A · B: pensarlo"), Vector2(panel.position.x, panel.end.y - 14.0), 11, Color("#8a8574"), panel.size.x)
+
+
+func _ask_guides() -> void:
+    if _mark() == "maldicion":
+        _accept_guides() # con la maldición ni siquiera te lo piden: se niegan
+        return
+    _open_choice("IRENE, EN NOMBRE DEL GRUPO",
+        "«Llevamos días aquí abajo. Tú tienes luz y sabes moverte. ¿Nos guías hasta el siguiente piso?»",
+        [["guiar", "AYUDARLOS", "Te seguirán a tu paso. Si sobreviven, te lo agradecerán."],
+         ["rechazar", "NEGARSE", "Seguirás solo. Ellos se quedarán aquí."]])
+
+
+func _refuse_guides() -> void:
+    if not guides_refused:
+        guides_refused = true
+        _karma(-1, "Te negaste a guiar al grupo")
+    _dialog([["IRENE", "Entendido. Bajaremos como podamos... si podemos."],
+        ["BAS", "Si cambias de idea, seguiremos aquí."]])
+    _sfx("toque", -8.0, 0.7)
+
+
+## Marca clara sobre el grupo mientras espera tu respuesta.
+func _draw_guides_request() -> void:
+    if not _has("guias") or guiding or allies.is_empty() or game_mode != "play":
+        return
+    var lead: Vector2 = allies[0]["pos"]
+    var bob: float = 3.0 * sin(elapsed * 4.0)
+    draw_circle(lead + Vector2(0, -98 + bob), 11.0, Color("#ffd36b"))
+    _text_outline("!", Vector2(lead.x - 10.0, lead.y - 91.0 + bob), 16, Color("#1a1420"), 20.0)
+    var near: bool = false
+    for ally in allies:
+        if player_pos.distance_to(ally["pos"]) < 72.0:
+            near = true
+    _label_center(_prompt("HABLAR: PIDEN AYUDA") if near else "EL GRUPO PIDE AYUDA", lead + Vector2(0, -118), Color("#ffd36b"))

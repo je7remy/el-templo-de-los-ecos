@@ -686,7 +686,24 @@ func _run_checks() -> void:
         _fail("El grupo del Piso VI no espera (con Saúl, rescatado en el Piso V).")
         return
     game.set("player_pos", Vector2(group[0]["pos"]) + Vector2(40, 0))
+    var karma_before: int = int(game.get("karma"))
     game.call("_interact")
+    # Ahora la petición es una elección clara: AYUDARLOS o NEGARSE.
+    if str(game.get("game_mode")) != "choice" or (game.get("choice")["options"] as Array).size() != 2:
+        _fail("Hablar con el grupo no muestra la elección de ayudarlos o no.")
+        return
+    game.call("_choice_key", KEY_2)
+    game.call("_dialog_skip")
+    if bool(game.get("guiding")) or not bool(group[0]["waiting"]) or not bool(game.get("guides_refused")):
+        _fail("Negarse a guiarlos no funciona.")
+        return
+    if int(game.get("karma")) != karma_before - 1:
+        _fail("Negarse a guiarlos no cuenta para la marca.")
+        return
+    game.set("karma", karma_before)
+    game.set("game_mode", "play")
+    game.call("_interact")
+    game.call("_choice_key", KEY_1)
     game.call("_dialog_skip")
     if not bool(game.get("guiding")) or bool(group[0]["waiting"]):
         _fail("Hablar con el grupo no lo convierte en tus guiados.")
@@ -1179,6 +1196,97 @@ func _run_checks() -> void:
         _fail("El mapa no se cierra.")
         return
     print("OK: cofres con notas y mapa grande con el descenso.")
+
+    # Rótulo del objeto del cofre.
+    if (game.get("loot_banner") as Dictionary).is_empty():
+        _fail("Abrir un cofre no muestra el objeto conseguido.")
+        return
+    # Vigilia: cerrada hasta comprar la llave al Mercader (500 almas o más).
+    game.set("vigil_unlocked", false)
+    game.set("game_mode", "title")
+    game.call("_open_defense")
+    if str(game.get("game_mode")) != "title":
+        _fail("La Vigilia se abre sin la llave.")
+        return
+    var shop: Array = game.get("SHOP")
+    var vk: int = -1
+    for i in range(shop.size()):
+        if str(shop[i][0]) == "vigilia":
+            vk = i
+    if vk < 0 or int(game.call("_shop_price", vk)) < 500:
+        _fail("El Mercader no vende la llave de la Vigilia por 500 almas o más.")
+        return
+    game.set("souls", 499)
+    game.call("_shop_buy", vk)
+    if bool(game.get("vigil_unlocked")):
+        _fail("La llave de la Vigilia se compra sin almas suficientes.")
+        return
+    game.set("souls", 900)
+    game.call("_shop_buy", vk)
+    if not bool(game.get("vigil_unlocked")) or int(game.get("souls")) > 400:
+        _fail("Comprar la llave no abre la Vigilia.")
+        return
+    # Las almas se conservan entre partidas.
+    game.set("souls", 123)
+    game.call("_new_run")
+    if int(game.get("souls")) != 123:
+        _fail("Las almas se pierden al empezar otra partida.")
+        return
+    # Fósforos de la bolsa + madera = antorcha, sin los del suelo.
+    game.set("has_torch", false)
+    game.set("has_wood", true)
+    game.set("matches", 0)
+    game.set("bag", {"fosforos_caja": 1})
+    game.call("_use_bag_item", "fosforos_caja")
+    if not bool(game.get("has_torch")):
+        _fail("Los fósforos de la bolsa no sirven para hacer la antorcha.")
+        return
+    # Punto de control: se retoma el piso desde la última sala alcanzada.
+    game.set("max_floor", 4)
+    game.set("player_name", "SELENE")
+    game.set("current_floor", 3)
+    game.set("current_room", 2)
+    game.set("game_mode", "play")
+    game.call("_enter_room")
+    if (game.get("checkpoint") as Array) != [3, 2]:
+        _fail("Entrar en una sala no guarda el punto de control.")
+        return
+    game.set("game_mode", "floors")
+    game.call("_choose_floor", 3)
+    if int(game.get("current_floor")) != 3 or int(game.get("current_room")) != 2:
+        _fail("El piso no se retoma desde la última sala alcanzada.")
+        return
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    # PNJ: las trampas y la entidad les hacen daño; se defienden; van a por las almas.
+    game.set("current_floor", 2)
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    var al: Dictionary = {"name": "BRUNA", "pos": Vector2(400, 380), "prev": Vector2(400, 380), "facing": 0, "moving": false, "alive": true,
+        "react": 0.0, "seed": 1, "dead_key": "", "dead_pos": Vector2.ZERO, "line": "", "line_t": 0.0, "waiting": false, "maimed": false}
+    game.set("allies", [al])
+    game.set("allies_here", true)
+    game.set("enemy_pos", Vector2(410, 380))
+    game.set("enemy_stun", 0.0)
+    game.call("_ally_hazards", al, 0.1)
+    if float(al.get("hp", 60.0)) >= 60.0:
+        _fail("La entidad no hace daño a los PNJ.")
+        return
+    if float(game.get("enemy_stun")) <= 0.0:
+        _fail("Los PNJ no se defienden de la entidad.")
+        return
+    game.set("enemy_pos", Vector2(820, 200))
+    game.set("drops", [{"pos": Vector2(420, 380), "value": 10}])
+    game.set("player_pos", Vector2(120, 380))
+    game.call("_ally_pickups", al)
+    if not (game.get("drops") as Array).is_empty():
+        _fail("Los PNJ no van a por las almas sueltas.")
+        return
+    game.set("allies", [])
+    game.set("allies_here", false)
+    print("OK: Vigilia por llave, almas guardadas, antorcha con la bolsa, puntos de control y PNJ con vida propia.")
 
     var Ajustes = load("res://scripts/ajustes.gd")
     # Borrar perfil: todo el progreso fuera y vuelta a empezar (intro, tutorial, personaje).
