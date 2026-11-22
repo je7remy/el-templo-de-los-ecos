@@ -1017,7 +1017,7 @@ func _run_checks() -> void:
     if str(game.get("elder_state")) == "talk":
         _fail("El Hermano Mayor no traiciona tras la conversación.")
         return
-    # Mirada: moverse mientras te mira hace daño; quedarse quieto, no.
+    # Mirada: alejarse mientras te mira hace daño; quedarse quieto, no.
     game.set("elder_state", "gaze")
     game.set("elder_t", 3.0)
     game.set("elder_tick", 0.0)
@@ -1028,10 +1028,10 @@ func _run_checks() -> void:
     if float(game.get("hp")) < 100.0:
         _fail("La mirada daña aunque estés quieto.")
         return
-    game.set("player_pos", Vector2(320, 400))
+    game.set("player_pos", Vector2(280, 400)) # alejarse de él: darle la espalda
     game.call("_update_harvest", 0.1)
     if float(game.get("hp")) >= 100.0:
-        _fail("La mirada no castiga moverse.")
+        _fail("La mirada no castiga darle la espalda.")
         return
     # Agotado tras el rugido: recibe el doble de daño.
     game.set("elder_state", "tired")

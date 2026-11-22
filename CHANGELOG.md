@@ -1,5 +1,40 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-22 · Revisión de la historia y sin pistas fáciles
+
+- **Sin referencias al templo dentro del juego.** Ningún texto lo nombra: el jugador descubre por sí mismo dónde está. Solo queda el título del juego, que es la marca.
+  - Cambian la intro, el subtítulo, los avisos, los menús y las verdades.
+  - El Piso VIII pasa a llamarse **Las Salas que Cambian**.
+  - La inscripción del VIII dice: «Esto nunca fue un santuario. Es una fábrica…».
+- **Menús sin pistas:**
+  - en el menú de pisos, los no alcanzados muestran «???»;
+  - el icono del Eco solo aparece en los pisos ya superados;
+  - los Ecos sin despertar no dicen dónde se consiguen;
+  - las habilidades y los objetos que no tienes solo dicen «Aún no la tienes» o «Aún no lo tienes».
+- **Reglas por descubrir.** Los avisos describen lo que pasa, no la solución. Ejemplos:
+  - «El golpe rebota. Ahora mismo es piedra.»
+  - «La columna cruje, pero aguanta.»
+  - «Raíces vivas tapan la puerta.»
+
+  Se quitan los textos de instrucción en pantalla. Se mantienen los avisos visuales (círculos, líneas y flechas rojas).
+  - En la Vigía: «¡NO LE DES LA ESPALDA!» y «ESQUIVA AHORA».
+  - En el Coloso: «SAL DEL CÍRCULO».
+  - En el Hermano Mayor: «¡QUIETO!» y los avisos de sus reglas.
+- **Inscripciones, susurros y diálogos más sutiles:** la mirada del VII, los Arietes y el Coloso del IX, los mastines del V, las raíces del IV y el Segador del III.
+- **Misiones sin solución en el texto:**
+  - «Derrota al Coloso»;
+  - «Destierra a la Tejedora»;
+  - «Libera al peregrino atrapado»;
+  - «Resiste 45 s en la sala».
+- **Coherencia:**
+  - Las salas de los pisos I a IV se numeran como las demás (I-1, II-3…).
+  - El Piso II ya no dice que «nadie llega acompañado» cuando el Peregrino sincero sigue contigo.
+  - El Hermano Mayor:
+    - te conoce por el Muro de los Nombres del Piso IV;
+    - explica de dónde salen sus reglas: los hilos del Segador, la mirada de la Vigía y una Máscara de Porcelana repuesta para él, como la tuya;
+    - su mirada sigue la misma regla que la del Piso VII (castiga alejarte o esquivar, no quedarte quieto).
+  - La sala final ya no anuncia el final antes de la pelea.
+
 ## En `main` (sin nuevo release) — 2026-11-22 · Piso X (final del arco), tutorial de la Vigilia y habilidades por páginas
 
 - **Piso X · La Cosecha**, el último piso del primer arco (cuatro salas):

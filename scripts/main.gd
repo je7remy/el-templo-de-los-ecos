@@ -639,7 +639,7 @@ func _new_run() -> void:
     if remembered_rule:
         _say("Recuerdas la regla del Testigo de una vida anterior.", 4.0)
     else:
-        _say("No recuerdas el origen del templo. Busca respuestas.", 4.0)
+        _say("No recuerdas nada de este lugar.", 4.0)
 
 
 func _enter_room() -> void:
@@ -1697,18 +1697,18 @@ func _damage_enemy(amount: float) -> bool:
         float_fx.append({"pos": head, "text": "INMUNE", "color": Color("#b4bba8"), "t": 0.0})
         _sfx("inmune", -8.0)
         if _enemy_kind() == "testigo":
-            _say("Con el ojo abierto es piedra. Golpéalo cuando lo cierre.", 2.6)
+            _say("El golpe rebota. Ahora mismo es piedra.", 2.6)
         elif _enemy_kind() == "segador":
-            _say("Es demasiado rápido. Espera a que dispare y quede enganchado.", 2.6)
+            _say("Demasiado rápido: el golpe no lo alcanza.", 2.6)
         else:
-            _say("Su escudo solo cae mientras carga el conjuro.", 2.6)
+            _say("Algo invisible desvía el golpe.", 2.6)
         return false
     if _enemy_kind() == "tejedora" and not fire_hit:
         # La corteza apenas se marca: el fuego es lo que la mata.
         amount = maxf(2.0, roundf(amount * 0.18))
         if teje_hint_t <= 0.0:
             teje_hint_t = 6.0
-            _say("La corteza apenas se marca. Atráela hasta las enredaderas y préndelas.", 3.2)
+            _say("La corteza apenas se marca.", 3.2)
     enemy_hp -= amount
     enemy_hit_t = 0.2
     _sfx("k_golpe", -11.0)
@@ -1800,7 +1800,7 @@ func _interact() -> void:
         if has_pulse:
             ability_level = maxi(ability_level, 1)
         _save_progress()
-        _say("SELLO RECUPERADO. En este piso el Testigo castiga al que se queda quieto." if _floor().get("inverted", false) else "SELLO RECUPERADO. El Testigo se inmoviliza cuando tú te detienes.", 5.0)
+        _say("SELLO RECUPERADO. El ojo grabado en la cera mira hacia otro lado." if _floor().get("inverted", false) else "SELLO RECUPERADO. En la cera, un ojo abierto y una figura inmóvil.", 5.0)
         _sfx("sello", -4.0)
         return
     if _calm_ally():
@@ -1879,7 +1879,7 @@ func _required_clue() -> String:
     if _has("sello") and not seal_acquired:
         return "El pórtico exige el sello de la estatua. Está al fondo."
     if _has("almas") and collected.has(false):
-        return "El templo no deja pasar a nadie con las manos vacías: faltan almas."
+        return "La puerta no se abre para manos vacías: faltan almas."
     if pilgrim_state in ["tell", "hostile"]:
         return "No puedes darle la espalda a quien te quiere muerto."
     if _has("caza") and _enemy_active():
@@ -1887,7 +1887,7 @@ func _required_clue() -> String:
     if _mission_pending(true):
         return "MISIÓN: %s. La puerta no se abre hasta cumplirla." % _mission()["text"]
     if _door_roots_left() > 0:
-        return "Raíces vivas tapan la puerta. No prenden con la antorcha: hazles llegar el fuego de las secas."
+        return "Raíces vivas tapan la puerta."
     return "La puerta todavía no te reconoce."
 
 
@@ -2180,7 +2180,7 @@ func _collect_relic(i: int) -> void:
     _gain_xp(XP_RELIC)
     _sfx("k_vidrio", -15.0, 1.35)
     _emit(relics[i] + Vector2(0, -16), 18, Color(0.56, 0.86, 0.95), 15.0, 60.0, 1.1, 2.0, -40.0, Vector2.UP, 1.0, true)
-    _say("Fragmento reunido: +7 almas. Es la moneda del templo.", 2.5)
+    _say("Fragmento reunido: +7 almas.", 2.5)
     _sfx("alma", -5.0)
 
 
@@ -2218,12 +2218,12 @@ func _update_enemy(dt: float) -> void:
             if inverted:
                 if not inverted_seen:
                     inverted_seen = true
-                    _say("¡Viene cuando te detienes! Aquí la regla es al revés: muévete mientras el ojo esté abierto.", 4.5)
+                    _say("¡Viene cuando te detienes!", 3.5)
             elif not observed_rule:
                 observed_rule = true
                 remembered_rule = true
                 _save_progress()
-                _say("Observación: al detenerte, el Testigo también se detiene.", 4.5)
+                _say("Te detuviste... y el Testigo también.", 4.0)
     elif _enemy_kind() == "segador":
         _update_segador(dt)
     elif _enemy_kind() == "tejedora":
@@ -2248,7 +2248,7 @@ func _update_enemy(dt: float) -> void:
                     hp -= 25.0 * _depth_mult()
                     fear = minf(100.0, fear + 13.0)
                     damage_cd = 1.1
-                    _say("El conjuro te alcanza. Busca cobertura.", 2.6)
+                    _say("El conjuro te alcanza.", 2.6)
                     _on_hurt()
                 fireballs.remove_at(i)
             elif float(ball["life"]) <= 0.0 or _is_blocked(p):
@@ -2266,7 +2266,7 @@ func _update_enemy(dt: float) -> void:
             var escape := player_pos + away * 65.0
             if not _is_blocked(escape):
                 player_pos = escape
-            _say("La criatura te ha herido. Descubre su regla.", 3.0)
+            _say("La criatura te ha herido.", 3.0)
             _on_hurt()
 
 
@@ -3614,7 +3614,7 @@ func _draw_inventory_overlay() -> void:
     else:
         var owned_sel: bool = _slot_owned(inventory_sel)
         _text_outline(INVENTORY_SLOTS[inventory_sel][1] if owned_sel else "???", Vector2(388, 478), 15, CREAM if owned_sel else Color("#6d6a60"))
-        draw_string(font, Vector2(388, 502), INVENTORY_SLOTS[inventory_sel][2] if owned_sel else "Aún no lo tienes. Explora el templo.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, SOUL if owned_sel else Color("#8a8778"))
+        draw_string(font, Vector2(388, 502), INVENTORY_SLOTS[inventory_sel][2] if owned_sel else "Aún no lo tienes.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, SOUL if owned_sel else Color("#8a8778"))
     _text_outline(_hint("I / ESC: cerrar", "Toca fuera para cerrar", "B: cerrar"), Vector2(372, 564), 12, Color("#8a8574"), 320.0)
 
 
@@ -3652,18 +3652,18 @@ func _draw_end_overlay(win: bool) -> void:
         _title_text("Fin del primer arco", Vector2(0, 214), 48, SOUL, W)
         _center("La Puerta de la Cosecha no lleva a la salida, sino a otros escalones.", 262, 17, CREAM)
         _center("«Esto no es una salida. Es una transición.»", 300, 20, Color("#e3bd7b"))
-        _center("En el marco, doscientas marcas de alas: este templo es solo uno de muchos.", 338, 15, Color("#9fb3b3"))
+        _center("En el marco, doscientas marcas de alas: este lugar es solo uno de muchos.", 338, 15, Color("#9fb3b3"))
         _center("Continuará.", 376, 16, CREAM)
         _center(_hint("ENTER: volver a empezar  ·  ESC: menú", "Toca para volver a empezar", "A: volver a empezar  ·  B: menú"), 430, 18, CREAM)
     elif win:
         _center("PISO %s SUPERADO" % _floor()["number"], 230, 33, SOUL)
         _center("No has escapado. El siguiente nivel sigue oculto.", 280, 18, CREAM)
-        _center("El templo conserva su apariencia. Nada es lo que parece.", 318, 16, CREAM)
+        _center("Nada es lo que parece.", 318, 16, CREAM)
         _center(_hint("ENTER: repetir prueba  ·  ESC: menú", "Toca para repetir la prueba", "A: repetir prueba  ·  B: menú"), 418, 18, CREAM)
     elif soul_fate == "persistencia":
         _death_vignette()
         _title_text("%s ha caído" % _tc(_hero_name()), Vector2(0, 240), 48, Color("#d0475a"), W)
-        _center("El templo todavía no te reclama.", 278, 18, CREAM)
+        _center("Este lugar todavía no te reclama.", 278, 18, CREAM)
         _center("Conservas almas, objetos, habilidades y ecos.", 318, 17, CREAM)
         _center("(Modo de pruebas: la muerte no cuesta progreso.)", 352, 15, Color("#9fb3b3"))
         _center(_hint("ENTER: levantarte en la entrada de la sala  ·  ESC: menú", "Toca para levantarte en la entrada de la sala", "A: levantarte  ·  B: menú"), 418, 18, CREAM)
@@ -4148,7 +4148,7 @@ const T := {
     "pj_comenzar": ["COMENZAR", "START"],
     "pj_vacio": ["Escribe un nombre primero.", "Type a name first."],
     "continuar_tactil": ["TOCA PARA CONTINUAR", "TAP TO CONTINUE"],
-    "subtitulo": ["Un roguelike de terror en un templo que se alimenta de ti.", "A horror roguelike in a temple that feeds on you."],
+    "subtitulo": ["Un roguelike de terror. Despiertas a oscuras y nadie te dice por qué.", "A horror roguelike. You wake in the dark and no one tells you why."],
     "ajustes": ["CONFIGURACIÓN", "SETTINGS"],
     "sonido": ["SONIDO", "SOUND"],
     "controles": ["CONTROLES", "CONTROLS"],
@@ -4255,7 +4255,7 @@ const TUTORIAL_FLOOR := {
     "number": "0", "title": "PRÓLOGO", "state": "SALA DE PRÁCTICA", "wear": 0.0, "eco": "",
     "rooms": [
         {"scene": 0, "name": "PRÓLOGO · SALA DE PRÁCTICA", "enemy": "", "traits": ["practica"],
-         "whisper": "Aprende a moverte antes de que el templo te enseñe a su manera.", "items": []},
+         "whisper": "Aprende a moverte antes de que este lugar te enseñe a su manera.", "items": []},
     ],
 }
 const DUMMY_POS := Vector2(480, 300)
@@ -4735,10 +4735,10 @@ func _pause_key(k: int) -> void:
 ## Diapositivas: [texto ES, texto EN, escena]. Escenas: despertar, templo, ojo, almas, descenso.
 const INTRO := [
     ["Despiertas sobre piedra fría. No recuerdas cómo llegaste.", "You wake on cold stone. You don't remember how you got here.", "despertar"],
-    ["Un templo. Columnas que no reconoces. Ecos de pasos que no son tuyos.", "A temple. Columns you don't recognize. Echoes of footsteps that aren't yours.", "templo"],
-    ["Algo aquí te observa. Y se alimenta de tu miedo.", "Something here is watching you. And it feeds on your fear.", "ojo"],
+    ["Columnas que no reconoces. Bóvedas sin cielo. Ecos de pasos que no son tuyos.", "Columns you don't recognize. Vaults with no sky. Echoes of footsteps that aren't yours.", "templo"],
+    ["Algo aquí te observa. No sabes desde dónde.", "Something here is watching you. You don't know from where.", "ojo"],
     ["Otros llegaron antes. Lo que dejaron atrás todavía brilla.", "Others came before. What they left behind still glows.", "almas"],
-    ["Encuentra la luz. Desciende. No confíes en nadie.", "Find the light. Descend. Trust no one.", "descenso"],
+    ["Encuentra la luz. Siempre hay otra puerta.", "Find the light. There is always another door.", "descenso"],
 ]
 
 
@@ -4845,7 +4845,7 @@ func _tutorial_text(step: int) -> String:
         "Golpea al muñeco 3 veces con CLIC o %s" % _key_label("interactuar"),
         "Abre tu perfil con %s y vuelve a cerrarlo" % _key_label("perfil"),
         "Pausa el juego con %s y continúa" % _key_label("pausa"),
-        "¡Listo! Cruza la puerta para entrar en el templo",
+        "¡Listo! Cruza la puerta para empezar",
     ]
     var en := [
         "Move with %s %s %s %s or the arrow keys" % [_key_label("arriba"), _key_label("izquierda"), _key_label("abajo"), _key_label("derecha")],
@@ -5425,7 +5425,7 @@ func _segador_fire() -> void:
             hp -= SEG_DAMAGE * _depth_mult()
             fear = minf(100.0, fear + 24.0)
             damage_cd = 1.2
-            _say("El hilo te atraviesa. Sal de la línea antes de que dispare.", 3.0)
+            _say("El hilo te atraviesa.", 3.0)
             _on_hurt()
     if allies_here:
         for ally in allies:
@@ -5482,7 +5482,7 @@ func _allies_enter_room() -> void:
             _say("Sobrevivieron %d de 3. Te dan +%d almas y 3 fósforos: «Sin ti no lo contábamos»." % [alive, alive * ALLY_SOULS], 5.0)
             _ally_say_random(["Seguiremos bajando. Quizá volvamos a vernos.", "Hasta el próximo piso. Si es que hay suelo."])
         else:
-            _say("Nadie más llegó hasta aquí. El templo cobró su parte.", 4.5)
+            _say("Nadie más llegó hasta aquí. Este lugar cobró su parte.", 4.5)
             fear = minf(100.0, fear + 15.0)
 
 
@@ -5748,7 +5748,7 @@ func _update_traps(_dt: float) -> void:
                 fear = minf(100.0, fear + 10.0)
                 damage_cd = 1.0
                 trap["bloody"] = true
-                _say("Pinchos. Míralos asomar y pasa cuando bajen, o esquiva por encima.", 3.0)
+                _say("Pinchos en el suelo.", 3.0)
                 _on_hurt()
 
 
@@ -6062,7 +6062,7 @@ func _draw_abilities() -> void:
         var kw: float = font.get_string_size(keytag, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 14.0
         _panel(Rect2(r.end.x - kw - 10.0, r.position.y + 8.0, kw, 18), Color("#1d2230"), UI_GOLD if owned else UI_EDGE)
         _text_outline(keytag, Vector2(r.end.x - kw - 10.0, r.position.y + 22.0), 11, UI_GOLD if owned else Color("#5d5a52"), kw)
-        var desc: String = row[3] if owned else "Aún no la tienes. Búscala en el templo o en el altar."
+        var desc: String = row[3] if owned else "Aún no la tienes."
         draw_multiline_string(font, r.position + Vector2(70, 42), desc, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 84.0, 11, 2, Color("#b9b29b") if owned else Color("#5d5a52"))
         if owned:
             _text_outline(str(row[5]), Vector2(r.position.x + 70.0, r.end.y - 6.0), 10, SOUL)
@@ -6077,7 +6077,7 @@ func _draw_abilities() -> void:
         _panel(e, Color("#141922"), Color("#3b6f7d") if has_it else UI_EDGE)
         draw_texture_rect(ICONS["eco_" + str(keys[i])], Rect2(e.position + Vector2(10, 15), Vector2(32, 32)), false, Color.WHITE if has_it else Color(0.15, 0.15, 0.18, 0.9))
         _text_outline(ECOS[keys[i]][0] if has_it else "ECO SIN DESPERTAR", Vector2(e.position.x + 52.0, e.position.y + 22.0), 12, SOUL if has_it else Color("#5d5a52"))
-        draw_multiline_string(font, e.position + Vector2(52, 40), ECOS[keys[i]][1] if has_it else "Supera el piso %s para despertarlo." % _eco_floor(str(keys[i])), HORIZONTAL_ALIGNMENT_LEFT, e.size.x - 60.0, 10, 2, Color("#9a957f"))
+        draw_multiline_string(font, e.position + Vector2(52, 40), ECOS[keys[i]][1] if has_it else "???", HORIZONTAL_ALIGNMENT_LEFT, e.size.x - 60.0, 10, 2, Color("#9a957f"))
     if abil_page * per_a >= rows.size():
         _text_outline("Tus habilidades están en la página 1.", Vector2(96, ABIL_TOP + 20.0), 12, Color("#8a8574"))
     _text_outline("%d de %d Ecos despiertos: uno por cada piso superado." % [ecos.size(), keys.size()], Vector2(540, ABIL_TOP + float(shown) * ECO_ROW_H + 14.0), 11, Color("#8a8574"))
@@ -6309,7 +6309,7 @@ func _draw_room_fade() -> void:
 const FLOOR_PLAN := [
     ["I", "EL DESPERTAR"], ["II", "LOS PEREGRINOS"], ["III", "LA CACERÍA"], ["IV", "EL CLAUSTRO ENRAIZADO"],
     ["V", "EL LABERINTO DE LOS MASTINES"], ["VI", "LA OFRENDA"], ["VII", "LA QUE NO APARTA LA VISTA"],
-    ["VIII", "EL TEMPLO QUE CAMBIA"], ["IX", "EL COLOSO DEL PÓRTICO"], ["X", "LA COSECHA"],
+    ["VIII", "LAS SALAS QUE CAMBIAN"], ["IX", "EL COLOSO DEL PÓRTICO"], ["X", "LA COSECHA"],
 ]
 
 
@@ -6400,7 +6400,7 @@ func _draw_floors() -> void:
     draw_rect(Rect2(0, 0, W, H), Color(0.012, 0.01, 0.02, 0.8))
     var panel := Rect2(80, 64, 800, 508)
     _panel(panel, Color(0.035, 0.03, 0.045, 0.95), UI_GOLD)
-    _title_text("Los Pisos del Templo", Vector2(80, 112), 48, CREAM, panel.size.x)
+    _title_text("Los Pisos", Vector2(80, 112), 48, CREAM, panel.size.x)
     _ornament_line(Vector2(480, 130), 220.0)
     var unlocked: int = _floors_unlocked()
     for i in range(FLOOR_PLAN.size()):
@@ -6415,7 +6415,8 @@ func _draw_floors() -> void:
             draw_rect(card.grow(3.0), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.25 + 0.15 * sin(elapsed * 4.0)), false, 2.0)
         var tone: Color = CREAM if open else Color("#5d5865")
         _title_text(FLOOR_PLAN[i][0], Vector2(card.position.x, card.position.y + 52.0), 48, UI_GOLD if open else Color("#4a4452"), card.size.x)
-        draw_multiline_string(font, Vector2(card.position.x + 10.0, card.position.y + 82.0), _tc(FLOOR_PLAN[i][1]), HORIZONTAL_ALIGNMENT_CENTER, card.size.x - 20.0, 13, 3, tone)
+        # Sin pistas: lo que no has alcanzado no tiene nombre todavía.
+        draw_multiline_string(font, Vector2(card.position.x + 10.0, card.position.y + 82.0), _tc(FLOOR_PLAN[i][1]) if open else "???", HORIZONTAL_ALIGNMENT_CENTER, card.size.x - 20.0, 13, 3, tone)
         var status: String
         var status_col: Color
         if not playable:
@@ -6429,11 +6430,11 @@ func _draw_floors() -> void:
             status = "SUPERADO" if eco != "" and ecos.has(eco) else "DISPONIBLE"
             status_col = SOUL if status == "SUPERADO" else Color("#9fd8b0")
         _text_outline(status, Vector2(card.position.x, card.end.y - 14.0), 10, status_col, card.size.x)
-        if playable and str(FLOORS[i].get("eco", "")) != "":
+        if open and str(FLOORS[i].get("eco", "")) != "" and ecos.has(str(FLOORS[i]["eco"])):
             var ek: String = "eco_" + str(FLOORS[i]["eco"])
             if ICONS.has(ek):
                 draw_texture_rect(ICONS[ek], Rect2(card.get_center() + Vector2(-16, 26), Vector2(32, 32)), false, Color.WHITE if open else Color(0.2, 0.2, 0.24, 0.8))
-        elif playable and bool(FLOORS[i].get("final", false)) and ICONS.has("calavera"):
+        elif open and bool(FLOORS[i].get("final", false)) and ICONS.has("calavera"):
             draw_texture_rect(ICONS["calavera"], Rect2(card.get_center() + Vector2(-16, 26), Vector2(32, 32)), false, Color(1.0, 0.75, 0.6) if open else Color(0.2, 0.2, 0.24, 0.8))
         if not open:
             draw_texture_rect(ICONS["calavera"], Rect2(card.position + Vector2(card.size.x - 26.0, 8.0), Vector2(18, 18)), false, Color(1, 1, 1, 0.35))
@@ -6854,7 +6855,7 @@ func _try_ignite(at: Vector2) -> void:
     if target == null:
         return
     if bool(vines[target]["verde"]):
-        _say("Raíz viva: la antorcha no la prende. El fuego tiene que llegarle.", 2.6)
+        _say("Raíz viva: la antorcha no la prende.", 2.6)
         return
     if not has_inner_flame:
         if matches <= 0:
@@ -7225,7 +7226,7 @@ func _check_mask_pickup() -> void:
         _sfx("k_campana", -8.0, 0.7)
         _emit(Vector2(_room()["mask"]) + Vector2(0, -14), 24, Color(0.95, 0.92, 0.85), 15.0, 70.0, 1.2, 2.0, -40.0, Vector2.UP, 1.1, true)
         if had_it:
-            _dialog([[_hero_name(), "Otra máscara igual a la mía, en el mismo pedestal. El templo la repone para cada visitante."],
+            _dialog([[_hero_name(), "Otra máscara igual a la mía, en el mismo pedestal. Alguien la repone para cada visitante."],
                 [_hero_name(), "Al tocarla, la puerta de los canales cede."]])
         else:
             _dialog([[_hero_name(), "Una máscara de porcelana, como las de los perros. Al ponérmela, mi Resonancia ruge."],
@@ -7297,7 +7298,7 @@ func _draw_rescue_label() -> void:
         return
     var at: Vector2 = _room()["rescue"]
     if rescue_state == "atrapado":
-        _label_center("ATRAPADO · golpea la reja", at + Vector2(0, -70), Color("#e3bd7b"))
+        _label_center("ATRAPADO", at + Vector2(0, -70), Color("#e3bd7b"))
         if player_pos.distance_to(at) < 200.0 and int(elapsed) % 4 == 0:
             _label_center("«¡Ayuda! ¡Mi manto!»", at + Vector2(0, -88), CREAM)
     else:
@@ -8054,17 +8055,16 @@ func _draw_gaze_hud() -> void:
     var bar := Rect2(box.position + Vector2(8, 20), Vector2(box.size.x - 16.0, 8))
     draw_rect(bar, Color(0, 0, 0, 0.7))
     draw_rect(Rect2(bar.position, Vector2(bar.size.x * k, bar.size.y)), Color("#c9a25e"))
-    _text_outline("MÍRALA · %d / %d s" % [int(gaze_t), int(gaze_need)], Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
+    _text_outline("RESISTE · %d / %d s" % [int(gaze_t), int(gaze_need)], Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
     if gaze_away_t > 0.0 and gaze_state == "mira":
         var blink: float = 0.6 + 0.4 * sin(elapsed * 14.0)
-        _label_center("¡NO LE DES LA ESPALDA!", player_pos + Vector2(0, -78), Color(1.0, 0.4, 0.4, blink))
-        # Flecha desde el personaje hacia ella.
+        # Sin instrucciones: solo una flecha roja que parpadea hacia ella.
         var dir: Vector2 = (gaze_pos - player_pos).normalized()
         var tip: Vector2 = player_pos + Vector2(0, -24) + dir * 46.0
         var side := Vector2(-dir.y, dir.x)
         draw_colored_polygon(PackedVector2Array([tip, tip - dir * 14.0 + side * 7.0, tip - dir * 14.0 - side * 7.0]), Color(1.0, 0.4, 0.4, blink))
     elif gaze_state == "aviso":
-        _label_center("¡VIENE! ESQUIVA AHORA", player_pos + Vector2(0, -100), Color("#ffd36b"))
+        _label_center("¡VIENE!", player_pos + Vector2(0, -100), Color("#ffd36b"))
 
 
 # ------------------------------------------------------------ MÓVIL
@@ -8622,7 +8622,7 @@ func _strike_rams_and_pillars() -> void:
             _pillar_fall(p)
         else:
             float_fx.append({"pos": Vector2(p["pos"]) + Vector2(0, -70), "text": "CRUJE", "color": Color("#b4bba8"), "t": 0.0})
-            _say("La columna cruje, pero aguanta. Atrae al Coloso junto a ella y golpéala entonces.", 3.0)
+            _say("La columna cruje, pero aguanta.", 3.0)
             _sfx("k_piedra", -10.0, 0.9)
 
 
@@ -8801,8 +8801,6 @@ func _draw_colossus_hud() -> void:
         draw_rect(seg, Color(0, 0, 0, 0.7))
         if i >= colossus_hits:
             draw_rect(seg, Color("#b3263a"))
-    if colossus_state == "raise" and colossus_pos.distance_to(player_pos) < COLOSSUS_STOMP_RADIUS:
-        _label_center("¡SAL DEL CÍRCULO O ESQUIVA!", player_pos + Vector2(0, -80), Color("#ffd36b"))
 
 
 # ------------------------------------------------------------ PISO X · LA COSECHA (final del arco)
@@ -8812,7 +8810,8 @@ func _draw_colossus_hud() -> void:
 ##  · HILOS: tensa líneas rojas (aviso fino 0,9 s); tocarlas tensas hace daño.
 ##  · RUGIDO: carga un círculo; si sigues dentro al estallar, daño. Después
 ##    queda agotado 2,5 s y recibe el doble de daño.
-##  · MIRADA: sus ojos brillan 3,5 s; si te mueves mientras te mira, daño.
+##  · MIRADA (la de la Vigía del Piso VII): sus ojos brillan 3,5 s; si te
+##    alejas de él (le das la espalda) o esquivas mientras te mira, daño.
 ## Tus aliados deciden según tu marca: con bendición luchan contigo; con
 ## maldición se ponen de su lado y te tiran piedras; sin marca, se apartan.
 ## Valores PROVISIONALES.
@@ -8949,7 +8948,7 @@ func _elder_defeat() -> void:
     _complete_mission()
     dissolve_fx.append({"pos": elder_pos, "kind": "peregrino", "facing": elder_facing, "frame": 7, "t": 0.0})
     _emit(elder_pos + Vector2(0, -40), 50, Color(0.85, 0.2, 0.25), 30.0, 160.0, 1.2, 3.0, 120.0, Vector2.UP, 1.8)
-    _say("El Hermano Mayor cae. Las reglas robadas se le escapan como humo. La Puerta sigue abierta.", 5.0)
+    _say("El Hermano Mayor cae. La máscara se parte en dos. La Puerta sigue abierta.", 5.0)
     _sfx("destierro", -2.0, 0.8)
     for t in elder_traitors:
         t["cd"] = 999.0 # sin su líder, dejan de tirar piedras
@@ -8994,7 +8993,10 @@ func _update_harvest(dt: float) -> void:
     elder_stones = elder_stones.filter(func(s): return float(s["t"]) > 0.0)
     if not elder_active:
         return
-    var moved: float = player_pos.distance_to(elder_last_player)
+    var step_v: Vector2 = player_pos - elder_last_player
+    var moved: float = step_v.length()
+    # La mirada robada a la Vigía: castiga darle la espalda (alejarte) o correr (esquivar).
+    var fled: bool = (moved > 0.6 and step_v.dot(player_pos - elder_pos) > 0.0) or dash_left > 0.0
     elder_last_player = player_pos
     elder_t = maxf(0.0, elder_t - dt)
     elder_cd = maxf(0.0, elder_cd - dt)
@@ -9079,7 +9081,7 @@ func _update_harvest(dt: float) -> void:
                 elder_cd = 1.6 if enraged else 2.2
         "gaze":
             elder_tick = maxf(0.0, elder_tick - dt)
-            if moved > 0.6 and elder_tick <= 0.0:
+            if fled and elder_tick <= 0.0:
                 elder_tick = 0.5
                 hp -= ELDER_GAZE_TICK
                 fear = minf(100.0, fear + 6.0)
@@ -9102,17 +9104,14 @@ func _elder_next_rule(enraged: bool) -> void:
             elder_threads.append([Vector2(p.x, 190), Vector2(p.x, 560)])
             if enraged:
                 elder_threads.append([elder_pos, elder_pos + (p - elder_pos).normalized() * 900.0])
-            _say("HILOS: no toques las líneas cuando se tensen (o esquívalas).", 2.4)
             _sfx("k_metal", -10.0, 1.8)
         "rugido":
             elder_state = "roar"
             elder_t = 1.1 if not enraged else 0.85
-            _say("RUGIDO: aléjate del círculo. Luego queda agotado: ¡golpéalo!", 2.4)
         "mirada":
             elder_state = "gaze"
             elder_t = 3.5
             elder_tick = 0.4
-            _say("MIRADA: quédate QUIETO mientras te mira.", 2.4)
             _sfx("k_campana", -10.0, 0.5)
 
 
@@ -9176,7 +9175,7 @@ func _draw_elder() -> void:
         for k in range(3, 0, -1):
             draw_circle(head + Vector2(0, 10), 8.0 + float(k) * 8.0, Color(1.0, 0.2, 0.2, 0.05))
     if elder_active and elder_state == "tired":
-        _label_center("AGOTADO · ×2", feet + Vector2(0, -ENEMY_FEET_Y * scale - 14.0), Color("#8fc7d7"))
+        _label_center("AGOTADO", feet + Vector2(0, -ENEMY_FEET_Y * scale - 14.0), Color("#8fc7d7"))
 
 
 func _draw_elder_threads() -> void:
@@ -9220,7 +9219,3 @@ func _draw_harvest_hud() -> void:
     if elder_side != "":
         var side_txt: String = {"contigo": "TUS ALIADOS LUCHAN CONTIGO", "contra": "TUS ALIADOS SE UNIERON A ÉL", "apartados": "TUS ALIADOS SE APARTAN"}[elder_side]
         _text_outline(side_txt, Vector2(box.position.x, box.end.y + 14.0), 11, Color("#7fd6a0") if elder_side == "contigo" else (Color("#ff8a8a") if elder_side == "contra" else Color("#9a957f")), box.size.x)
-    if elder_state == "gaze":
-        _label_center("¡QUIETO! TE MIRA", player_pos + Vector2(0, -80), Color("#ff8a8a"))
-    elif elder_state == "roar" and player_pos.distance_to(elder_pos) < ELDER_ROAR_RADIUS:
-        _label_center("¡SAL DEL CÍRCULO O ESQUIVA!", player_pos + Vector2(0, -80), Color("#ffd36b"))
