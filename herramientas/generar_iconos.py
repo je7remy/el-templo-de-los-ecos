@@ -591,6 +591,34 @@ def engranaje() -> Image.Image:
     return i.fin()
 
 
+def campana() -> Image.Image:
+    """Campana de bronce colgada de una viga (Vigilia: frena a las entidades)."""
+    i = Icono()
+    i.r(4, 3, 27, 6, MADERA_OSC)
+    i.r(15, 6, 17, 9, PIEDRA_OSC)
+    i.p([(12, 9), (20, 9), (25, 24), (7, 24)], ORO_OSC)
+    i.p([(13, 9), (19, 9), (22, 22), (10, 22)], ORO)
+    i.r(6, 23, 26, 25, ORO)
+    i.e(14, 25, 18, 29, c("#6a5030"))
+    i.ln([(13, 12), (11, 20)], c("#fff1c8"), 1)
+    i.arco(16, 18, 13, 300, 340, ALMA_LUZ, 1)
+    i.arco(16, 18, 13, 200, 240, ALMA_LUZ, 1)
+    return i.fin()
+
+
+def vender() -> Image.Image:
+    """Pila de monedas de ecos con un signo de suma (vender: recuperas ecos)."""
+    i = Icono()
+    for k, y in enumerate((24, 19, 14)):
+        i.e(6, y, 24, y + 6, ORO_OSC)
+        i.e(6, y - 1, 24, y + 4, ORO)
+        i.ln([(9, y + 1), (21, y + 1)], ORO_OSC, 1)
+    i.e(12, 13, 18, 17, ALMA)
+    i.r(23, 3, 25, 11, ALMA_LUZ)
+    i.r(20, 6, 28, 8, ALMA_LUZ)
+    return i.fin()
+
+
 ICONOS = {
     "madera": madera, "fosforos": fosforos, "antorcha": antorcha,
     "antorcha_encendida": antorcha_encendida, "llama_interior": llama_interior, "alma": alma,
@@ -599,7 +627,7 @@ ICONOS = {
     "centinela": centinela, "reparar": reparar, "generador": generador, "potenciar": potenciar,
     "escudo": escudo, "pausa": pausa, "reanudar": reanudar, "salir": salir,
     "corazon": corazon, "vigor": vigor, "miedo": miedo, "eco_respiracion": eco_respiracion,
-    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "eco_serena": eco_serena, "eco_memoria": eco_memoria, "eco_fuerza": eco_fuerza, "vial": vial, "incienso": incienso, "bolsa_almas": bolsa_almas, "reliquia": reliquia, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje,
+    "eco_nuca": eco_nuca, "eco_reflejos": eco_reflejos, "eco_piel": eco_piel, "eco_paso": eco_paso, "eco_huesos": eco_huesos, "eco_serena": eco_serena, "eco_memoria": eco_memoria, "eco_fuerza": eco_fuerza, "vial": vial, "incienso": incienso, "bolsa_almas": bolsa_almas, "reliquia": reliquia, "pan": pan, "brazalete": brazalete, "amuleto": amuleto, "mascara": mascara, "habilidades": habilidades, "pinchos": pinchos, "calavera": calavera, "engranaje": engranaje, "campana": campana, "vender": vender,
 }
 
 

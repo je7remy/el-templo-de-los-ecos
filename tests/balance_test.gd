@@ -31,15 +31,25 @@ func _run() -> void:
         var sparks: float = float(mode.get("sparks"))
         var gate_hp: float = float(mode.get("gate_hp"))
         var gate_max: float = float(mode.get("gate_max"))
+        # Estrategia sencilla con los precios reales del juego.
         if gate_hp < gate_max - 70.0 and bank >= 18.0:
             mode.call("_action", 4)
-        elif wards < 4 and bank >= 22.0 + float(wards) * 20.0:
+        elif wards < 3 and bank >= float(mode.call("_build_cost", "centinela")):
             mode.call("_action", 3)
-        elif bed_level < 5 and bank >= 18.0 * float(bed_level):
+        elif bed_level < 5 and bank >= float(mode.call("_bed_cost")):
             mode.call("_action", 1)
-        elif gate_level < 4 and bank >= 25.0 * float(gate_level):
+        elif wards >= 2 and bank >= 40.0:
+            # Mejorar el centinela más débil.
+            var structs: Dictionary = mode.get("structs")
+            var low := Vector2i(-1, -1)
+            for t in structs:
+                if structs[t]["type"] == "centinela" and (low.x < 0 or int(structs[t]["level"]) < int(structs[low]["level"])):
+                    low = t
+            if low.x >= 0 and bank >= float(mode.call("_upgrade_cost", low)):
+                mode.call("_upgrade", low)
+        elif gate_level < 4 and bank >= float(mode.call("_door_cost")):
             mode.call("_action", 2)
-        elif gen < 3 and bank >= 35.0 + 25.0 * float(gen):
+        elif gen < 2 and bank >= float(mode.call("_build_cost", "generador")):
             mode.call("_action", 5)
         elif wards >= 1 and ward_power < 5 and sparks >= 6.0 * float(ward_power):
             mode.call("_action", 6)
