@@ -40,7 +40,7 @@
 - **Arte y luz**: cada sala se amuebla con piezas de Knowledge Temple (sarcófagos, mesas de lectura con libros caídos, altares, estatuas, columnas rotas y braseros animados) según el estilo de su piso, siempre en espejo y sin tapar el paso. Encima va una capa de luz aditiva: el fuego, las almas y la antorcha brillan y sueltan chispas sobre la penumbra.
 - **Niveles**: ganas experiencia con almas, alimañas, entidades desterradas, misiones y pisos. Cada nivel sube la vida máxima (+6), el daño (+4 %) y la recarga del vigor (+3 %) y te cura. El nivel se ve en el retrato del HUD y en el perfil.
 - **Objetos y mejoras**: el perfil tiene una pestaña OBJETOS con lo equipado (brazalete, amuleto, máscara) y la bolsa (pan), que se usa desde ahí. Comprar otra vez el brazalete o el amuleto los sube de nivel (hasta 5), y la Resonancia se mejora con almas en el altar o el puesto. En el puesto se ve cuánto llevas de cada cosa y el número salta al comprar.
-- **Vida extra**: curarte con la vida llena suma hasta +50 por encima del máximo (franja dorada en la barra).
+- **Vida extra**: curarte con objetos (pan, viales, relicarios, la fuente) con la vida llena suma por encima del máximo, sin tope: se acumula todo lo que consumas (franja dorada en la barra). La regeneración natural no pasa del máximo.
 - **Relicarios de vida** en las salas sin entidad: una cura de 60 por sala y partida.
 - **Bendición y maldición**: ayudar a quien lo pide (liberar a Saúl, guiar al grupo, calmar a un peregrino) suma; dejarlo atrás o fallarle resta. Con la bendición confían en ti, te regalan cosas y el Mercader cobra menos; con la maldición te temen, se apartan, no te siguen y el Mercader cobra más.
 - **Vigilia renovada** (se desbloquea comprando su llave al Mercader del Piso VI por 500 almas): defensa de una celda vista en planta, con rejilla, lecho, puerta y pasillo (estilo de defensa de cuarto, con arte propio). **Fases sin fin**, cada una más dura: más vida, velocidad y daño, más entidades a la vez y un **jefe cada 5 fases**. Cada fase superada da un **objeto al azar para la campaña** (pan, fósforos, vial de sangre, incienso, bolsa de almas, mejoras del brazalete, el amuleto o la Resonancia, reliquia de experiencia); cuanto más alta la fase, mejor el botín.
@@ -158,7 +158,7 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.5.4-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.4-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
+Puedes descargar el [APK de prueba de v0.5.5-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.5-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
 
 La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
@@ -175,7 +175,16 @@ No está firmado, así que Windows puede avisar con «Windows protegió tu PC»:
 
 El instalador se genera con NSIS a partir de `instalador/windows/instalador.nsi` (ver el comentario del archivo para compilarlo a mano).
 
-## Descargar y ejecutar en Fedora / Linux
+## Jugar en Linux (versión de prueba)
+
+Cada release incluye también **`ElTemploDeLosEcos-vX-Linux-x86_64.tar.gz`** (Linux de 64 bits con OpenGL 3.3). Se descomprime y:
+
+- **sin instalar:** se abre `ElTemploDeLosEcos.x86_64` (doble clic o `./ElTemploDeLosEcos.x86_64`);
+- **instalado:** `./instalar.sh` lo copia a `~/.local/share/el-templo-de-los-ecos` y lo añade al menú de aplicaciones, sin `sudo`. Volver a ejecutarlo con una versión nueva actualiza el juego y conserva la partida.
+
+El registro para reportar errores está en `~/.local/share/godot/app_userdata/El Templo de los Ecos/logs/godot.log`. Los scripts y el `LEEME.txt` están en `instalador/linux/`.
+
+## Descargar y ejecutar en Fedora / Linux (desde el código)
 
 La [sección Releases](https://github.com/je7remy/el-templo-de-los-ecos/releases) ofrece **el proyecto fuente**, no un ejecutable listo para instalar. Descarga el ZIP del código fuente, descomprímelo y abre `project.godot` con Godot 4.3 o superior.
 
@@ -308,4 +317,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.4-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.5-alpha** (se publica al fusionar esta versión en `main`).

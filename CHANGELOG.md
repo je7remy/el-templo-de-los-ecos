@@ -1,5 +1,24 @@
 # Historial de versiones
 
+## v0.5.5-alpha — 2026-11-22 · Linux, puertas, PNJ y arreglos de la revisión
+
+- **Versión para Linux.** Cada release publica `ElTemploDeLosEcos-vX-Linux-x86_64.tar.gz`: el juego listo para abrir, `instalar.sh` (menú de aplicaciones, sin `sudo`), `desinstalar.sh` y un `LEEME.txt` con cómo reportar errores. El CI lo exporta y lo sube junto al APK y los archivos de Windows.
+- **Pantalla de muerte legible.** Se queda al menos 2,6 s: los toques y teclas de más no la cierran. Mientras tanto se llena una barra; luego aparece «toca para continuar».
+- **Perfil:**
+  - En EQUIPO Y MOCHILA hay dos grupos con título: **MOCHILA** (madera, fósforos, antorcha) y **HABILIDADES NATIVAS** (llama interior, golpe, Resonancia).
+  - La pestaña OBJETOS tiene **12 huecos** (antes 6: el séptimo objeto no se veía). Las descripciones largas ya no se cortan.
+- **Números legibles.** Todos los números del juego (vida, almas, precios, «SALA 3/4»…) salen con una fuente de cifras clara (Silkscreen, OFL); las letras siguen con Pixelify Sans. `herramientas/fuente_cifras.py` genera las dos fuentes.
+- **Las salas con entidad se cierran hasta desterrarla.** Ghoul, Hechicero, Segador, Tejedora y Testigo sellan la puerta («PUERTA SELLADA: DESTIERRA AL…»). Mastines, arietes, la vigía y el Coloso no cuentan. Las salas sin entidad siguen abriéndose con su condición.
+- **Más puertas en cada sala:** la entrada por la que llegaste (izquierda) y dos pasos laterales con rastrillo. Cuando un grupo se despide (los cazadores en III-4, los guiados en VII-4), se le ve cruzar el paso lateral («X SE SEPARA») y ya no te sigue. En VI-1, si no aceptas guiarlos, al acercarte a la salida se ve «SE QUEDA AQUÍ».
+- **Cuidar a los PNJ cuenta.** Cada cazador o guiado que muere mientras lo acompañas resta 1 a la marca. Si llegan todos con vida, +1 a la marca y un vial de sangre.
+- **El mensaje de Mara para Odón.** Tras leer la nota del cofre del III-1, sobre Odón aparece «!» y «DARLE EL MENSAJE DE MARA». Al dárselo, Odón responde, te entrega una reliquia de ecos y suma a la marca (una sola vez).
+- **Péndulo:** hiere toda la hoja (el filo entero y su anchura), no solo el centro; quien pasa por delante o por detrás no recibe daño.
+- **Vigilia:**
+  - Al salir (botón, ESC o cerrar la app) **se guarda la vigilia**: lo construido, ecos, energía, puerta y fase. En la portada sale «CONTINUAR · FASE N» y «EMPEZAR DE CERO». Si saliste a mitad de fase, esa fase se repite; si estaba superada, sigues en la siguiente. Perder la borra.
+  - El menú de una estructura se actualiza en tiempo real: al llegar los ecos al precio, «MEJORAR» se enciende sin cerrarlo y abrirlo.
+- **Vida extra sin tope.** Curarse con objetos (pan, vial, relicario, fuente) con la vida llena suma por encima del máximo, sin límite. La regeneración natural no pasa del máximo.
+- Pruebas nuevas para todo lo anterior. Versión Android 0.5.5-alpha (código 12).
+
 ## v0.5.4-alpha — 2026-11-22 · Versión de prueba para Windows
 
 - **Instalador de Windows.** Cada release publica, junto al APK:
