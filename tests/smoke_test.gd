@@ -985,6 +985,102 @@ func _run_checks() -> void:
     game.set("game_mode", "play")
     print("OK: Piso IX, Arietes, Coloso, columnas y enemigos más fuertes en lo profundo.")
 
+    # Piso X: la Cosecha (braseros) y la traición del Hermano Mayor.
+    game.set("current_floor", 9)
+    game.set("current_room", 1)
+    game.call("_on_floor_start")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("has_torch", true)
+    game.set("torch_on", true)
+    var brs: Array = game.get("braziers")
+    if brs.size() != 2 or bool(game.call("_room_ready")):
+        _fail("La Galería de los Braseros no tiene dos braseros o abre sin encenderlos.")
+        return
+    for b in brs:
+        game.set("player_pos", Vector2(b["pos"]) + Vector2(-40, 0))
+        game.call("_interact")
+    if not bool(game.call("_room_ready")):
+        _fail("Encender los braseros no cumple la misión.")
+        return
+    game.set("current_room", 3)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("torch_on", true)
+    if not bool(game.get("elder_active")) or bool(game.call("_room_ready")):
+        _fail("La Puerta de la Cosecha no tiene al Hermano Mayor o abre sin vencerlo.")
+        return
+    game.set("karma", 5)
+    game.call("_update_harvest", 2.0)
+    if str(game.get("elder_state")) == "talk":
+        _fail("El Hermano Mayor no traiciona tras la conversación.")
+        return
+    # Mirada: moverse mientras te mira hace daño; quedarse quieto, no.
+    game.set("elder_state", "gaze")
+    game.set("elder_t", 3.0)
+    game.set("elder_tick", 0.0)
+    game.set("hp", 100.0)
+    game.set("player_pos", Vector2(300, 400))
+    game.set("elder_last_player", Vector2(300, 400))
+    game.call("_update_harvest", 0.1)
+    if float(game.get("hp")) < 100.0:
+        _fail("La mirada daña aunque estés quieto.")
+        return
+    game.set("player_pos", Vector2(320, 400))
+    game.call("_update_harvest", 0.1)
+    if float(game.get("hp")) >= 100.0:
+        _fail("La mirada no castiga moverse.")
+        return
+    # Agotado tras el rugido: recibe el doble de daño.
+    game.set("elder_state", "tired")
+    game.set("elder_t", 2.0)
+    var ehp: float = float(game.get("elder_hp"))
+    game.call("_damage_elder", 10.0)
+    if ehp - float(game.get("elder_hp")) < 19.0:
+        _fail("Agotado no recibe el doble de daño.")
+        return
+    game.call("_damage_elder", 99999.0)
+    if bool(game.get("elder_active")) or not bool(game.call("_room_ready")):
+        _fail("Vencer al Hermano Mayor no abre la Puerta.")
+        return
+    game.call("_finish_floor")
+    game.call("_after_floor_summary")
+    if str(game.get("game_mode")) != "victory":
+        _fail("Superar el Piso X no lleva al final del arco.")
+        return
+    game.set("karma", 0)
+    game.set("torch_on", false)
+    game.call("_on_floor_start")
+    game.set("current_floor", 0)
+    game.set("game_mode", "play")
+    print("OK: Piso X, braseros, Hermano Mayor y final del arco.")
+
+    # Habilidades: por muchas que haya, nunca se salen del cuadro (páginas).
+    game.set("ecos", (game.get("ECOS") as Dictionary).keys())
+    game.set("game_mode", "play")
+    game.call("_open_abilities")
+    var pages: int = int(game.call("_abil_pages"))
+    var per_e: int = int(game.call("_eco_per_page"))
+    if float(game.get("ABIL_TOP")) + float(per_e) * float(game.get("ECO_ROW_H")) > 560.0 or float(game.get("ABIL_TOP")) + float(game.call("_abil_per_page")) * float(game.get("ABIL_ROW_H")) > 560.0:
+        _fail("Las filas de habilidades se salen del cuadro.")
+        return
+    if pages * per_e < (game.get("ECOS") as Dictionary).size() or pages < 2:
+        _fail("Las páginas de habilidades no cubren todos los Ecos.")
+        return
+    game.call("_mobile_tap", (game.get("ABIL_NEXT_BTN") as Rect2).get_center())
+    if int(game.get("abil_page")) != 1 or str(game.get("game_mode")) != "abilities":
+        _fail("La flecha no pasa de página en Habilidades.")
+        return
+    game.call("_mobile_tap", Vector2(480, 300))
+    if str(game.get("game_mode")) == "abilities":
+        _fail("Tocar fuera no cierra Habilidades.")
+        return
+    game.set("ecos", [])
+    game.set("game_mode", "play")
+    print("OK: habilidades por páginas, sin salirse del cuadro.")
+
     # Cerrar el juego pregunta antes (autoload ConfirmarSalida) y pausa mientras tanto.
     var confirm: Node = root.get_node_or_null("ConfirmarSalida")
     if confirm == null:

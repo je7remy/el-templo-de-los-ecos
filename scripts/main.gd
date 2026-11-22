@@ -690,6 +690,7 @@ func _enter_room() -> void:
     _load_merchant()
     _load_gaze()
     _load_colossus_room()
+    _load_harvest_room()
     if _fountain_here():
         obstacles.append(Rect2(FOUNTAIN_POS.x - 12.0, FOUNTAIN_POS.y - 10.0, 24.0, 10.0))
     door_state = "unknown"
@@ -802,6 +803,10 @@ func _input(event: InputEvent) -> void:
                     pause_sel = i
         queue_redraw()
         return
+    elif event is InputEventMouseButton and event.pressed and game_mode == "abilities" and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+        _abil_turn(1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1)
+        queue_redraw()
+        return
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
         var click_at: Vector2 = make_input_local(event).position
         _click_spark(click_at)
@@ -830,6 +835,10 @@ func _input(event: InputEvent) -> void:
     if game_mode == "abilities":
         if k in [_key("habilidades"), KEY_ESCAPE, KEY_E, KEY_K]:
             _close_abilities()
+        elif k in [KEY_RIGHT, KEY_D, KEY_DOWN, KEY_S, KEY_PAGEDOWN, KEY_TAB]:
+            _abil_turn(1)
+        elif k in [KEY_LEFT, KEY_A, KEY_UP, KEY_W, KEY_PAGEUP]:
+            _abil_turn(-1)
         queue_redraw()
         return
     if game_mode == "floors":
@@ -996,6 +1005,10 @@ func _pad_button(b: int) -> void:
             JOY_BUTTON_START:
                 _pad_key(KEY_ESCAPE)
         return
+    if dpad.has(b) and game_mode == "abilities":
+        _abil_turn(1 if (dpad[b] as Vector2i).x + (dpad[b] as Vector2i).y > 0 else -1)
+        queue_redraw()
+        return
     if dpad.has(b):
         _pad_menu_step(dpad[b])
         return
@@ -1048,6 +1061,8 @@ func _pad_button(b: int) -> void:
         "abilities":
             if b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_START]:
                 _pad_key(KEY_ESCAPE)
+            elif b == JOY_BUTTON_LEFT_SHOULDER:
+                _abil_turn(1)
             return
         "settings":
             if b in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER] and legal_page == "":
@@ -1322,7 +1337,12 @@ func _mobile_tap(at: Vector2) -> void:
             _dialog_advance()
         return
     if game_mode == "abilities":
-        _close_abilities()
+        if _abil_pages() > 1 and ABIL_PREV_BTN.grow(8.0).has_point(at):
+            _abil_turn(-1)
+        elif _abil_pages() > 1 and ABIL_NEXT_BTN.grow(8.0).has_point(at):
+            _abil_turn(1)
+        else:
+            _close_abilities()
         return
     if game_mode == "inventory":
         if PROFILE_ABIL_BTN.has_point(at):
@@ -1492,6 +1512,7 @@ func _use_pulse() -> void:
     for cr in critters:
         if bool(cr["alive"]) and player_pos.distance_to(cr["pos"]) < _pulse_radius() + 12.0:
             _critter_die(cr)
+    _harvest_pulse()
     if _enemy_active() and player_pos.distance_to(enemy_pos) < 220.0:
         enemy_stun = 1.6 + 0.5 * float(ability_level)
         if player_pos.distance_to(enemy_pos) < PULSE_RADIUS + 12.0:
@@ -1753,6 +1774,7 @@ func _torch_strike() -> bool:
     _try_ignite(player_pos + strike_dir * 28.0)
     _strike_hounds_and_rescue()
     _strike_rams_and_pillars()
+    _harvest_strike()
     for cr in critters:
         if bool(cr["alive"]):
             var to_c: Vector2 = Vector2(cr["pos"]) - player_pos
@@ -1784,6 +1806,8 @@ func _interact() -> void:
     if _calm_ally():
         return
     if _use_fountain():
+        return
+    if _light_brazier():
         return
     if _offering_interact():
         return
@@ -2141,6 +2165,7 @@ func _update_play(dt: float) -> void:
     _update_gaze(dt)
     _update_rams(dt)
     _update_colossus(dt)
+    _update_harvest(dt)
     if hp <= 0.0 and ecos.has("huesos") and not bones_used:
         _bones_hold()
     if hp <= 0.0:
@@ -2361,6 +2386,7 @@ func _draw_room() -> void:
     _draw_merchant_glow()
     _draw_mark_aura()
     _draw_ram_warnings()
+    _draw_elder_threads()
     _draw_critter_eyes()
     _draw_light_rays()
     _draw_fog()
@@ -2566,6 +2592,12 @@ func _draw_depth_sorted() -> void:
         items.append([Vector2(pillars[i]["pos"]).y + 6.0, "pillar", i])
     if colossus_active:
         items.append([colossus_pos.y, "colossus", null])
+    for i in range(braziers.size()):
+        items.append([Vector2(braziers[i]["pos"]).y, "brazier", i])
+    if elder_active or elder_npc:
+        items.append([elder_pos.y, "elder", null])
+    for i in range(elder_traitors.size()):
+        items.append([Vector2(elder_traitors[i]["pos"]).y, "traitor", i])
     if _fountain_here():
         items.append([FOUNTAIN_POS.y, "fountain", null])
     if _has("archivo"):
@@ -2603,6 +2635,12 @@ func _draw_depth_sorted() -> void:
                 _draw_pillar(item[2])
             "colossus":
                 _draw_colossus()
+            "brazier":
+                _draw_brazier(item[2])
+            "elder":
+                _draw_elder()
+            "traitor":
+                _draw_traitor(item[2])
             "fountain":
                 _draw_fountain()
             "altar":
@@ -2630,6 +2668,7 @@ func _draw_object_labels() -> void:
     _draw_offering_labels()
     _draw_gaze_hud()
     _draw_colossus_hud()
+    _draw_harvest_hud()
     _draw_fountain_label()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
@@ -3609,7 +3648,14 @@ func _draw_floor_intro() -> void:
 
 func _draw_end_overlay(win: bool) -> void:
     _overlay()
-    if win:
+    if win and bool(_floor().get("final", false)):
+        _title_text("Fin del primer arco", Vector2(0, 214), 48, SOUL, W)
+        _center("La Puerta de la Cosecha no lleva a la salida, sino a otros escalones.", 262, 17, CREAM)
+        _center("«Esto no es una salida. Es una transición.»", 300, 20, Color("#e3bd7b"))
+        _center("En el marco, doscientas marcas de alas: este templo es solo uno de muchos.", 338, 15, Color("#9fb3b3"))
+        _center("Continuará.", 376, 16, CREAM)
+        _center(_hint("ENTER: volver a empezar  ·  ESC: menú", "Toca para volver a empezar", "A: volver a empezar  ·  B: menú"), 430, 18, CREAM)
+    elif win:
         _center("PISO %s SUPERADO" % _floor()["number"], 230, 33, SOUL)
         _center("No has escapado. El siguiente nivel sigue oculto.", 280, 18, CREAM)
         _center("El templo conserva su apariencia. Nada es lo que parece.", 318, 16, CREAM)
@@ -5928,6 +5974,38 @@ func _draw_dialog() -> void:
 
 # --- Pantalla de habilidades ---------------------------------------------------------
 var abilities_return: String = "play"
+## Páginas de la pantalla de habilidades: cada columna muestra las filas que
+## caben y el resto pasa a la página siguiente, así nunca se sale del cuadro
+## por muchas habilidades o Ecos que haya.
+var abil_page: int = 0
+const ABIL_TOP := 102.0
+const ABIL_BOTTOM := 540.0
+const ABIL_ROW_H := 84.0
+const ECO_ROW_H := 70.0
+const ABIL_PREV_BTN := Rect2(372, 546, 48, 34)
+const ABIL_NEXT_BTN := Rect2(540, 546, 48, 34)
+
+
+func _abil_per_page() -> int:
+    return maxi(1, int((ABIL_BOTTOM - ABIL_TOP) / ABIL_ROW_H))
+
+
+func _eco_per_page() -> int:
+    return maxi(1, int((ABIL_BOTTOM - ABIL_TOP - 20.0) / ECO_ROW_H))
+
+
+func _abil_pages() -> int:
+    var a: int = int(ceil(float(_ability_rows().size()) / float(_abil_per_page())))
+    var e: int = int(ceil(float(ECOS.size()) / float(_eco_per_page())))
+    return maxi(1, maxi(a, e))
+
+
+func _abil_turn(d: int) -> void:
+    var n: int = _abil_pages()
+    if n <= 1:
+        return
+    abil_page = (abil_page + d + n) % n
+    _sfx("toque", -14.0, 1.0)
 
 
 func _open_abilities() -> void:
@@ -5936,6 +6014,7 @@ func _open_abilities() -> void:
     if game_mode != "inventory":
         overlay_return = game_mode # desde la pausa, ESC vuelve a la pausa
     game_mode = "abilities"
+    abil_page = 0
     mobile_axis = Vector2.ZERO
     mobile_finger = -1
     _sfx("interfaz", -9.0, 1.1)
@@ -5969,10 +6048,12 @@ func _draw_abilities() -> void:
     _panel(Rect2(360, 34, 240, 30), Color("#241a30"), UI_GOLD)
     _title_text("Habilidades", Vector2(360, 58), 24, CREAM, 240.0)
     _text_outline("ACTIVAS Y PROPIAS", Vector2(96, 92), 13, UI_GOLD)
+    abil_page = clampi(abil_page, 0, _abil_pages() - 1)
     var rows: Array = _ability_rows()
-    for i in range(rows.size()):
+    var per_a: int = _abil_per_page()
+    for i in range(abil_page * per_a, mini(rows.size(), (abil_page + 1) * per_a)):
         var row: Array = rows[i]
-        var r := Rect2(96, 102.0 + float(i) * 84.0, 420, 76)
+        var r := Rect2(96, ABIL_TOP + float(i - abil_page * per_a) * ABIL_ROW_H, 420, 76)
         var owned: bool = row[4]
         _panel(r, Color("#141922") if owned else Color("#0e1015"), UI_EDGE if owned else Color("#24262c"))
         draw_texture_rect(ICONS[row[0]], Rect2(r.position + Vector2(10, 14), Vector2(48, 48)), false, Color.WHITE if owned else Color(0.12, 0.12, 0.14, 0.9))
@@ -5987,15 +6068,28 @@ func _draw_abilities() -> void:
             _text_outline(str(row[5]), Vector2(r.position.x + 70.0, r.end.y - 6.0), 10, SOUL)
     _text_outline("ECOS · PASIVAS DE CADA PISO", Vector2(540, 92), 13, UI_GOLD)
     var keys: Array = ECOS.keys()
-    for i in range(keys.size()):
-        var e := Rect2(540, 102.0 + float(i) * 70.0, 324, 62)
+    var per_e: int = _eco_per_page()
+    var shown: int = 0
+    for i in range(abil_page * per_e, mini(keys.size(), (abil_page + 1) * per_e)):
+        var e := Rect2(540, ABIL_TOP + float(i - abil_page * per_e) * ECO_ROW_H, 324, 62)
+        shown += 1
         var has_it: bool = ecos.has(keys[i])
         _panel(e, Color("#141922"), Color("#3b6f7d") if has_it else UI_EDGE)
         draw_texture_rect(ICONS["eco_" + str(keys[i])], Rect2(e.position + Vector2(10, 15), Vector2(32, 32)), false, Color.WHITE if has_it else Color(0.15, 0.15, 0.18, 0.9))
         _text_outline(ECOS[keys[i]][0] if has_it else "ECO SIN DESPERTAR", Vector2(e.position.x + 52.0, e.position.y + 22.0), 12, SOUL if has_it else Color("#5d5a52"))
         draw_multiline_string(font, e.position + Vector2(52, 40), ECOS[keys[i]][1] if has_it else "Supera el piso %s para despertarlo." % _eco_floor(str(keys[i])), HORIZONTAL_ALIGNMENT_LEFT, e.size.x - 60.0, 10, 2, Color("#9a957f"))
-    _text_outline("Se acumulan sin límite: una por cada piso superado.", Vector2(540, 102.0 + float(keys.size()) * 70.0 + 14.0), 11, Color("#8a8574"))
-    _text_outline(_hint("%s / ESC: cerrar" % _key_label("habilidades"), "Toca para cerrar", "B: cerrar"), Vector2(96, 574), 12, Color("#8a8574"), 768.0)
+    if abil_page * per_a >= rows.size():
+        _text_outline("Tus habilidades están en la página 1.", Vector2(96, ABIL_TOP + 20.0), 12, Color("#8a8574"))
+    _text_outline("%d de %d Ecos despiertos: uno por cada piso superado." % [ecos.size(), keys.size()], Vector2(540, ABIL_TOP + float(shown) * ECO_ROW_H + 14.0), 11, Color("#8a8574"))
+    var pages: int = _abil_pages()
+    if pages > 1:
+        for b in [[ABIL_PREV_BTN, "<"], [ABIL_NEXT_BTN, ">"]]:
+            var hot: bool = (b[0] as Rect2).has_point(ui_hover)
+            _panel(b[0], Color("#241a30") if hot else Color("#141922"), UI_GOLD)
+            _text_outline(b[1], Vector2((b[0] as Rect2).position.x, (b[0] as Rect2).position.y + 23.0), 18, CREAM, (b[0] as Rect2).size.x)
+        _text_outline("PÁGINA %d / %d" % [abil_page + 1, pages], Vector2(420, 568), 13, UI_GOLD, 120.0)
+    var paging: String = " · ◀ ▶ páginas" if pages > 1 else ""
+    _text_outline(_hint("%s / ESC: cerrar%s" % [_key_label("habilidades"), paging], "Flechas: páginas · toca fuera para cerrar" if pages > 1 else "Toca para cerrar", "B: cerrar%s" % (" · cruceta/LB: páginas" if pages > 1 else "")), Vector2(96, 590), 11, Color("#8a8574"), 768.0)
 
 
 func _eco_floor(key: String) -> String:
@@ -6339,6 +6433,8 @@ func _draw_floors() -> void:
             var ek: String = "eco_" + str(FLOORS[i]["eco"])
             if ICONS.has(ek):
                 draw_texture_rect(ICONS[ek], Rect2(card.get_center() + Vector2(-16, 26), Vector2(32, 32)), false, Color.WHITE if open else Color(0.2, 0.2, 0.24, 0.8))
+        elif playable and bool(FLOORS[i].get("final", false)) and ICONS.has("calavera"):
+            draw_texture_rect(ICONS["calavera"], Rect2(card.get_center() + Vector2(-16, 26), Vector2(32, 32)), false, Color(1.0, 0.75, 0.6) if open else Color(0.2, 0.2, 0.24, 0.8))
         if not open:
             draw_texture_rect(ICONS["calavera"], Rect2(card.position + Vector2(card.size.x - 26.0, 8.0), Vector2(18, 18)), false, Color(1, 1, 1, 0.35))
     var playable_sel: bool = floors_sel < FLOORS.size() and floors_sel <= unlocked
@@ -8324,7 +8420,7 @@ func _fountain_here() -> bool:
     for t in ["tutorial", "mercader", "guias"]:
         if t in _room()["traits"]:
             return false
-    return not (_room().has("hounds") or _room().has("gaze") or _room().has("rams") or _room().has("colossus"))
+    return not (_room().has("hounds") or _room().has("gaze") or _room().has("rams") or _room().has("colossus") or _room().has("braziers") or _room().has("elder_boss") or _room().has("elder"))
 
 
 func _use_fountain() -> bool:
@@ -8706,4 +8802,425 @@ func _draw_colossus_hud() -> void:
         if i >= colossus_hits:
             draw_rect(seg, Color("#b3263a"))
     if colossus_state == "raise" and colossus_pos.distance_to(player_pos) < COLOSSUS_STOMP_RADIUS:
+        _label_center("¡SAL DEL CÍRCULO O ESQUIVA!", player_pos + Vector2(0, -80), Color("#ffd36b"))
+
+
+# ------------------------------------------------------------ PISO X · LA COSECHA (final del arco)
+## Ritual de la Cosecha: tres braseros (dos en X-2, uno en X-3) se encienden
+## golpeándolos o tocándolos con la antorcha encendida. En la Puerta (X-4) el
+## Hermano Mayor te traiciona: es un humano que usa tres reglas robadas.
+##  · HILOS: tensa líneas rojas (aviso fino 0,9 s); tocarlas tensas hace daño.
+##  · RUGIDO: carga un círculo; si sigues dentro al estallar, daño. Después
+##    queda agotado 2,5 s y recibe el doble de daño.
+##  · MIRADA: sus ojos brillan 3,5 s; si te mueves mientras te mira, daño.
+## Tus aliados deciden según tu marca: con bendición luchan contigo; con
+## maldición se ponen de su lado y te tiran piedras; sin marca, se apartan.
+## Valores PROVISIONALES.
+const ELDER_HP := 620.0
+const ELDER_SPEED := 62.0
+const ELDER_THREAD_DAMAGE := 18.0
+const ELDER_ROAR_RADIUS := 230.0
+const ELDER_ROAR_DAMAGE := 26.0
+const ELDER_GAZE_TICK := 7.0
+const ELDER_SWIPE_DAMAGE := 16.0
+const BRAZIER_REACH := 64.0
+const ELDER_RULES := ["hilos", "rugido", "mirada"]
+var braziers: Array = [] # {pos, lit}
+var braziers_lit: Dictionary = {} # "piso:sala:i" -> true
+var elder_active: bool = false # jefe en X-4
+var elder_npc: bool = false # figura tranquila en X-1
+var elder_pos: Vector2 = Vector2.ZERO
+var elder_hp: float = ELDER_HP
+var elder_max: float = ELDER_HP
+var elder_state: String = "talk" # talk | walk | threads_aim | threads | roar | tired | gaze | swipe
+var elder_t: float = 0.0
+var elder_cd: float = 0.0
+var elder_rule: int = 0
+var elder_hit_t: float = 0.0
+var elder_tick: float = 0.0
+var elder_facing: int = 3
+var elder_threads: Array = [] # [desde, hasta]
+var elder_side: String = "" # aliados: "contigo", "contra", "apartados"
+var elder_traitors: Array = [] # {pos, cd}
+var elder_stones: Array = [] # {pos, t}
+var elder_ally_cd: float = 0.0
+var elder_last_player: Vector2 = Vector2.ZERO
+
+
+func _load_harvest_room() -> void:
+    braziers.clear()
+    elder_active = false
+    elder_npc = false
+    elder_threads.clear()
+    elder_traitors.clear()
+    elder_stones.clear()
+    if in_tutorial:
+        return
+    var spots: Array = _room().get("braziers", [])
+    for i in range(spots.size()):
+        braziers.append({"pos": spots[i], "lit": braziers_lit.has("%s:%d" % [_room_key(), i])})
+        obstacles.append(Rect2(Vector2(spots[i]).x - 14.0, Vector2(spots[i]).y - 8.0, 28.0, 10.0))
+    if _room().has("elder"):
+        elder_npc = true
+        elder_pos = _room()["elder"]
+        elder_facing = 3
+    if _room().has("elder_boss") and not banished.has(_room_key()):
+        elder_active = true
+        elder_pos = _room()["elder_boss"]
+        elder_hp = ELDER_HP * (1.35 if _mark() == "maldicion" else 1.0)
+        elder_max = elder_hp
+        elder_state = "talk"
+        elder_t = 1.4 # la traición llega en cuanto terminan de hablar
+        elder_rule = 0
+        elder_side = ""
+        elder_cd = 1.5
+        elder_last_player = player_pos
+
+
+## Antorcha encendida junto a un brasero apagado: lo prende.
+func _light_brazier() -> bool:
+    for i in range(braziers.size()):
+        var b: Dictionary = braziers[i]
+        if bool(b["lit"]) or player_pos.distance_to(b["pos"]) > BRAZIER_REACH:
+            continue
+        if not (has_torch and torch_on):
+            _say("El brasero necesita fuego. Enciende la antorcha.", 2.2)
+            return true
+        b["lit"] = true
+        braziers_lit["%s:%d" % [_room_key(), i]] = true
+        _sfx("fosforo", -6.0, 0.8)
+        _sfx("k_campana", -12.0, 0.7)
+        _emit(Vector2(b["pos"]) + Vector2(0, -30), 26, Color(1.0, 0.6, 0.25), 20.0, 90.0, 0.9, 2.0, -60.0, Vector2.UP, 0.9, true)
+        var left: int = braziers.filter(func(x): return not bool(x["lit"])).size()
+        if left == 0:
+            _complete_mission()
+            _say("Arde. %s" % ("Los tres braseros de la Cosecha están encendidos." if current_room >= 2 else "Falta el último, en la sala siguiente."), 3.5)
+        else:
+            _say("Un brasero arde. Queda %d." % left, 2.4)
+        return true
+    return false
+
+
+func _harvest_strike() -> void:
+    _light_brazier_quiet()
+    if not elder_active or elder_state == "talk":
+        return
+    var to_e: Vector2 = elder_pos - player_pos
+    if to_e.length() < STRIKE_RANGE + 16.0 and (to_e.length() < 26.0 or to_e.normalized().dot(strike_dir) > 0.2):
+        _damage_elder(_strike_damage())
+
+
+## Golpear un brasero con la antorcha también lo prende (sin mensajes extra).
+func _light_brazier_quiet() -> void:
+    for b in braziers:
+        if not bool(b["lit"]) and player_pos.distance_to(b["pos"]) <= BRAZIER_REACH and has_torch and torch_on:
+            _light_brazier()
+            return
+
+
+func _harvest_pulse() -> void:
+    if not elder_active or elder_state == "talk":
+        return
+    if player_pos.distance_to(elder_pos) < _pulse_radius() + 16.0:
+        _damage_elder(_pulse_damage())
+        if elder_state in ["walk", "swipe"]:
+            elder_state = "walk"
+            elder_cd = maxf(elder_cd, 1.2)
+            float_fx.append({"pos": elder_pos + Vector2(0, -90), "text": "ATURDIDO", "color": SOUL, "t": 0.0})
+
+
+func _damage_elder(amount: float) -> void:
+    var mult: float = 2.0 if elder_state == "tired" else 1.0
+    elder_hp -= amount * mult
+    elder_hit_t = 0.2
+    float_fx.append({"pos": elder_pos + Vector2(randf_range(-10, 10), -86), "text": "-%d%s" % [int(amount * mult), " ×2" if mult > 1.0 else ""], "color": Color("#ffd36b"), "t": 0.0})
+    _sfx("impacto", -8.0, 0.9)
+    if elder_hp <= 0.0:
+        _elder_defeat()
+
+
+func _elder_defeat() -> void:
+    elder_active = false
+    elder_threads.clear()
+    elder_stones.clear()
+    banished[_room_key()] = true
+    drops.append({"pos": elder_pos, "value": 40})
+    _gain_xp(120)
+    _complete_mission()
+    dissolve_fx.append({"pos": elder_pos, "kind": "peregrino", "facing": elder_facing, "frame": 7, "t": 0.0})
+    _emit(elder_pos + Vector2(0, -40), 50, Color(0.85, 0.2, 0.25), 30.0, 160.0, 1.2, 3.0, 120.0, Vector2.UP, 1.8)
+    _say("El Hermano Mayor cae. Las reglas robadas se le escapan como humo. La Puerta sigue abierta.", 5.0)
+    _sfx("destierro", -2.0, 0.8)
+    for t in elder_traitors:
+        t["cd"] = 999.0 # sin su líder, dejan de tirar piedras
+
+
+## Al empezar la pelea: tus aliados eligen bando según tu marca.
+func _elder_betray() -> void:
+    elder_state = "walk"
+    elder_cd = 1.6
+    var mark: String = _mark()
+    var alive: Array = allies.filter(func(a): return bool(a["alive"]))
+    if alive.is_empty():
+        elder_side = ""
+        _say("«Nadie vendrá a ayudarte, {yo}.» Estás solo con él.".replace("{yo}", _hero_name()), 3.5)
+    elif mark == "bendicion":
+        elder_side = "contigo"
+        _say("«¡No! Nos guiaste hasta aquí.» Tus aliados se ponen de tu lado.", 4.0)
+    elif mark == "maldicion":
+        elder_side = "contra"
+        for i in range(alive.size()):
+            elder_traitors.append({"name": alive[i]["name"], "pos": Vector2(820.0 - float(i % 2) * 40.0, 220.0 + float(i) * 70.0), "cd": 2.5 + float(i)})
+            alive[i]["alive"] = false
+            alive[i]["dead_key"] = "traidor"
+        allies = allies.filter(func(a): return bool(a["alive"]))
+        _say("«Nos dejaste atrás cuando te necesitábamos.» Tus aliados se unen a él.", 4.0)
+    else:
+        elder_side = "apartados"
+        _say("Tus aliados retroceden. No se atreven a elegir.", 3.5)
+    _sfx("grunido", -6.0, 0.7)
+
+
+func _update_harvest(dt: float) -> void:
+    elder_hit_t = maxf(0.0, elder_hit_t - dt)
+    for s in elder_stones:
+        s["t"] = float(s["t"]) - dt
+        if float(s["t"]) <= 0.0:
+            if player_pos.distance_to(s["pos"]) < 34.0 and dash_left <= 0.0 and damage_cd <= 0.0:
+                hp -= 10.0
+                damage_cd = 0.6
+                _on_hurt()
+            _emit(Vector2(s["pos"]), 10, Color(0.55, 0.52, 0.48), 20.0, 80.0, 0.5, 2.0, 150.0, Vector2.UP, 1.2)
+    elder_stones = elder_stones.filter(func(s): return float(s["t"]) > 0.0)
+    if not elder_active:
+        return
+    var moved: float = player_pos.distance_to(elder_last_player)
+    elder_last_player = player_pos
+    elder_t = maxf(0.0, elder_t - dt)
+    elder_cd = maxf(0.0, elder_cd - dt)
+    var look: Vector2 = player_pos - elder_pos
+    if look.length() > 1.0:
+        elder_facing = (2 if look.x > 0.0 else 3) if absf(look.x) > absf(look.y) else (0 if look.y > 0.0 else 1)
+    if elder_state == "talk":
+        if elder_t <= 0.0:
+            _elder_betray()
+        return
+    fear = minf(100.0, fear + dt * 1.2)
+    var enraged: bool = elder_hp < elder_max * 0.5
+    # Aliados: de tu lado le golpean; en su contra te tiran piedras con aviso.
+    elder_ally_cd = maxf(0.0, elder_ally_cd - dt)
+    if elder_side == "contigo" and elder_ally_cd <= 0.0:
+        elder_ally_cd = 3.0
+        var n: int = _allies_alive()
+        if n > 0:
+            elder_hp -= 10.0 * float(n)
+            elder_hit_t = 0.2
+            float_fx.append({"pos": elder_pos + Vector2(0, -100), "text": "ALIADOS -%d" % (10 * n), "color": Color("#7fd6a0"), "t": 0.0})
+            if elder_hp <= 0.0:
+                _elder_defeat()
+                return
+    for t in elder_traitors:
+        t["cd"] = float(t["cd"]) - dt
+        if float(t["cd"]) <= 0.0:
+            t["cd"] = 5.0
+            elder_stones.append({"pos": player_pos, "t": 1.0})
+    match elder_state:
+        "walk":
+            if look.length() > 70.0:
+                var nxt: Vector2 = elder_pos + look.normalized() * ELDER_SPEED * (1.3 if enraged else 1.0) * dt
+                if not _is_blocked(nxt):
+                    elder_pos = Vector2(clampf(nxt.x, 110.0, 850.0), clampf(nxt.y, 200.0, 540.0))
+            elif elder_cd <= 0.6:
+                elder_state = "swipe"
+                elder_t = 0.55
+            if elder_cd <= 0.0:
+                _elder_next_rule(enraged)
+        "swipe":
+            if elder_t <= 0.0:
+                if look.length() < 80.0 and dash_left <= 0.0 and damage_cd <= 0.0:
+                    hp -= ELDER_SWIPE_DAMAGE
+                    damage_cd = 0.8
+                    _on_hurt()
+                elder_state = "walk"
+                elder_cd = maxf(elder_cd, 1.0)
+        "threads_aim":
+            if elder_t <= 0.0:
+                elder_state = "threads"
+                elder_t = 2.6
+                _sfx("k_metal", -6.0, 1.4)
+        "threads":
+            if dash_left <= 0.0 and damage_cd <= 0.0:
+                for th in elder_threads:
+                    if _dist_to_segment(player_pos, th[0], th[1]) < 12.0:
+                        hp -= ELDER_THREAD_DAMAGE
+                        damage_cd = 0.9
+                        fear = minf(100.0, fear + 8.0)
+                        _on_hurt()
+                        break
+            if elder_t <= 0.0:
+                elder_threads.clear()
+                elder_state = "walk"
+                elder_cd = 1.8 if enraged else 2.4
+        "roar":
+            if elder_t <= 0.0:
+                shake = maxf(shake, 0.6)
+                _sfx("grunido", -2.0, 0.6)
+                _emit(elder_pos + Vector2(0, -30), 40, Color(0.85, 0.3, 0.3), 80.0, 240.0, 0.7, 3.0, 0.0, Vector2.UP, PI)
+                if look.length() < ELDER_ROAR_RADIUS and dash_left <= 0.0:
+                    hp -= ELDER_ROAR_DAMAGE
+                    fear = minf(100.0, fear + 15.0)
+                    damage_cd = 0.8
+                    _on_hurt()
+                elder_state = "tired"
+                elder_t = 2.5
+        "tired":
+            if elder_t <= 0.0:
+                elder_state = "walk"
+                elder_cd = 1.6 if enraged else 2.2
+        "gaze":
+            elder_tick = maxf(0.0, elder_tick - dt)
+            if moved > 0.6 and elder_tick <= 0.0:
+                elder_tick = 0.5
+                hp -= ELDER_GAZE_TICK
+                fear = minf(100.0, fear + 6.0)
+                _on_hurt()
+            if elder_t <= 0.0:
+                elder_state = "walk"
+                elder_cd = 1.8 if enraged else 2.4
+
+
+func _elder_next_rule(enraged: bool) -> void:
+    var rule: String = ELDER_RULES[elder_rule % ELDER_RULES.size()]
+    elder_rule += 1
+    match rule:
+        "hilos":
+            elder_state = "threads_aim"
+            elder_t = 0.9
+            elder_threads.clear()
+            var p: Vector2 = player_pos
+            elder_threads.append([Vector2(90, p.y), Vector2(870, p.y)])
+            elder_threads.append([Vector2(p.x, 190), Vector2(p.x, 560)])
+            if enraged:
+                elder_threads.append([elder_pos, elder_pos + (p - elder_pos).normalized() * 900.0])
+            _say("HILOS: no toques las líneas cuando se tensen (o esquívalas).", 2.4)
+            _sfx("k_metal", -10.0, 1.8)
+        "rugido":
+            elder_state = "roar"
+            elder_t = 1.1 if not enraged else 0.85
+            _say("RUGIDO: aléjate del círculo. Luego queda agotado: ¡golpéalo!", 2.4)
+        "mirada":
+            elder_state = "gaze"
+            elder_t = 3.5
+            elder_tick = 0.4
+            _say("MIRADA: quédate QUIETO mientras te mira.", 2.4)
+            _sfx("k_campana", -10.0, 0.5)
+
+
+func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
+    return p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
+
+
+func _draw_brazier(i: int) -> void:
+    var b: Dictionary = braziers[i]
+    var at: Vector2 = b["pos"]
+    _draw_soft_shadow(at + Vector2(0, 2), 18.0)
+    draw_rect(Rect2(at.x - 6.0, at.y - 26.0, 12, 26), Color("#4a4352"))
+    draw_colored_polygon(PackedVector2Array([at + Vector2(-22, -34), at + Vector2(22, -34), at + Vector2(14, -22), at + Vector2(-14, -22)]), Color("#6a5030"))
+    draw_rect(Rect2(at.x - 22.0, at.y - 36.0, 44, 3), Color("#c9a25e"))
+    if bool(b["lit"]):
+        var f: float = 0.5 + 0.5 * sin(elapsed * 9.0 + at.x)
+        for k in range(4, 0, -1):
+            draw_circle(at + Vector2(0, -44), 10.0 + float(k) * 12.0, Color(1.0, 0.6, 0.25, 0.04))
+        draw_colored_polygon(PackedVector2Array([at + Vector2(-14, -36), at + Vector2(14, -36), at + Vector2(4, -62 - 6.0 * f), at + Vector2(-2, -54)]), Color("#f08a3a"))
+        draw_colored_polygon(PackedVector2Array([at + Vector2(-7, -36), at + Vector2(7, -36), at + Vector2(1, -52 - 4.0 * f)]), Color("#ffd36b"))
+    else:
+        draw_rect(Rect2(at.x - 12.0, at.y - 38.0, 24, 4), Color("#2a2420"))
+
+
+func _draw_elder() -> void:
+    var sheet: Texture2D = art["enemy_peregrino"]
+    var frame: int = int(elapsed * 2.0) % 2
+    match elder_state:
+        "walk":
+            frame = 2 + int(elapsed * 8.0) % 4
+        "threads_aim", "roar", "swipe":
+            frame = 6
+        "threads", "gaze":
+            frame = 7
+        "tired":
+            frame = 0
+    if elder_npc:
+        frame = int(elapsed * 2.0) % 2
+    var scale: float = 1.35
+    var cell: Vector2 = ENEMY_CELL * scale
+    var feet := Vector2(roundf(elder_pos.x), roundf(elder_pos.y + 4.0))
+    _draw_soft_shadow(elder_pos + Vector2(0, 3), 18.0)
+    if elder_active and elder_state == "roar":
+        var k: float = 1.0 - clampf(elder_t / 1.1, 0.0, 1.0)
+        _draw_ellipse(elder_pos, ELDER_ROAR_RADIUS * k, ELDER_ROAR_RADIUS * 0.45 * k, Color(1.0, 0.2, 0.2, 0.1 + 0.15 * k))
+        draw_arc(elder_pos, ELDER_ROAR_RADIUS, 0, TAU, 64, Color(1.0, 0.3, 0.3, 0.35 + 0.4 * k), 2.0)
+    var tint := Color(1.0, 0.86, 0.7)
+    if elder_hit_t > 0.0:
+        tint = Color(1.0, 0.45, 0.4)
+    elif elder_state == "tired":
+        tint = Color(0.8, 0.85, 1.0)
+    draw_texture_rect_region(sheet, Rect2(feet.x - cell.x * 0.5, feet.y - ENEMY_FEET_Y * scale, cell.x, cell.y), Rect2(float(frame) * ENEMY_CELL.x, float(elder_facing) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y), tint)
+    # Diadema de la Cosecha: lo distingue del resto de peregrinos.
+    var head: Vector2 = feet + Vector2(0, -ENEMY_FEET_Y * scale + 12.0)
+    draw_rect(Rect2(head.x - 10.0, head.y, 20, 3), Color("#e3bd7b"))
+    draw_colored_polygon(PackedVector2Array([head + Vector2(-3, 0), head + Vector2(3, 0), head + Vector2(0, -6)]), Color("#e3bd7b"))
+    if elder_active and elder_state == "gaze":
+        var g: float = 0.6 + 0.4 * sin(elapsed * 10.0)
+        draw_circle(head + Vector2(-4, 10), 2.5, Color(1.0, 0.3, 0.3, g))
+        draw_circle(head + Vector2(4, 10), 2.5, Color(1.0, 0.3, 0.3, g))
+        for k in range(3, 0, -1):
+            draw_circle(head + Vector2(0, 10), 8.0 + float(k) * 8.0, Color(1.0, 0.2, 0.2, 0.05))
+    if elder_active and elder_state == "tired":
+        _label_center("AGOTADO · ×2", feet + Vector2(0, -ENEMY_FEET_Y * scale - 14.0), Color("#8fc7d7"))
+
+
+func _draw_elder_threads() -> void:
+    for th in elder_threads:
+        var live: bool = elder_state == "threads"
+        var a: float = 0.85 if live else 0.25 + 0.5 * (1.0 - clampf(elder_t / 0.9, 0.0, 1.0))
+        draw_line(th[0], th[1], Color(0.9, 0.12, 0.18, a), 3.0 if live else 1.0)
+        if live:
+            draw_line(th[0], th[1], Color(1.0, 0.6, 0.6, 0.35), 7.0)
+    for s in elder_stones:
+        var k: float = 1.0 - clampf(float(s["t"]), 0.0, 1.0)
+        _draw_ellipse(s["pos"], 34.0, 14.0, Color(1.0, 0.3, 0.2, 0.12 + 0.2 * k))
+        draw_circle(Vector2(s["pos"]) + Vector2(0, -160.0 * (1.0 - k)), 5.0, Color("#7d7a72"))
+
+
+func _draw_traitor(i: int) -> void:
+    var t: Dictionary = elder_traitors[i]
+    var sheet: Texture2D = art["enemy_peregrino"]
+    var at: Vector2 = t["pos"]
+    var frame: int = 6 if float(t["cd"]) < 0.6 else int(elapsed * 2.0 + float(i)) % 2
+    _draw_soft_shadow(at + Vector2(0, 3), 12.0)
+    _draw_ellipse(at + Vector2(0, 3), 17.0, 6.0, Color(0.9, 0.2, 0.25, 0.18))
+    draw_texture_rect_region(sheet, Rect2(at.x - ENEMY_CELL.x * 0.5, at.y + 4.0 - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), Rect2(float(frame) * ENEMY_CELL.x, 3.0 * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y), Color(1.0, 0.7, 0.7))
+
+
+func _draw_harvest_hud() -> void:
+    for b in braziers:
+        if not bool(b["lit"]) and player_pos.distance_to(b["pos"]) < 150.0:
+            _label_center(_prompt("ENCENDER BRASERO") if has_torch and torch_on else "BRASERO · ENCIENDE LA ANTORCHA", Vector2(b["pos"]) + Vector2(0, -74), Color("#ffd36b"))
+    if elder_npc and player_pos.distance_to(elder_pos) < 170.0:
+        _label_center("HERMANO MAYOR", elder_pos + Vector2(0, -100), CREAM)
+    if not elder_active or elder_state == "talk":
+        return
+    var box := Rect2(300, 146, 360, 34) # por debajo de los avisos de arriba
+    _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_GOLD)
+    var rule: String = {"threads_aim": "HILOS", "threads": "HILOS", "roar": "RUGIDO", "tired": "AGOTADO", "gaze": "MIRADA"}.get(elder_state, "")
+    _text_outline("EL HERMANO MAYOR" + ("  ·  " + rule if rule != "" else ""), Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
+    var bar := Rect2(box.position.x + 10.0, box.position.y + 21.0, box.size.x - 20.0, 7)
+    draw_rect(bar, Color(0, 0, 0, 0.7))
+    draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(elder_hp / elder_max, 0.0, 1.0), bar.size.y)), Color("#b3263a"))
+    if elder_side != "":
+        var side_txt: String = {"contigo": "TUS ALIADOS LUCHAN CONTIGO", "contra": "TUS ALIADOS SE UNIERON A ÉL", "apartados": "TUS ALIADOS SE APARTAN"}[elder_side]
+        _text_outline(side_txt, Vector2(box.position.x, box.end.y + 14.0), 11, Color("#7fd6a0") if elder_side == "contigo" else (Color("#ff8a8a") if elder_side == "contra" else Color("#9a957f")), box.size.x)
+    if elder_state == "gaze":
+        _label_center("¡QUIETO! TE MIRA", player_pos + Vector2(0, -80), Color("#ff8a8a"))
+    elif elder_state == "roar" and player_pos.distance_to(elder_pos) < ELDER_ROAR_RADIUS:
         _label_center("¡SAL DEL CÍRCULO O ESQUIVA!", player_pos + Vector2(0, -80), Color("#ffd36b"))

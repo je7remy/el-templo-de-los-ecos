@@ -30,6 +30,12 @@
   - **Piso VII · La Que No Aparta la Vista**, cuatro salas. Una figura con yelmo y ojos en el pecho rodea la sala: solo ataca si le das la espalda o corres. Hay que aguantar su mirada para que la puerta se abra mientras te provoca con amagos y ruidos a tu espalda. Los peregrinos que guiaste pueden entrar en pánico: cálmalos antes de que echen a correr.
   - **Piso VIII · El Templo que Cambia**, las salas del Piso I alteradas: las estatuas miran al otro lado, el Testigo persigue al que se queda quieto, el sello está en el Archivo y una inscripción firmada con tu nombre miente.
   - **Piso IX · El Coloso del Pórtico**, cuatro salas. Los **Arietes de Piedra** embisten en línea recta si te alineas con ellos y solo se rompen aturdidos tras chocar. El **Coloso**, una estatua viva inmune a golpes, se derriba atrayéndolo junto a columnas agrietadas y golpeándolas para que caigan sobre él.
+  - **Piso X · La Cosecha**, el final del primer arco. Enciendes con la antorcha los tres braseros del ritual (entre un Ghoul y dos Arietes) y, al abrirse la Puerta, el **Hermano Mayor** te traiciona. Es un humano con tres reglas robadas:
+    - **hilos**: líneas rojas que hacen daño al tensarse;
+    - **rugido**: un círculo del que hay que salir; después queda agotado y recibe el doble de daño;
+    - **mirada**: hay que quedarse quieto mientras te mira.
+
+    Tus aliados eligen bando según tu marca: con bendición luchan contigo, con maldición le ayudan tirándote piedras, y sin marca se apartan.
 - **Enemigos más fuertes cuanto más abajo**: las entidades tienen más vida y daño en los pisos profundos (+12 % por piso).
 - **Niveles**: ganas experiencia con almas, alimañas, entidades desterradas, misiones y pisos. Cada nivel sube la vida máxima (+6), el daño (+4 %) y la recarga del vigor (+3 %) y te cura. El nivel se ve en el retrato del HUD y en el perfil.
 - **Objetos y mejoras**: el perfil tiene una pestaña OBJETOS con lo equipado (brazalete, amuleto, máscara) y la bolsa (pan), que se usa desde ahí. Comprar otra vez el brazalete o el amuleto los sube de nivel (hasta 5), y la Resonancia se mejora con almas en el altar o el puesto. En el puesto se ve cuánto llevas de cada cosa y el número salta al comprar.
@@ -90,6 +96,8 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 | **Atmósfera.** Haces de luz, niebla baja, polvo, bloom y viñeta. | **Muerte.** El alma se desprende; te levantas en una columna de luz. |
 | ![El Coloso](docs/galeria/52_piso9_coloso.png) | ![Arietes](docs/galeria/53_piso9_arietes.png) |
 | **Piso IX.** El Coloso pisa fuerte: sal del círculo rojo y atráelo junto a una columna agrietada. | **Arietes de Piedra.** Embisten en línea recta; aturdidos, se rompen. |
+| ![El Hermano Mayor](docs/galeria/54_piso10_hermano.png) | ![Tutorial de la Vigilia](docs/galeria/55_vigilia_tutorial.png) |
+| **Piso X.** El Hermano Mayor usa la mirada: quédate quieto. Tus aliados luchan contigo si llevas la bendición. | **Tutorial de la Vigilia.** 15 pasos guiados: dormir, construir, mejorar, potenciar, reparar, escudo y vender. |
 | ![Vigilia por fases](docs/galeria/50_vigilia_fases.png) | ![Botín de la Vigilia](docs/galeria/51_vigilia_botin.png) |
 | **Vigilia.** Toca cualquier baldosa para construir centinelas, generadores o campanas. | **Botín.** Cada fase da objetos que pasan a la campaña. |
 | ![Objetos en el perfil](docs/galeria/46_objetos.png) | ![Puesto con mejoras](docs/galeria/47_puesto_mejoras.png) |
@@ -123,7 +131,7 @@ Todas las imágenes, salvo las tres láminas finales, son capturas reales del ju
 
 ![Vigilia del Claustro: lecho, centinelas y puerta frente a una entidad](docs/galeria/08_vigilia.png)
 
-Duerme en el lecho para ganar ecos y construye en cualquier baldosa libre de la celda: centinelas (disparan), generadores (energía) y campanas (frenan a las entidades). Toca cualquier cosa para mejorarla; el lecho, la puerta y cada estructura tienen muchos niveles. Fases sin fin, cada una más dura, con botín para la campaña.
+Duerme en el lecho para ganar ecos y construye en cualquier baldosa libre de la celda: centinelas (disparan), generadores (energía) y campanas (frenan a las entidades). Toca cualquier cosa para mejorarla; el lecho, la puerta y cada estructura tienen muchos niveles. Fases sin fin, cada una más dura, con botín para la campaña. La primera vez empieza con un **tutorial guiado de 15 pasos**, que se puede saltar o repetir desde la portada.
 
 ### Entidades
 

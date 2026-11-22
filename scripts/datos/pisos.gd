@@ -222,6 +222,36 @@ const FLOORS := [
              "inscription": [Vector2(480, 300), "Tras el vitral, un ala inmensa se pliega sobre el templo. El dueño de todo esto cayó del cielo, y no vino solo."]},
         ],
     },
+    {
+        # Inspiración: la traición tras completar la misión y la meta de «seguir bajando».
+        # Final del primer arco: el ritual de la Cosecha y el Hermano Mayor.
+        "number": "X", "title": "LA COSECHA", "state": "TODOS ESPERAN QUE LA PUERTA SE ABRA", "wear": 2.2,
+        "eco": "", "followers": true, "final": true,
+        "rooms": [
+            {"scene": 0, "name": "X-1 · ATRIO DE LOS SUPERVIVIENTES", "enemy": "", "traits": [],
+             "whisper": "Hay más gente aquí que en ningún otro piso. Todos miran hacia abajo.",
+             "items": [["fosforos", "Fosforos", Vector2(660, 470)]],
+             "elder": Vector2(760, 300),
+             "inscription": [Vector2(480, 470), "LA COSECHA: tres braseros encendidos abren la Puerta. Lo que entra en ella, no vuelve."]},
+            {"scene": 2, "name": "X-2 · GALERÍA DE LOS BRASEROS", "enemy": "ghoul", "traits": [],
+             "whisper": "Dos braseros apagados. Algo en la oscuridad se acerca a la luz.",
+             "items": [["fosforos", "Fosforos", Vector2(480, 200)]],
+             "braziers": [Vector2(300, 470), Vector2(700, 470)],
+             "mission": {"goal": "braseros", "required": true, "reward": 12, "text": "Enciende los dos braseros"}},
+            {"scene": 1, "name": "X-3 · CORO DE LA COSECHA", "enemy": "", "traits": [],
+             "whisper": "El tercer brasero, entre bloques de piedra que no te quitan el ojo de encima.",
+             "items": [["fosforos", "Fosforos", Vector2(250, 470)]],
+             "braziers": [Vector2(480, 200)],
+             "rams": [Vector2(200, 430), Vector2(760, 430)],
+             "mission": {"goal": "braseros", "required": true, "reward": 12, "text": "Enciende el tercer brasero"}},
+            {"scene": 4, "name": "X-4 · PUERTA DE LA COSECHA", "enemy": "", "traits": [],
+             "whisper": "La Puerta se abre. Detrás no hay luz del día: hay escalones que bajan.",
+             "items": [],
+             "elder_boss": Vector2(700, 340),
+             "mission": {"goal": "hermano", "required": true, "reward": 40, "text": "Sobrevive al Hermano Mayor"},
+             "inscription": [Vector2(480, 300), "En el marco de la Puerta hay marcas de alas. Doscientas. Esto no es una salida. Es una transición."]},
+        ],
+    },
 ]
 
 ## Verdad que revela cada piso (del diseño de los diez pisos).
@@ -235,11 +265,24 @@ const FLOOR_TRUTHS := [
     "Ella no caza: vigila. El templo quiere que veas morir a los demás; el miedo ajeno también alimenta.",
     "El edificio es un sistema de producción: el miedo entra, las almas salen.",
     "Tras el vitral roto, un ala inmensa: el dueño del templo es un ángel caído.",
+    "Doscientas marcas de alas en la Puerta. Este templo es solo uno de muchos dominios.",
 ]
 
 ## Conversaciones al entrar en salas con más personajes. «{yo}» es tu nombre.
 ## Un tercer campo «solo» o «grupo» limita la línea a ir solo o acompañado.
 const ROOM_TALKS := {
+    "9:0": [
+        ["HERMANO MAYOR", "Bienvenido, {yo}. Llegas a tiempo para la Cosecha."],
+        ["HERMANO MAYOR", "Tres braseros. Cuando ardan los tres, la Puerta se abre para todos."],
+        ["{yo}", "¿Para todos? En este templo nada es para todos."],
+        ["HERMANO MAYOR", "Tienes antorcha y nosotros no. Enciéndelos y bajaremos juntos."],
+    ],
+    "9:3": [
+        ["HERMANO MAYOR", "Los tres arden. Lo has hecho bien, {yo}."],
+        ["HERMANO MAYOR", "Pero la Puerta pide almas para abrirse del todo. Y tú llevas muchas."],
+        ["{yo}", "Así que era esto. Me necesitabas con la antorcha... y luego muerto."],
+        ["HERMANO MAYOR", "Aprendí sus reglas una a una: los hilos, el rugido, la mirada. Ahora son mías."],
+    ],
     "1:0": [
         ["PEREGRINO", "¿Tú también despertaste aquí? Tranquilo, no muerdo."],
         ["{yo}", "¿Quién eres? ¿Cuánto llevas en este sitio?"],

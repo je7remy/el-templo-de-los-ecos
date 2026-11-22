@@ -1,5 +1,46 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-22 · Piso X (final del arco), tutorial de la Vigilia y habilidades por páginas
+
+- **Piso X · La Cosecha**, el último piso del primer arco (cuatro salas):
+  - **X-1 · Atrio de los Supervivientes**: el Hermano Mayor explica el ritual (tres braseros abren la Puerta).
+  - **X-2 · Galería de los Braseros**: dos braseros, con un Ghoul atraído por la luz.
+  - **X-3 · Coro de la Cosecha**: el tercer brasero, entre dos Arietes.
+
+  Los braseros se encienden tocándolos o golpeándolos con la antorcha encendida.
+  - **X-4 · Puerta de la Cosecha**: el **Hermano Mayor** (jefe) te traiciona para quedarse con tus almas. Usa tres reglas robadas, por turnos, con aviso:
+    - **Hilos**: líneas rojas finas que, al tensarse, hacen daño (se esquivan).
+    - **Rugido**: un círculo que se carga; al estallar hace daño. Después queda **agotado** 2,5 s y recibe el doble de daño.
+    - **Mirada**: sus ojos brillan; si te mueves mientras te mira, te hace daño.
+
+    Por debajo de la mitad de vida va más rápido y tensa un hilo más.
+  - **Tus aliados deciden** según tu marca:
+    - con bendición luchan contigo (le quitan vida cada pocos segundos);
+    - con maldición se unen a él (tiran piedras con aviso, y él tiene más vida);
+    - sin marca se apartan.
+  - **Final**: la Puerta no lleva a la salida, sino a otros escalones. Pantalla «Fin del primer arco»: «Esto no es una salida. Es una transición.». La verdad 8: doscientas marcas de alas.
+  - En el menú de pisos, el Piso X aparece con una calavera.
+- **Tutorial guiado de la Vigilia** (15 pasos). La primera vez, EMPEZAR lo lanza; desde la portada se puede saltar o repetir (T o Y). Cada paso señala dónde tocar y espera a que lo hagas:
+  1. bienvenida;
+  2. dormir;
+  3. ahorrar ecos;
+  4. construir un centinela;
+  5. ver cómo dispara a una entidad;
+  6. mejorarlo;
+  7. construir un generador;
+  8. potenciar;
+  9. construir una campana;
+  10. reforzar la puerta;
+  11. repararla;
+  12. activar el escudo;
+  13. mejorar el lecho;
+  14. vender;
+  15. empezar.
+
+  Durante el tutorial el reloj de la fase no corre, la puerta no cae y el juego te da los ecos o la energía justos para cada paso. Al terminar empieza una Vigilia limpia.
+- **Habilidades por páginas** (arreglo definitivo del desborde): cada columna muestra solo las filas que caben y el resto pasa a la página siguiente. Se cambia de página con las flechas en pantalla, ←/→, la rueda del ratón o la cruceta y LB del mando. Funciona igual por muchos Ecos o habilidades que se añadan.
+- Valores provisionales: vida y daño del Hermano Mayor, ritmo de sus reglas y ayuda de los aliados.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Vigilia v3: construir en todo el suelo, más niveles y más dura
 
 - **Más fácil de jugar, sobre todo en el móvil**:

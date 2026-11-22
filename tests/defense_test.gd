@@ -179,6 +179,53 @@ func _run() -> void:
         return
     mode.call("_start", 0)
 
+    # Tutorial guiado: la primera vez, EMPEZAR lo lanza; se completa paso a paso.
+    mode.set("tutorial_done", false)
+    mode.set("phase", "selection")
+    mode.call("_choose_start")
+    if int(mode.get("tut_step")) != 0:
+        _fail("La primera Vigilia no empieza con el tutorial.")
+        return
+    var steps: int = (mode.get("TUT_STEPS") as Array).size()
+    if steps < 10:
+        _fail("El tutorial tiene menos de 10 pasos.")
+        return
+    mode.call("_tut_tap", (mode.get("TUT_CARD") as Rect2).get_center())
+    mode.call("_tap", (mode.get("BED") as Rect2).get_center())
+    mode.call("_popup_choose", 0) # dormir
+    mode.call("_advance", 0.1)
+    if int(mode.get("tut_step")) != 2:
+        _fail("El paso de dormir no avanza.")
+        return
+    for i in range(200):
+        mode.call("_advance", 0.1)
+        if int(mode.get("tut_step")) >= 3:
+            break
+    mode.call("_build", "centinela", Vector2i(9, 3))
+    for i in range(200):
+        mode.call("_advance", 0.1)
+        if int(mode.get("tut_step")) >= 5:
+            break
+    if int(mode.get("tut_step")) != 5 or float(mode.get("elapsed")) > 0.0:
+        _fail("El tutorial no avanza al derrotar a la entidad o corre el reloj de la fase.")
+        return
+    mode.call("_upgrade", Vector2i(9, 3)); mode.call("_advance", 0.1)
+    mode.call("_build", "generador", Vector2i(8, 3)); mode.call("_advance", 0.1)
+    mode.call("_action", 6); mode.call("_advance", 0.1)
+    mode.call("_build", "campana", Vector2i(8, 2)); mode.call("_advance", 0.1)
+    mode.call("_action", 2); mode.call("_advance", 0.1)
+    mode.call("_action", 4); mode.call("_advance", 0.1)
+    mode.call("_action", 7); mode.call("_advance", 0.1)
+    mode.call("_action", 1); mode.call("_advance", 0.1)
+    mode.call("_sell", Vector2i(8, 2)); mode.call("_advance", 0.1)
+    if int(mode.get("tut_step")) != steps - 1:
+        _fail("El tutorial se atasca en el paso %d." % int(mode.get("tut_step")))
+        return
+    mode.call("_tut_tap", (mode.get("TUT_CARD") as Rect2).get_center())
+    if int(mode.get("tut_step")) != -1 or not bool(mode.get("tutorial_done")) or int(mode.get("stage")) != 1 or (mode.get("structs") as Dictionary).size() != 0:
+        _fail("Al terminar el tutorial no empieza una Vigilia limpia.")
+        return
+    mode.call("_start", 0)
     print("OK: defensa tactil, ingreso, mejoras, centinelas, reparacion, victoria y derrota.")
     mode.free()
     mode = null
