@@ -42,7 +42,7 @@
 - **Vida extra**: curarte con la vida llena suma hasta +50 por encima del máximo (franja dorada en la barra).
 - **Relicarios de vida** en las salas sin entidad: una cura de 60 por sala y partida.
 - **Bendición y maldición**: ayudar a quien lo pide (liberar a Saúl, guiar al grupo, calmar a un peregrino) suma; dejarlo atrás o fallarle resta. Con la bendición confían en ti, te regalan cosas y el Mercader cobra menos; con la maldición te temen, se apartan, no te siguen y el Mercader cobra más.
-- **Vigilia renovada**: defensa de una celda vista en planta, con rejilla, lecho, puerta y pasillo (estilo de defensa de cuarto, con arte propio). **Fases sin fin**, cada una más dura: más vida, velocidad y daño, más entidades a la vez y un **jefe cada 5 fases**. Cada fase superada da un **objeto al azar para la campaña** (pan, fósforos, vial de sangre, incienso, bolsa de almas, mejoras del brazalete, el amuleto o la Resonancia, reliquia de experiencia); cuanto más alta la fase, mejor el botín.
+- **Vigilia renovada** (se desbloquea comprando su llave al Mercader del Piso VI por 500 almas): defensa de una celda vista en planta, con rejilla, lecho, puerta y pasillo (estilo de defensa de cuarto, con arte propio). **Fases sin fin**, cada una más dura: más vida, velocidad y daño, más entidades a la vez y un **jefe cada 5 fases**. Cada fase superada da un **objeto al azar para la campaña** (pan, fósforos, vial de sangre, incienso, bolsa de almas, mejoras del brazalete, el amuleto o la Resonancia, reliquia de experiencia); cuanto más alta la fase, mejor el botín.
 - **Menú más simple**: JUGAR abre los pisos (el I empieza desde el principio) y salir del juego pide confirmación.
 - **Pensado para móvil**: joystick flotante, botón de ACCIÓN que cambia según lo que tengas cerca, botones grandes al alcance del pulgar y textos de ayuda que hablan de toques, no de teclas.
 - **Herencia del primer juego**: alimañas que mueren de un esquive y salen de nidos, tu cuerpo de la vida anterior en la sala donde caíste, transiciones con máscara, resumen al superar cada piso, sonidos de Kenney con variantes, cursor propio y créditos.
@@ -66,7 +66,7 @@
 - **Peligro que se anuncia**: el ojo del Testigo tiembla antes de abrirse y el Hechicero carga su conjuro a la vista. Los golpes sacuden la pantalla y dan un breve margen de invulnerabilidad.
 - **Música y sonido originales** que reaccionan al miedo y a la persecución.
 - **Muerte 50/50**: el alma regresa (misma persona, con memoria y habilidades) o es absorbida y aparece un humano nuevo, sin recuerdos.
-- **Vigilia del Claustro**: modo alternativo de defensa con lecho, puerta, centinelas y oleadas hasta el amanecer. Botones de imagen con su descripción al pasar el cursor.
+- **Vigilia del Claustro** (bloqueada hasta comprar su llave): modo alternativo de defensa con lecho, puerta, centinelas y oleadas hasta el amanecer. Botones de imagen con su descripción al pasar el cursor.
 - **Salas editables en Godot**: arquitectura en `TileMapLayer`, objetos como `Sprite2D` con su colisión y marcadores para todas las posiciones de juego.
 - **Controles táctiles para Android** y **pruebas automatizadas** con Godot 4.3 en GitHub Actions.
 
@@ -157,7 +157,7 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.5.0-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.0-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
+Puedes descargar el [APK de prueba de v0.5.1-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.1-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
 
 La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
@@ -296,4 +296,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.0-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.1-alpha** (se publica al fusionar esta versión en `main`).

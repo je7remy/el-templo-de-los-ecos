@@ -9,6 +9,24 @@
 - **Android al día:** versión 0.5.0-alpha (código 7). Al fusionar en `main`, el CI compila el APK y publica la prerelease `v0.5.0-alpha` con él. Si esa versión ya existe, no la toca. Hay que desinstalar la versión anterior del teléfono antes de instalar la nueva.
 - Mando: SELECT abre el mapa; el perfil sigue en LB.
 
+## v0.5.1-alpha — 2026-11-22 · Experiencia de juego: Vigilia por llave, puntos de control y PNJ vivos
+
+- **La Vigilia se compra.** El Mercader Silencioso (Piso VI) vende la **llave de la Vigilia** por 500 almas (más si llevas la maldición; nunca menos). Hasta entonces, el botón del menú sale como «BLOQUEADA». Así el botín que da la Vigilia (fósforos, pan…) llega cuando ya tiene sentido en la campaña.
+- **Las almas se guardan** entre partidas y sesiones: son tu moneda. Borrar el perfil las pone a cero.
+- **Fósforos de la bolsa:** usarlos con la madera en la mano hace la antorcha. Ya no hace falta recoger los del suelo.
+- **Puntos de control por sala.** Cada sala a la que entras queda guardada. En el menú de pisos, ese piso dice «SEGUIR · SALA N» y se retoma desde ahí, con antorcha y fósforos. Al morir ya se reaparecía en la misma sala; ahora tampoco se pierde al cerrar el juego.
+- **Cofres:** el objeto se ve claro. Tras la nota aparece «OBJETO ENCONTRADO» con su descripción, y un rótulo con icono, nombre y rareza.
+- **Contador de la sala:** lo que decía «SALA 0/3» eran los fragmentos de almas de la sala. Ahora dice **«ALMAS 0/3»**; el número de sala sigue en el minimapa.
+- **PNJ con vida propia** (los cazadores del III, Saúl, el grupo del VI y VII, los aliados del X):
+  - Tienen vida (barra cuando están heridos). Les dañan las trampas y la entidad de la sala, y pueden morir.
+  - Se defienden: empujan a la entidad («¡ATRÁS!», la frenan un instante) y aplastan alimañas.
+  - Van a lo suyo: recogen almas sueltas, fragmentos y pan que tengan más cerca que tú, y vacían el relicario de vida si están heridos. Con la bendición te dan la mitad; si no, se lo quedan.
+- **Piso VI, petición clara.** Sobre el grupo aparece un «!» y «EL GRUPO PIDE AYUDA». Al hablar, una ventana con dos opciones grandes: **AYUDARLOS** o **NEGARSE**. Negarse cuenta en contra de tu marca (una vez); puedes cambiar de idea.
+- **Recompensas dichas:**
+  - Antes de entrar a un piso: «RECOMPENSA AL SUPERAR ESTE PISO: ECO «…» (habilidad pasiva)».
+  - En el resumen: «POR SUPERAR EL PISO … GANAS EL ECO «…»».
+  - Al entrar al siguiente piso se recuerda qué ganaste en el anterior.
+
 ## En `main` (sin nuevo release) — 2026-11-22 · El Peregrino ya no se delata por un golpe accidental
 
 - En el Piso II, mientras el Peregrino te acompaña **no se le puede tocar**: ni el golpe de antorcha (por ejemplo, al aplastar alimañas a su lado) ni la Resonancia lo hieren ni lo ponen en guardia. La traición llega por sorpresa, en su momento. Solo se le puede herir cuando desenvaina.
