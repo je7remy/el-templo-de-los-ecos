@@ -1,5 +1,19 @@
 # Historial de versiones
 
+## En `main` (sin nuevo release) — 2026-11-21 · Piso VIII: El Templo que Cambia
+
+Las salas del Piso I, alteradas para que creas saber qué hacer. Cuatro salas: Umbral que no recuerdas, Sala del Testigo, Archivo que se reescribe y Pórtico que no es el mismo.
+- **Todo mira al otro lado**: estatuas y objetos aparecen en espejo (campo `mirror` del piso).
+- **Pista falsa**: una inscripción firmada con tu nombre dice que el sello sigue en la Sala del Testigo y que te quedes quieto. Las dos cosas son mentira.
+- **Testigo invertido** (campo `inverted`): con el ojo abierto persigue al que se queda quieto; moverse lo frena. Hay que reunir las almas de su sala. Misión opcional: desterrarlo.
+- **El sello está en el Archivo**, custodiado por un Ghoul de brasas. Una carta con tu letra avisa de no fiarse de las inscripciones.
+- **Verdad del piso**: el edificio es un sistema de producción; el miedo entra, las almas salen.
+- **Eco Memoria de eco**: ves tu silueta donde moriste en otras vidas (hasta 3 por sala). Las muertes se recuerdan con el progreso.
+
+## En `main` (sin nuevo release) — 2026-11-21 · Arreglo: la Máscara de Porcelana reaparece
+
+- Al volver al Piso V con la Máscara ya conseguida, la puerta de los Canales de Almas quedaba cerrada para siempre: la máscara no volvía a su pedestal y la misión obligatoria no se podía cumplir. Ahora la máscara está en el pedestal en cada visita hasta que la recoges en esa partida; si ya la llevabas, solo abre la puerta.
+
 ## En `main` (sin nuevo release) — 2026-11-21 · Niveles, Piso VII y móvil
 
 **Niveles del personaje**
