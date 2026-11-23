@@ -1,5 +1,28 @@
 # Historial de versiones
 
+## v0.5.6-alpha — 2026-11-23 · Retoques: armas, equipo, pantalla completa real y estilo más vivo
+
+- **Pantalla completa de verdad.**
+  - En PC el juego arranca a pantalla completa. F11 o Alt+Enter cambian a ventana y de vuelta; también está en Configuración. Los ajustes guardados antes pasan una vez a pantalla completa.
+  - En pantallas más anchas que la sala (móviles 20:9, portátiles 16:9) el mundo se acerca hasta un 30 % y ocupa todo el ancho, sin franjas negras. Una cámara suave sigue al jugador en vertical. En 3:2 no cambia nada.
+- **Estilo más vivo (inspirado en Soul Knight):** colores más saturados y algo más de contraste y luz, penumbra más clara y violácea, y contorno oscuro en el jugador, los PNJ y las entidades.
+- **Tipografía nueva y algo más grande:** Jersey 15 (OFL), reescalada un 10 %. Letras, tildes y cifras más claras, en todo el juego y la Vigilia. Sustituye a Pixelify Sans y a la fuente aparte de cifras.
+- **Armas tiradas por las salas** (se equipan al recogerlas):
+  - Daga de hueso: rápida y ligera.
+  - Espada oxidada: equilibrada.
+  - Lanza del peregrino: mucho alcance, solo de frente.
+  - Hacha de verdugo: lenta, barre a tu alrededor.
+  - Maza de campana: aturde casi un segundo.
+  - Con arma se golpea siempre; la antorcha encendida sigue prendiendo raíces.
+- **Equipo:** yelmo abollado (−12 % de daño recibido), peto de guardia (+20 de vida máxima) y botas de peregrino (+8 % de velocidad, esquive un 10 % antes).
+- **Perfil > EQUIPO:** nueva pestaña con lo que llevas puesto (arma, casco, peto, botas) y lo encontrado, para cambiar de arma. Armas y equipo se guardan entre partidas. Borrar perfil los quita.
+- **Movimiento más fluido:** el personaje acelera y frena en una décima de segundo, sin tirones. El esquive sale disparado, se frena solo, enlaza con el paso normal y deja siluetas.
+- **Colisiones más justas:** columnas, estanterías y estatuas solo chocan por la base, así que se puede pasar por detrás. El radio de los pies baja de 15,5 a 11 px. El I-4 (Archivo) ya no forma un muro.
+- **PNJ:** si un aliado que te quitó almas muere, suelta todo lo que tomó más 5 almas propias.
+- **Tutorial sin gasto:** fósforos (∞) y objetos de la bolsa no se consumen, para practicar.
+- **Términos y condiciones:** mientras se lee un texto legal, las pestañas de Configuración quedan apagadas; se sale con VOLVER.
+- Pruebas nuevas para todo lo anterior. Versión Android 0.5.6-alpha (código 13).
+
 ## v0.5.5-alpha — 2026-11-22 · Linux, puertas, PNJ y arreglos de la revisión
 
 - **Versión para Linux.** Cada release publica `ElTemploDeLosEcos-vX-Linux-x86_64.tar.gz`: el juego listo para abrir, `instalar.sh` (menú de aplicaciones, sin `sudo`), `desinstalar.sh` y un `LEEME.txt` con cómo reportar errores. El CI lo exporta y lo sube junto al APK y los archivos de Windows.

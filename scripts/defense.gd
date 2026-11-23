@@ -16,9 +16,8 @@ const DEFENSE_SAVE := "user://vigilia_claustro_records.json"
 const DEFENSE_SAVE_TEST := "user://prueba_vigilia.json" # pruebas automáticas
 const Botin := preload("res://scripts/botin.gd")
 const Ajustes := preload("res://scripts/ajustes.gd")
-const PIXEL_FONT := preload("res://assets/fonts/PixelifySans-SinCifras.ttf")
-## Los números salen de otra fuente, más clara (herramientas/fuente_cifras.py).
-const DIGIT_FONT := preload("res://assets/fonts/Silkscreen-Cifras.ttf")
+## Texto: Jersey 15 reescalada (herramientas/generar_fuente.py), legible y con cifras claras.
+const PIXEL_FONT := preload("res://assets/fonts/Jersey15-Templo.ttf")
 const TITLE_FONT := preload("res://assets/fonts/Jacquard24-Regular.ttf")
 const HERO := preload("res://assets/visual/protagonist_sheet.png")
 const CREAM := Color("#d9d2ba")
@@ -172,7 +171,7 @@ const TUT_STEPS := [
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     font = PIXEL_FONT
-    _font_with_digits(font)
+    _pixel_font_setup(font)
     title_font = TITLE_FONT
     for f in [font, title_font]:
         if f is FontFile:
@@ -1693,13 +1692,9 @@ func _fit_screen() -> void:
     queue_redraw()
 
 
-## Tipografía del juego + cifras claras: los números que no tiene la primera
-## los dibuja la segunda. Todo sin suavizado, como el pixel art.
-static func _font_with_digits(f: Font) -> void:
-    for ff in [f, DIGIT_FONT]:
-        if ff is FontFile:
-            (ff as FontFile).antialiasing = TextServer.FONT_ANTIALIASING_NONE
-            (ff as FontFile).hinting = TextServer.HINTING_NONE
-            (ff as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
-    if f is FontFile and not (f as FontFile).fallbacks.has(DIGIT_FONT):
-        (f as FontFile).fallbacks = [DIGIT_FONT]
+## La tipografía sin suavizado, como el pixel art.
+static func _pixel_font_setup(f: Font) -> void:
+    if f is FontFile:
+        (f as FontFile).antialiasing = TextServer.FONT_ANTIALIASING_NONE
+        (f as FontFile).hinting = TextServer.HINTING_NONE
+        (f as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED

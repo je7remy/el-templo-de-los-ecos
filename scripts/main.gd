@@ -62,6 +62,15 @@ const ICONS := {
     "llama_interior": preload("res://assets/visual/iconos/llama_interior.png"),
     "resonancia": preload("res://assets/visual/iconos/resonancia.png"),
     "golpe": preload("res://assets/visual/iconos/golpe.png"),
+    # Armas y equipo (herramientas/generar_equipo.py).
+    "daga": preload("res://assets/visual/iconos/daga.png"),
+    "espada": preload("res://assets/visual/iconos/espada.png"),
+    "lanza": preload("res://assets/visual/iconos/lanza.png"),
+    "hacha": preload("res://assets/visual/iconos/hacha.png"),
+    "maza": preload("res://assets/visual/iconos/maza.png"),
+    "yelmo": preload("res://assets/visual/iconos/yelmo.png"),
+    "peto": preload("res://assets/visual/iconos/peto.png"),
+    "botas": preload("res://assets/visual/iconos/botas.png"),
     "alma": preload("res://assets/visual/iconos/alma.png"),
     "corazon": preload("res://assets/visual/iconos/corazon.png"),
     "vigor": preload("res://assets/visual/iconos/vigor.png"),
@@ -223,9 +232,8 @@ const ART_PRELOADED := {
 }
 
 var font: Font
-const PIXEL_FONT := preload("res://assets/fonts/PixelifySans-SinCifras.ttf")
-## Los números salen de otra fuente, más clara (herramientas/fuente_cifras.py).
-const DIGIT_FONT := preload("res://assets/fonts/Silkscreen-Cifras.ttf")
+## Texto: Jersey 15 reescalada (herramientas/generar_fuente.py), legible y con cifras claras.
+const PIXEL_FONT := preload("res://assets/fonts/Jersey15-Templo.ttf")
 ## Personaje creado por el jugador (se guarda con el progreso).
 var player_name: String = ""
 var player_gender: String = "masculino" # masculino | femenino
@@ -392,9 +400,9 @@ var watcher_warned: bool = false
 
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    # Tipografía pixel (Pixelify Sans, OFL), sin suavizado para que encaje con el pixel art.
+    # Tipografía pixel (Jersey 15, OFL), sin suavizado para que encaje con el pixel art.
     font = PIXEL_FONT
-    _font_with_digits(font)
+    _pixel_font_setup(font)
     if font is FontFile:
         var ff := font as FontFile
         ff.antialiasing = TextServer.FONT_ANTIALIASING_NONE
@@ -551,6 +559,15 @@ func _load_progress() -> void:
         souls = maxi(0, int(data.get("souls", 0)))
         vigil_unlocked = bool(data.get("vigil_unlocked", false))
         odon_told = bool(data.get("odon_told", false))
+        var w_saved: String = str(data.get("weapon", ""))
+        weapon = w_saved if WEAPONS.has(w_saved) else ""
+        gear_owned = data.get("gear_owned", {}) if data.get("gear_owned", {}) is Dictionary else {}
+        var g_saved = data.get("gear", {})
+        gear = {}
+        if g_saved is Dictionary:
+            for slot in g_saved:
+                if GEAR.has(str(g_saved[slot])):
+                    gear[str(slot)] = str(g_saved[slot])
         var saved_cp = data.get("checkpoint", [-1, -1])
         checkpoint = [int(saved_cp[0]), int(saved_cp[1])] if saved_cp is Array and (saved_cp as Array).size() == 2 else [-1, -1]
         var saved_chests = data.get("chests_opened", {})
@@ -589,6 +606,9 @@ func _save_progress() -> void:
             "souls": souls,
             "vigil_unlocked": vigil_unlocked,
             "odon_told": odon_told,
+            "weapon": weapon,
+            "gear": gear,
+            "gear_owned": gear_owned,
             "checkpoint": checkpoint
         }))
 
@@ -716,6 +736,10 @@ func _enter_room() -> void:
         obstacles.append(Rect2(FOUNTAIN_POS.x - 12.0, FOUNTAIN_POS.y - 10.0, 24.0, 10.0))
     _place_wall_props()
     _load_critters()
+    _place_gear_pickup()
+    player_vel = Vector2.ZERO
+    dash_ghosts.clear()
+    _update_camera(0.0, true)
     door_state = "unknown"
     if game_mode == "floor_intro":
         toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
@@ -748,7 +772,7 @@ func _load_room_scene() -> void:
         if rect_shape == null or (shape as CollisionShape2D).disabled:
             continue
         var center: Vector2 = (shape as Node2D).global_position - global_position
-        obstacles.append(Rect2(center - rect_shape.size * 0.5, rect_shape.size))
+        obstacles.append(_tighten_obstacle(Rect2(center - rect_shape.size * 0.5, rect_shape.size)))
     # Los objetos los dibuja este script, ordenados por profundidad con los
     # personajes; en el editor se ven y se mueven como Sprite2D normales.
     room_props.clear()
@@ -855,6 +879,11 @@ func _input(event: InputEvent) -> void:
     if not event.pressed or event.echo:
         return
     var k: Key = event.keycode
+    if k == KEY_F11 or (k == KEY_ENTER and event.alt_pressed):
+        # F11 o Alt+Enter: pantalla completa / ventana, en cualquier pantalla.
+        Ajustes.poner("pantalla_completa", not bool(Ajustes.obtener("pantalla_completa")))
+        _apply_window_mode()
+        return
     if game_mode == "dialog":
         if k == KEY_ESCAPE:
             _dialog_skip()
@@ -1426,11 +1455,25 @@ func _mobile_tap(at: Vector2) -> void:
         if PROFILE_ABIL_BTN.has_point(at):
             _open_abilities()
             return
-        for t in range(2):
+        for t in range(3):
             if _profile_tab_rect(t).has_point(at):
                 if profile_tab != t:
-                    _profile_switch_tab()
+                    profile_tab = t
+                    inventory_sel = 0
+                    _sfx("toque", -14.0, 1.0)
                 return
+        if profile_tab == 2:
+            for i in range(4):
+                if _equip_slot_rect(i).has_point(at):
+                    if inventory_sel == i:
+                        _equip_tap(i)
+                    inventory_sel = i
+                    return
+            for i in range(8):
+                if _equip_owned_rect(i).has_point(at):
+                    inventory_sel = 10 + i
+                    _equip_tap(10 + i)
+                    return
         var slot: int = _inventory_slot_at(at)
         if slot >= 0:
             if slot == inventory_sel and profile_tab == 1:
@@ -1626,14 +1669,24 @@ func _toggle_torch() -> void:
         _sfx("fosforo", -8.0, 1.3)
         _say("La llama interior prende la antorcha.", 1.6)
         return
-    if matches <= 0:
+    if matches <= 0 and not in_tutorial:
         _say("No te quedan fósforos. Búscalos o compra la Llama interior.", 2.8)
         _sfx("toque", -10.0)
         return
-    matches -= 1
+    _spend_match()
     torch_on = true
     _sfx("fosforo", -7.0)
-    _say("Antorcha encendida. Fósforos: %d." % matches, 1.8)
+    _say("Antorcha encendida. Fósforos: %s." % _matches_label(), 1.8)
+
+
+## En el tutorial nada se gasta: fósforos y objetos sin límite, para practicar.
+func _spend_match() -> void:
+    if not in_tutorial:
+        matches -= 1
+
+
+func _matches_label() -> String:
+    return "∞" if in_tutorial else str(matches)
 
 
 func _take_item(i: int) -> void:
@@ -1662,7 +1715,7 @@ func _take_item(i: int) -> void:
 
 
 func _try_craft() -> void:
-    if has_torch or not has_wood or matches <= 0:
+    if has_torch or not has_wood or (matches <= 0 and not in_tutorial):
         return
     has_wood = false
     has_torch = true
@@ -1735,6 +1788,8 @@ func _object_slot_rect(i: int) -> Rect2:
 
 
 func _inventory_slot_count() -> int:
+    if profile_tab == 2:
+        return 4
     return OBJECT_SLOTS_MAX if profile_tab == 1 else INVENTORY_SLOTS.size()
 
 
@@ -1841,44 +1896,46 @@ func _banish_enemy() -> void:
 
 ## Golpe de antorcha: arco de fuego delante del personaje.
 func _torch_strike() -> bool:
-    if not (has_torch and torch_on):
+    if not (has_torch and torch_on) and weapon == "":
         return false
-    if strike_cd > 0.0 or stamina < 10.0:
+    var wcost: float = _weapon_stat("cost")
+    if strike_cd > 0.0 or stamina < wcost:
         return true
-    strike_cd = 0.6
-    stamina -= 10.0
+    strike_cd = _weapon_stat("cd")
+    stamina -= wcost
     strike_fx = 0.25
     strike_dir = player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT
     visual_interaction_left = 0.24
     _sfx("golpe", -7.0)
     if in_tutorial:
         var to_d := DUMMY_POS - player_pos
-        if to_d.length() < STRIKE_RANGE + 14.0 and (to_d.length() < 26.0 or to_d.normalized().dot(strike_dir) > 0.2):
+        if to_d.length() < _strike_range() + 14.0 and (to_d.length() < 26.0 or to_d.normalized().dot(strike_dir) > 0.2):
             dummy_hits += 1
             dummy_shake = 0.25
             float_fx.append({"pos": DUMMY_POS + Vector2(26, -60), "text": "-%d" % int(_strike_damage()), "color": Color("#ffd36b"), "t": 0.0})
             _sfx("impacto", -8.0, 1.2)
     if _pilgrim_present() and _pilgrim_can_be_hit():
         var to_p := pilgrim_pos - player_pos
-        if to_p.length() < STRIKE_RANGE + 10.0 and (to_p.length() < 24.0 or to_p.normalized().dot(strike_dir) > 0.25):
+        if to_p.length() < _strike_range() + 10.0 and (to_p.length() < 24.0 or to_p.normalized().dot(strike_dir) > 0.25):
             _damage_pilgrim(_strike_damage())
             var shove := pilgrim_pos + to_p.normalized() * 16.0
             if not _is_blocked(shove):
                 pilgrim_pos = shove
-    _try_ignite(player_pos + strike_dir * 28.0)
+    if has_torch and torch_on:
+        _try_ignite(player_pos + strike_dir * 28.0)
     _strike_hounds_and_rescue()
     _strike_rams_and_pillars()
     _harvest_strike()
     for cr in critters:
         if bool(cr["alive"]):
             var to_c: Vector2 = Vector2(cr["pos"]) - player_pos
-            if to_c.length() < STRIKE_RANGE + 12.0 and (to_c.length() < 24.0 or to_c.normalized().dot(strike_dir) > 0.2):
+            if to_c.length() < _strike_range() + 12.0 and (to_c.length() < 24.0 or to_c.normalized().dot(strike_dir) > 0.2):
                 _critter_die(cr)
     if _enemy_active():
         var to := enemy_pos - player_pos
-        if to.length() < STRIKE_RANGE + 10.0 and (to.length() < 24.0 or to.normalized().dot(strike_dir) > 0.25):
+        if to.length() < _strike_range() + 10.0 and (to.length() < 24.0 or to.normalized().dot(strike_dir) > _weapon_stat("arc")):
             if _damage_enemy(_strike_damage()):
-                enemy_stun = maxf(enemy_stun, 0.3)
+                enemy_stun = maxf(enemy_stun, _weapon_stat("stun"))
                 var pushed := enemy_pos + to.normalized() * 18.0
                 if not _is_blocked(pushed):
                     enemy_pos = pushed
@@ -2123,10 +2180,24 @@ func _controls_axis() -> Vector2:
     return (v + mobile_axis + _pad_axis()).limit_length(1.0)
 
 
+## Radio de los pies del jugador (y de quien camina): antes 15,5, ahora más
+## ajustado para pasar cómodo entre columnas y estanterías.
+const FOOT_RADIUS := 11.0
+
+
+## Los objetos altos (columnas, estanterías, estatuas) solo chocan por su
+## base, como en una vista cenital: se puede pasar por detrás de ellos.
+func _tighten_obstacle(r: Rect2) -> Rect2:
+    if r.size.y <= 24.0:
+        return r
+    var h: float = 20.0
+    return Rect2(r.position.x + r.size.x * 0.08, r.end.y - h, r.size.x * 0.84, h)
+
+
 ## Choca con un objeto de la sala (no con los muros): para el polvo del impacto.
 func _hits_obstacle(at: Vector2) -> bool:
     for rect in obstacles:
-        if rect.grow(15.5).has_point(at):
+        if rect.grow(FOOT_RADIUS).has_point(at):
             return true
     return false
 
@@ -2135,7 +2206,7 @@ func _is_blocked(at: Vector2) -> bool:
     if at.x < 63.0 or at.x > 895.0 or at.y < 155.0 or at.y > 552.0:
         return true
     for rect in obstacles:
-        if rect.grow(15.5).has_point(at):
+        if rect.grow(FOOT_RADIUS).has_point(at):
             return true
     return false
 
@@ -2144,6 +2215,7 @@ func _process(delta: float) -> void:
     if name_edit != null and name_edit.visible and (game_mode != "create" or create_step != 0):
         _name_edit_close()
     elapsed += delta
+    _update_camera(delta)
     end_t = end_t + delta if game_mode in ["dead", "victory"] else 0.0
     _tick_glow(delta)
     _update_pad_repeat(delta)
@@ -2191,24 +2263,48 @@ func _update_play(dt: float) -> void:
     strike_cd = maxf(0.0, strike_cd - dt)
     damage_cd = maxf(0.0, damage_cd - dt)
     dash_left = maxf(0.0, dash_left - dt)
+    for gh in dash_ghosts:
+        gh["t"] = float(gh["t"]) + dt
+    dash_ghosts = dash_ghosts.filter(func(gh): return float(gh["t"]) < 0.22)
     enemy_stun = maxf(0.0, enemy_stun - dt)
     stamina = minf(100.0, stamina + _stamina_regen() * dt)
     var move: Vector2 = _controls_axis()
+    var walk: float = WALK_SPEED * (1.05 if ecos.has("paso") else 1.0) * _gear_speed_mult()
+    # Movimiento con inercia corta: arranca y frena en décimas de segundo, sin
+    # tirones. El esquive sale disparado y se frena solo, y su impulso enlaza
+    # con el paso normal (curva de velocidad, no un salto de 157 a 480).
+    var target: Vector2
     if dash_left > 0.0:
-        move = dash_dir # el impulso sigue su dirección aunque sueltes las teclas
-    player_moving = move.length_squared() > 0.001
-    if player_moving:
+        var p: float = 1.0 - dash_left / DASH_TIME
+        target = dash_dir * lerpf(DASH_PEAK, DASH_END, p * p)
+        player_vel = target
+    else:
+        target = move * walk
+        var rate: float = WALK_ACCEL if move.length_squared() > 0.001 else WALK_DECEL
+        player_vel = player_vel.move_toward(target, rate * dt)
+    player_moving = player_vel.length() > 12.0
+    if move.length_squared() > 0.001 and dash_left <= 0.0:
         player_dir = move
-    var speed: float = (157.0 * (1.05 if ecos.has("paso") else 1.0)) if dash_left <= 0.0 else 480.0
+    elif dash_left > 0.0:
+        player_dir = dash_dir
     if player_moving:
-        var nx := Vector2(player_pos.x + move.x * speed * dt, player_pos.y)
-        var blocked_x: bool = absf(move.x) > 0.3 and _hits_obstacle(nx)
+        var nx := Vector2(player_pos.x + player_vel.x * dt, player_pos.y)
+        var blocked_x: bool = absf(player_vel.x) > walk * 0.3 and _hits_obstacle(nx)
         if not _is_blocked(nx):
             player_pos.x = nx.x
-        var ny := Vector2(player_pos.x, player_pos.y + move.y * speed * dt)
-        var blocked_y: bool = absf(move.y) > 0.3 and _hits_obstacle(ny)
+        else:
+            player_vel.x = 0.0
+        var ny := Vector2(player_pos.x, player_pos.y + player_vel.y * dt)
+        var blocked_y: bool = absf(player_vel.y) > walk * 0.3 and _hits_obstacle(ny)
         if not _is_blocked(ny):
             player_pos.y = ny.y
+        else:
+            player_vel.y = 0.0
+        if dash_left > 0.0:
+            dash_ghost_t -= dt
+            if dash_ghost_t <= 0.0:
+                dash_ghost_t = 0.035
+                dash_ghosts.append({"pos": player_pos, "dir": player_dir, "t": 0.0})
         if (blocked_x or blocked_y) and bump_left <= 0.0:
             bump_left = 0.35
             bump_at = player_pos + Vector2(signf(move.x) * 10.0 if blocked_x else 0.0, 2.0)
@@ -2229,6 +2325,8 @@ func _update_play(dt: float) -> void:
     for i in range(room_items.size() - 1, -1, -1):
         if player_pos.distance_to(room_items[i]["pos"]) < 30.0:
             _take_item(i)
+    if gear_pickup.size() > 0 and player_pos.distance_to(gear_pickup["pos"]) < 30.0:
+        _take_gear()
     _update_tutorial(dt)
     _check_door_touch(dt)
     if game_mode != "play":
@@ -2387,7 +2485,9 @@ func _update_enemy(dt: float) -> void:
 
 func _draw() -> void:
     # El fondo lo pone la escena de la sala (está por debajo).
+    _begin_world()
     _draw_side_fade()
+    _end_world()
     if room_node == null:
         draw_rect(_full_rect(), BG)
     elif game_mode in ["title", "create", "floors", "splash", "eula"] or (game_mode == "settings" and settings_return in ["title", "splash"]):
@@ -2414,7 +2514,9 @@ func _draw() -> void:
         if game_mode == "settings":
             _draw_settings()
         return
+    _begin_world()
     _draw_room()
+    _end_world()
     _draw_topbar()
     _draw_footer()
     if toast_left > 0.0:
@@ -2466,6 +2568,7 @@ func _draw_room() -> void:
     _draw_wear()
     _draw_decor()
     _draw_kprop_books()
+    _draw_gear_pickup()
     _draw_prop_shadows()
     # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
     _draw_visual_atmosphere()
@@ -2620,7 +2723,9 @@ func _draw_lighting() -> void:
         for r in range(4, 0, -1):
             draw_circle(player_pos + Vector2(0, -20), float(r) * 34.0, Color(1.0, 0.78, 0.45, 0.018))
     var lights: Array = _lights()
-    var base_dark: float = 0.50 if torch_on else 0.68
+    # Penumbra más clara y de color (sombras violáceas, no negras): se sigue
+    # necesitando la antorcha, pero la sala se lee mejor.
+    var base_dark: float = 0.40 if torch_on else 0.60
     var fear_edge: float = fear / 100.0 * 0.28
     var cell: float = LIGHT_CELL_MOBILE if touch_enabled else LIGHT_CELL
     var cols: int = int(ceil(ARENA.size.x / cell)) + 1
@@ -2638,7 +2743,7 @@ func _draw_lighting() -> void:
                     lit = maxf(lit, pow(1.0 - d / light[1], 1.4) * light[2])
             var edge: float = clampf((p - center).length() / (ARENA.size.x * 0.55) - 0.35, 0.0, 1.0)
             alpha[r * cols + c] = clampf(base_dark * (1.0 - lit) + fear_edge * edge, 0.0, 0.85)
-    var tint := Color(0.01, 0.015, 0.035)
+    var tint := Color(0.035, 0.02, 0.07)
     for r in range(rows - 1):
         for c in range(cols - 1):
             var a0: float = alpha[r * cols + c]
@@ -2830,9 +2935,9 @@ func _draw_visual_atmosphere() -> void:
 
 
 func _draw_ellipse(center: Vector2, radius_x: float, radius_y: float, color: Color) -> void:
-    draw_set_transform(center, 0.0, Vector2(1.0, radius_y / radius_x))
+    _xf(center, 0.0, Vector2(1.0, radius_y / radius_x))
     draw_circle(Vector2.ZERO, radius_x, color)
-    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Sombra de contacto suave, con la misma luz que las sombras del fondo.
@@ -2882,13 +2987,13 @@ func _draw_watcher_eye(at: Vector2) -> void:
 func _draw_seal(at: Vector2) -> void:
     var ring: Color = SOUL if seal_acquired else Color("#be9b68")
     _draw_ellipse(at + Vector2(0.0, 6.0), 44.0, 20.0, Color(ring.r, ring.g, ring.b, 0.08))
-    draw_set_transform(at + Vector2(0.0, 6.0), 0.0, Vector2(1.0, 0.46))
+    _xf(at + Vector2(0.0, 6.0), 0.0, Vector2(1.0, 0.46))
     draw_arc(Vector2.ZERO, 42.0, 0.0, TAU, 48, Color(ring.r, ring.g, ring.b, 0.75), 2.0)
     draw_arc(Vector2.ZERO, 33.0, 0.0, TAU, 40, Color(ring.r, ring.g, ring.b, 0.35), 1.0)
     for i in range(8):
         var t: float = float(i) / 8.0 * TAU + elapsed * 0.25
         draw_line(Vector2(cos(t), sin(t)) * 34.0, Vector2(cos(t), sin(t)) * 41.0, Color(ring.r, ring.g, ring.b, 0.8), 2.0)
-    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
     if seal_acquired:
         return
     var lift: float = sin(elapsed * 2.0) * 3.0
@@ -3058,7 +3163,7 @@ func _draw_enemy() -> void:
     if enemy_hit_t > 0.0 and int(enemy_hit_t * 30.0) % 2 == 0:
         tint = Color(1.0, 0.42, 0.38, 1.0) # destello del golpe
     var dest := Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y)
-    draw_texture_rect_region(sheet, dest, region, tint)
+    _draw_outlined(sheet, dest, region, tint)
     if kind == "hechicero" and enemy_alert and wizard_cast_cd < WIZARD_CHARGE:
         # Aviso justo: el orbe crece antes de lanzar el conjuro (y es vulnerable).
         var k: float = 1.0 - wizard_cast_cd / WIZARD_CHARGE
@@ -3142,11 +3247,11 @@ func _draw_pulse_fx() -> void:
     var k: float = clampf(pulse_fx / 0.45, 0.0, 1.0)
     var r: float = _pulse_radius() * (1.0 - pow(1.0 - k, 3.0))
     var a: float = 1.0 - clampf(pulse_fx / 0.6, 0.0, 1.0)
-    draw_set_transform(player_pos + Vector2(0.0, -6.0), 0.0, Vector2(1.0, 0.6))
+    _xf(player_pos + Vector2(0.0, -6.0), 0.0, Vector2(1.0, 0.6))
     draw_arc(Vector2.ZERO, r, 0.0, TAU, 64, Color(0.75, 0.93, 1.0, a), 4.0)
     draw_arc(Vector2.ZERO, r * 0.8, 0.0, TAU, 64, Color(0.56, 0.78, 0.84, a * 0.6), 2.0)
     draw_circle(Vector2.ZERO, r, Color(0.56, 0.78, 0.84, a * 0.08))
-    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_float_fx() -> void:
@@ -3169,13 +3274,23 @@ func _draw_corpse(at: Vector2, seed_index: int) -> void:
 
 ## Dibuja una textura en su rectángulo, volteada en horizontal si se pide.
 ## (Un Rect2 de ancho negativo no sirve: Godot lo desplaza un ancho.)
+## Personaje con contorno oscuro de un píxel de su arte (estilo Soul Knight):
+## se separa del suelo y se lee de un vistazo.
+func _draw_outlined(tex: Texture2D, dest: Rect2, region: Rect2, tint: Color) -> void:
+    var px: float = maxf(1.0, roundf(dest.size.x / maxf(1.0, region.size.x)))
+    var oc := Color(0.03, 0.02, 0.05, 0.9 * tint.a)
+    for o in [Vector2(px, 0), Vector2(-px, 0), Vector2(0, px), Vector2(0, -px)]:
+        draw_texture_rect_region(tex, Rect2(dest.position + o, dest.size), region, oc)
+    draw_texture_rect_region(tex, dest, region, tint)
+
+
 func _draw_texture_flipped(tex: Texture2D, dest: Rect2, flip: bool) -> void:
     if not flip:
         draw_texture_rect(tex, dest, false)
         return
-    draw_set_transform(Vector2(dest.position.x + dest.size.x, dest.position.y), 0.0, Vector2(-1.0, 1.0))
+    _xf(Vector2(dest.position.x + dest.size.x, dest.position.y), 0.0, Vector2(-1.0, 1.0))
     draw_texture_rect(tex, Rect2(Vector2.ZERO, dest.size), false)
-    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Objeto recogible en el suelo: icono que flota sobre su sombra.
@@ -3215,12 +3330,16 @@ func _draw_player() -> void:
         var atlas := Rect2(float(frame_index * 40), float(direction_index * 56), 40.0, 56.0)
         var location := Vector2(roundf(player_pos.x) - 20.0, roundf(player_pos.y) - 50.0)
         draw_ellipse_fake_shadow(player_pos)
+        for gh in dash_ghosts:
+            var gk: float = 1.0 - float(gh["t"]) / 0.22
+            var gloc := Vector2(roundf(Vector2(gh["pos"]).x) - 20.0, roundf(Vector2(gh["pos"]).y) - 50.0)
+            draw_texture_rect_region(_hero_sheet(), Rect2(gloc, Vector2(40.0, 56.0)), Rect2(float(2 * 40), float(direction_index * 56), 40.0, 56.0), Color(0.55, 0.85, 1.0, 0.35 * gk))
         var blink: bool = damage_cd > 0.0 and int(elapsed * 14.0) % 2 == 0
         # La antorcha va en la mano; de espaldas queda detrás del cuerpo.
         var hand: Vector2 = player_pos + [Vector2(12, -18), Vector2(-12, -20), Vector2(9, -19), Vector2(-9, -19)][direction_index]
         if has_torch and direction_index == 1 and game_mode != "dead":
             _draw_hand_torch(hand)
-        draw_texture_rect_region(_hero_sheet(), Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
+        _draw_outlined(_hero_sheet(), Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
         if has_torch and direction_index != 1 and game_mode != "dead":
             _draw_hand_torch(hand)
         if bump_left > 0.0:
@@ -3494,16 +3613,20 @@ func _draw_weapon_panel() -> void:
     _panel(slot, Color("#1a1f2a"), UI_GOLD if has_torch and torch_on else UI_LIGHT)
     var icon: String = ("antorcha_encendida" if torch_on else "antorcha") if has_torch else "madera"
     var owned: bool = has_torch or has_wood
-    draw_texture_rect(ICONS[icon], Rect2(slot.position + Vector2(8, 8), Vector2(32, 32)), false, Color.WHITE if owned else Color(0.3, 0.3, 0.3, 0.5))
     var name_txt: String = "ANTORCHA" if has_torch else ("MADERA" if has_wood else "SIN ARMA")
+    if weapon != "":
+        name_txt = str(WEAPONS[weapon]["name"])
+        owned = true
+        icon = weapon
+    draw_texture_rect(ICONS[icon], Rect2(slot.position + Vector2(8, 8), Vector2(32, 32)), false, Color.WHITE if owned else Color(0.3, 0.3, 0.3, 0.5))
     _text_outline(name_txt, Vector2(650, 600), 14, CREAM if owned else Color("#6d6a60"))
-    var ammo: String = "LLAMA INTERIOR" if has_inner_flame else "FÓSFOROS x%d" % matches
+    var ammo: String = "LLAMA INTERIOR" if has_inner_flame else "FÓSFOROS x%s" % _matches_label()
     var ammo_col: Color = SOUL if has_inner_flame else (Color("#f0c98a") if matches > 0 else RED)
     draw_texture_rect(ICONS["llama_interior" if has_inner_flame else "fosforos"], Rect2(648, 608, 20, 20), false)
     _text_outline(ammo, Vector2(672, 624), 12, ammo_col)
     _draw_torch_fuel()
     _draw_ability_icon(Rect2(780, 583, 48, 48), "vigor", true, _dash_wait(), _short_key("esquivar"))
-    _draw_ability_icon(Rect2(838, 583, 48, 48), "golpe", has_torch and torch_on, maxf(strike_cd / 0.6, _vigor_wait(10.0)), _short_key("interactuar"))
+    _draw_ability_icon(Rect2(838, 583, 48, 48), "golpe", (has_torch and torch_on) or weapon != "", maxf(strike_cd / _weapon_stat("cd"), _vigor_wait(_weapon_stat("cost"))), _short_key("interactuar"))
     _draw_ability_icon(Rect2(896, 583, 48, 48), "resonancia", has_pulse, _vigor_wait(RESONANCE_COST), _short_key("resonancia"))
 
 
@@ -3704,11 +3827,11 @@ func _draw_inventory_overlay() -> void:
         if i < stats.size() - 1:
             draw_rect(Rect2(112, y + 11.0, 220, 1), Color(1, 1, 1, 0.06))
     # --- Columna derecha: pestañas EQUIPO / OBJETOS (casillas seleccionables).
-    for t in range(2):
+    for t in range(3):
         var tr: Rect2 = _profile_tab_rect(t)
         var on: bool = profile_tab == t
         _panel(tr, Color("#2a1d22") if on else Color("#141922"), UI_GOLD if on else UI_EDGE)
-        _text_outline(["EQUIPO Y MOCHILA", "OBJETOS (%d)" % _object_slots().size()][t], Vector2(tr.position.x, tr.position.y + 17.0), 12, CREAM if on else Color("#9a957f"), tr.size.x)
+        _text_outline(["MOCHILA Y HABILIDADES", "OBJETOS (%d)" % _object_slots().size(), "EQUIPO"][t], Vector2(tr.position.x, tr.position.y + 17.0), 12, CREAM if on else Color("#9a957f"), tr.size.x)
     if profile_tab == 0:
         # Dos grupos con título: lo que llevas y lo que sabes hacer.
         _text_outline("MOCHILA", Vector2(372, 111), 12, UI_GOLD)
@@ -3726,10 +3849,12 @@ func _draw_inventory_overlay() -> void:
         draw_texture_rect(ICONS[key], Rect2(box.position + Vector2(roundf(box.size.x * 0.5) - 22.0, 8), Vector2(44, 44)), false, Color.WHITE if owned else Color(0.1, 0.1, 0.12, 0.9))
         var title: String = INVENTORY_SLOTS[i][1] if owned else "???"
         if INVENTORY_SLOTS[i][0] == "fosforos" and owned:
-            title = "FÓSFOROS x%d" % matches
+            title = "FÓSFOROS x%s" % _matches_label()
         _text_outline(title, Vector2(box.position.x, box.end.y - 10.0), 11, CREAM if owned else Color("#5d5a52"), box.size.x)
     if profile_tab == 1:
         _draw_object_slots()
+    elif profile_tab == 2:
+        _draw_equip_tab()
     # --- Ecos: iconos compactos (caben los diez pisos); el detalle está en HABILIDADES.
     _text_outline("ECOS", Vector2(372, 368), 13, UI_GOLD)
     var keys: Array = ECOS.keys()
@@ -3753,6 +3878,8 @@ func _draw_inventory_overlay() -> void:
         draw_string(font, Vector2(388, 502), ECOS[ek][1] if has_e else "Supera un piso para despertarlo.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, CREAM if has_e else Color("#8a8778"))
     elif profile_tab == 1:
         _draw_object_desc()
+    elif profile_tab == 2:
+        _draw_equip_desc()
     else:
         var owned_sel: bool = _slot_owned(inventory_sel)
         _text_outline(INVENTORY_SLOTS[inventory_sel][1] if owned_sel else "???", Vector2(388, 478), 15, CREAM if owned_sel else Color("#6d6a60"))
@@ -4431,6 +4558,230 @@ func _draw_glow() -> void:
         glow_node.draw_rect(Rect2((sp["p"] as Vector2).round(), Vector2(1, 1) * maxf(1.0, round(float(sp["size"])))), Color(col.r, col.g, col.b, k))
 
 
+# ============================================================ ARMAS Y EQUIPO
+## Armas tiradas por las salas: cada una cambia el golpe (daño, alcance,
+## ritmo, ángulo y vigor). Sin arma, se golpea con la antorcha encendida; con
+## arma se golpea siempre, y la antorcha sigue prendiendo raíces si está
+## encendida. Equipo: yelmo (menos daño), peto (más vida) y botas (más rápido).
+## Lo encontrado se guarda entre partidas; se cambia en Perfil > EQUIPO.
+const WEAPONS := {
+    "daga": {"name": "DAGA DE HUESO", "dmg": 0.8, "range": 52.0, "cd": 0.32, "cost": 6.0, "arc": 0.2, "stun": 0.2,
+        "desc": "Rápida y ligera: golpes cortos y seguidos, gasta poco vigor."},
+    "espada": {"name": "ESPADA OXIDADA", "dmg": 1.25, "range": 66.0, "cd": 0.5, "cost": 10.0, "arc": 0.25, "stun": 0.3,
+        "desc": "Equilibrada: más daño que la antorcha al mismo ritmo."},
+    "lanza": {"name": "LANZA DEL PEREGRINO", "dmg": 1.1, "range": 94.0, "cd": 0.62, "cost": 11.0, "arc": 0.55, "stun": 0.3,
+        "desc": "Llega muy lejos, pero solo hiere lo que tienes justo delante."},
+    "hacha": {"name": "HACHA DE VERDUGO", "dmg": 1.8, "range": 70.0, "cd": 0.95, "cost": 18.0, "arc": -0.2, "stun": 0.4,
+        "desc": "Lenta y pesada: barre casi todo a tu alrededor."},
+    "maza": {"name": "MAZA DE CAMPANA", "dmg": 1.35, "range": 60.0, "cd": 0.75, "cost": 14.0, "arc": 0.15, "stun": 0.9,
+        "desc": "Aturde: la entidad queda quieta casi un segundo."},
+}
+## Golpe base (antorcha), para comparar.
+const TORCH_WEAPON := {"dmg": 1.0, "range": 64.0, "cd": 0.6, "cost": 10.0, "arc": 0.25, "stun": 0.3}
+const GEAR := {
+    "yelmo": {"slot": "casco", "name": "YELMO ABOLLADO", "desc": "Recibes un 12 % menos de daño."},
+    "peto": {"slot": "peto", "name": "PETO DE GUARDIA", "desc": "+20 de vida máxima."},
+    "botas": {"slot": "botas", "name": "BOTAS DE PEREGRINO", "desc": "Caminas un 8 % más rápido y el esquive se recarga un 10 % antes."},
+}
+const GEAR_SLOTS := [["arma", "ARMA"], ["casco", "CASCO"], ["peto", "PETO"], ["botas", "BOTAS"]]
+const YELMO_REDUCTION := 0.12
+const PETO_HP := 20.0
+## Dónde aparece cada pieza (piso:sala). Se coloca sola en un hueco libre.
+const GEAR_SPOTS := {
+    "0:1": "daga", "0:3": "botas", "1:1": "espada", "2:1": "yelmo",
+    "3:1": "lanza", "4:2": "peto", "5:2": "hacha", "7:1": "maza",
+}
+var weapon: String = "" # arma en la mano ("" = antorcha)
+var gear: Dictionary = {} # hueco -> pieza
+var gear_owned: Dictionary = {} # pieza o arma -> true
+var gear_pickup: Dictionary = {} # {key, pos} en la sala actual
+
+
+func _weapon_stat(stat: String) -> float:
+    var w: Dictionary = WEAPONS[weapon] if WEAPONS.has(weapon) else TORCH_WEAPON
+    return float(w.get(stat, TORCH_WEAPON[stat]))
+
+
+func _strike_range() -> float:
+    return _weapon_stat("range")
+
+
+func _gear_speed_mult() -> float:
+    return 1.08 if gear.get("botas", "") != "" else 1.0
+
+
+func _place_gear_pickup() -> void:
+    gear_pickup = {}
+    var key: String = str(GEAR_SPOTS.get(_room_key(), ""))
+    if key == "" or gear_owned.has(key) or in_tutorial:
+        return
+    var keep: Array = _kprop_keep_points()
+    for c in [Vector2(250, 470), Vector2(710, 470), Vector2(480, 300), Vector2(250, 300), Vector2(710, 300), Vector2(380, 520), Vector2(580, 520), Vector2(480, 440)]:
+        if _is_blocked(c):
+            continue
+        var ok: bool = true
+        for q in keep:
+            if Vector2(q).distance_to(c) < 56.0:
+                ok = false
+                break
+        if ok:
+            gear_pickup = {"key": key, "pos": c}
+            return
+
+
+func _take_gear() -> void:
+    var key: String = gear_pickup["key"]
+    var at: Vector2 = gear_pickup["pos"]
+    gear_pickup = {}
+    gear_owned[key] = true
+    var label: String = ""
+    if WEAPONS.has(key):
+        weapon = key
+        label = WEAPONS[key]["name"]
+        _say("%s: %s Se equipa sola; cámbiala en Perfil > EQUIPO." % [label, WEAPONS[key]["desc"]], 4.5)
+    else:
+        _equip_gear(key)
+        label = GEAR[key]["name"]
+        _say("%s: %s" % [label, GEAR[key]["desc"]], 4.0)
+    loot_banner = {"key": key, "t": 3.5, "info": [label, "", 3, key]}
+    pickup_fx.append({"pos": at, "t": 0.0, "text": "+" + label, "color": Color("#ffd36b")})
+    _sfx("objeto", -4.0, 0.9)
+    _sfx("k_metal", -10.0, 1.1)
+    _save_progress()
+
+
+func _equip_gear(key: String) -> void:
+    var slot: String = GEAR[key]["slot"]
+    var had_peto: bool = gear.get("peto", "") != ""
+    gear[slot] = key
+    if slot == "peto" and not had_peto:
+        max_hp += PETO_HP
+        hp += PETO_HP
+
+
+## Cambia de arma en el perfil (vuelta entre las que tienes y la antorcha).
+func _cycle_weapon() -> void:
+    var owned: Array = [""]
+    for k in WEAPONS:
+        if gear_owned.has(k):
+            owned.append(k)
+    var i: int = owned.find(weapon)
+    weapon = owned[(i + 1) % owned.size()]
+    _sfx("k_metal", -12.0, 1.2)
+    _save_progress()
+
+
+func _draw_gear_pickup() -> void:
+    if gear_pickup.is_empty():
+        return
+    var at: Vector2 = gear_pickup["pos"]
+    var bob: float = sin(elapsed * 3.0) * 3.0
+    _draw_ellipse(at + Vector2(0, 4), 18.0, 6.0, Color(0, 0, 0, 0.35))
+    draw_circle(at + Vector2(0, -14 + bob), 22.0, Color(1.0, 0.85, 0.45, 0.10 + 0.05 * sin(elapsed * 4.0)))
+    draw_texture_rect(ICONS[gear_pickup["key"]], Rect2(at + Vector2(-16, -30 + bob), Vector2(32, 32)), false)
+    var name_g: String = WEAPONS[gear_pickup["key"]]["name"] if WEAPONS.has(gear_pickup["key"]) else GEAR[gear_pickup["key"]]["name"]
+    if player_pos.distance_to(at) < 140.0:
+        _label_center(name_g, at + Vector2(0, -44), Color("#ffd36b"))
+
+
+## Pestaña EQUIPO del perfil: cuatro huecos y, debajo, lo encontrado.
+func _equip_slot_rect(i: int) -> Rect2:
+    return Rect2(372.0 + float(i) * 126.0, 120.0, 118.0, 100.0)
+
+
+func _equip_owned_rect(i: int) -> Rect2:
+    return Rect2(372.0 + float(i % 8) * 62.0, 266.0, 56.0, 56.0)
+
+
+func _equip_owned_list() -> Array:
+    var list: Array = []
+    for k in WEAPONS:
+        if gear_owned.has(k):
+            list.append(k)
+    for k in GEAR:
+        if gear_owned.has(k):
+            list.append(k)
+    return list
+
+
+func _equip_in_slot(i: int) -> String:
+    var slot: String = GEAR_SLOTS[i][0]
+    return weapon if slot == "arma" else str(gear.get(slot, ""))
+
+
+func _equip_tap(i: int) -> void:
+    # 0-3: huecos (el del arma cambia de arma); 10+: lo encontrado.
+    if i == 0:
+        _cycle_weapon()
+    elif i >= 10:
+        var list: Array = _equip_owned_list()
+        if i - 10 < list.size():
+            var k: String = list[i - 10]
+            if WEAPONS.has(k):
+                weapon = "" if weapon == k else k
+            else:
+                _equip_gear(k)
+            _sfx("k_metal", -12.0, 1.2)
+            _save_progress()
+
+
+func _draw_equip_tab() -> void:
+    _text_outline("LO QUE LLEVAS PUESTO", Vector2(372, 111), 12, UI_GOLD)
+    for i in range(GEAR_SLOTS.size()):
+        var box: Rect2 = _equip_slot_rect(i)
+        var key: String = _equip_in_slot(i)
+        var sel: bool = inventory_sel == i
+        _panel(box, Color("#222c39") if sel else Color("#141922"), UI_GOLD if sel or key != "" else UI_EDGE)
+        _text_outline(GEAR_SLOTS[i][1], Vector2(box.position.x, box.position.y + 16.0), 10, Color("#9a957f"), box.size.x)
+        var icon: String = key if key != "" else ("antorcha" if i == 0 and has_torch else "")
+        if icon != "":
+            draw_texture_rect(ICONS[icon], Rect2(box.position + Vector2(roundf(box.size.x * 0.5) - 20.0, 24), Vector2(40, 40)), false)
+        var nm: String = "—"
+        if key != "":
+            nm = str(WEAPONS[key]["name"]) if WEAPONS.has(key) else str(GEAR[key]["name"])
+        elif i == 0:
+            nm = "ANTORCHA" if has_torch else "SIN ARMA"
+        var nsize: int = 10
+        while nsize > 8 and font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nsize).x > box.size.x - 8.0:
+            nsize -= 1
+        _text_outline(nm, Vector2(box.position.x, box.end.y - 10.0), nsize, CREAM if key != "" or (i == 0 and has_torch) else Color("#5d5a52"), box.size.x)
+    _text_outline("ENCONTRADO · toca para equipar", Vector2(372, 256), 12, SOUL)
+    var list: Array = _equip_owned_list()
+    for i in range(8):
+        var r: Rect2 = _equip_owned_rect(i)
+        var sel2: bool = inventory_sel == 10 + i
+        if i >= list.size():
+            _panel(r, Color("#10131a"), UI_EDGE)
+            continue
+        var k: String = list[i]
+        var on: bool = weapon == k or gear.values().has(k)
+        _panel(r, Color("#222c39") if sel2 else Color("#141922"), UI_GOLD if sel2 else (SOUL if on else UI_EDGE))
+        draw_texture_rect(ICONS[k], Rect2(r.position + Vector2(8, 8), Vector2(40, 40)), false)
+
+
+func _draw_equip_desc() -> void:
+    var key: String = ""
+    if inventory_sel < 10:
+        key = _equip_in_slot(clampi(inventory_sel, 0, 3))
+    else:
+        var list: Array = _equip_owned_list()
+        if inventory_sel - 10 < list.size():
+            key = list[inventory_sel - 10]
+    if key == "":
+        _text_outline("HUECO VACÍO", Vector2(388, 476), 15, Color("#6d6a60"))
+        draw_string(font, Vector2(388, 498), "Las armas y piezas de equipo están tiradas por las salas.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, Color("#8a8778"))
+        return
+    var nm: String = str(WEAPONS[key]["name"]) if WEAPONS.has(key) else str(GEAR[key]["name"])
+    var ds: String = str(WEAPONS[key]["desc"]) if WEAPONS.has(key) else str(GEAR[key]["desc"])
+    _text_outline(nm, Vector2(388, 476), 15, CREAM)
+    var lines: PackedStringArray = _wrap_lines(ds, 470.0, 12)
+    for li in range(mini(2, lines.size())):
+        draw_string(font, Vector2(388, 496 + li * 15), lines[li], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, SOUL)
+    if WEAPONS.has(key):
+        var w: Dictionary = WEAPONS[key]
+        draw_string(font, Vector2(388, 526), "DAÑO ×%.2f · ALCANCE %d · RITMO %.2f s · VIGOR %d" % [float(w["dmg"]), int(w["range"]), float(w["cd"]), int(w["cost"])], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 11, Color("#ffd36b"))
+
+
 # ============================================================ MOBILIARIO DEL TEMPLO
 ## Piezas del pack «Knowledge Temple» (assets/knowledge) colocadas en cada sala:
 ## sarcófagos, mesas de lectura, altares, estatuas, columnas rotas y braseros
@@ -4648,9 +4999,9 @@ func _draw_kprop(prop: Dictionary) -> void:
     var rect: Rect2 = prop["rect"]
     var tint := Color(1, 1, 1).lerp(Color(0.80, 0.82, 0.76), clampf(float(_floor().get("wear", 0.0)) * 0.6, 0.0, 1.0))
     if bool(prop["flip"]):
-        draw_set_transform(Vector2(rect.end.x, rect.position.y), 0.0, Vector2(-1, 1))
+        _xf(Vector2(rect.end.x, rect.position.y), 0.0, Vector2(-1, 1))
         draw_texture_rect_region(prop["tex"], Rect2(Vector2.ZERO, rect.size), reg, tint)
-        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        _xf(Vector2.ZERO, 0.0, Vector2.ONE)
     else:
         draw_texture_rect_region(prop["tex"], rect, reg, tint)
 
@@ -4756,7 +5107,7 @@ const LEGAL := {
         ["EL TEMPLO DE LOS ECOS · creado por je7remy. Diseño, historia y desarrollo.", "THE TEMPLE OF ECHOES · created by je7remy. Design, story and development."],
         ["Escenario: Knowledge Temple, por pingupollas (pingupollas.itch.io/knowledge-temple). Criaturas: GothicVania Church Pack, por Luis Zuno (Ansimuz).", "Environment: Knowledge Temple by pingupollas (pingupollas.itch.io/knowledge-temple). Creatures: GothicVania Church Pack by Luis Zuno (Ansimuz)."],
         ["Protagonistas, entidades, iconos, efectos, música y la mayoría de sonidos: originales del proyecto. Sonidos de impacto y pasos, y controles táctiles: Kenney (kenney.nl), CC0.", "Protagonists, entities, icons, effects, music and most sounds: original to the project. Impact and footstep sounds and touch controls: Kenney (kenney.nl), CC0."],
-        ["Tipografías: Pixelify Sans y Jacquard 24 (SIL Open Font License 1.1).", "Fonts: Pixelify Sans and Jacquard 24 (SIL Open Font License 1.1)."],
+        ["Tipografías: Jersey 15 y Jacquard 24 (SIL Open Font License 1.1).", "Fonts: Jersey 15 and Jacquard 24 (SIL Open Font License 1.1)."],
         ["Nacido de un primer juego: Craving Candy. En memoria de Leudy Antonio Mendez.", "Born from a first game: Craving Candy. In memory of Leudy Antonio Mendez."],
     ],
     "acuerdo": [
@@ -4764,7 +5115,7 @@ const LEGAL := {
         ["2. Contenido. Incluye terror, sangre, violencia y temas perturbadores. No recomendado para menores.", "2. Content. It includes horror, blood, violence and disturbing themes. Not recommended for minors."],
         ["3. Demo en desarrollo. Puede contener errores; el progreso puede perderse entre versiones.", "3. Demo in development. It may contain bugs; progress may be lost between versions."],
         ["4. Sin garantía. Se ofrece «tal cual», sin garantías, en la medida que permita la ley.", "4. No warranty. It is provided \"as is\", without warranties, to the extent the law allows."],
-        ["5. Terceros. La tipografía Pixelify Sans se usa bajo la licencia SIL OFL 1.1.", "5. Third parties. The Pixelify Sans font is used under the SIL OFL 1.1 license."],
+        ["5. Terceros. Las tipografías Jersey 15 y Jacquard 24 se usan bajo la licencia SIL OFL 1.1.", "5. Third parties. The Jersey 15 and Jacquard 24 fonts are used under the SIL OFL 1.1 license."],
     ],
     "politica": [
         ["Qué guarda: tu progreso (almas, identidad, habilidades, Ecos) y tus ajustes (volumen, teclas, idioma, si aceptaste este acuerdo).", "What is stored: your progress (souls, identity, abilities, Echoes) and your settings (volume, keys, language, whether you accepted this agreement)."],
@@ -4879,9 +5230,9 @@ func _draw_splash() -> void:
     var hot: bool = GEAR_RECT.has_point(ui_hover)
     _panel(GEAR_RECT, Color("#222c39") if hot else Color("#141922"), UI_GOLD if hot else UI_LIGHT)
     var spin: float = elapsed * (1.5 if hot else 0.3)
-    draw_set_transform(GEAR_RECT.get_center(), spin, Vector2.ONE)
+    _xf(GEAR_RECT.get_center(), spin, Vector2.ONE)
     draw_texture_rect(ICONS["engranaje"], Rect2(Vector2(-16, -16), Vector2(32, 32)), false)
-    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
     if hot:
         _text_outline(_t("ajustes"), Vector2(78, 604), 14, CREAM)
     _text_outline("v0.9 · demo", Vector2(820, 630), 11, Color("#6d6a60"))
@@ -4957,7 +5308,8 @@ func _settings_widgets() -> Array:
     var list: Array = []
     var tabs := ["sonido", "controles", "idioma", "privacidad"]
     for i in range(tabs.size()):
-        list.append({"kind": "tab", "id": i, "label": _t(tabs[i]), "rect": Rect2(118.0 + float(i) * 182.0, 112.0, 174.0, 40.0)})
+        # Leyendo un texto legal, las pestañas quedan apagadas: se sale con VOLVER.
+        list.append({"kind": "tab", "id": i, "label": _t(tabs[i]), "rect": Rect2(118.0 + float(i) * 182.0, 112.0, 174.0, 40.0), "off": legal_page != ""})
     if legal_page != "":
         list.append({"kind": "button", "id": "cerrar_legal", "label": _t("volver"), "rect": Rect2(660, 520, 180, 44)})
         return list
@@ -5004,6 +5356,10 @@ func _draw_settings() -> void:
         var hot: bool = r.has_point(ui_hover) or (not focused.is_empty() and str(w["id"]) == str(focused["id"]) and w["kind"] == focused["kind"])
         match w["kind"]:
             "tab":
+                if bool(w.get("off", false)):
+                    _panel(r, Color("#0d1015"), Color(UI_EDGE.r, UI_EDGE.g, UI_EDGE.b, 0.4))
+                    _text_outline(w["label"], Vector2(r.position.x, r.position.y + 26.0), 15, Color("#4a4740"), r.size.x)
+                    continue
                 var on: bool = int(w["id"]) == settings_tab
                 _panel(r, Color("#2a1d22") if on else Color("#141922"), UI_GOLD if on or hot else UI_EDGE)
                 _text_outline(w["label"], Vector2(r.position.x, r.position.y + 26.0), 15, CREAM if on else Color("#9a957f"), r.size.x)
@@ -5081,6 +5437,8 @@ func _settings_click(at: Vector2) -> void:
 
 
 func _settings_activate(w: Dictionary, at: Vector2 = Vector2(-1, -1)) -> void:
+    if bool(w.get("off", false)):
+        return # pestaña apagada mientras se lee un texto legal
     match w["kind"]:
         "tab":
             settings_tab = int(w["id"])
@@ -5173,12 +5531,12 @@ func _settings_key(k: int) -> void:
             Ajustes.aplicar_audio()
         elif w["kind"] == "choice":
             _settings_activate(w)
-        else:
+        elif legal_page == "":
             settings_tab = (settings_tab + (1 if dir > 0.0 else 3)) % 4
             settings_sel = 0
     elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
         _settings_activate(w)
-    elif k == KEY_TAB:
+    elif k == KEY_TAB and legal_page == "":
         settings_tab = (settings_tab + 1) % 4
         settings_sel = 0
 
@@ -5235,6 +5593,9 @@ func _reset_progress_vars() -> void:
     chests_opened = {}
     vigil_unlocked = false
     odon_told = false
+    weapon = ""
+    gear = {}
+    gear_owned = {}
     checkpoint = [-1, -1]
 
 
@@ -5370,19 +5731,19 @@ func _draw_intro() -> void:
             var region := Rect2(8.0 * 40.0, 0.0, 40.0, 56.0)
             draw_texture_rect_region(_hero_sheet(), Rect2(c + Vector2(-60, -50), Vector2(120, 168)), region, Color(1, 1, 1, fade))
         "templo":
-            draw_set_transform(Vector2(-240, -160) * fade * 0.05, 0.0, Vector2.ONE)
+            _xf(Vector2(-240, -160) * fade * 0.05, 0.0, Vector2.ONE)
             for k in range(4):
                 var x: float = 230.0 + float(k) * 170.0
                 draw_rect(Rect2(x, 150, 28, 260), Color(0.25, 0.3, 0.28, 0.6 * fade))
                 draw_rect(Rect2(x - 8, 140, 44, 14), Color(0.35, 0.4, 0.36, 0.6 * fade))
-            draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+            _xf(Vector2.ZERO, 0.0, Vector2.ONE)
         "ojo":
             var open_k: float = clampf(intro_t * 0.8, 0.0, 1.0)
-            draw_set_transform(c, 0.0, Vector2(1.0, 0.15 + 0.85 * open_k))
+            _xf(c, 0.0, Vector2(1.0, 0.15 + 0.85 * open_k))
             draw_circle(Vector2.ZERO, 110.0, Color(0.85, 0.82, 0.74, fade))
             draw_circle(Vector2.ZERO, 58.0, Color(0.42, 0.24, 0.57, fade))
             draw_circle(Vector2.ZERO, 26.0, Color(0.05, 0.03, 0.07, fade))
-            draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+            _xf(Vector2.ZERO, 0.0, Vector2.ONE)
             for k in range(6):
                 var a: float = float(k) * 1.05
                 draw_line(c + Vector2.from_angle(a) * 80.0, c + Vector2.from_angle(a + 0.2) * 108.0, Color(0.76, 0.23, 0.25, 0.7 * fade), 2.0)
@@ -5778,9 +6139,9 @@ func _draw_creation() -> void:
             # Círculo de luz y el personaje caminando de frente (o quieto si no está elegido).
             var feet := Vector2(card.position.x + 142.0, card.position.y + 186.0)
             draw_circle(feet + Vector2(0, -4), 46.0, Color(0.95, 0.85, 0.55, 0.07 if sel else 0.03))
-            draw_set_transform(feet + Vector2(0, -2), 0.0, Vector2(1.0, 0.35))
+            _xf(feet + Vector2(0, -2), 0.0, Vector2(1.0, 0.35))
             draw_circle(Vector2.ZERO, 30.0, Color(0, 0, 0, 0.45))
-            draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+            _xf(Vector2.ZERO, 0.0, Vector2.ONE)
             var frame_i: int = (2 + int(elapsed * 7.0) % 4) if sel else int(elapsed * 1.6) % 2
             var region := Rect2(frame_i * 40.0, 0.0, 40.0, 56.0)
             draw_texture_rect_region(sheets[i], Rect2(feet - Vector2(60, 150), Vector2(120, 168)), region, Color(1, 1, 1, 1.0 if sel else 0.6))
@@ -5873,7 +6234,7 @@ var dash_cd_max: float = 1.0
 
 
 func _dash_cooldown() -> float:
-    return DASH_COOLDOWN_MULT * _dash_cost() / _stamina_regen()
+    return DASH_COOLDOWN_MULT * _dash_cost() / _stamina_regen() * (0.9 if gear.get("botas", "") != "" else 1.0)
 
 
 ## Fracción que falta para poder esquivar (vigor o recarga, lo que tarde más).
@@ -6235,10 +6596,19 @@ func _ally_say_random(lines: Array) -> void:
     who["line_t"] = _read_time(line)
 
 
+## Almas propias que cada PNJ lleva encima desde el principio.
+const ALLY_OWN_SOULS := 5
+
+
 func _ally_die(ally: Dictionary) -> void:
     ally["alive"] = false
     ally["dead_key"] = _room_key()
     ally["dead_pos"] = ally["pos"]
+    # Suelta todo lo que te quitó más sus propias almas, ahí mismo.
+    var loot: int = int(ally.get("hoard", 0)) + ALLY_OWN_SOULS
+    ally["hoard"] = 0
+    drops.append({"pos": Vector2(ally["pos"]) + Vector2(0, 6), "value": loot})
+    float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -78), "text": "SUELTA %d ALMAS" % loot, "color": SOUL, "t": 0.0})
     fear = minf(100.0, fear + 12.0)
     shake = maxf(shake, 0.35)
     float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -60), "text": "%s HA MUERTO" % ally["name"], "color": RED, "t": 0.0})
@@ -6334,7 +6704,7 @@ func _draw_ally(i: int) -> void:
     var feet := Vector2(roundf(pos.x), roundf(pos.y + 4.0))
     _draw_soft_shadow(pos + Vector2(0.0, 3.0), 12.0)
     _draw_ellipse(pos + Vector2(0.0, 3.0), 17.0, 6.0, Color(0.45, 0.85, 0.6, 0.16))
-    draw_texture_rect_region(sheet, Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), region, ALLY_TINTS[i % ALLY_TINTS.size()])
+    _draw_outlined(sheet, Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), region, ALLY_TINTS[i % ALLY_TINTS.size()])
 
 
 func _draw_ally_labels() -> void:
@@ -6426,7 +6796,7 @@ const PROFILE_ABIL_BTN := Rect2(706, 538, 162, 42)
 const REGEN_WAIT := 4.0
 const REGEN_RATE := 2.0 # vida por segundo
 ## Esquivar: impulso hacia donde te mueves o, quieto, hacia donde miras.
-const DASH_TIME := 0.19
+const DASH_TIME := 0.22
 const DASH_COST := 28.0
 ## Trampas de pinchos (homenaje a los pinchos del primer juego del autor):
 ## ciclo con aviso visible y sonoro; esquivar te hace inmune a ellas.
@@ -6451,6 +6821,16 @@ var dialog_tick: float = 0.0
 var talks_seen: Dictionary = {}
 
 
+const WALK_SPEED := 157.0
+const WALK_ACCEL := 1500.0 # px/s²: a toda velocidad en una décima
+const WALK_DECEL := 2100.0
+const DASH_PEAK := 640.0 # el esquive arranca rápido…
+const DASH_END := 170.0 # …y se frena hasta el paso normal
+var player_vel: Vector2 = Vector2.ZERO
+var dash_ghosts: Array = [] # siluetas que deja el esquive {pos, dir, t}
+var dash_ghost_t: float = 0.0
+
+
 func _start_dash() -> void:
     if dash_cd > 0.0 or stamina < _dash_cost() or game_mode != "play":
         return
@@ -6468,6 +6848,8 @@ func _start_dash() -> void:
 
 
 func _update_regen(dt: float) -> void:
+    if hp < hp_prev - 0.01 and gear.get("casco", "") != "":
+        hp += (hp_prev - hp) * YELMO_REDUCTION # el yelmo se queda una parte del golpe
     if hp < hp_prev - 0.01:
         regen_wait = REGEN_WAIT # recibir daño reinicia la espera
         if ecos.has("piel"):
@@ -6716,7 +7098,7 @@ func _draw_hazards_air() -> void:
             draw_rect(Rect2(q - Vector2(2, 3), Vector2(4, 6)), Color("#14110f"))
             draw_rect(Rect2(q - Vector2(1, 2), Vector2(2, 4)), Color("#8a857a") if i % 2 == 0 else Color("#5c5850"))
         var ang: float = (lift - pivot).angle() - PI * 0.5
-        draw_set_transform(lift, ang, Vector2.ONE)
+        _xf(lift, ang, Vector2.ONE)
         # Media luna de acero con filo brillante y contorno oscuro.
         var blade := PackedVector2Array([Vector2(-30, -2), Vector2(30, -2), Vector2(24, 10), Vector2(10, 17), Vector2(0, 19), Vector2(-10, 17), Vector2(-24, 10)])
         var outline := blade.duplicate()
@@ -6727,7 +7109,7 @@ func _draw_hazards_air() -> void:
         draw_polyline(PackedVector2Array([Vector2(-24, 10), Vector2(-10, 17), Vector2(0, 19), Vector2(10, 17), Vector2(24, 10)]), Color("#eef3f5"), 2.0)
         draw_rect(Rect2(-6, -8, 12, 8), Color("#3b2f28"))
         draw_rect(Rect2(-6, -8, 12, 8), Color("#101214"), false, 1.0)
-        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        _xf(Vector2.ZERO, 0.0, Vector2.ONE)
         # Estela al barrer.
         var vel: float = cos(room_elapsed * TAU / PENDULUM_PERIOD + float(pd["phase"]))
         for k in range(1, 4):
@@ -7188,7 +7570,7 @@ func _update_fx(delta: float) -> void:
         mat.set_shader_parameter("strength", 1.0 if in_room else 0.0)
         mat.set_shader_parameter("bloom", 0.0 if touch_enabled else 0.65)
         mat.set_shader_parameter("time", fmod(elapsed, 100.0))
-        mat.set_shader_parameter("vignette", 0.5 + fear / 100.0 * 0.3)
+        mat.set_shader_parameter("vignette", 0.36 + fear / 100.0 * 0.3)
 
 
 func _draw_fx() -> void:
@@ -7643,9 +8025,9 @@ func _draw_critter(i: int) -> void:
     _draw_soft_shadow(at + Vector2(0, 2), 10.0 - lift * 0.15, 1.0 - lift * 0.015)
     var y: float = at.y - 28.0 - lift
     if bool(cr["flip"]):
-        draw_set_transform(Vector2(at.x, 0), 0.0, Vector2(-1, 1))
+        _xf(Vector2(at.x, 0), 0.0, Vector2(-1, 1))
         draw_texture_rect_region(tex, Rect2(-24.0, y, 48, 32), region)
-        draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+        _xf(Vector2.ZERO, 0.0, Vector2.ONE)
     else:
         draw_texture_rect_region(tex, Rect2(at.x - 24.0, y, 48, 32), region)
 
@@ -7658,9 +8040,9 @@ func _draw_life_corpse() -> void:
     # Charco de sangre y tu propio cuerpo tendido (tu hoja de sprites, girada).
     _draw_ellipse(at + Vector2(4, 2), 30.0, 10.0, Color(0.32, 0.02, 0.05, 0.85))
     _draw_ellipse(at + Vector2(-6, 4), 18.0, 6.0, Color(0.45, 0.03, 0.07, 0.8))
-    draw_set_transform(at + Vector2(-4, -2), PI * 0.5, Vector2.ONE)
+    _xf(at + Vector2(-4, -2), PI * 0.5, Vector2.ONE)
     draw_texture_rect_region(_hero_sheet(), Rect2(-28, -20, 40, 56), Rect2(0, 0, 40, 56), Color(0.55, 0.5, 0.55, 1.0))
-    draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
     if not bool(life_corpse["claimed"]):
         var pulse: float = 0.5 + 0.5 * sin(elapsed * 3.0)
         draw_circle(at + Vector2(0, -6), 5.0 + pulse * 2.0, Color(0.56, 0.86, 0.95, 0.25 + 0.25 * pulse))
@@ -7936,10 +8318,10 @@ func _try_ignite(at: Vector2) -> void:
         _say("Raíz viva: la antorcha no la prende.", 2.6)
         return
     if not has_inner_flame:
-        if matches <= 0:
+        if matches <= 0 and not in_tutorial:
             _say("Sin fósforos no hay chispa para prender las raíces.", 2.4)
             return
-        matches -= 1
+        _spend_match()
     _ignite(target)
     _sfx("fuego", -5.0)
     if fire_hint_t <= 0.0:
@@ -8263,12 +8645,12 @@ func _update_hounds(dt: float) -> void:
 func _strike_hounds_and_rescue() -> void:
     for h in hounds:
         var to_h: Vector2 = Vector2(h["pos"]) - player_pos
-        if to_h.length() < STRIKE_RANGE + 14.0 and (to_h.length() < 26.0 or to_h.normalized().dot(strike_dir) > 0.2):
+        if to_h.length() < _strike_range() + 14.0 and (to_h.length() < 26.0 or to_h.normalized().dot(strike_dir) > 0.2):
             h["flee"] = 1.4
             h["pos"] = Vector2(h["pos"]) + to_h.normalized() * 18.0 if not _is_blocked(Vector2(h["pos"]) + to_h.normalized() * 18.0) else h["pos"]
             float_fx.append({"pos": Vector2(h["pos"]) + Vector2(0, -50), "text": "INMUNE", "color": Color("#b4bba8"), "t": 0.0})
             _sfx("k_metal", -10.0, 0.8)
-    if _room().has("rescue") and rescue_state == "atrapado" and player_pos.distance_to(_room()["rescue"]) < STRIKE_RANGE + 20.0:
+    if _room().has("rescue") and rescue_state == "atrapado" and player_pos.distance_to(_room()["rescue"]) < _strike_range() + 20.0:
         _free_rescue()
 
 
@@ -8464,7 +8846,7 @@ var guides_rewarded: bool = false
 
 func _strike_damage() -> float:
     var fuerza: float = 1.0 + (0.04 * float(ecos.size()) if ecos.has("fuerza") else 0.0)
-    return STRIKE_DAMAGE * (1.0 + 0.1 * float(_trinket_level("brazalete"))) * _level_power() * fuerza
+    return STRIKE_DAMAGE * _weapon_stat("dmg") * (1.0 + 0.1 * float(_trinket_level("brazalete"))) * _level_power() * fuerza
 
 
 func _stamina_regen() -> float:
@@ -8951,7 +9333,7 @@ func _xp_fraction() -> float:
 
 
 func _base_max_hp() -> float:
-    return 100.0 + LEVEL_HP * float(player_level - 1)
+    return 100.0 + LEVEL_HP * float(player_level - 1) + (PETO_HP if gear.get("peto", "") != "" else 0.0)
 
 
 func _level_power() -> float:
@@ -9411,7 +9793,7 @@ const BAG_ITEMS := {
 }
 var bag: Dictionary = {} # clave -> cantidad
 var trinket_levels: Dictionary = {} # clave -> nivel
-var profile_tab: int = 0 # 0 equipo, 1 objetos
+var profile_tab: int = 0 # 0 mochila, 1 objetos, 2 equipo
 var shop_flash: Dictionary = {}
 
 
@@ -9436,7 +9818,7 @@ func _profile_tab_rect(t: int) -> Rect2:
 
 
 func _profile_switch_tab() -> void:
-    profile_tab = 1 - profile_tab
+    profile_tab = (profile_tab + 1) % 3
     inventory_sel = 0
     _sfx("toque", -14.0, 1.0)
 
@@ -9458,6 +9840,9 @@ func _object_slots() -> Array:
 
 
 func _profile_use_selected() -> void:
+    if profile_tab == 2:
+        _equip_tap(inventory_sel)
+        return
     if profile_tab != 1:
         return
     var list: Array = _object_slots()
@@ -9469,9 +9854,10 @@ func _profile_use_selected() -> void:
 func _use_bag_item(key: String) -> bool:
     if int(bag.get(key, 0)) <= 0:
         return false
-    bag[key] = int(bag[key]) - 1
-    if int(bag[key]) <= 0:
-        bag.erase(key)
+    if not in_tutorial: # en el tutorial se prueba sin gastar
+        bag[key] = int(bag[key]) - 1
+        if int(bag[key]) <= 0:
+            bag.erase(key)
     match key:
         "pan":
             max_hp = minf(_base_max_hp(), max_hp + 10.0) # devuelve vida máxima perdida
@@ -9507,7 +9893,10 @@ func _draw_object_slots() -> void:
         var o: Array = list[i]
         draw_texture_rect(ICONS[o[0]], Rect2(box.position + Vector2(roundf(box.size.x * 0.5) - 16.0, 4), Vector2(32, 32)), false)
         _text_outline(str(o[2]), Vector2(box.position.x, box.position.y + 50.0), 10, Color("#ffd36b") if bool(o[4]) else SOUL, box.size.x)
-        _text_outline(str(o[1]), Vector2(box.position.x, box.end.y - 8.0), 10, CREAM, box.size.x)
+        var nsize: int = 10
+        while nsize > 8 and font.get_string_size(str(o[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, nsize).x > box.size.x - 8.0:
+            nsize -= 1
+        _text_outline(str(o[1]), Vector2(box.position.x, box.end.y - 8.0), nsize, CREAM, box.size.x)
 
 
 func _draw_object_desc() -> void:
@@ -9795,7 +10184,7 @@ func _strike_rams_and_pillars() -> void:
     for i in range(rams.size() - 1, -1, -1):
         var r: Dictionary = rams[i]
         var to_r: Vector2 = Vector2(r["pos"]) - player_pos
-        if to_r.length() > STRIKE_RANGE + 12.0 or (to_r.length() > 24.0 and to_r.normalized().dot(strike_dir) < 0.2):
+        if to_r.length() > _strike_range() + 12.0 or (to_r.length() > 24.0 and to_r.normalized().dot(strike_dir) < 0.2):
             continue
         if str(r["state"]) != "stun":
             float_fx.append({"pos": Vector2(r["pos"]) + Vector2(0, -50), "text": "PIEDRA", "color": Color("#b4bba8"), "t": 0.0})
@@ -10097,7 +10486,7 @@ func _harvest_strike() -> void:
     if not elder_active or elder_state == "talk":
         return
     var to_e: Vector2 = elder_pos - player_pos
-    if to_e.length() < STRIKE_RANGE + 16.0 and (to_e.length() < 26.0 or to_e.normalized().dot(strike_dir) > 0.2):
+    if to_e.length() < _strike_range() + 16.0 and (to_e.length() < 26.0 or to_e.normalized().dot(strike_dir) > 0.2):
         _damage_elder(_strike_damage())
 
 
@@ -10432,7 +10821,7 @@ func _draw_loot_banner() -> void:
         loot_banner = {}
         return
     var key: String = loot_banner["key"]
-    var info: Array = Botin.OBJETOS.get(key, [key, "", 1, "alma"])
+    var info: Array = loot_banner.get("info", Botin.OBJETOS.get(key, [key, "", 1, "alma"]))
     var a: float = clampf(float(loot_banner["t"]), 0.0, 1.0)
     var box := Rect2(300, 128, 360, 74)
     var tier: int = clampi(int(info[2]), 1, 4)
@@ -10732,13 +11121,17 @@ func _ally_greed_target(ally: Dictionary):
 
 func _ally_share(ally: Dictionary, amount: int, what: String) -> void:
     var name_a: String = str(ally["name"])
+    var kept: int = amount
     if _mark() == "bendicion" and amount > 1:
         var half: int = amount / 2
+        kept = amount - half
         souls += half
         souls_flash = 0.6
         float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -70), "text": "%s COMPARTE +%d" % [name_a, half], "color": Color("#7fd6a0"), "t": 0.0})
     else:
         float_fx.append({"pos": Vector2(ally["pos"]) + Vector2(0, -70), "text": "%s SE QUEDA %s" % [name_a, what], "color": Color("#ffb36b"), "t": 0.0})
+    # Lo que se guarda lo lleva encima: si muere, lo suelta.
+    ally["hoard"] = int(ally.get("hoard", 0)) + kept
 
 
 func _ally_pickups(ally: Dictionary) -> void:
@@ -10989,6 +11382,68 @@ func _full_rect() -> Rect2:
     return Rect2(-screen_pad, Vector2(W, H) + screen_pad * 2.0)
 
 
+# ------------------------------------------------------------ CÁMARA (PANTALLA ANCHA)
+## En pantallas más anchas que la sala (móviles 20:9, portátiles 16:9) el
+## mundo se acerca hasta un 30 % para llenar todo el ancho, y una cámara suave
+## sigue al jugador en vertical. El marcador queda fijo en los bordes. En 3:2
+## (y en las pruebas sin pantalla) no cambia nada: zoom 1, sin cámara.
+const CAM_MAX_ZOOM := 1.3
+const CAM_WINDOW_TOP := 112.0 # entre la barra superior…
+const CAM_WINDOW_BOTTOM := 578.0 # …y la inferior
+var cam_zoom: float = 1.0
+var cam_center: Vector2 = Vector2(480, 351)
+var world_xf: Transform2D = Transform2D.IDENTITY
+var draw_base_xf: Transform2D = Transform2D.IDENTITY
+
+
+## draw_set_transform que respeta la cámara cuando se dibuja el mundo.
+func _xf(pos: Vector2, rot: float, scl: Vector2) -> void:
+    draw_set_transform_matrix(draw_base_xf * Transform2D(rot, scl, 0.0, pos))
+
+
+func _begin_world() -> void:
+    draw_base_xf = world_xf
+    draw_set_transform_matrix(world_xf)
+
+
+func _end_world() -> void:
+    draw_base_xf = Transform2D.IDENTITY
+    draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+func _cam_target() -> Vector2:
+    var want: Vector2 = player_pos if game_mode in ["play", "dialog", "dead", "choice", "shop", "altar", "inventory", "abilities", "map", "pause", "floor_summary", "victory"] else Vector2(480, 351)
+    var vis := Vector2(W + screen_pad.x * 2.0, CAM_WINDOW_BOTTOM - CAM_WINDOW_TOP) / cam_zoom
+    var lo := Vector2(30.0 + vis.x * 0.5, 112.0 + vis.y * 0.5)
+    var hi := Vector2(930.0 - vis.x * 0.5, 592.0 - vis.y * 0.5)
+    return Vector2(480.0 if lo.x >= hi.x else clampf(want.x, lo.x, hi.x), 351.0 if lo.y >= hi.y else clampf(want.y, lo.y, hi.y))
+
+
+func _update_camera(dt: float, snap: bool = false) -> void:
+    if cam_zoom <= 1.001:
+        world_xf = Transform2D.IDENTITY
+    else:
+        var target: Vector2 = _cam_target()
+        cam_center = target if snap else cam_center.lerp(target, 1.0 - exp(-7.0 * dt))
+        var win_center := Vector2(480.0, (CAM_WINDOW_TOP + CAM_WINDOW_BOTTOM) * 0.5)
+        world_xf = Transform2D(0.0, Vector2(cam_zoom, cam_zoom), 0.0, (win_center - cam_center * cam_zoom).round())
+    if room_node != null:
+        room_node.transform = world_xf
+    if glow_node != null:
+        var clip := glow_node.get_parent() as Control
+        if cam_zoom > 1.001:
+            clip.position = Vector2(-screen_pad.x, CAM_WINDOW_TOP)
+            clip.size = Vector2(W + screen_pad.x * 2.0, CAM_WINDOW_BOTTOM - CAM_WINDOW_TOP)
+        else:
+            clip.position = ARENA.position
+            clip.size = ARENA.size
+        glow_node.transform = Transform2D(0.0, -clip.position) * world_xf
+    if post_rect != null and post_rect.material is ShaderMaterial:
+        var a: Vector2 = world_xf * Vector2(40.0, 122.0) + screen_pad
+        var b: Vector2 = world_xf * Vector2(920.0, 580.0) + screen_pad
+        (post_rect.material as ShaderMaterial).set_shader_parameter("arena", Vector4(a.x, a.y, b.x, b.y))
+
+
 func _fit_screen() -> void:
     var view: Vector2 = get_viewport_rect().size
     screen_pad = ((view - Vector2(W, H)) * 0.5).floor().max(Vector2.ZERO)
@@ -10999,10 +11454,11 @@ func _fit_screen() -> void:
         name_edit.position = NAME_BOX.position + screen_pad
     if mobile_finger < 0:
         joy_center = _joy_home()
+    cam_zoom = clampf((W + screen_pad.x * 2.0) / float(W), 1.0, CAM_MAX_ZOOM)
     if post_rect != null and post_rect.material is ShaderMaterial:
         var pm := post_rect.material as ShaderMaterial
         pm.set_shader_parameter("canvas_size", view)
-        pm.set_shader_parameter("arena", Vector4(40.0 + screen_pad.x, 122.0 + screen_pad.y, 920.0 + screen_pad.x, 580.0 + screen_pad.y))
+    _update_camera(0.0, true)
     for r in [backdrop_rect, post_rect, trans_rect]:
         if r != null:
             (r as Control).position = Vector2.ZERO
@@ -11139,13 +11595,9 @@ func _on_name_edit_changed(new_text: String) -> void:
     queue_redraw()
 
 
-## Tipografía del juego + cifras claras: los números que no tiene la primera
-## los dibuja la segunda. Todo sin suavizado, como el pixel art.
-static func _font_with_digits(f: Font) -> void:
-    for ff in [f, DIGIT_FONT]:
-        if ff is FontFile:
-            (ff as FontFile).antialiasing = TextServer.FONT_ANTIALIASING_NONE
-            (ff as FontFile).hinting = TextServer.HINTING_NONE
-            (ff as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
-    if f is FontFile and not (f as FontFile).fallbacks.has(DIGIT_FONT):
-        (f as FontFile).fallbacks = [DIGIT_FONT]
+## La tipografía sin suavizado, como el pixel art.
+static func _pixel_font_setup(f: Font) -> void:
+    if f is FontFile:
+        (f as FontFile).antialiasing = TextServer.FONT_ANTIALIASING_NONE
+        (f as FontFile).hinting = TextServer.HINTING_NONE
+        (f as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED

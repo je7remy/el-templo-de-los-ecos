@@ -18,7 +18,8 @@ CONTROLES (TECLADO Y RATÓN)
   Esc .............. pausa y configuración
 
 También funciona con mando de Xbox o similares.
-En Configuración > Sonido puedes cambiar entre ventana y pantalla completa.
+El juego arranca a pantalla completa. F11 (o Alt+Enter) cambia entre ventana y
+pantalla completa; también en Configuración > Sonido.
 
 
 CÓMO JUGAR EN LINUX
