@@ -1564,6 +1564,37 @@ func _run_checks() -> void:
         return
     print("OK: arma en la mano sin luz, F alterna antorcha y arma, regalos anunciados y colisiones por silueta.")
 
+    # v0.5.8: todo se puede quitar (sin su bono) y volver a poner.
+    game.set("has_mask", true)
+    game.set("trinkets", ["brazalete", "amuleto"])
+    game.set("trinket_levels", {"brazalete": 2, "amuleto": 1})
+    game.set("unworn", {})
+    game.set("gear_owned", {"espada": true, "peto": true})
+    game.set("weapon", "espada")
+    game.set("gear", {})
+    game.call("_equip_gear", "peto")
+    var dmg_on: float = float(game.call("_strike_damage"))
+    var hp_on: float = float(game.get("max_hp"))
+    for i in range(7):
+        if str(game.call("_equip_in_slot", i)) != "":
+            game.call("_equip_tap", i)
+    if str(game.get("weapon")) != "" or bool(game.call("_mask_worn")) or bool(game.call("_worn", "brazalete")) \
+            or float(game.get("max_hp")) > hp_on - 19.0 or float(game.call("_strike_damage")) >= dmg_on \
+            or float(game.call("_pulse_radius")) > float(game.get("PULSE_RADIUS")) + 0.1:
+        _fail("Quitarse el equipo no lo quita o deja sus bonos.")
+        return
+    for i in range(7):
+        game.call("_equip_tap", i)
+    if str(game.get("weapon")) != "espada" or not bool(game.call("_mask_worn")) or not bool(game.call("_worn", "amuleto")) or (game.get("gear") as Dictionary).get("peto", "") != "peto":
+        _fail("Volver a ponerse el equipo no funciona.")
+        return
+    game.set("weapon", "")
+    game.set("gear", {})
+    game.set("max_hp", hp_on - 20.0)
+    game.set("hp", hp_on - 20.0)
+    game.set("unworn", {})
+    print("OK: todo el equipo se quita y se pone, con y sin sus bonos.")
+
     var Ajustes = load("res://scripts/ajustes.gd")
     # Borrar perfil: todo el progreso fuera y vuelta a empezar (intro, tutorial, personaje).
     game.set("player_name", "SELENE")

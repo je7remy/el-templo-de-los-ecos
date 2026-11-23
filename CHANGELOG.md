@@ -1,5 +1,21 @@
 # Historial de versiones
 
+## v0.5.8-alpha — 2026-11-23 · Quitarse el equipo, golpes propios de cada arma y avisos siempre visibles
+
+- **Todo se puede quitar.** En Perfil > EQUIPO hay siete huecos: arma, casco, peto, botas y los accesorios (máscara de porcelana, amuleto y brazalete).
+  - Tocar un hueco ocupado lo quita: el personaje y el retrato vuelven a su aspecto normal y se pierde el bono (daño, vigor, Rugido, vida…).
+  - Tocar un hueco vacío vuelve a poner lo que tengas para él.
+  - Lo quitado se guarda entre partidas.
+- **Cada arma golpea a su manera**, sin el fuego de la antorcha:
+  - Daga: dos tajos rápidos.
+  - Espada: media luna de acero.
+  - Lanza: estocada recta.
+  - Hacha: barrido ancho con polvo.
+  - Maza: impacto con onda y chispas.
+  - Suenan a metal, no a llama.
+- **Avisos siempre visibles:** «Nivel N» y los objetos de cofres o PNJ se dibujan encima de todo, también con el perfil, el mapa o la pausa abiertos. Aparecen junto al personaje (encima, o debajo si está muy arriba), nunca fuera de la pantalla; si salen dos a la vez, se apilan.
+- Pruebas nuevas. Versión Android 0.5.8-alpha (código 15).
+
 ## v0.5.7-alpha — 2026-11-23 · El equipo se ve puesto, avisos encima y colisiones por silueta
 
 - **Todo lo equipado se ve en el personaje**, en las cuatro direcciones, y en su retrato (HUD y perfil):
