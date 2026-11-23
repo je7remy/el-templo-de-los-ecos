@@ -64,6 +64,13 @@ jobs:
             exit 1
           fi
 
+      - name: Verificar el actualizador
+        shell: bash
+        run: |
+          godot --headless --path . --script res://tests/update_test.gd 2>&1 | tee "$RUNNER_TEMP/update.log"
+          grep -Fq 'OK: actualizador con versiones, archivo por plataforma, reemplazo del juego y aviso en el menú.' "$RUNNER_TEMP/update.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/update.log"; then exit 1; fi
+
 
       - name: Verificar texturas de escenarios, enemigo y protagonista
         shell: bash

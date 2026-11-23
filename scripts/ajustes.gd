@@ -42,6 +42,7 @@ static func valores_por_defecto() -> Dictionary:
         "volumen_general": 0.9, "volumen_musica": 0.8, "volumen_efectos": 0.9, "silencio": false,
         "pantalla_completa": true, # en PC el juego arranca a pantalla completa
         "pantalla_v2": true,
+        "buscar_actualizaciones": true, # mira en GitHub si hay versión nueva al abrir
         "teclas": teclas, "tactil": "auto", # auto, siempre, nunca
         "idioma": "es",
         "acuerdo_aceptado": false, "acuerdo_version": 0,

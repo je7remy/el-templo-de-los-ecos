@@ -1,5 +1,20 @@
 # Historial de versiones
 
+## v0.5.9-alpha — 2026-11-23 · Actualizaciones automáticas en Android, Windows y Linux
+
+- **El juego avisa y se actualiza solo.** Al abrir una copia instalada, consulta las versiones publicadas en GitHub. Si hay una más nueva, el menú muestra «NUEVA VERSIÓN … DISPONIBLE» con ACTUALIZAR y AHORA NO (también la tecla **U**):
+  - Windows instalado: descarga el instalador, lo ejecuta en silencio y el juego se vuelve a abrir ya actualizado.
+  - Windows portable: cambia el `.exe` por el nuevo.
+  - Linux: cambia el ejecutable por el nuevo y vuelve a abrir el juego.
+  - Android: abre la descarga del APK para confirmar la instalación.
+  - Si algo falla, ofrece la descarga a mano. Sin internet no aparece nada. La partida no se toca.
+- **Nuevo ajuste** «Buscar actualizaciones al abrir» (Configuración > Sonido), activado por defecto.
+- **APK con firma fija:** si el repositorio tiene los secretos `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` y `ANDROID_KEY_ALIAS`, el CI firma siempre con la misma llave y cada APK se instala encima del anterior. Sin ellos, usa una llave temporal como antes.
+- El APK pide permiso de internet (para consultar las versiones).
+- El instalador de Windows, ejecutado con `/S`, vuelve a abrir el juego al terminar.
+- La versión del juego vive en `project.godot` y el CI comprueba que coincida con la del APK y los instaladores.
+- Prueba nueva `tests/update_test.gd`. Versión Android 0.5.9-alpha (código 16).
+
 ## v0.5.8-alpha — 2026-11-23 · Quitarse el equipo, golpes propios de cada arma y avisos siempre visibles
 
 - **Todo se puede quitar.** En Perfil > EQUIPO hay siete huecos: arma, casco, peto, botas y los accesorios (máscara de porcelana, amuleto y brazalete).

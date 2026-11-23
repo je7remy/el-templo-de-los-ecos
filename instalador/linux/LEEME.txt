@@ -59,5 +59,12 @@ PROBLEMAS FRECUENTES
 
 ACTUALIZAR
 ----------
-Descomprime la versión nueva y vuelve a ejecutar ./instalar.sh: tu partida
-se conserva (está en ~/.local/share/godot/app_userdata/El Templo de los Ecos).
+Desde la versión 0.5.9 el juego se actualiza solo: al abrirlo, si hay una
+versión nueva, el menú muestra «NUEVA VERSIÓN … DISPONIBLE». Pulsa ACTUALIZAR:
+la descarga, cambia el ejecutable por el nuevo y vuelve a abrir el juego.
+Necesita internet; se puede apagar en Configuración > Sonido > «Buscar
+actualizaciones al abrir».
+
+A mano: descomprime la versión nueva y vuelve a ejecutar ./instalar.sh.
+En ambos casos tu partida se conserva (está en
+~/.local/share/godot/app_userdata/El Templo de los Ecos).

@@ -52,7 +52,13 @@ PROBLEMAS FRECUENTES
 
 ACTUALIZAR Y DESINSTALAR
 ------------------------
-- Para actualizar, instala la versión nueva encima: tu partida se conserva.
+- Desde la versión 0.5.9 el juego se actualiza solo: al abrirlo, si hay una
+  versión nueva, el menú muestra «NUEVA VERSIÓN … DISPONIBLE». Pulsa
+  ACTUALIZAR: la descarga, la instala y vuelve a abrir el juego. Tu partida
+  se conserva. (Necesita internet; se puede apagar en Configuración > Sonido
+  > «Buscar actualizaciones al abrir».)
+- También puedes instalar la versión nueva encima, a mano: la partida se
+  conserva igual.
 - Para desinstalar: menú Inicio > El Templo de los Ecos > Desinstalar, o desde
   «Aplicaciones instaladas». La partida guardada se queda en
   %APPDATA%\Godot\app_userdata\El Templo de los Ecos (bórrala a mano si
