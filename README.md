@@ -37,7 +37,7 @@
 
     Tus aliados eligen bando según tu marca: con bendición luchan contigo, con maldición le ayudan tirándote piedras, y sin marca se apartan.
 - **Enemigos más fuertes cuanto más abajo**: las entidades tienen más vida y daño en los pisos profundos (+12 % por piso).
-- **Armas y equipo**: por las salas hay cinco armas (daga, espada, lanza, hacha y maza, cada una con su daño, alcance, ritmo y ángulo) y tres piezas de equipo (yelmo: menos daño; peto: más vida; botas: más velocidad). Se equipan solas al recogerlas y se cambian en Perfil > EQUIPO; se guardan entre partidas.
+- **Armas y equipo**: por las salas hay cinco armas (daga, espada, lanza, hacha y maza, cada una con su daño, alcance, ritmo y ángulo) y tres piezas de equipo (yelmo: menos daño; peto: más vida; botas: más velocidad). Se equipan solas al recogerlas y se cambian en Perfil > EQUIPO; se guardan entre partidas. Todo lo equipado se ve en el personaje y en su retrato (yelmo, máscara de porcelana, amuleto, peto, botas, brazalete y el arma en la mano). El arma ocupa la mano de la antorcha: con ella no hay luz, y F alterna entre antorcha y arma.
 - **Arte y luz**: cada sala se amuebla con piezas de Knowledge Temple (sarcófagos, mesas de lectura con libros caídos, altares, estatuas, columnas rotas y braseros animados) según el estilo de su piso, siempre en espejo y sin tapar el paso. Encima va una capa de luz aditiva: el fuego, las almas y la antorcha brillan y sueltan chispas sobre la penumbra.
 - **Niveles**: ganas experiencia con almas, alimañas, entidades desterradas, misiones y pisos. Cada nivel sube la vida máxima (+6), el daño (+4 %) y la recarga del vigor (+3 %) y te cura. El nivel se ve en el retrato del HUD y en el perfil.
 - **Objetos y mejoras**: el perfil tiene una pestaña OBJETOS con lo equipado (brazalete, amuleto, máscara) y la bolsa (pan), que se usa desde ahí. Comprar otra vez el brazalete o el amuleto los sube de nivel (hasta 5), y la Resonancia se mejora con almas en el altar o el puesto. En el puesto se ve cuánto llevas de cada cosa y el número salta al comprar.
@@ -159,7 +159,7 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.5.6-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.6-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
+Puedes descargar el [APK de prueba de v0.5.7-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.7-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
 
 La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
@@ -318,4 +318,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.6-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.7-alpha** (se publica al fusionar esta versión en `main`).

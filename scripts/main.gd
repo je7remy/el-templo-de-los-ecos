@@ -767,12 +767,13 @@ func _load_room_scene() -> void:
     move_child(room_node, 0)
     _extend_room_tiles()
     obstacles.clear()
+    var scene_shapes: Array = []
     for shape in room_node.find_children("*", "CollisionShape2D", true, false):
         var rect_shape := (shape as CollisionShape2D).shape as RectangleShape2D
         if rect_shape == null or (shape as CollisionShape2D).disabled:
             continue
         var center: Vector2 = (shape as Node2D).global_position - global_position
-        obstacles.append(_tighten_obstacle(Rect2(center - rect_shape.size * 0.5, rect_shape.size)))
+        scene_shapes.append(Rect2(center - rect_shape.size * 0.5, rect_shape.size))
     # Los objetos los dibuja este script, ordenados por profundidad con los
     # personajes; en el editor se ven y se mueven como Sprite2D normales.
     room_props.clear()
@@ -794,6 +795,11 @@ func _load_room_scene() -> void:
                 "shadow": bool(sprite.get_meta("sombra", true)), "light": bool(sprite.get_meta("luz", false)),
                 "flip": sprite.flip_h != bool(_floor().get("mirror", false)), # Piso VIII: todo mira al otro lado
             })
+    # Colisiones: las bajas (losas, cofres, tumbas vistas desde arriba) se
+    # quedan como están; las de objetos altos se rehacen con la huella real
+    # de su dibujo, solo donde la silueta toca el suelo.
+    for r in scene_shapes:
+        obstacles.append(_shape_footprint(r))
     relics = [_marker("Reliquia1", RELICS[0]), _marker("Reliquia2", RELICS[1]), _marker("Reliquia3", RELICS[2])]
     seal_pos = _marker("Sello", SEAL_POS)
     altar_pos = _marker("Altar", ALTAR_POS)
@@ -1649,6 +1655,19 @@ func _use_pulse() -> void:
 
 ## Antorcha: F la enciende (gasta un fósforo salvo con Llama interior) o la apaga.
 func _toggle_torch() -> void:
+    # Una sola mano: con un arma empuñada, F la guarda y saca la antorcha;
+    # con la antorcha encendida y un arma guardada, F la apaga y empuña el arma.
+    if weapon != "" and has_torch:
+        stowed_weapon = weapon
+        weapon = ""
+        _say("Guardas %s y sacas la antorcha." % str(WEAPONS[stowed_weapon]["name"]).to_lower(), 1.8)
+    elif torch_on and stowed_weapon != "" and gear_owned.has(stowed_weapon):
+        torch_on = false
+        weapon = stowed_weapon
+        stowed_weapon = ""
+        _sfx("k_metal", -10.0, 1.2)
+        _say("Apagas la antorcha y empuñas %s." % str(WEAPONS[weapon]["name"]).to_lower(), 1.8)
+        return
     if not has_torch:
         if has_wood:
             _say("Te faltan fósforos para prender la madera.", 2.2)
@@ -2185,6 +2204,83 @@ func _controls_axis() -> Vector2:
 const FOOT_RADIUS := 11.0
 
 
+## Huella de un objeto en el suelo, leída de sus píxeles: las filas opacas
+## más bajas de su silueta (la base, las patas, el pedestal) y el ancho que
+## ocupan ahí. Lo que sobresale por arriba (capiteles, cuencos, brazos) no choca.
+var footprint_cache: Dictionary = {}
+
+
+func _alpha_footprint(tex: Texture2D, dest: Rect2, flip: bool, region: Rect2 = Rect2()) -> Rect2:
+    if tex == null:
+        return Rect2()
+    var key: String = "%s|%s" % [tex.resource_path if tex.resource_path != "" else str(tex.get_rid()), str(region)]
+    var local: Rect2
+    if footprint_cache.has(key):
+        local = footprint_cache[key]
+    else:
+        var img: Image = tex.get_image()
+        if img == null:
+            return Rect2()
+        if img.is_compressed():
+            img.decompress()
+        var reg: Rect2i = Rect2i(region) if region.size != Vector2.ZERO else Rect2i(Vector2i.ZERO, img.get_size())
+        var bottom: int = -1
+        for y in range(reg.end.y - 1, reg.position.y - 1, -1):
+            var n: int = 0
+            for x in range(reg.position.x, reg.end.x):
+                if img.get_pixel(x, y).a > 0.5:
+                    n += 1
+                    if n >= 3:
+                        break
+            if n >= 3:
+                bottom = y
+                break
+        if bottom < 0:
+            return Rect2()
+        # Columnas cuyo píxel opaco más bajo queda cerca del suelo: son las
+        # que apoyan (patas, base, libros de la fila de abajo…).
+        var band: int = maxi(3, int(reg.size.y * 0.1))
+        var reach: int = maxi(4, int(reg.size.y * 0.22))
+        var x0: int = reg.end.x
+        var x1: int = reg.position.x - 1
+        for x in range(reg.position.x, reg.end.x):
+            for y in range(bottom, maxi(reg.position.y, bottom - reach) - 1, -1):
+                if img.get_pixel(x, y).a > 0.5:
+                    x0 = mini(x0, x)
+                    x1 = maxi(x1, x)
+                    break
+        local = Rect2(float(x0 - reg.position.x), float(bottom - band + 1 - reg.position.y), float(x1 - x0 + 1), float(band))
+        footprint_cache[key] = local
+    var size_src: Vector2 = region.size if region.size != Vector2.ZERO else tex.get_size()
+    var k := dest.size / size_src
+    var x: float = local.position.x * k.x
+    if flip:
+        x = dest.size.x - (local.position.x + local.size.x) * k.x
+    var fp := Rect2(dest.position + Vector2(x, local.position.y * k.y), local.size * k)
+    # Altura máxima de la huella: una franja junto al suelo.
+    var h: float = minf(fp.size.y, 16.0)
+    return Rect2(fp.position.x + 2.0, fp.end.y - h, maxf(4.0, fp.size.x - 4.0), h)
+
+
+## Colisión de la escena → huella real del objeto que la tiene debajo.
+func _shape_footprint(r: Rect2) -> Rect2:
+    if r.size.y <= 24.0:
+        return r # baja: la escena ya la marca bien
+    var best = null
+    var best_area: float = 0.0
+    for prop in room_props:
+        var pr: Rect2 = prop["rect"]
+        var inter: Rect2 = pr.intersection(r)
+        if inter.get_area() > best_area:
+            best_area = inter.get_area()
+            best = prop
+    if best != null:
+        var fp: Rect2 = _alpha_footprint(best["tex"], best["rect"], bool(best["flip"]))
+        if fp.size.x > 2.0 and fp.end.y > r.position.y:
+            return fp
+    return _tighten_obstacle(r)
+
+
 ## Los objetos altos (columnas, estanterías, estatuas) solo chocan por su
 ## base, como en una vista cenital: se puede pasar por detrás de ellos.
 func _tighten_obstacle(r: Rect2) -> Rect2:
@@ -2553,6 +2649,9 @@ func _draw() -> void:
         _draw_settings()
     _draw_tutorial_overlay()
     _draw_mobile_controls()
+    # Rótulo de botín: lo último que se dibuja, encima de todo (también
+    # durante la nota del cofre o el diálogo de quien te da algo).
+    _draw_loot_banner()
 
 
 func _draw_background() -> void:
@@ -2907,7 +3006,6 @@ func _draw_object_labels() -> void:
     _draw_harvest_hud()
     _draw_chest_label()
     _draw_guides_request()
-    _draw_loot_banner()
     _draw_fountain_label()
     if _pilgrim_present():
         _draw_pilgrim_overlay()
@@ -3337,11 +3435,20 @@ func _draw_player() -> void:
         var blink: bool = damage_cd > 0.0 and int(elapsed * 14.0) % 2 == 0
         # La antorcha va en la mano; de espaldas queda detrás del cuerpo.
         var hand: Vector2 = player_pos + [Vector2(12, -18), Vector2(-12, -20), Vector2(9, -19), Vector2(-9, -19)][direction_index]
-        if has_torch and direction_index == 1 and game_mode != "dead":
-            _draw_hand_torch(hand)
+        var in_hand_torch: bool = has_torch and weapon == ""
+        if direction_index == 1 and game_mode != "dead":
+            if weapon != "":
+                _draw_hand_weapon(hand, direction_index)
+            elif in_hand_torch:
+                _draw_hand_torch(hand)
         _draw_outlined(_hero_sheet(), Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
-        if has_torch and direction_index != 1 and game_mode != "dead":
-            _draw_hand_torch(hand)
+        if game_mode != "dead":
+            _draw_worn_gear(location, direction_index, 0.35 if blink else 1.0)
+        if direction_index != 1 and game_mode != "dead":
+            if weapon != "":
+                _draw_hand_weapon(hand, direction_index)
+            elif in_hand_torch:
+                _draw_hand_torch(hand)
         if bump_left > 0.0:
             # Polvo del choque a ambos lados de los pies: el objeto es sólido.
             var t: float = 1.0 - bump_left / 0.35
@@ -3417,6 +3524,7 @@ func _draw_player_panel() -> void:
     var hurt: bool = hp / max_hp < 0.35
     var shake_x: float = roundf(sin(elapsed * 40.0)) if damage_cd > 0.9 else 0.0
     draw_texture_rect(_portrait(hurt), Rect2(frame.position + Vector2(4.0 + shake_x, 4.0), Vector2(64, 64)), false)
+    _draw_portrait_gear(Rect2(frame.position + Vector2(4.0 + shake_x, 4.0), Vector2(64, 64)))
     if damage_cd > 0.0:
         draw_rect(frame.grow(-2.0), Color(0.8, 0.05, 0.08, 0.35 * clampf(damage_cd / 1.2, 0.0, 1.0)))
     # Placa con el nombre bajo el retrato.
@@ -3798,6 +3906,7 @@ func _draw_inventory_overlay() -> void:
     var frame := Rect2(102, 84, 140, 140)
     _panel(frame, Color("#1a1f2a"), UI_GOLD)
     draw_texture_rect(_portrait(hp / max_hp < 0.35), Rect2(frame.position + Vector2(6, 6), Vector2(128, 128)), false)
+    _draw_portrait_gear(Rect2(frame.position + Vector2(6, 6), Vector2(128, 128)))
     _text_outline(_hero_name(), Vector2(252, 112), 26, CREAM)
     _text_outline("IDENTIDAD %03d" % identity_number, Vector2(252, 136), 13, Color("#a0b6b2"))
     _text_outline("PISO %s · SALA %d" % [_floor()["number"], current_room + 1], Vector2(252, 158), 13, UI_GOLD)
@@ -4592,6 +4701,7 @@ const GEAR_SPOTS := {
     "3:1": "lanza", "4:2": "peto", "5:2": "hacha", "7:1": "maza",
 }
 var weapon: String = "" # arma en la mano ("" = antorcha)
+var stowed_weapon: String = "" # arma guardada al sacar la antorcha con F
 var gear: Dictionary = {} # hueco -> pieza
 var gear_owned: Dictionary = {} # pieza o arma -> true
 var gear_pickup: Dictionary = {} # {key, pos} en la sala actual
@@ -4637,6 +4747,7 @@ func _take_gear() -> void:
     var label: String = ""
     if WEAPONS.has(key):
         weapon = key
+        torch_on = false # el arma ocupa la mano: la antorcha se guarda
         label = WEAPONS[key]["name"]
         _say("%s: %s Se equipa sola; cámbiala en Perfil > EQUIPO." % [label, WEAPONS[key]["desc"]], 4.5)
     else:
@@ -4667,6 +4778,8 @@ func _cycle_weapon() -> void:
             owned.append(k)
     var i: int = owned.find(weapon)
     weapon = owned[(i + 1) % owned.size()]
+    if weapon != "":
+        torch_on = false
     _sfx("k_metal", -12.0, 1.2)
     _save_progress()
 
@@ -4682,6 +4795,195 @@ func _draw_gear_pickup() -> void:
     var name_g: String = WEAPONS[gear_pickup["key"]]["name"] if WEAPONS.has(gear_pickup["key"]) else GEAR[gear_pickup["key"]]["name"]
     if player_pos.distance_to(at) < 140.0:
         _label_center(name_g, at + Vector2(0, -44), Color("#ffd36b"))
+
+
+# --- Lo que se lleva puesto, a la vista ------------------------------------------
+## Todo lo equipado se dibuja sobre el personaje (en las cuatro direcciones) y
+## sobre su retrato: yelmo, máscara de porcelana, amuleto, peto, botas,
+## brazalete y el arma en la mano. Coordenadas en píxeles de la celda 40×56.
+const GEAR_STEEL := Color("#8d949a")
+const GEAR_STEEL_DARK := Color("#4f565c")
+const GEAR_STEEL_LIGHT := Color("#c9d0d4")
+const GEAR_LEATHER := Color("#6e4630")
+const GEAR_LEATHER_DARK := Color("#45291b")
+const GEAR_GOLD := Color("#e3bd7b")
+const MASK_WHITE := Color("#fbfaf6")
+const MASK_SHADE := Color("#d9d6e0")
+const MASK_RED := Color("#b0242f")
+const GEAR_OUTLINE := Color("#140f12")
+
+
+func _px(loc: Vector2, x: float, y: float, w: float, h: float, col: Color) -> void:
+    draw_rect(Rect2(loc + Vector2(x, y), Vector2(w, h)), col)
+
+
+func _draw_worn_gear(loc: Vector2, dir: int, a: float) -> void:
+    var side: bool = dir >= 2
+    var left: bool = dir == 3
+    var steel := Color(GEAR_STEEL, a)
+    var dark := Color(GEAR_STEEL_DARK, a)
+    var light := Color(GEAR_STEEL_LIGHT, a)
+    var ol := Color(GEAR_OUTLINE, a)
+    # Botas: cubren los pies.
+    if gear.get("botas", "") != "":
+        var lea := Color(GEAR_LEATHER, a)
+        var lead := Color(GEAR_LEATHER_DARK, a)
+        if side:
+            _px(loc, 15, 44, 13, 7, lead)
+            _px(loc, 16, 44, 11, 5, lea)
+        else:
+            _px(loc, 11, 44, 8, 7, lead)
+            _px(loc, 21, 44, 8, 7, lead)
+            _px(loc, 12, 44, 6, 5, lea)
+            _px(loc, 22, 44, 6, 5, lea)
+    # Peto: placa sobre el torso, con hombreras.
+    if gear.get("peto", "") != "":
+        if side:
+            _px(loc, 14, 25, 13, 15, ol)
+            _px(loc, 15, 26, 11, 13, steel)
+            _px(loc, 15, 26, 11, 2, light)
+            _px(loc, 15, 32, 11, 1, dark)
+        else:
+            _px(loc, 10, 24, 21, 16, ol)
+            _px(loc, 11, 25, 19, 14, steel)
+            _px(loc, 11, 25, 19, 2, light)
+            _px(loc, 20, 27, 1, 12, dark)
+            _px(loc, 11, 32, 19, 1, dark)
+            _px(loc, 7, 24, 5, 5, Color(GEAR_LEATHER, a))
+            _px(loc, 29, 24, 5, 5, Color(GEAR_LEATHER, a))
+    # Amuleto de hueso: cadena y colgante sobre el pecho.
+    if trinkets.has("amuleto") and dir != 1:
+        var chain := Color(GEAR_GOLD, a)
+        if side:
+            var cx: float = 23.0 if not left else 17.0
+            _px(loc, cx, 25, 1, 4, chain)
+            _px(loc, cx - 1.0, 29, 3, 3, Color("#d8f0dc", a))
+        else:
+            _px(loc, 15, 24, 2, 1, chain)
+            _px(loc, 16, 25, 2, 1, chain)
+            _px(loc, 17, 26, 2, 1, chain)
+            _px(loc, 23, 24, 2, 1, chain)
+            _px(loc, 22, 25, 2, 1, chain)
+            _px(loc, 21, 26, 2, 1, chain)
+            _px(loc, 19, 27, 3, 4, Color("#d8f0dc", a))
+            _px(loc, 20, 28, 1, 2, Color("#5f8f6a", a))
+    # Brazalete: aro dorado en la muñeca.
+    if trinkets.has("brazalete"):
+        var band := Color(GEAR_GOLD, a)
+        match dir:
+            0: _px(loc, 30, 35, 4, 2, band)
+            1: _px(loc, 6, 35, 4, 2, band)
+            2: _px(loc, 24, 36, 4, 2, band)
+            3: _px(loc, 12, 36, 4, 2, band)
+    # Máscara de porcelana: tapa el rostro (de espaldas, solo la cinta).
+    if has_mask:
+        var w := Color(MASK_WHITE, a)
+        var sh := Color(MASK_SHADE, a)
+        var eye := Color(0.05, 0.04, 0.06, a)
+        match dir:
+            0:
+                _px(loc, 12, 7, 17, 17, ol)
+                _px(loc, 13, 8, 15, 15, w)
+                _px(loc, 13, 19, 15, 4, sh)
+                _px(loc, 14, 12, 5, 3, eye) # cuencas vacías
+                _px(loc, 22, 12, 5, 3, eye)
+                _px(loc, 15, 15, 1, 3, Color(MASK_RED, a)) # lágrimas pintadas
+                _px(loc, 25, 15, 1, 3, Color(MASK_RED, a))
+                _px(loc, 18, 19, 5, 1, Color(MASK_RED, a)) # boca
+                _px(loc, 21, 8, 1, 4, ol) # grieta
+            1:
+                _px(loc, 10, 14, 21, 1, Color(0.3, 0.12, 0.1, a))
+            2:
+                _px(loc, 20, 7, 12, 17, ol)
+                _px(loc, 21, 8, 10, 15, w)
+                _px(loc, 21, 19, 10, 4, sh)
+                _px(loc, 25, 12, 4, 3, eye)
+                _px(loc, 27, 15, 1, 3, Color(MASK_RED, a))
+                _px(loc, 26, 19, 4, 1, Color(MASK_RED, a))
+            3:
+                _px(loc, 8, 7, 12, 17, ol)
+                _px(loc, 9, 8, 10, 15, w)
+                _px(loc, 9, 19, 10, 4, sh)
+                _px(loc, 11, 12, 4, 3, eye)
+                _px(loc, 12, 15, 1, 3, Color(MASK_RED, a))
+                _px(loc, 10, 19, 4, 1, Color(MASK_RED, a))
+    # Yelmo: casco de hierro sobre el pelo, con cresta roja.
+    if gear.get("casco", "") != "":
+        var hx: float = 10.0 if not side else (11.0 if not left else 9.0)
+        var hw: float = 21.0 if not side else 20.0
+        # Cúpula redondeada: las filas de arriba son más estrechas.
+        _px(loc, hx + 2.0, -1, hw - 4.0, 2, ol)
+        _px(loc, hx - 1.0, 1, hw + 2.0, 11, ol)
+        _px(loc, hx + 3.0, 0, hw - 6.0, 1, steel)
+        _px(loc, hx + 1.0, 1, hw - 2.0, 1, steel)
+        _px(loc, hx, 2, hw, 9, steel)
+        _px(loc, hx + 3.0, 1, hw - 8.0, 2, light)
+        _px(loc, hx + 1.0, 3, 2, 5, light)
+        _px(loc, hx, 9, hw, 2, dark)
+        for rv in range(3):
+            _px(loc, hx + 3.0 + float(rv) * (hw - 6.0) * 0.5, 10, 1, 1, light) # remaches
+        _px(loc, hx + hw * 0.5 - 1.0, -4, 3, 4, Color(0.75, 0.2, 0.18, a))
+        if dir == 0:
+            _px(loc, 19, 11, 3, 5, dark) # nasal
+        elif side:
+            _px(loc, (27.0 if not left else 12.0), 11, 2, 4, dark)
+
+
+## El arma en la mano, en lugar de la antorcha (sin luz). Al golpear, describe
+## un arco en la dirección del golpe.
+func _draw_hand_weapon(hand: Vector2, dir: int) -> void:
+    var tex: Texture2D = ICONS.get(weapon)
+    if tex == null:
+        return
+    var base_angle: float = [0.35, -0.35, 0.15, -0.15][dir]
+    var flip: bool = dir == 3 or dir == 1
+    var swing: float = 0.0
+    if strike_fx > 0.0:
+        var k: float = 1.0 - strike_fx / 0.25
+        swing = lerpf(-1.3, 1.1, k) * (-1.0 if flip else 1.0)
+    var sz: float = 26.0 if weapon in ["daga"] else (34.0 if weapon in ["lanza", "hacha"] else 30.0)
+    # El icono tiene la empuñadura abajo a la izquierda: se gira desde ahí.
+    _xf(hand, base_angle + swing, Vector2(-1.0 if flip else 1.0, 1.0))
+    draw_texture_rect(tex, Rect2(Vector2(-sz * 0.2, -sz * 0.8), Vector2(sz, sz)), false)
+    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Lo mismo sobre el retrato (64×64 de base, escalado al rectángulo dado).
+func _draw_portrait_gear(r: Rect2) -> void:
+    var k: float = r.size.x / 64.0
+    var o: Vector2 = r.position
+    var R := func(x: float, y: float, w: float, h: float, col: Color) -> void:
+        draw_rect(Rect2(o + Vector2(x, y) * k, Vector2(w, h) * k), col)
+    if gear.get("peto", "") != "":
+        R.call(6, 47, 52, 17, GEAR_OUTLINE)
+        R.call(7, 48, 50, 16, GEAR_STEEL)
+        R.call(7, 48, 50, 3, GEAR_STEEL_LIGHT)
+        R.call(31, 50, 2, 14, GEAR_STEEL_DARK)
+        R.call(2, 46, 10, 8, GEAR_LEATHER)
+        R.call(52, 46, 10, 8, GEAR_LEATHER)
+    if trinkets.has("amuleto"):
+        for i in range(5):
+            R.call(23.0 + float(i) * 2.0, 44.0 + float(i), 2, 1, GEAR_GOLD)
+            R.call(39.0 - float(i) * 2.0, 44.0 + float(i), 2, 1, GEAR_GOLD)
+        R.call(30, 49, 5, 7, Color("#d8f0dc"))
+        R.call(31, 51, 3, 3, Color("#5f8f6a"))
+    if has_mask:
+        R.call(18, 15, 29, 27, GEAR_OUTLINE)
+        R.call(19, 16, 27, 25, MASK_WHITE)
+        R.call(19, 34, 27, 7, MASK_SHADE)
+        R.call(22, 22, 8, 5, Color(0.05, 0.04, 0.06))
+        R.call(35, 22, 8, 5, Color(0.05, 0.04, 0.06))
+        R.call(25, 27, 2, 6, MASK_RED)
+        R.call(38, 27, 2, 6, MASK_RED)
+        R.call(28, 35, 9, 2, MASK_RED)
+        R.call(33, 16, 1, 7, GEAR_OUTLINE)
+    if gear.get("casco", "") != "":
+        R.call(14, 3, 37, 19, GEAR_OUTLINE)
+        R.call(15, 4, 35, 17, GEAR_STEEL)
+        R.call(18, 4, 29, 3, GEAR_STEEL_LIGHT)
+        R.call(15, 18, 35, 3, GEAR_STEEL_DARK)
+        R.call(30, 21, 4, 9, GEAR_STEEL_DARK)
+        R.call(30, 0, 5, 4, Color(0.75, 0.2, 0.18))
 
 
 ## Pestaña EQUIPO del perfil: cuatro huecos y, debajo, lo encontrado.
@@ -4719,6 +5021,8 @@ func _equip_tap(i: int) -> void:
             var k: String = list[i - 10]
             if WEAPONS.has(k):
                 weapon = "" if weapon == k else k
+                if weapon != "":
+                    torch_on = false
             else:
                 _equip_gear(k)
             _sfx("k_metal", -12.0, 1.2)
@@ -4881,9 +5185,12 @@ func _kprop_entry(key: String, base: Vector2, flip: bool) -> Dictionary:
     var reg: Rect2 = info["region"]
     var rect := Rect2(base.x - reg.size.x * 0.5, base.y - reg.size.y, reg.size.x, reg.size.y)
     var fw: float = reg.size.x * float(info["foot"])
+    var foot: Rect2 = _alpha_footprint(info["tex"], rect, flip, reg)
+    if foot.size.x <= 2.0:
+        foot = Rect2(base.x - fw * 0.5, base.y - 14.0, fw, 12.0)
     return {"tex": info["tex"], "rect": rect, "base": base.y, "shadow": true, "light": bool(info.get("light", false)),
         "flip": flip, "region": reg, "frames": int(info.get("frames", 1)), "kkey": key,
-        "foot_rect": Rect2(base.x - fw * 0.5, base.y - 14.0, fw, 12.0)}
+        "foot_rect": foot}
 
 
 ## Lo que nunca se tapa: almas, objetos, cofre, puerta, entrada, enemigos, PNJ,
@@ -5594,6 +5901,7 @@ func _reset_progress_vars() -> void:
     vigil_unlocked = false
     odon_told = false
     weapon = ""
+    stowed_weapon = ""
     gear = {}
     gear_owned = {}
     checkpoint = [-1, -1]
@@ -6494,6 +6802,7 @@ func _escort_blessing(all_alive: bool) -> void:
     _karma(1, "Protegiste a todo el grupo")
     bag["vial"] = int(bag.get("vial", 0)) + 1
     float_fx.append({"pos": player_pos + Vector2(0, -104), "text": "+1 VIAL DE SANGRE", "color": Color("#ffd36b"), "t": 0.0})
+    _gift_banner("vial", "EL GRUPO TE DA")
     _save_progress()
 
 
@@ -6520,6 +6829,7 @@ func _give_odon_message() -> bool:
                 ["ODÓN", "Gracias por decírmelo. Toma: era para cuando la encontrara. Ya no lo voy a necesitar."]])
             bag["reliquia"] = int(bag.get("reliquia", 0)) + 1
             float_fx.append({"pos": player_pos + Vector2(0, -90), "text": "+1 RELIQUIA DE ECOS", "color": Color("#ffd36b"), "t": 0.0})
+            _gift_banner("reliquia", "ODÓN TE DA")
             _karma(1, "Le diste a Odón el mensaje de Mara")
             _save_progress()
             return true
@@ -10813,24 +11123,31 @@ var chest_open_t: float = 0.0
 var loot_banner: Dictionary = {} # {key, t}: rótulo grande con el objeto que acabas de conseguir
 
 
+## Rótulo grande para lo que te da un PNJ (mismo aspecto que el del cofre).
+func _gift_banner(key: String, who: String) -> void:
+    var info: Array = Botin.OBJETOS.get(key, [key.to_upper(), "", 2, key])
+    loot_banner = {"key": key, "t": 5.0, "info": [str(info[0]), "", int(info[2]), str(info[3])], "header": who}
+
+
 func _draw_loot_banner() -> void:
-    if loot_banner.is_empty() or game_mode != "play":
+    if loot_banner.is_empty() or not game_mode in ["play", "dialog", "choice"]:
         return
-    loot_banner["t"] = float(loot_banner["t"]) - get_process_delta_time()
+    if game_mode == "play": # mientras lees la nota o el diálogo, el rótulo espera
+        loot_banner["t"] = float(loot_banner["t"]) - get_process_delta_time()
     if float(loot_banner["t"]) <= 0.0:
         loot_banner = {}
         return
     var key: String = loot_banner["key"]
     var info: Array = loot_banner.get("info", Botin.OBJETOS.get(key, [key, "", 1, "alma"]))
     var a: float = clampf(float(loot_banner["t"]), 0.0, 1.0)
-    var box := Rect2(300, 128, 360, 74)
+    var box := Rect2(300, 160, 360, 74)
     var tier: int = clampi(int(info[2]), 1, 4)
     var tier_col: Color = [Color("#9a957f"), SOUL, Color("#a988d0"), Color("#e3bd7b")][tier - 1]
     _panel(box, Color(0.04, 0.035, 0.05, 0.94 * a), Color(tier_col.r, tier_col.g, tier_col.b, a))
     var icon: String = str(info[3])
     if ICONS.has(icon):
         draw_texture_rect(ICONS[icon], Rect2(box.position + Vector2(12, 13), Vector2(48, 48)), false, Color(1, 1, 1, a))
-    _text_outline("OBJETO ENCONTRADO · " + ["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][tier - 1], Vector2(box.position.x + 70.0, box.position.y + 22.0), 11, Color(tier_col.r, tier_col.g, tier_col.b, a))
+    _text_outline(str(loot_banner.get("header", "OBJETO ENCONTRADO")) + " · " + ["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][tier - 1], Vector2(box.position.x + 70.0, box.position.y + 22.0), 11, Color(tier_col.r, tier_col.g, tier_col.b, a))
     _text_outline(str(info[0]), Vector2(box.position.x + 70.0, box.position.y + 44.0), 17, Color(CREAM.r, CREAM.g, CREAM.b, a))
     _text_outline("Ya está en tu perfil.", Vector2(box.position.x + 70.0, box.position.y + 62.0), 10, Color(0.62, 0.6, 0.55, a))
 

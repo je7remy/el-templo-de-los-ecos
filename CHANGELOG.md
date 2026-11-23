@@ -1,5 +1,22 @@
 # Historial de versiones
 
+## v0.5.7-alpha — 2026-11-23 · El equipo se ve puesto, avisos encima y colisiones por silueta
+
+- **Todo lo equipado se ve en el personaje**, en las cuatro direcciones, y en su retrato (HUD y perfil):
+  - Yelmo: casco de hierro con cresta.
+  - Máscara de porcelana: sustituye el rostro, con cuencas y lágrimas pintadas; de espaldas se ve la cinta.
+  - Amuleto: cadena y colgante en el pecho.
+  - Peto: placa y hombreras.
+  - Botas de cuero.
+  - Brazalete dorado en la muñeca.
+- **El arma se lleva en la mano** en lugar de la antorcha y traza un arco al golpear.
+  - Con un arma empuñada la antorcha se guarda: no da luz.
+  - **F** alterna: guarda el arma y saca la antorcha (y la enciende), o apaga la antorcha y vuelve a empuñar el arma.
+- **Avisos de botín encima de todo:** el rótulo del cofre se dibuja lo último y ya no queda debajo de otros paneles. También se ve mientras se lee la nota (el tiempo se detiene hasta cerrarla).
+- **Regalos de los PNJ con rótulo:** lo que te da Odón (reliquia de ecos) o el grupo al llegar todos (vial de sangre) aparece en el mismo rótulo grande.
+- **Colisiones según la silueta:** la huella de cada objeto alto se calcula de los píxeles de su dibujo que tocan el suelo (base, patas, pedestal, fila baja de libros). Lo que sobresale por arriba ya no choca. Aplica también al mobiliario del templo.
+- Pruebas nuevas. Versión Android 0.5.7-alpha (código 14).
+
 ## v0.5.6-alpha — 2026-11-23 · Retoques: armas, equipo, pantalla completa real y estilo más vivo
 
 - **Pantalla completa de verdad.**
