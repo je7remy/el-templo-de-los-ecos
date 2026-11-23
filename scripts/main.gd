@@ -562,6 +562,7 @@ func _load_progress() -> void:
         var w_saved: String = str(data.get("weapon", ""))
         weapon = w_saved if WEAPONS.has(w_saved) else ""
         gear_owned = data.get("gear_owned", {}) if data.get("gear_owned", {}) is Dictionary else {}
+        unworn = data.get("unworn", {}) if data.get("unworn", {}) is Dictionary else {}
         var g_saved = data.get("gear", {})
         gear = {}
         if g_saved is Dictionary:
@@ -609,6 +610,7 @@ func _save_progress() -> void:
             "weapon": weapon,
             "gear": gear,
             "gear_owned": gear_owned,
+            "unworn": unworn,
             "checkpoint": checkpoint
         }))
 
@@ -1469,11 +1471,10 @@ func _mobile_tap(at: Vector2) -> void:
                     _sfx("toque", -14.0, 1.0)
                 return
         if profile_tab == 2:
-            for i in range(4):
+            for i in range(EQUIP_SLOTS.size()):
                 if _equip_slot_rect(i).has_point(at):
-                    if inventory_sel == i:
-                        _equip_tap(i)
                     inventory_sel = i
+                    _equip_tap(i)
                     return
             for i in range(8):
                 if _equip_owned_rect(i).has_point(at):
@@ -1549,7 +1550,7 @@ func _draw_mobile_controls() -> void:
                 icon = "vigor"
                 wait = _dash_wait()
             "resonancia":
-                label = "RUGIDO" if has_mask else "ONDA"
+                label = "RUGIDO" if _mask_worn() else "ONDA"
                 icon = "resonancia"
                 wait = _vigor_wait(RESONANCE_COST)
         var ready_b: bool = wait <= 0.0 and (id != "antorcha" or has_torch)
@@ -1630,11 +1631,11 @@ func _use_pulse() -> void:
     stamina -= RESONANCE_COST
     pulse_fx = 0.0
     _sfx("resonancia", -5.0)
-    if has_mask:
+    if _mask_worn():
         _sfx("grunido", -4.0, 1.4) # Rugido: la máscara amplifica la onda
     for h in hounds:
         if player_pos.distance_to(h["pos"]) < _pulse_radius() + 12.0:
-            h["flee"] = 5.0 if has_mask else 3.0
+            h["flee"] = 5.0 if _mask_worn() else 3.0
             float_fx.append({"pos": Vector2(h["pos"]) + Vector2(0, -50), "text": "HUYE", "color": SOUL, "t": 0.0})
     if _pilgrim_present() and _pilgrim_can_be_hit() and player_pos.distance_to(pilgrim_pos) < PULSE_RADIUS + 12.0:
         pilgrim_stun = 1.4
@@ -1808,11 +1809,13 @@ func _object_slot_rect(i: int) -> Rect2:
 
 func _inventory_slot_count() -> int:
     if profile_tab == 2:
-        return 4
+        return EQUIP_SLOTS.size()
     return OBJECT_SLOTS_MAX if profile_tab == 1 else INVENTORY_SLOTS.size()
 
 
 func _inventory_slot_at(at: Vector2) -> int:
+    if profile_tab == 2:
+        return -1 # EQUIPO tiene sus propios huecos (se resuelven antes)
     for i in range(_inventory_slot_count()):
         if (_object_slot_rect(i) if profile_tab == 1 else _inventory_slot_rect(i)).has_point(at):
             return i
@@ -1925,7 +1928,11 @@ func _torch_strike() -> bool:
     strike_fx = 0.25
     strike_dir = player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT
     visual_interaction_left = 0.24
-    _sfx("golpe", -7.0)
+    if weapon != "":
+        _sfx("k_metal", -6.0, 1.3 if weapon == "daga" else (0.75 if weapon in ["hacha", "maza"] else 1.0))
+        _sfx("toque", -12.0, 0.7) # silbido del tajo, sin chisporroteo de fuego
+    else:
+        _sfx("golpe", -7.0)
     if in_tutorial:
         var to_d := DUMMY_POS - player_pos
         if to_d.length() < _strike_range() + 14.0 and (to_d.length() < 26.0 or to_d.normalized().dot(strike_dir) > 0.2):
@@ -2618,7 +2625,6 @@ func _draw() -> void:
     if toast_left > 0.0:
         _draw_toast()
     _draw_mission_banner()
-    _draw_level_banner()
     _draw_room_souls_counter()
     _draw_room_fade()
     if game_mode == "altar":
@@ -2649,8 +2655,10 @@ func _draw() -> void:
         _draw_settings()
     _draw_tutorial_overlay()
     _draw_mobile_controls()
-    # Rótulo de botín: lo último que se dibuja, encima de todo (también
-    # durante la nota del cofre o el diálogo de quien te da algo).
+    # Avisos de nivel y de botín: lo último que se dibuja, encima de cualquier
+    # menú, junto al personaje (y siempre dentro de la pantalla).
+    notice_y = -1.0
+    _draw_level_banner()
     _draw_loot_banner()
 
 
@@ -3324,6 +3332,9 @@ func _draw_dissolve_fx() -> void:
 func _draw_strike_fx() -> void:
     if strike_fx <= 0.0:
         return
+    if weapon != "":
+        _draw_weapon_strike_fx()
+        return
     var k: float = 1.0 - strike_fx / 0.25
     var c := player_pos + Vector2(0.0, -20.0)
     var mid: float = strike_dir.angle()
@@ -3336,6 +3347,69 @@ func _draw_strike_fx() -> void:
         draw_arc(c, r, a0, a1, 16, col, 5.0 - float(i))
     var tip := c + Vector2.from_angle(a1) * 44.0
     draw_circle(tip, 7.0 * (1.0 - k), Color(1.0, 0.82, 0.45, 0.7 * (1.0 - k)))
+
+
+## Golpe con arma: cada una tiene su trazo, de acero y sin fuego.
+##   daga: dos tajos cortos y rápidos · espada: media luna limpia
+##   lanza: estocada recta y larga · hacha: barrido ancho y pesado con polvo
+##   maza: impacto con onda y chispas
+func _draw_weapon_strike_fx() -> void:
+    var k: float = 1.0 - strike_fx / 0.25
+    var fade: float = 1.0 - k
+    var c := player_pos + Vector2(0.0, -20.0)
+    var mid: float = strike_dir.angle()
+    var steel := Color(0.88, 0.93, 0.97, 0.9 * fade)
+    var edge := Color(1.0, 1.0, 1.0, fade)
+    var shade := Color(0.55, 0.62, 0.70, 0.6 * fade)
+    var reach: float = _strike_range()
+    match weapon:
+        "daga":
+            for j in range(2):
+                var off: float = (float(j) - 0.5) * 0.5
+                var a0: float = mid - 0.6 + off
+                var a1: float = a0 + 1.2 * minf(1.0, k * 2.2 - float(j) * 0.5)
+                if a1 > a0:
+                    draw_arc(c, reach * 0.6, a0, a1, 10, steel, 3.0)
+                    draw_arc(c, reach * 0.6 + 2.0, a0, a1, 10, edge, 1.0)
+        "espada":
+            var a0: float = mid - 1.0
+            var a1: float = a0 + 2.0 * minf(1.0, k * 1.8)
+            draw_arc(c, reach * 0.62, a0, a1, 18, shade, 9.0)
+            draw_arc(c, reach * 0.7, a0, a1, 18, steel, 4.0)
+            draw_arc(c, reach * 0.76, a0, a1, 18, edge, 1.5)
+        "lanza":
+            var dir: Vector2 = Vector2.from_angle(mid)
+            var out: float = reach * (0.35 + 0.65 * sin(minf(1.0, k * 1.4) * PI * 0.5))
+            var tip: Vector2 = c + dir * out
+            draw_line(c + dir * 10.0, tip, shade, 7.0)
+            draw_line(c + dir * 10.0, tip, steel, 3.0)
+            var side := Vector2(-dir.y, dir.x)
+            draw_colored_polygon(PackedVector2Array([tip + dir * 12.0, tip + side * 5.0, tip - side * 5.0]), edge)
+            for j in range(3):
+                draw_line(tip - dir * (14.0 + float(j) * 10.0) + side * (float(j) - 1.0) * 6.0, tip - dir * (24.0 + float(j) * 10.0) + side * (float(j) - 1.0) * 6.0, Color(1, 1, 1, 0.35 * fade), 1.0)
+        "hacha":
+            var a0: float = mid - 1.9
+            var a1: float = a0 + 3.8 * minf(1.0, k * 1.5)
+            draw_arc(c, reach * 0.55, a0, a1, 24, Color(0.45, 0.4, 0.36, 0.5 * fade), 14.0)
+            draw_arc(c, reach * 0.66, a0, a1, 24, steel, 5.0)
+            draw_arc(c, reach * 0.73, a0, a1, 24, edge, 2.0)
+            if k > 0.55:
+                for j in range(5):
+                    var p: Vector2 = player_pos + Vector2.from_angle(a0 + float(j) * 0.8) * reach * 0.6
+                    draw_circle(p, 3.0 * fade, Color(0.75, 0.7, 0.6, 0.5 * fade))
+        "maza":
+            var hit: Vector2 = c + Vector2.from_angle(mid) * reach * 0.7
+            var a0: float = mid - 0.9
+            var a1: float = a0 + 1.8 * minf(1.0, k * 2.4)
+            draw_arc(c, reach * 0.65, a0, a1, 14, shade, 6.0)
+            if k > 0.4:
+                var kk: float = (k - 0.4) / 0.6
+                draw_arc(hit, 6.0 + kk * 26.0, 0.0, TAU, 24, Color(0.95, 0.9, 0.75, 0.8 * (1.0 - kk)), 3.0)
+                for j in range(6):
+                    var sp: Vector2 = hit + Vector2.from_angle(float(j) * TAU / 6.0 + 0.3) * (8.0 + kk * 22.0)
+                    draw_rect(Rect2(sp - Vector2(1.5, 1.5), Vector2(3, 3)), Color(1.0, 0.85, 0.5, 1.0 - kk))
+                if kk < 0.3:
+                    draw_circle(hit, 9.0, Color(1, 1, 1, 0.6 * (1.0 - kk / 0.3)))
 
 
 ## Onda de Resonancia: anillo que se expande hasta su alcance de daño.
@@ -3965,8 +4039,9 @@ func _draw_inventory_overlay() -> void:
     elif profile_tab == 2:
         _draw_equip_tab()
     # --- Ecos: iconos compactos (caben los diez pisos); el detalle está en HABILIDADES.
-    _text_outline("ECOS", Vector2(372, 368), 13, UI_GOLD)
-    var keys: Array = ECOS.keys()
+    var keys: Array = ECOS.keys() if profile_tab != 2 else []
+    if profile_tab != 2:
+        _text_outline("ECOS", Vector2(372, 368), 13, UI_GOLD)
     for i in range(keys.size()):
         var r: Rect2 = _profile_eco_rect(i)
         var has_it: bool = ecos.has(keys[i])
@@ -4692,7 +4767,6 @@ const GEAR := {
     "peto": {"slot": "peto", "name": "PETO DE GUARDIA", "desc": "+20 de vida máxima."},
     "botas": {"slot": "botas", "name": "BOTAS DE PEREGRINO", "desc": "Caminas un 8 % más rápido y el esquive se recarga un 10 % antes."},
 }
-const GEAR_SLOTS := [["arma", "ARMA"], ["casco", "CASCO"], ["peto", "PETO"], ["botas", "BOTAS"]]
 const YELMO_REDUCTION := 0.12
 const PETO_HP := 20.0
 ## Dónde aparece cada pieza (piso:sala). Se coloca sola en un hueco libre.
@@ -4852,7 +4926,7 @@ func _draw_worn_gear(loc: Vector2, dir: int, a: float) -> void:
             _px(loc, 7, 24, 5, 5, Color(GEAR_LEATHER, a))
             _px(loc, 29, 24, 5, 5, Color(GEAR_LEATHER, a))
     # Amuleto de hueso: cadena y colgante sobre el pecho.
-    if trinkets.has("amuleto") and dir != 1:
+    if _worn("amuleto") and dir != 1:
         var chain := Color(GEAR_GOLD, a)
         if side:
             var cx: float = 23.0 if not left else 17.0
@@ -4868,7 +4942,7 @@ func _draw_worn_gear(loc: Vector2, dir: int, a: float) -> void:
             _px(loc, 19, 27, 3, 4, Color("#d8f0dc", a))
             _px(loc, 20, 28, 1, 2, Color("#5f8f6a", a))
     # Brazalete: aro dorado en la muñeca.
-    if trinkets.has("brazalete"):
+    if _worn("brazalete"):
         var band := Color(GEAR_GOLD, a)
         match dir:
             0: _px(loc, 30, 35, 4, 2, band)
@@ -4876,7 +4950,7 @@ func _draw_worn_gear(loc: Vector2, dir: int, a: float) -> void:
             2: _px(loc, 24, 36, 4, 2, band)
             3: _px(loc, 12, 36, 4, 2, band)
     # Máscara de porcelana: tapa el rostro (de espaldas, solo la cinta).
-    if has_mask:
+    if _mask_worn():
         var w := Color(MASK_WHITE, a)
         var sh := Color(MASK_SHADE, a)
         var eye := Color(0.05, 0.04, 0.06, a)
@@ -4961,13 +5035,13 @@ func _draw_portrait_gear(r: Rect2) -> void:
         R.call(31, 50, 2, 14, GEAR_STEEL_DARK)
         R.call(2, 46, 10, 8, GEAR_LEATHER)
         R.call(52, 46, 10, 8, GEAR_LEATHER)
-    if trinkets.has("amuleto"):
+    if _worn("amuleto"):
         for i in range(5):
             R.call(23.0 + float(i) * 2.0, 44.0 + float(i), 2, 1, GEAR_GOLD)
             R.call(39.0 - float(i) * 2.0, 44.0 + float(i), 2, 1, GEAR_GOLD)
         R.call(30, 49, 5, 7, Color("#d8f0dc"))
         R.call(31, 51, 3, 3, Color("#5f8f6a"))
-    if has_mask:
+    if _mask_worn():
         R.call(18, 15, 29, 27, GEAR_OUTLINE)
         R.call(19, 16, 27, 25, MASK_WHITE)
         R.call(19, 34, 27, 7, MASK_SHADE)
@@ -4986,13 +5060,31 @@ func _draw_portrait_gear(r: Rect2) -> void:
         R.call(30, 0, 5, 4, Color(0.75, 0.2, 0.18))
 
 
-## Pestaña EQUIPO del perfil: cuatro huecos y, debajo, lo encontrado.
+## Pestaña EQUIPO del perfil: siete huecos (arma, casco, peto, botas y los
+## accesorios: máscara, amuleto, brazalete) y, debajo, lo encontrado. Tocar un
+## hueco ocupado lo QUITA (vuelve el aspecto normal y se pierde su bono);
+## tocar uno vacío pone lo primero que tengas para él.
+const EQUIP_SLOTS := [["arma", "ARMA"], ["casco", "CASCO"], ["peto", "PETO"], ["botas", "BOTAS"],
+    ["mascara", "MÁSCARA"], ["amuleto", "AMULETO"], ["brazalete", "BRAZALETE"]]
+var unworn: Dictionary = {} # accesorios que tienes pero te has quitado
+
+
+func _mask_worn() -> bool:
+    return has_mask and not unworn.has("mascara")
+
+
+func _worn(key: String) -> bool:
+    return trinkets.has(key) and not unworn.has(key)
+
+
 func _equip_slot_rect(i: int) -> Rect2:
-    return Rect2(372.0 + float(i) * 126.0, 120.0, 118.0, 100.0)
+    if i < 4:
+        return Rect2(372.0 + float(i) * 126.0, 120.0, 118.0, 96.0)
+    return Rect2(372.0 + float(i - 4) * 126.0, 246.0, 118.0, 80.0)
 
 
 func _equip_owned_rect(i: int) -> Rect2:
-    return Rect2(372.0 + float(i % 8) * 62.0, 266.0, 56.0, 56.0)
+    return Rect2(372.0 + float(i % 8) * 62.0, 360.0, 56.0, 56.0)
 
 
 func _equip_owned_list() -> Array:
@@ -5006,50 +5098,166 @@ func _equip_owned_list() -> Array:
     return list
 
 
+## Lo que hay puesto en el hueco i ("" = vacío).
 func _equip_in_slot(i: int) -> String:
-    var slot: String = GEAR_SLOTS[i][0]
-    return weapon if slot == "arma" else str(gear.get(slot, ""))
+    var slot: String = EQUIP_SLOTS[i][0]
+    match slot:
+        "arma":
+            return weapon
+        "mascara":
+            return "mascara" if _mask_worn() else ""
+        "amuleto", "brazalete":
+            return slot if _worn(slot) else ""
+    return str(gear.get(slot, ""))
+
+
+## ¿Tienes algo que poner en ese hueco?
+func _equip_candidate(i: int) -> String:
+    var slot: String = EQUIP_SLOTS[i][0]
+    match slot:
+        "arma":
+            for k in WEAPONS:
+                if gear_owned.has(k):
+                    return k
+            return ""
+        "mascara":
+            return "mascara" if has_mask else ""
+        "amuleto", "brazalete":
+            return slot if trinkets.has(slot) else ""
+    for k in GEAR:
+        if gear_owned.has(k) and str(GEAR[k]["slot"]) == slot:
+            return k
+    return ""
+
+
+func _unequip_slot(i: int) -> void:
+    var slot: String = EQUIP_SLOTS[i][0]
+    match slot:
+        "arma":
+            weapon = ""
+            stowed_weapon = ""
+        "mascara", "amuleto", "brazalete":
+            unworn[slot] = true
+        _:
+            if slot == "peto" and gear.get("peto", "") != "":
+                max_hp -= PETO_HP
+                if hp > max_hp:
+                    hp = maxf(max_hp, hp - PETO_HP)
+            gear.erase(slot)
+
+
+func _equip_slot(i: int, key: String) -> void:
+    var slot: String = EQUIP_SLOTS[i][0]
+    match slot:
+        "arma":
+            weapon = key
+            torch_on = false
+        "mascara", "amuleto", "brazalete":
+            unworn.erase(slot)
+        _:
+            _equip_gear(key)
 
 
 func _equip_tap(i: int) -> void:
-    # 0-3: huecos (el del arma cambia de arma); 10+: lo encontrado.
-    if i == 0:
-        _cycle_weapon()
-    elif i >= 10:
-        var list: Array = _equip_owned_list()
-        if i - 10 < list.size():
-            var k: String = list[i - 10]
-            if WEAPONS.has(k):
-                weapon = "" if weapon == k else k
-                if weapon != "":
-                    torch_on = false
-            else:
-                _equip_gear(k)
+    # 0-6: huecos (ocupado → se quita; vacío → se pone); 10+: lo encontrado.
+    if i < EQUIP_SLOTS.size():
+        if _equip_in_slot(i) != "":
+            _unequip_slot(i)
+            _sfx("toque", -10.0, 0.8)
+        else:
+            var cand: String = _equip_candidate(i)
+            if cand == "":
+                return
+            _equip_slot(i, cand)
             _sfx("k_metal", -12.0, 1.2)
-            _save_progress()
+        _save_progress()
+        return
+    var list: Array = _equip_owned_list()
+    if i - 10 >= list.size():
+        return
+    var k: String = list[i - 10]
+    if WEAPONS.has(k):
+        if weapon == k:
+            weapon = ""
+        else:
+            weapon = k
+            torch_on = false
+    else:
+        var si: int = ["casco", "peto", "botas"].find(str(GEAR[k]["slot"])) + 1
+        if gear.get(GEAR[k]["slot"], "") == k:
+            _unequip_slot(si)
+        else:
+            _equip_gear(k)
+    _sfx("k_metal", -12.0, 1.2)
+    _save_progress()
+
+
+func _equip_icon(key: String) -> String:
+    return key if ICONS.has(key) else ""
+
+
+func _equip_name(key: String) -> String:
+    if WEAPONS.has(key):
+        return str(WEAPONS[key]["name"])
+    if GEAR.has(key):
+        return str(GEAR[key]["name"])
+    match key:
+        "mascara":
+            return "MÁSCARA DE PORCELANA"
+        "amuleto":
+            return str(SHOP[3][1])
+        "brazalete":
+            return str(SHOP[2][1])
+    return key.to_upper()
+
+
+func _equip_desc(key: String) -> String:
+    if WEAPONS.has(key):
+        return str(WEAPONS[key]["desc"])
+    if GEAR.has(key):
+        return str(GEAR[key]["desc"])
+    match key:
+        "mascara":
+            return "Tu Resonancia es Rugido: llega un 50 % más lejos y espanta a los mastines."
+        "amuleto":
+            return "Vigor: se recupera un %d %% más rápido." % (10 * _trinket_level("amuleto"))
+        "brazalete":
+            return "Golpe: +%d %% de daño." % (10 * _trinket_level("brazalete"))
+    return ""
 
 
 func _draw_equip_tab() -> void:
-    _text_outline("LO QUE LLEVAS PUESTO", Vector2(372, 111), 12, UI_GOLD)
-    for i in range(GEAR_SLOTS.size()):
+    _text_outline("LO QUE LLEVAS PUESTO · toca un hueco para quitar o poner", Vector2(372, 111), 12, UI_GOLD)
+    _text_outline("ACCESORIOS", Vector2(372, 240), 11, Color("#9a957f"))
+    for i in range(EQUIP_SLOTS.size()):
         var box: Rect2 = _equip_slot_rect(i)
         var key: String = _equip_in_slot(i)
+        var cand: String = _equip_candidate(i)
         var sel: bool = inventory_sel == i
         _panel(box, Color("#222c39") if sel else Color("#141922"), UI_GOLD if sel or key != "" else UI_EDGE)
-        _text_outline(GEAR_SLOTS[i][1], Vector2(box.position.x, box.position.y + 16.0), 10, Color("#9a957f"), box.size.x)
-        var icon: String = key if key != "" else ("antorcha" if i == 0 and has_torch else "")
-        if icon != "":
-            draw_texture_rect(ICONS[icon], Rect2(box.position + Vector2(roundf(box.size.x * 0.5) - 20.0, 24), Vector2(40, 40)), false)
+        _text_outline(EQUIP_SLOTS[i][1], Vector2(box.position.x, box.position.y + 15.0), 10, Color("#9a957f"), box.size.x)
+        var icon: String = key
+        var ghost: bool = false
+        if icon == "" and i == 0 and has_torch:
+            icon = "antorcha"
+        elif icon == "" and cand != "":
+            icon = cand
+            ghost = true # lo tienes, pero quitado
+        if icon != "" and ICONS.has(icon):
+            var isz: float = 40.0 if i < 4 else 32.0
+            draw_texture_rect(ICONS[icon], Rect2(box.position + Vector2(roundf(box.size.x * 0.5 - isz * 0.5), 20), Vector2(isz, isz)), false, Color(1, 1, 1, 0.3) if ghost else Color.WHITE)
         var nm: String = "—"
         if key != "":
-            nm = str(WEAPONS[key]["name"]) if WEAPONS.has(key) else str(GEAR[key]["name"])
+            nm = _equip_name(key)
         elif i == 0:
             nm = "ANTORCHA" if has_torch else "SIN ARMA"
+        elif cand != "":
+            nm = "QUITADO"
         var nsize: int = 10
         while nsize > 8 and font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nsize).x > box.size.x - 8.0:
             nsize -= 1
-        _text_outline(nm, Vector2(box.position.x, box.end.y - 10.0), nsize, CREAM if key != "" or (i == 0 and has_torch) else Color("#5d5a52"), box.size.x)
-    _text_outline("ENCONTRADO · toca para equipar", Vector2(372, 256), 12, SOUL)
+        _text_outline(nm, Vector2(box.position.x, box.end.y - 9.0), nsize, CREAM if key != "" or (i == 0 and has_torch) else Color("#5d5a52"), box.size.x)
+    _text_outline("ENCONTRADO · toca para ponerlo o quitarlo", Vector2(372, 352), 12, SOUL)
     var list: Array = _equip_owned_list()
     for i in range(8):
         var r: Rect2 = _equip_owned_rect(i)
@@ -5060,13 +5268,16 @@ func _draw_equip_tab() -> void:
         var k: String = list[i]
         var on: bool = weapon == k or gear.values().has(k)
         _panel(r, Color("#222c39") if sel2 else Color("#141922"), UI_GOLD if sel2 else (SOUL if on else UI_EDGE))
-        draw_texture_rect(ICONS[k], Rect2(r.position + Vector2(8, 8), Vector2(40, 40)), false)
+        draw_texture_rect(ICONS[k], Rect2(r.position + Vector2(8, 8), Vector2(40, 40)), false, Color.WHITE if on else Color(1, 1, 1, 0.45))
 
 
 func _draw_equip_desc() -> void:
     var key: String = ""
     if inventory_sel < 10:
-        key = _equip_in_slot(clampi(inventory_sel, 0, 3))
+        var si: int = clampi(inventory_sel, 0, EQUIP_SLOTS.size() - 1)
+        key = _equip_in_slot(si)
+        if key == "":
+            key = _equip_candidate(si)
     else:
         var list: Array = _equip_owned_list()
         if inventory_sel - 10 < list.size():
@@ -5075,12 +5286,11 @@ func _draw_equip_desc() -> void:
         _text_outline("HUECO VACÍO", Vector2(388, 476), 15, Color("#6d6a60"))
         draw_string(font, Vector2(388, 498), "Las armas y piezas de equipo están tiradas por las salas.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, Color("#8a8778"))
         return
-    var nm: String = str(WEAPONS[key]["name"]) if WEAPONS.has(key) else str(GEAR[key]["name"])
-    var ds: String = str(WEAPONS[key]["desc"]) if WEAPONS.has(key) else str(GEAR[key]["desc"])
-    _text_outline(nm, Vector2(388, 476), 15, CREAM)
-    var lines: PackedStringArray = _wrap_lines(ds, 470.0, 12)
+    var worn_now: bool = weapon == key or gear.values().has(key) or (key == "mascara" and _mask_worn()) or (key in ["amuleto", "brazalete"] and _worn(key))
+    _text_outline(_equip_name(key) + ("" if worn_now else " · QUITADO"), Vector2(388, 476), 15, CREAM if worn_now else Color("#8a8778"))
+    var lines: PackedStringArray = _wrap_lines(_equip_desc(key), 470.0, 12)
     for li in range(mini(2, lines.size())):
-        draw_string(font, Vector2(388, 496 + li * 15), lines[li], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, SOUL)
+        draw_string(font, Vector2(388, 496 + li * 15), lines[li], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, SOUL if worn_now else Color("#6d6a60"))
     if WEAPONS.has(key):
         var w: Dictionary = WEAPONS[key]
         draw_string(font, Vector2(388, 526), "DAÑO ×%.2f · ALCANCE %d · RITMO %.2f s · VIGOR %d" % [float(w["dmg"]), int(w["range"]), float(w["cd"]), int(w["cost"])], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 11, Color("#ffd36b"))
@@ -5904,6 +6114,7 @@ func _reset_progress_vars() -> void:
     stowed_weapon = ""
     gear = {}
     gear_owned = {}
+    unworn = {}
     checkpoint = [-1, -1]
 
 
@@ -7672,8 +7883,8 @@ func _ability_rows() -> Array:
     return [
         ["golpe", "GOLPE DE ANTORCHA", _key_label("interactuar") + (" / RT" if pad_active else " / CLIC"),
             "Arco de fuego a corta distancia. Daño %d. Necesita la antorcha encendida." % int(_strike_damage()), has_torch, "10 vigor"],
-        ["resonancia", ("RUGIDO" if has_mask else "RESONANCIA") + " · NIVEL %d" % ability_level, _key_label("resonancia"),
-            ("Con la Máscara de Porcelana la onda llega más lejos y espanta a los mastines 5 s. " if has_mask else "") + "Aturde a las entidades cercanas y les hace %d de daño." % int(_pulse_damage()), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
+        ["resonancia", ("RUGIDO" if _mask_worn() else "RESONANCIA") + " · NIVEL %d" % ability_level, _key_label("resonancia"),
+            ("Con la Máscara de Porcelana la onda llega más lejos y espanta a los mastines 5 s. " if _mask_worn() else "") + "Aturde a las entidades cercanas y les hace %d de daño." % int(_pulse_damage()), has_pulse, "%d vigor · se recarga con la barra" % int(RESONANCE_COST)],
         ["vigor", "ESQUIVAR", _key_label("esquivar"),
             "Impulso hacia donde te mueves o, quieto, hacia donde miras. Pasas por encima de las trampas.", true, "%d vigor · %.1f s de recarga" % [int(_dash_cost()), _dash_cooldown()]],
         ["llama_interior", "LLAMA INTERIOR", "PASIVA",
@@ -8842,7 +9053,7 @@ var rescue_state: String = "" # "" | atrapado | libre
 
 
 func _pulse_radius() -> float:
-    return PULSE_RADIUS * (1.5 if has_mask else 1.0)
+    return PULSE_RADIUS * (1.5 if _mask_worn() else 1.0)
 
 
 func _floor_has_trait_key(key: String) -> bool:
@@ -9156,11 +9367,11 @@ var guides_rewarded: bool = false
 
 func _strike_damage() -> float:
     var fuerza: float = 1.0 + (0.04 * float(ecos.size()) if ecos.has("fuerza") else 0.0)
-    return STRIKE_DAMAGE * _weapon_stat("dmg") * (1.0 + 0.1 * float(_trinket_level("brazalete"))) * _level_power() * fuerza
+    return STRIKE_DAMAGE * _weapon_stat("dmg") * (1.0 + 0.1 * float(_trinket_bonus("brazalete"))) * _level_power() * fuerza
 
 
 func _stamina_regen() -> float:
-    return STAMINA_REGEN * (1.0 + 0.1 * float(_trinket_level("amuleto"))) * (1.0 + LEVEL_VIGOR * float(player_level - 1))
+    return STAMINA_REGEN * (1.0 + 0.1 * float(_trinket_bonus("amuleto"))) * (1.0 + LEVEL_VIGOR * float(player_level - 1))
 
 
 ## Daño de la Resonancia: un 90 % menos que antes (era demasiado fuerte).
@@ -9682,11 +9893,32 @@ func _update_level_fx(dt: float) -> void:
     level_banner_t = maxf(0.0, level_banner_t - dt)
 
 
+## Dónde poner un aviso de tamaño «sz»: sobre el personaje tal como se ve en
+## pantalla (con la cámara), o debajo si está muy arriba; nunca fuera de la
+## pantalla ni encima de la barra superior. Dos avisos a la vez se apilan.
+var notice_y: float = -1.0
+
+
+func _notice_rect(sz: Vector2) -> Rect2:
+    var p: Vector2 = world_xf * player_pos
+    var x: float = clampf(p.x - sz.x * 0.5, -screen_pad.x + 8.0, W + screen_pad.x - sz.x - 8.0)
+    var y: float
+    if notice_y >= 0.0:
+        y = notice_y
+    else:
+        y = p.y - 86.0 * cam_zoom - sz.y
+        if y < 118.0:
+            y = p.y + 22.0 * cam_zoom
+        y = clampf(y, 118.0, H + screen_pad.y - 70.0 - sz.y * 2.0 - 8.0)
+    notice_y = y + sz.y + 6.0
+    return Rect2(Vector2(x, y).round(), sz)
+
+
 func _draw_level_banner() -> void:
-    if level_banner_t <= 0.0:
+    if level_banner_t <= 0.0 or game_mode in ["title", "create", "floors", "splash", "eula", "intro"]:
         return
     var a: float = clampf(level_banner_t * 2.0, 0.0, 1.0) * clampf((3.4 - level_banner_t) * 4.0, 0.0, 1.0)
-    var box := Rect2(270, 236, 420, 74)
+    var box := _notice_rect(Vector2(420, 74))
     _panel(box, Color(0.1, 0.06, 0.12, 0.94 * a), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, a))
     _title_text("Nivel %d" % player_level, Vector2(box.position.x, box.position.y + 38.0), 36, Color(1.0, 0.9, 0.6, a), box.size.x)
     _text_outline("+%d VIDA MÁX · +%d %% DAÑO · +%d %% VIGOR" % [int(LEVEL_HP), int(LEVEL_POWER * 100.0), int(LEVEL_VIGOR * 100.0)],
@@ -10105,6 +10337,11 @@ var bag: Dictionary = {} # clave -> cantidad
 var trinket_levels: Dictionary = {} # clave -> nivel
 var profile_tab: int = 0 # 0 mochila, 1 objetos, 2 equipo
 var shop_flash: Dictionary = {}
+
+
+## Bono que da un accesorio ahora mismo: 0 si te lo has quitado.
+func _trinket_bonus(key: String) -> int:
+    return 0 if unworn.has(key) else _trinket_level(key)
 
 
 func _trinket_level(key: String) -> int:
@@ -11130,7 +11367,7 @@ func _gift_banner(key: String, who: String) -> void:
 
 
 func _draw_loot_banner() -> void:
-    if loot_banner.is_empty() or not game_mode in ["play", "dialog", "choice"]:
+    if loot_banner.is_empty() or game_mode in ["title", "create", "floors", "splash", "eula", "intro"]:
         return
     if game_mode == "play": # mientras lees la nota o el diálogo, el rótulo espera
         loot_banner["t"] = float(loot_banner["t"]) - get_process_delta_time()
@@ -11140,7 +11377,7 @@ func _draw_loot_banner() -> void:
     var key: String = loot_banner["key"]
     var info: Array = loot_banner.get("info", Botin.OBJETOS.get(key, [key, "", 1, "alma"]))
     var a: float = clampf(float(loot_banner["t"]), 0.0, 1.0)
-    var box := Rect2(300, 160, 360, 74)
+    var box := _notice_rect(Vector2(360, 74))
     var tier: int = clampi(int(info[2]), 1, 4)
     var tier_col: Color = [Color("#9a957f"), SOUL, Color("#a988d0"), Color("#e3bd7b")][tier - 1]
     _panel(box, Color(0.04, 0.035, 0.05, 0.94 * a), Color(tier_col.r, tier_col.g, tier_col.b, a))
