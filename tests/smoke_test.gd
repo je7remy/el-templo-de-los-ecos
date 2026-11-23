@@ -1520,6 +1520,50 @@ func _run_checks() -> void:
     game.set("game_mode", "play")
     print("OK: armas, equipo, PNJ que sueltan almas, colisiones por la base, cámara, tutorial sin gasto y términos sin pestañas.")
 
+    # v0.5.7: el arma ocupa la mano (sin luz), F alterna antorcha y arma,
+    # los regalos de PNJ se anuncian y la colisión sale de la silueta.
+    game.set("game_mode", "play")
+    game.set("has_torch", true)
+    game.set("matches", 5)
+    game.set("torch_on", true)
+    game.set("gear_owned", {"maza": true})
+    game.set("weapon", "")
+    game.set("gear_pickup", {"key": "maza", "pos": Vector2(game.get("player_pos"))})
+    game.set("gear_owned", {})
+    game.call("_take_gear")
+    if str(game.get("weapon")) != "maza" or bool(game.get("torch_on")):
+        _fail("Al empuñar la maza la antorcha sigue encendida en la mano.")
+        return
+    game.call("_toggle_torch")
+    if str(game.get("weapon")) != "" or not bool(game.get("torch_on")):
+        _fail("F no cambia el arma por la antorcha.")
+        return
+    game.call("_toggle_torch")
+    if str(game.get("weapon")) != "maza" or bool(game.get("torch_on")):
+        _fail("F no vuelve a empuñar el arma.")
+        return
+    game.call("_gift_banner", "vial", "EL GRUPO TE DA")
+    game.set("game_mode", "dialog")
+    var lb: Dictionary = game.get("loot_banner")
+    if lb.is_empty() or str(lb.get("header", "")) != "EL GRUPO TE DA":
+        _fail("Los regalos de los PNJ no se anuncian.")
+        return
+    game.set("game_mode", "play")
+    game.set("loot_banner", {})
+    game.set("weapon", "")
+    game.set("gear_owned", {})
+    # Columna del Piso I: choca solo su base, no todo el fuste.
+    game.set("current_floor", 0)
+    game.set("current_room", 1)
+    game.call("_enter_room")
+    var tallest: float = 0.0
+    for o in game.get("obstacles"):
+        tallest = maxf(tallest, (o as Rect2).size.y)
+    if tallest > 24.0:
+        _fail("Queda una colisión de %d px de alto: no sigue la silueta." % int(tallest))
+        return
+    print("OK: arma en la mano sin luz, F alterna antorcha y arma, regalos anunciados y colisiones por silueta.")
+
     var Ajustes = load("res://scripts/ajustes.gd")
     # Borrar perfil: todo el progreso fuera y vuelta a empezar (intro, tutorial, personaje).
     game.set("player_name", "SELENE")
