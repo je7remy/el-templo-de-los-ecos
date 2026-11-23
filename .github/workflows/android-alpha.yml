@@ -78,14 +78,36 @@ jobs:
           test -s "$HOME/.local/share/godot/export_templates/4.3.stable/windows_release_x86_64.exe"
           test -s "$HOME/.local/share/godot/export_templates/4.3.stable/linux_release.x86_64"
 
-      - name: Configurar SDK y firma de depuracion temporal
+      - name: Configurar SDK y firma del APK
         shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          keytool -genkeypair -storetype PKCS12 \
-            -keystore "$RUNNER_TEMP/debug.keystore" \
-            -alias androiddebugkey -keyalg RSA -keysize 2048 \
-            -validity 365 -storepass android -keypass android \
-            -dname "CN=Android Debug,O=El Templo de los Ecos,C=DO"
+          # Con una llave fija (secretos del repositorio) cada APK nuevo se
+          # instala encima del anterior y conserva la partida. Sin secretos se
+          # crea una llave temporal, como antes: sirve para probar, pero Android
+          # no deja actualizar encima de un APK firmado con otra llave.
+          if [ -n "$KEYSTORE_B64" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/debug.keystore"
+            ALIAS="${KEYSTORE_ALIAS:-templo}"
+            PASS="$KEYSTORE_PASS"
+            keytool -list -keystore "$RUNNER_TEMP/debug.keystore" -storepass "$PASS" -alias "$ALIAS" >/dev/null
+            echo "Firma: llave fija del repositorio (alias $ALIAS)."
+          else
+            ALIAS="androiddebugkey"
+            PASS="android"
+            keytool -genkeypair -storetype PKCS12 \
+              -keystore "$RUNNER_TEMP/debug.keystore" \
+              -alias "$ALIAS" -keyalg RSA -keysize 2048 \
+              -validity 365 -storepass "$PASS" -keypass "$PASS" \
+              -dname "CN=Android Debug,O=El Templo de los Ecos,C=DO"
+            echo "::warning::Sin ANDROID_KEYSTORE_BASE64: llave temporal, el APK no se podra instalar encima del anterior."
+          fi
+          echo "::add-mask::$PASS"
+          echo "APK_KEY_ALIAS=$ALIAS" >> "$GITHUB_ENV"
+          echo "APK_KEY_PASS=$PASS" >> "$GITHUB_ENV"
           mkdir -p "$HOME/.config/godot"
           for version in 4 4.3; do
             {
@@ -95,10 +117,20 @@ jobs:
               echo "export/android/java_sdk_path = \"$JAVA_HOME\""
               echo "export/android/android_sdk_path = \"$ANDROID_HOME\""
               echo "export/android/debug_keystore = \"$RUNNER_TEMP/debug.keystore\""
-              echo 'export/android/debug_keystore_user = "androiddebugkey"'
-              echo 'export/android/debug_keystore_pass = "android"'
+              echo "export/android/debug_keystore_user = \"$ALIAS\""
+              echo "export/android/debug_keystore_pass = \"$PASS\""
             } > "$HOME/.config/godot/editor_settings-$version.tres"
           done
+
+      - name: Comprobar que la version del juego coincide en todos lados
+        shell: bash
+        run: |
+          VERSION="$(sed -n 's/^version\/name="\(.*\)"$/\1/p' export_presets.cfg)"
+          JUEGO="$(sed -n 's/^config\/version="\(.*\)"$/\1/p' project.godot)"
+          echo "export_presets: $VERSION · project.godot: $JUEGO"
+          test -n "$VERSION"
+          test "$VERSION" = "$JUEGO"
+          grep -Fq 'permissions/internet=true' export_presets.cfg
 
       - name: Validacion del proyecto y modo Vigilia
         shell: bash
@@ -111,6 +143,9 @@ jobs:
           godot --headless --path . --script res://tests/defense_test.gd 2>&1 | tee "$RUNNER_TEMP/defense.log"
           grep -Fq 'OK: defensa tactil, ingreso, mejoras, centinelas, reparacion, victoria y derrota.' "$RUNNER_TEMP/defense.log"
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/defense.log"; then exit 1; fi
+          godot --headless --path . --script res://tests/update_test.gd 2>&1 | tee "$RUNNER_TEMP/update.log"
+          grep -Fq 'OK: actualizador con versiones, archivo por plataforma, reemplazo del juego y aviso en el menú.' "$RUNNER_TEMP/update.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/update.log"; then exit 1; fi
 
       - name: Simular partida completa antes de compilar
         shell: bash
@@ -134,8 +169,8 @@ jobs:
         run: |
           mkdir -p build
           GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/debug.keystore" \
-          GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey" \
-          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android" \
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER="$APK_KEY_ALIAS" \
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$APK_KEY_PASS" \
           godot --headless --verbose --path . --export-debug "Android" \
             build/ElTemploDeLosEcos-Android-Debug.apk 2>&1 | tee "$RUNNER_TEMP/export.log"
           APK="build/ElTemploDeLosEcos-Android-Debug.apk"
@@ -149,7 +184,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" \
             | tee "$RUNNER_TEMP/android-badging.txt"
           grep -Fq "package: name='org.je7remy.temploecos'" "$RUNNER_TEMP/android-badging.txt"
-          grep -Fq "versionName='0.5.8-alpha'" "$RUNNER_TEMP/android-badging.txt"
+          grep -Fq "versionName='0.5.9-alpha'" "$RUNNER_TEMP/android-badging.txt"
           ls -lh "$APK"
 
       - name: Guardar APK como artefacto

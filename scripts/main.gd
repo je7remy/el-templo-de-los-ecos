@@ -34,6 +34,7 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ##           Rasgo "raices_puerta": raíces vivas tapan la puerta; solo arden
 ##           si les llega el fuego de las secas.
 const Pisos := preload("res://scripts/datos/pisos.gd")
+const Actualizador := preload("res://scripts/actualizador.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -238,6 +239,8 @@ const PIXEL_FONT := preload("res://assets/fonts/Jersey15-Templo.ttf")
 var player_name: String = ""
 var player_gender: String = "masculino" # masculino | femenino
 var game_mode: String = "title" # title, create, play, altar, inventory, floor_intro, dead, victory
+## Busca versiones nuevas en GitHub (solo en copias exportadas).
+var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
 var current_room: int = 0
 var elapsed: float = 0.0
@@ -418,6 +421,7 @@ func _ready() -> void:
     randomize()
     Ajustes.cargar()
     _apply_touch_setting()
+    _start_updater()
     # Al abrir el juego se ve la pantalla de inicio; al volver de la Vigilia, el menú.
     game_mode = "title" if Engine.has_meta("splash_visto") else "splash"
     _load_progress()
@@ -955,6 +959,9 @@ func _input(event: InputEvent) -> void:
         queue_redraw()
         return
     if game_mode == "title":
+        if k == KEY_U and _update_banner_on():
+            _update_tap(UPDATE_OK.get_center())
+            return
         if k == KEY_ENTER or k == KEY_KP_ENTER:
             _open_floors() # los pisos son la entrada al juego
         elif k == KEY_C:
@@ -1412,6 +1419,8 @@ func _mobile_tap(at: Vector2) -> void:
         _shop_tap(at)
         return
     if game_mode == "title":
+        if _update_tap(at):
+            return
         if CHANGE_CHAR_RECT.has_point(at):
             _start_creation("title")
         elif GEAR_RECT.has_point(at):
@@ -3882,6 +3891,101 @@ func _draw_toast() -> void:
     _text_outline(toast, Vector2(box.position.x, box.position.y + 19.0), size, Color(CREAM.r, CREAM.g, CREAM.b, alpha), box.size.x)
 
 
+## ---- Actualizaciones -------------------------------------------------------
+const UPDATE_BAR := Rect2(149, 88, 662, 54)
+const UPDATE_OK := Rect2(574, 98, 120, 34)
+const UPDATE_NO := Rect2(702, 98, 100, 34)
+
+
+func _start_updater() -> void:
+    if actualizador != null or not bool(Ajustes.obtener("buscar_actualizaciones")) or not Actualizador.permitido():
+        return
+    actualizador = Actualizador.new()
+    actualizador.name = "Actualizador"
+    add_child(actualizador)
+    actualizador.cambiado.connect(queue_redraw)
+    actualizador.buscar()
+
+
+func _update_banner_on() -> bool:
+    return actualizador != null and actualizador.aviso_visible()
+
+
+## Botones que muestra el aviso en cada estado: [aceptar, descartar] ("" = no hay).
+func _update_buttons() -> Array:
+    match str(actualizador.estado):
+        "disponible":
+            return [_t("act_actualizar"), _t("act_ahora_no")]
+        "error":
+            return [_t("act_a_mano"), _t("act_ahora_no")]
+        "abierto":
+            return [_t("act_a_mano"), _t("act_cerrar")]
+    return ["", ""]
+
+
+func _update_tap(at: Vector2) -> bool:
+    if not _update_banner_on():
+        return false
+    var labels: Array = _update_buttons()
+    if labels[0] != "" and UPDATE_OK.has_point(at):
+        _sfx("toque", -8.0)
+        match str(actualizador.estado):
+            "disponible":
+                actualizador.actualizar()
+            "error", "abierto":
+                actualizador.abrir_pagina()
+        queue_redraw()
+        return true
+    if labels[1] != "" and UPDATE_NO.has_point(at):
+        _sfx("interfaz", -12.0, 1.1)
+        actualizador.ahora_no()
+        queue_redraw()
+        return true
+    return UPDATE_BAR.has_point(at)
+
+
+func _draw_update_banner() -> void:
+    if not _update_banner_on():
+        return
+    var st := str(actualizador.estado)
+    var bad := st == "error"
+    _panel(UPDATE_BAR, Color("#2a1418") if bad else Color("#141f1c"), UI_CRIMSON if bad else SOUL)
+    var nueva := "v" + str(actualizador.version_nueva)
+    var line1 := ""
+    var line2 := ""
+    match st:
+        "disponible":
+            line1 = _t("act_nueva") % nueva
+            line2 = _t("act_actual") % ("v" + Actualizador.version_local())
+        "descargando":
+            line1 = _t("act_descargando") % [nueva, int(round(float(actualizador.progreso) * 100.0))]
+        "instalando":
+            line1 = _t("act_instalando")
+        "abierto":
+            line1 = _t("act_android")
+            line2 = _t("act_android2")
+        "error":
+            line1 = _t("act_error") % str(actualizador.detalle)
+    var y: float = UPDATE_BAR.position.y + (24.0 if line2 != "" else 33.0)
+    _text_outline(line1, Vector2(UPDATE_BAR.position.x + 14.0, y), 14, CREAM)
+    if line2 != "":
+        _text_outline(line2, Vector2(UPDATE_BAR.position.x + 14.0, y + 18.0), 11, Color("#b9b29b"))
+    if st == "descargando":
+        var bar := Rect2(UPDATE_BAR.position.x + 330.0, UPDATE_BAR.position.y + 20.0, 316.0, 14.0)
+        draw_rect(bar, Color("#0b0f12"))
+        draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(float(actualizador.progreso), 0.0, 1.0), bar.size.y)), SOUL)
+        draw_rect(bar, UI_LIGHT, false, 1.0)
+    var labels: Array = _update_buttons()
+    for i in range(2):
+        if labels[i] == "":
+            continue
+        var r: Rect2 = UPDATE_OK if i == 0 else UPDATE_NO
+        var hot: bool = r.has_point(ui_hover)
+        var edge: Color = UI_GOLD if i == 0 else UI_LIGHT
+        _panel(r, Color("#2c3a2a") if (hot and i == 0) else (Color("#222c39") if hot else Color("#141922")), UI_GOLD if hot else edge)
+        _text_outline(labels[i], r.position + Vector2(0, 22), 12, CREAM, r.size.x)
+
+
 func _draw_title() -> void:
     ## Menú principal estilo roguelike: panel biselado, botones gruesos con icono.
     # La sala actual (escena) queda detrás; solo se oscurece.
@@ -3920,6 +4024,7 @@ func _draw_title() -> void:
     var hot: bool = GEAR_RECT.has_point(ui_hover)
     _panel(GEAR_RECT, Color("#222c39") if hot else Color("#141922"), UI_GOLD if hot else UI_LIGHT)
     draw_texture_rect(ICONS["engranaje"], Rect2(GEAR_RECT.position + Vector2(10, 10), Vector2(32, 32)), false)
+    _draw_update_banner()
     if toast_left > 0:
         _draw_toast()
 
@@ -5609,6 +5714,18 @@ const T := {
     "perfil": ["PERFIL", "PROFILE"],
     "habilidades": ["HABILIDADES", "ABILITIES"],
     "pantalla_completa": ["Pantalla completa", "Fullscreen"],
+    "buscar_actualizaciones": ["Buscar actualizaciones al abrir", "Check for updates on launch"],
+    "act_nueva": ["NUEVA VERSIÓN %s DISPONIBLE", "NEW VERSION %s AVAILABLE"],
+    "act_actual": ["Tienes la %s. Tu partida se conserva.", "You have %s. Your save is kept."],
+    "act_actualizar": ["ACTUALIZAR", "UPDATE"],
+    "act_ahora_no": ["AHORA NO", "NOT NOW"],
+    "act_descargando": ["DESCARGANDO %s · %d%%", "DOWNLOADING %s · %d%%"],
+    "act_instalando": ["INSTALANDO… EL JUEGO SE REABRIRÁ SOLO", "INSTALLING… THE GAME WILL REOPEN"],
+    "act_android": ["ABRE LA DESCARGA Y TOCA «INSTALAR»", "OPEN THE DOWNLOAD AND TAP «INSTALL»"],
+    "act_android2": ["Android pide confirmarlo. Tu partida se conserva.", "Android asks you to confirm. Your save is kept."],
+    "act_error": ["NO SE PUDO ACTUALIZAR SOLO (%s)", "COULD NOT UPDATE BY ITSELF (%s)"],
+    "act_a_mano": ["DESCARGAR", "DOWNLOAD"],
+    "act_cerrar": ["CERRAR", "CLOSE"],
     "creditos": ["CRÉDITOS", "CREDITS"],
     "saltar_tutorial": ["SALTAR TUTORIAL", "SKIP TUTORIAL"],
     "volver_inicio": ["VOLVER AL INICIO", "BACK TO START SCREEN"],
@@ -5636,7 +5753,8 @@ const LEGAL := {
     ],
     "politica": [
         ["Qué guarda: tu progreso (almas, identidad, habilidades, Ecos) y tus ajustes (volumen, teclas, idioma, si aceptaste este acuerdo).", "What is stored: your progress (souls, identity, abilities, Echoes) and your settings (volume, keys, language, whether you accepted this agreement)."],
-        ["Dónde: solo en este equipo, en la carpeta de datos del juego. Nada se envía por internet.", "Where: only on this device, in the game's data folder. Nothing is sent over the internet."],
+        ["Dónde: solo en este equipo, en la carpeta de datos del juego. Tus datos no se envían por internet.", "Where: only on this device, in the game's data folder. Your data is not sent over the internet."],
+        ["Actualizaciones: al abrir, el juego pregunta a GitHub si hay versión nueva; GitHub ve tu IP y la versión del juego. Se apaga en Configuración > Sonido.", "Updates: on launch, the game asks GitHub whether there is a new version; GitHub sees your IP and the game version. Turn it off in Settings > Sound."],
         ["Qué no hace: no hay cuentas, ni publicidad, ni estadísticas, ni seguimiento.", "What it does not do: no accounts, no ads, no analytics, no tracking."],
         ["Tus derechos: puedes borrar todos tus datos desde Configuración > Privacidad > Borrar mis datos.", "Your rights: you can delete all your data from Settings > Privacy > Delete my data."],
     ],
@@ -5832,9 +5950,9 @@ func _settings_widgets() -> Array:
         return list
     match settings_tab:
         0:
-            var rows := [["slider", "volumen_general", "vol_general"], ["slider", "volumen_musica", "vol_musica"], ["slider", "volumen_efectos", "vol_efectos"], ["toggle", "silencio", "silencio"], ["toggle", "pantalla_completa", "pantalla_completa"]]
+            var rows := [["slider", "volumen_general", "vol_general"], ["slider", "volumen_musica", "vol_musica"], ["slider", "volumen_efectos", "vol_efectos"], ["toggle", "silencio", "silencio"], ["toggle", "pantalla_completa", "pantalla_completa"], ["toggle", "buscar_actualizaciones", "buscar_actualizaciones"]]
             for i in range(rows.size()):
-                list.append({"kind": rows[i][0], "id": rows[i][1], "label": _t(rows[i][2]), "rect": Rect2(140, 172.0 + float(i) * 66.0, 680, 54)})
+                list.append({"kind": rows[i][0], "id": rows[i][1], "label": _t(rows[i][2]), "rect": Rect2(140, 168.0 + float(i) * 58.0, 680, 50)})
         1:
             for i in range(Ajustes.ORDEN.size()):
                 var action: String = Ajustes.ORDEN[i]
@@ -5972,6 +6090,8 @@ func _settings_activate(w: Dictionary, at: Vector2 = Vector2(-1, -1)) -> void:
             Ajustes.aplicar_audio()
             if w["id"] == "pantalla_completa":
                 _apply_window_mode()
+            elif w["id"] == "buscar_actualizaciones":
+                _start_updater()
             _sfx("toque", -8.0)
         "key":
             rebinding = w["id"]

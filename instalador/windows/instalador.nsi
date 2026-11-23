@@ -67,6 +67,9 @@ VIAddVersionKey /LANG=${LANG_SPANISH} "LegalCopyright" "© 2026 Jeremy De La Cru
 Section "Juego" SecJuego
   SectionIn RO
   SetOutPath "$INSTDIR"
+  ; Al actualizar desde el juego (/S) se da un momento para que se cierre solo.
+  IfSilent 0 +2
+    Sleep 1500
   ; Una versión anterior abierta impediría sobrescribir el ejecutable.
   nsExec::Exec 'taskkill /IM ElTemploDeLosEcos.exe /F'
   File "/oname=ElTemploDeLosEcos.exe" "${EXE}"
@@ -89,6 +92,13 @@ Section "Juego" SecJuego
   WriteRegDWORD HKCU "${CLAVE}" "NoModify" 1
   WriteRegDWORD HKCU "${CLAVE}" "NoRepair" 1
 SectionEnd
+
+; Actualización automática: el juego descarga este instalador y lo ejecuta con
+; /S (sin ventanas). Al terminar, vuelve a abrir el juego ya actualizado.
+Function .onInstSuccess
+  IfSilent 0 +2
+    Exec '"$INSTDIR\ElTemploDeLosEcos.exe"'
+FunctionEnd
 
 ; Desinstalar quita el programa. Las partidas guardadas (en %APPDATA%\Godot)
 ; se conservan, igual que al actualizar.

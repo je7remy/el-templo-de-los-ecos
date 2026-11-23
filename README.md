@@ -159,7 +159,20 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.5.8-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.8-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales. **Desinstala la versión anterior antes de instalarla**: la firma de depuración cambia entre compilaciones.
+Puedes descargar el [APK de prueba de v0.5.9-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.9-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales.
+
+Desde v0.5.9 el CI firma el APK con una **llave fija** guardada en los secretos del repositorio (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`), así que cada APK nuevo se instala encima del anterior y conserva la partida. Si esos secretos no existen, el CI usa una llave temporal y avisa: en ese caso hay que desinstalar la versión anterior antes de instalar la nueva. El paso de la llave temporal a la fija también exige desinstalar una vez.
+
+## Actualizaciones automáticas
+
+Desde v0.5.9, las copias instaladas (Android, Windows y Linux) consultan al abrir la lista de [releases](https://github.com/je7remy/el-templo-de-los-ecos/releases). Si hay una versión más nueva con archivo para su plataforma, el menú principal muestra **NUEVA VERSIÓN … DISPONIBLE** con **ACTUALIZAR** y **AHORA NO**:
+
+- **Windows (instalador):** descarga el `Setup.exe`, lo ejecuta sin ventanas (`/S`), y el instalador reemplaza el juego y lo vuelve a abrir.
+- **Windows (portable):** descarga el `.zip` y cambia `ElTemploDeLosEcos.exe` por el nuevo (el anterior queda como `.old.exe` y se borra al abrir).
+- **Linux:** descarga el `.tar.gz` y cambia el ejecutable por el nuevo, en su misma carpeta.
+- **Android:** abre la descarga del APK; Android pide confirmar la instalación (ninguna app puede instalarse sola).
+
+Si algo falla, el aviso ofrece **DESCARGAR** para bajarla a mano. Sin internet no se muestra nada. Se apaga en Configuración > Sonido > «Buscar actualizaciones al abrir». La partida vive aparte y no se toca. La versión del juego está en `project.godot` (`application/config/version`) y el CI comprueba que coincida con `export_presets.cfg`. El código está en `scripts/actualizador.gd` y sus pruebas en `tests/update_test.gd`.
 
 La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
@@ -169,7 +182,7 @@ Para los controles móviles y sus limitaciones, consulta la [guía Android y Vig
 
 Cada release incluye, junto al APK, dos archivos para Windows 10/11 de 64 bits:
 
-- **`ElTemploDeLosEcos-vX-Windows-Setup.exe`**: instalador. No pide permisos de administrador. Instala en `%LOCALAPPDATA%\Programs\El Templo de los Ecos`, crea accesos en el menú Inicio y el escritorio, y se desinstala desde «Aplicaciones instaladas». Para actualizar, se instala la versión nueva encima: la partida se conserva.
+- **`ElTemploDeLosEcos-vX-Windows-Setup.exe`**: instalador. No pide permisos de administrador. Instala en `%LOCALAPPDATA%\Programs\El Templo de los Ecos`, crea accesos en el menú Inicio y el escritorio, y se desinstala desde «Aplicaciones instaladas». Se actualiza solo desde el juego (ver «Actualizaciones automáticas») o instalando la versión nueva encima: la partida se conserva.
 - **`ElTemploDeLosEcos-vX-Windows-Portable.zip`**: el mismo juego sin instalar. Se descomprime y se abre `ElTemploDeLosEcos.exe`.
 
 No está firmado, así que Windows puede avisar con «Windows protegió tu PC»: **Más información → Ejecutar de todas formas**. El instalador trae un `LEEME.txt` (también en el menú Inicio) con los controles y cómo reportar errores. Lo más útil de un reporte es el registro del juego, en `%APPDATA%\Godot\app_userdata\El Templo de los Ecos\logs\godot.log`.
@@ -318,4 +331,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.8-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.9-alpha** (se publica al fusionar esta versión en `main`).
