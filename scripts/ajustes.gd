@@ -40,7 +40,8 @@ static func valores_por_defecto() -> Dictionary:
         teclas[accion] = int(ACCIONES[accion][2])
     return {
         "volumen_general": 0.9, "volumen_musica": 0.8, "volumen_efectos": 0.9, "silencio": false,
-        "pantalla_completa": false,
+        "pantalla_completa": true, # en PC el juego arranca a pantalla completa
+        "pantalla_v2": true,
         "teclas": teclas, "tactil": "auto", # auto, siempre, nunca
         "idioma": "es",
         "acuerdo_aceptado": false, "acuerdo_version": 0,
@@ -60,6 +61,11 @@ static func cargar() -> void:
         datos[clave] = cfg.get_value("ajustes", clave, datos[clave])
     for accion in ACCIONES:
         datos["teclas"][accion] = int(cfg.get_value("teclas", accion, datos["teclas"][accion]))
+    # Ajustes guardados antes de la v0.5.6 (ventana por defecto): pasan una vez
+    # a pantalla completa; luego se respeta lo que elija el jugador.
+    if not cfg.has_section_key("ajustes", "pantalla_v2"):
+        datos["pantalla_completa"] = true
+        datos["pantalla_v2"] = true
 
 
 static func guardar() -> void:

@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://smhufm7psdcq"
-path="res://.godot/imported/Silkscreen-Cifras.ttf-7b49265edd0c884979216ae3cda532e6.fontdata"
+uid="uid://bj7i7m4ano08o"
+path="res://.godot/imported/Jersey15-Templo.ttf-a9396fb455bcecdaadfb7727e31c93b6.fontdata"
 
 [deps]
 
-source_file="res://assets/fonts/Silkscreen-Cifras.ttf"
-dest_files=["res://.godot/imported/Silkscreen-Cifras.ttf-7b49265edd0c884979216ae3cda532e6.fontdata"]
+source_file="res://assets/fonts/Jersey15-Templo.ttf"
+dest_files=["res://.godot/imported/Jersey15-Templo.ttf-a9396fb455bcecdaadfb7727e31c93b6.fontdata"]
 
 [params]
 

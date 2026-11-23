@@ -1440,6 +1440,86 @@ func _run_checks() -> void:
     game.call("_allies_reset")
     print("OK: muerte legible, vida sin tope, péndulo entero, puertas con entidad, mensaje a Odón, PNJ que se separan y doce huecos.")
 
+    # Retoques v0.5.6: armas, equipo, PNJ que sueltan almas, tutorial sin gasto,
+    # pestañas apagadas en los textos legales, colisiones por la base y cámara.
+    game.set("weapon", "")
+    var torch_dmg: float = float(game.call("_strike_damage"))
+    game.set("current_floor", 1)
+    game.set("current_room", 1)
+    game.set("gear_owned", {})
+    game.call("_enter_room")
+    var gp: Dictionary = game.get("gear_pickup")
+    if gp.is_empty() or str(gp["key"]) != "espada":
+        _fail("La espada no aparece tirada en II-2.")
+        return
+    game.set("player_pos", gp["pos"])
+    game.call("_take_gear")
+    if str(game.get("weapon")) != "espada" or float(game.call("_strike_damage")) <= torch_dmg:
+        _fail("Recoger la espada no la equipa o no sube el daño.")
+        return
+    game.call("_enter_room")
+    if not (game.get("gear_pickup") as Dictionary).is_empty():
+        _fail("La espada vuelve a aparecer después de recogerla.")
+        return
+    var hp0: float = float(game.get("max_hp"))
+    game.call("_equip_gear", "peto")
+    if float(game.get("max_hp")) < hp0 + 19.0:
+        _fail("El peto no da vida máxima.")
+        return
+    game.call("_cycle_weapon")
+    game.set("weapon", "")
+    game.set("gear", {})
+    game.set("max_hp", hp0)
+    game.set("hp", hp0)
+    # PNJ: al morir suelta lo que tomó y sus propias almas.
+    game.set("current_floor", 2)
+    game.set("current_room", 0)
+    game.call("_allies_reset")
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    var dying: Dictionary = (game.get("allies") as Array)[0]
+    dying["hoard"] = 12
+    var n_drops: int = (game.get("drops") as Array).size()
+    game.call("_ally_die", dying)
+    var dr: Array = game.get("drops")
+    if dr.size() != n_drops + 1 or int(dr[dr.size() - 1]["value"]) != 12 + int(game.get("ALLY_OWN_SOULS")):
+        _fail("El PNJ muerto no suelta sus almas.")
+        return
+    game.call("_allies_reset")
+    # Colisiones: los objetos altos solo chocan por la base.
+    var tall: Rect2 = game.call("_tighten_obstacle", Rect2(300, 280, 60, 110))
+    if tall.size.y > 24.0 or tall.end.y != 390.0:
+        _fail("Los objetos altos siguen chocando por toda su altura.")
+        return
+    # Sin pantalla (pruebas) no hay zoom: la cámara no mueve nada.
+    if float(game.get("cam_zoom")) != 1.0 or game.get("world_xf") != Transform2D.IDENTITY:
+        _fail("La cámara de pantalla ancha cambia la vista sin pantalla.")
+        return
+    # Tutorial: los fósforos no se gastan.
+    game.set("in_tutorial", true)
+    game.set("matches", 2)
+    game.call("_spend_match")
+    var bag_t: Dictionary = game.get("bag")
+    bag_t["pan"] = 1
+    game.call("_use_bag_item", "pan")
+    if int(game.get("matches")) != 2 or int((game.get("bag") as Dictionary).get("pan", 0)) != 1:
+        _fail("En el tutorial se gastan fósforos u objetos.")
+        return
+    game.set("in_tutorial", false)
+    # Textos legales: las pestañas de arriba no responden hasta pulsar VOLVER.
+    game.set("legal_page", "acuerdo")
+    game.set("settings_tab", 3)
+    for w in game.call("_settings_widgets"):
+        if str(w["kind"]) == "tab" and int(w["id"]) == 0:
+            game.call("_settings_activate", w)
+    if int(game.get("settings_tab")) != 3 or str(game.get("legal_page")) != "acuerdo":
+        _fail("Las pestañas cambian mientras se leen los términos.")
+        return
+    game.set("legal_page", "")
+    game.set("game_mode", "play")
+    print("OK: armas, equipo, PNJ que sueltan almas, colisiones por la base, cámara, tutorial sin gasto y términos sin pestañas.")
+
     var Ajustes = load("res://scripts/ajustes.gd")
     # Borrar perfil: todo el progreso fuera y vuelta a empezar (intro, tutorial, personaje).
     game.set("player_name", "SELENE")

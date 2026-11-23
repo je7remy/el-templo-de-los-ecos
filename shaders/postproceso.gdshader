@@ -17,6 +17,11 @@ uniform float grain : hint_range(0.0, 0.2) = 0.035;
 uniform float time = 0.0;
 uniform vec3 shadow_tint = vec3(0.07, 0.03, 0.10);
 uniform vec3 light_tint = vec3(1.05, 0.98, 0.88);
+// Color vivo y legible (inspirado en Soul Knight): más saturación, algo de
+// contraste y una exposición un poco más alta.
+uniform float saturation : hint_range(0.0, 2.0) = 1.22;
+uniform float contrast : hint_range(0.5, 1.5) = 1.07;
+uniform float exposure : hint_range(0.5, 2.0) = 1.10;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -45,6 +50,11 @@ void fragment() {
 		// Gradación de color.
 		float l = dot(c, vec3(0.299, 0.587, 0.114));
 		c = mix(c + shadow_tint * (1.0 - l) * 0.45, c * light_tint, smoothstep(0.15, 0.8, l));
+		// Color vivo: exposición, saturación y contraste.
+		c *= exposure;
+		float g = dot(c, vec3(0.299, 0.587, 0.114));
+		c = mix(vec3(g), c, saturation);
+		c = (c - 0.5) * contrast + 0.5;
 		// Viñeta centrada en la sala.
 		vec2 center = (arena.xy + arena.zw) * 0.5;
 		vec2 half_size = (arena.zw - arena.xy) * 0.5;
