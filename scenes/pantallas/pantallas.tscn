@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/pantallas/gestor_pantallas.gd" id="1_gestor"]
 [ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" path="res://scenes/pantallas/creacion.tscn" id="21_creacion"]
 [ext_resource type="PackedScene" path="res://scenes/pantallas/habilidades.tscn" id="22_habilidades"]
 [ext_resource type="PackedScene" path="res://scenes/pantallas/mapa.tscn" id="23_mapa"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/perfil.tscn" id="24_perfil"]
 
 [node name="Pantallas" type="CanvasLayer"]
 layer = 2
@@ -75,4 +76,7 @@ visible = false
 visible = false
 
 [node name="Mapa" parent="Maquina" instance=ExtResource("23_mapa")]
+visible = false
+
+[node name="Perfil" parent="Maquina" instance=ExtResource("24_perfil")]
 visible = false

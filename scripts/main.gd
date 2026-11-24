@@ -33,6 +33,7 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 const Pisos := preload("res://scripts/datos/pisos.gd")
 const Actualizador := preload("res://scripts/actualizador.gd")
 const Estilo := preload("res://scripts/ui/estilo.gd")
+const EquipoRetrato := preload("res://scripts/ui/equipo_retrato.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -864,10 +865,6 @@ func _input_game(event: InputEvent) -> void:
         return
     elif event is InputEventMouseMotion:
         ui_hover = make_input_local(event).position
-        if game_mode == "inventory":
-            var slot_h: int = _inventory_slot_at(ui_hover)
-            if slot_h >= 0:
-                inventory_sel = slot_h
         queue_redraw()
         return
     elif event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION:
@@ -878,9 +875,6 @@ func _input_game(event: InputEvent) -> void:
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
         var click_at: Vector2 = make_input_local(event).position
         _click_spark(click_at)
-        if game_mode == "inventory":
-            _mobile_tap(click_at)
-            return
         if game_mode == "play" and click_at.y < 104.0:
             _mobile_tap(click_at) # botones del HUD (retrato, pausa, habilidades)
             return
@@ -898,25 +892,7 @@ func _input_game(event: InputEvent) -> void:
         Ajustes.poner("pantalla_completa", not bool(Ajustes.obtener("pantalla_completa")))
         _apply_window_mode()
         return
-    if game_mode == "inventory":
-        if k in [_key("perfil"), KEY_TAB, KEY_ESCAPE, KEY_E]:
-            _close_inventory()
-        elif k == _key("habilidades"):
-            _open_abilities()
-        elif k == KEY_O:
-            _profile_switch_tab()
-        elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
-            _profile_use_selected()
-        elif k in [KEY_RIGHT, KEY_D]:
-            inventory_sel = (inventory_sel % 100 + 1) % _inventory_slot_count()
-        elif k in [KEY_LEFT, KEY_A]:
-            inventory_sel = (inventory_sel % 100 + _inventory_slot_count() - 1) % _inventory_slot_count()
-        elif k in [KEY_DOWN, KEY_S]:
-            inventory_sel = (inventory_sel % 100 + (OBJECT_COLS if profile_tab == 1 else 3)) % _inventory_slot_count()
-        elif k in [KEY_UP, KEY_W]:
-            var step: int = OBJECT_COLS if profile_tab == 1 else 3
-            inventory_sel = (inventory_sel % 100 + _inventory_slot_count() - step) % _inventory_slot_count()
-    elif game_mode == "play":
+    if game_mode == "play":
         # Teclas reasignables desde Configuración > Controles.
         if k == _key("interactuar"):
             _interact()
@@ -1064,6 +1040,8 @@ func _screen_data(mode: String) -> Dictionary:
             _abilities_screen_data(d)
         "map":
             _map_screen_data(d)
+        "inventory":
+            _profile_screen_data(d)
         "pause":
             d["titulo"] = _tc(_t("pausa"))
             d["opciones"] = _pause_options().map(func(id): return [id, _t(id)])
@@ -1147,6 +1125,149 @@ func _abilities_screen_data(d: Dictionary) -> void:
     d["tecla_habilidades"] = _key("habilidades")
     var paging: String = " · ◀ ▶ páginas" if pages > 1 else ""
     d["ayuda"] = _hint("%s / ESC: cerrar%s" % [_key_label("habilidades"), paging], "Flechas: páginas · toca fuera para cerrar" if pages > 1 else "Toca para cerrar", "B: cerrar%s" % (" · cruceta/LB: páginas" if pages > 1 else ""))
+
+
+## Perfil (scenes/pantallas/perfil.tscn): ficha, pestañas, casillas y la
+## descripción de la señalada. La escena solo dibuja; aquí se decide todo.
+func _profile_screen_data(d: Dictionary) -> void:
+    d["retrato"] = _portrait(hp / max_hp < 0.35)
+    d["equipo_retrato"] = _portrait_gear_worn()
+    d["nombre"] = _hero_name()
+    d["identidad"] = identity_number
+    d["lugar"] = "PISO %s · SALA %d" % [_floor()["number"], current_room + 1]
+    d["destino"] = "Recuerda sus vidas" if reincarnations > 0 else "Primera vida"
+    d["nivel"] = player_level
+    d["xp_texto"] = "MÁXIMO" if player_level >= LEVEL_MAX else "%d/%d XP" % [xp, _xp_needed(player_level)]
+    d["xp_fraccion"] = _xp_fraction()
+    d["barras"] = [
+        {"fraccion": minf(1.0, hp / max_hp), "color": BAR_HP, "texto": ("VIDA %d/%d" % [int(ceil(hp)), int(max_hp)]) + ((" +%d" % int(ceil(hp - max_hp))) if hp > max_hp else "")},
+        {"fraccion": stamina / 100.0, "color": BAR_VIGOR, "texto": "VIGOR %d" % int(stamina)},
+        {"fraccion": fear / 100.0, "color": BAR_FEAR, "texto": "MIEDO %d%%" % int(fear)},
+    ]
+    d["estadisticas"] = [
+        ["Daño del golpe", "%d" % int(_strike_damage())],
+        ["Daño de Resonancia", ("%d" % int(_pulse_damage())) if has_pulse else "—"],
+        ["Almas", "%d" % souls],
+        ["Muertes", "%d" % deaths],
+        ["Retornos", "%d" % reincarnations],
+        ["Pisos superados", "%d" % cleared],
+        ["Vida máxima", "%d" % int(max_hp)],
+        ["Marca", {"bendicion": "Bendición", "maldicion": "Maldición"}.get(_mark(), "Ninguna") + " (%+d)" % karma],
+    ]
+    d["pestana"] = profile_tab
+    d["pestanas"] = ["MOCHILA Y HABILIDADES", "OBJETOS (%d)" % _object_slots().size(), "EQUIPO"]
+    d["seleccion"] = inventory_sel
+    d["icono_habilidades"] = ICONS["habilidades"]
+    d["boton_habilidades"] = "HABILIDADES" if touch_enabled and not pad_active else "HABILIDADES (%s)" % _key_label("habilidades")
+    d["tecla_perfil"] = _key("perfil")
+    d["tecla_habilidades"] = _key("habilidades")
+    d["ayuda"] = _hint("I / ESC: cerrar", "Toca fuera para cerrar", "B: cerrar")
+    if profile_tab == 0:
+        var mochila: Array = []
+        for i in range(INVENTORY_SLOTS.size()):
+            var key: String = INVENTORY_SLOTS[i][0]
+            if key == "antorcha" and torch_on:
+                key = "antorcha_encendida"
+            var owned: bool = _slot_owned(i)
+            var title: String = INVENTORY_SLOTS[i][1]
+            if INVENTORY_SLOTS[i][0] == "fosforos" and owned:
+                title = "FÓSFOROS x%s" % _matches_label()
+            mochila.append({"icono": ICONS[key], "nombre": title, "tiene": owned})
+        d["mochila"] = mochila
+    elif profile_tab == 1:
+        d["objetos"] = _object_slots().map(func(o: Array) -> Dictionary:
+            return {"icono": ICONS[o[0]], "nombre": o[1], "detalle": o[2], "usable": o[4]})
+    else:
+        var huecos: Array = []
+        for i in range(EQUIP_SLOTS.size()):
+            var key: String = _equip_in_slot(i)
+            var cand: String = _equip_candidate(i)
+            var icon: String = key
+            var ghost: bool = false
+            if icon == "" and i == 0 and has_torch:
+                icon = "antorcha"
+            elif icon == "" and cand != "":
+                icon = cand
+                ghost = true # lo tienes, pero quitado
+            var nm: String = "—"
+            if key != "":
+                nm = _equip_name(key)
+            elif i == 0:
+                nm = "ANTORCHA" if has_torch else "SIN ARMA"
+            elif cand != "":
+                nm = "QUITADO"
+            huecos.append({"etiqueta": EQUIP_SLOTS[i][1], "icono": ICONS[icon] if icon != "" and ICONS.has(icon) else null,
+                "fantasma": ghost, "nombre": nm, "lleno": key != "", "activo": key != "" or (i == 0 and has_torch)})
+        d["huecos"] = huecos
+        d["encontrado"] = _equip_owned_list().map(func(k: String) -> Dictionary:
+            return {"icono": ICONS[k], "puesto": weapon == k or gear.values().has(k)})
+    if profile_tab != 2:
+        d["ecos"] = ECOS.keys().map(func(k) -> Dictionary:
+            return {"icono": ICONS["eco_" + str(k)], "tiene": ecos.has(k)})
+    d["descripcion"] = _profile_desc()
+
+
+## Lo que dice el recuadro de abajo sobre la casilla señalada.
+func _profile_desc() -> Dictionary:
+    var dim := Color("#8a8778")
+    if inventory_sel >= 100 and profile_tab != 2:
+        var ek: String = str(ECOS.keys()[clampi(inventory_sel - 100, 0, ECOS.size() - 1)])
+        var has_e: bool = ecos.has(ek)
+        return {"titulo": ("ECO · " + ECOS[ek][0]) if has_e else "ECO SIN DESPERTAR", "color_titulo": SOUL if has_e else Color("#6d6a60"),
+            "texto": ECOS[ek][1] if has_e else "Supera un piso para despertarlo.", "color_texto": CREAM if has_e else dim}
+    if profile_tab == 1:
+        var list: Array = _object_slots()
+        if inventory_sel < 0 or inventory_sel >= list.size():
+            return {"titulo": "SIN OBJETOS", "color_titulo": Color("#6d6a60"), "texto": "Cómpralos al Mercader del Piso VI o gánalos en la Vigilia.", "color_texto": dim}
+        var o: Array = list[inventory_sel]
+        return {"envuelto": true, "titulo": o[1], "texto": o[3], "color_texto": SOUL,
+            "pie": _hint("ENTER: usar", "Toca otra vez: usar", "A: usar") if bool(o[4]) else "", "pie_derecha": true}
+    if profile_tab == 2:
+        var key: String = ""
+        if inventory_sel < 10:
+            var si: int = clampi(inventory_sel, 0, EQUIP_SLOTS.size() - 1)
+            key = _equip_in_slot(si)
+            if key == "":
+                key = _equip_candidate(si)
+        else:
+            var owned: Array = _equip_owned_list()
+            if inventory_sel - 10 < owned.size():
+                key = owned[inventory_sel - 10]
+        if key == "":
+            return {"titulo": "HUECO VACÍO", "color_titulo": Color("#6d6a60"), "texto": "Las armas y piezas de equipo están tiradas por las salas.",
+                "color_texto": dim, "tam_texto": 12, "y_titulo": 476, "y_texto": 498}
+        var worn_now: bool = weapon == key or gear.values().has(key) or (key == "mascara" and _mask_worn()) or (key in ["amuleto", "brazalete"] and _worn(key))
+        var desc := {"envuelto": true, "titulo": _equip_name(key) + ("" if worn_now else " · QUITADO"), "color_titulo": CREAM if worn_now else dim,
+            "texto": _equip_desc(key), "color_texto": SOUL if worn_now else Color("#6d6a60")}
+        if WEAPONS.has(key):
+            var w: Dictionary = WEAPONS[key]
+            desc["pie"] = "DAÑO ×%.2f · ALCANCE %d · RITMO %.2f s · VIGOR %d" % [float(w["dmg"]), int(w["range"]), float(w["cd"]), int(w["cost"])]
+        return desc
+    var sel: int = clampi(inventory_sel, 0, INVENTORY_SLOTS.size() - 1)
+    var owned_sel: bool = _slot_owned(sel)
+    return {"titulo": INVENTORY_SLOTS[sel][1] if owned_sel else "???", "color_titulo": CREAM if owned_sel else Color("#6d6a60"),
+        "texto": INVENTORY_SLOTS[sel][2] if owned_sel else "Aún no lo tienes.", "color_texto": SOUL if owned_sel else dim}
+
+
+## Flechas, WASD, cruceta o stick dentro del perfil (como antes en main.gd).
+func _profile_move(dir: Vector2i) -> void:
+    var n: int = _inventory_slot_count()
+    var step: int = 1
+    if dir.y != 0:
+        step = OBJECT_COLS if profile_tab == 1 else 3
+    var delta: int = step * (dir.x + dir.y)
+    inventory_sel = (inventory_sel % 100 + n + delta % n) % n
+
+
+## Toque o clic en una casilla del perfil.
+func _profile_tap(i: int) -> void:
+    if profile_tab == 2:
+        inventory_sel = i
+        _equip_tap(i)
+        return
+    if i == inventory_sel and profile_tab == 1:
+        _profile_use_selected() # segundo toque: usar
+    inventory_sel = i
 
 
 ## Mapa grande: lo que se sabe de cada sala de este piso y del descenso.
@@ -1255,7 +1376,7 @@ func _shop_screen_data(d: Dictionary) -> void:
 
 
 ## Pantallas que cambian mientras se ven: se les pasan datos nuevos cada cuadro.
-const LIVE_SCREENS := ["dialog", "dead", "victory", "shop", "altar", "intro", "create", "abilities", "map"]
+const LIVE_SCREENS := ["dialog", "dead", "victory", "shop", "altar", "intro", "create", "abilities", "map", "inventory"]
 
 
 ## Muestra la escena de la pantalla actual (o ninguna) y ajusta los avisos.
@@ -1410,6 +1531,27 @@ func _on_screen_action(screen: StringName, choice: StringName, value: Variant = 
                     _sfx("toque", -14.0, 1.0)
                 _:
                     _close_map()
+        &"Perfil":
+            match choice:
+                &"pestana":
+                    if profile_tab != int(value):
+                        profile_tab = int(value)
+                        inventory_sel = 0
+                        _sfx("toque", -14.0, 1.0)
+                &"cambiar_pestana":
+                    _profile_switch_tab()
+                &"senalar":
+                    inventory_sel = int(value)
+                &"tocar":
+                    _profile_tap(int(value))
+                &"usar":
+                    _profile_use_selected()
+                &"mover":
+                    _profile_move(value)
+                &"habilidades":
+                    _open_abilities()
+                _:
+                    _close_inventory()
         &"Pausa":
             var opts: Array = _pause_options()
             if opts.has(String(choice)):
@@ -1479,18 +1621,6 @@ func _pad_button(b: int) -> void:
     if dpad.has(b):
         _pad_menu_step(dpad[b])
         return
-    match game_mode:
-        "inventory":
-            match b:
-                JOY_BUTTON_RIGHT_SHOULDER:
-                    _pad_key(_key("habilidades"))
-                JOY_BUTTON_A:
-                    _pad_key(KEY_ENTER)
-                JOY_BUTTON_Y:
-                    _pad_key(KEY_O)
-                JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK, JOY_BUTTON_START:
-                    _pad_key(KEY_ESCAPE)
-            return
     match b:
         JOY_BUTTON_A, JOY_BUTTON_START:
             _pad_key(KEY_ENTER)
@@ -1622,36 +1752,6 @@ func _mobile_update_axis(at: Vector2) -> void:
 
 func _mobile_tap(at: Vector2) -> void:
     ui_hover = at
-    if game_mode == "inventory":
-        if PROFILE_ABIL_BTN.has_point(at):
-            _open_abilities()
-            return
-        for t in range(3):
-            if _profile_tab_rect(t).has_point(at):
-                if profile_tab != t:
-                    profile_tab = t
-                    inventory_sel = 0
-                    _sfx("toque", -14.0, 1.0)
-                return
-        if profile_tab == 2:
-            for i in range(EQUIP_SLOTS.size()):
-                if _equip_slot_rect(i).has_point(at):
-                    inventory_sel = i
-                    _equip_tap(i)
-                    return
-            for i in range(8):
-                if _equip_owned_rect(i).has_point(at):
-                    inventory_sel = 10 + i
-                    _equip_tap(10 + i)
-                    return
-        var slot: int = _inventory_slot_at(at)
-        if slot >= 0:
-            if slot == inventory_sel and profile_tab == 1:
-                _profile_use_selected() # segundo toque: usar
-            inventory_sel = slot
-        else:
-            _close_inventory()
-        return
     if game_mode != "play":
         return
     if ABIL_BTN.has_point(at):
@@ -1957,39 +2057,15 @@ func _slot_owned(i: int) -> bool:
     return false
 
 
-## EQUIPO Y MOCHILA: arriba lo que llevas (madera, fósforos, antorcha) y,
-## bajo su título, las HABILIDADES NATIVAS (llama interior, golpe, Resonancia).
-func _inventory_slot_rect(i: int) -> Rect2:
-    return Rect2(372.0 + float(i % 3) * 168.0, 116.0 + float(i / 3) * 128.0, 160.0, 98.0)
-
-
-## OBJETOS: rejilla de 4 × 3 (doce huecos; ya no se pierden los del séptimo en adelante).
+## OBJETOS: rejilla de 4 × 3 (la dibuja scenes/pantallas/perfil.tscn).
 const OBJECT_COLS := 4
 const OBJECT_SLOTS_MAX := 12
-func _object_slot_rect(i: int) -> Rect2:
-    return Rect2(372.0 + float(i % OBJECT_COLS) * 126.0, 104.0 + float(i / OBJECT_COLS) * 84.0, 118.0, 78.0)
 
 
 func _inventory_slot_count() -> int:
     if profile_tab == 2:
         return EQUIP_SLOTS.size()
     return OBJECT_SLOTS_MAX if profile_tab == 1 else INVENTORY_SLOTS.size()
-
-
-func _inventory_slot_at(at: Vector2) -> int:
-    if profile_tab == 2:
-        return -1 # EQUIPO tiene sus propios huecos (se resuelven antes)
-    for i in range(_inventory_slot_count()):
-        if (_object_slot_rect(i) if profile_tab == 1 else _inventory_slot_rect(i)).has_point(at):
-            return i
-    for i in range(ECOS.size()):
-        if _profile_eco_rect(i).has_point(at):
-            return 100 + i
-    return -1
-
-
-func _profile_eco_rect(i: int) -> Rect2:
-    return Rect2(372.0 + float(i) * 49.0, 382.0, 44.0, 44.0) # caben los diez Ecos
 
 
 # ---------------------------------------------------------------- COMBATE
@@ -2769,10 +2845,8 @@ func _draw() -> void:
     _draw_mission_banner()
     _draw_room_souls_counter()
     _draw_room_fade()
-    # Altar, tienda, elección, diálogo, resumen, muerte/victoria y entrada al
-    # piso son escenas (scenes/pantallas/), por encima de esto.
-    if game_mode == "inventory":
-        _draw_inventory_overlay()
+    # Altar, tienda, elección, diálogo, resumen, muerte/victoria, entrada al
+    # piso y perfil son escenas (scenes/pantallas/), por encima de esto.
     _draw_tutorial_overlay()
     _draw_mobile_controls()
     # Los avisos de nivel y de botín los dibuja la capa de avisos
@@ -3964,110 +4038,6 @@ func _start_updater() -> void:
     _sync_screens()
 
 
-func _draw_inventory_overlay() -> void:
-    ## PERFIL del jugador (I / Tab, o tocar el retrato): ficha de personaje al
-    ## estilo de los roguelike de acción. Izquierda: retrato y estadísticas.
-    ## Derecha: equipo y habilidades, Ecos y la descripción de lo señalado.
-    draw_rect(_full_rect(), Color(0, 0, 0, 0.78))
-    var sheet := Rect2(70, 46, 820, 548)
-    _panel(sheet, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
-    _panel(Rect2(380, 34, 200, 30), Color("#2a1d22"), UI_GOLD)
-    _title_text("Perfil", Vector2(380, 58), 24, CREAM, 200.0)
-    # --- Columna izquierda: retrato y datos.
-    var frame := Rect2(102, 84, 140, 140)
-    _panel(frame, Color("#1a1f2a"), UI_GOLD)
-    draw_texture_rect(_portrait(hp / max_hp < 0.35), Rect2(frame.position + Vector2(6, 6), Vector2(128, 128)), false)
-    _draw_portrait_gear(Rect2(frame.position + Vector2(6, 6), Vector2(128, 128)))
-    _text_outline(_hero_name(), Vector2(252, 112), 26, CREAM)
-    _text_outline("IDENTIDAD %03d" % identity_number, Vector2(252, 136), 13, Color("#a0b6b2"))
-    _text_outline("PISO %s · SALA %d" % [_floor()["number"], current_room + 1], Vector2(252, 158), 13, UI_GOLD)
-    var fate: String = "Recuerda sus vidas" if reincarnations > 0 else "Primera vida"
-    _text_outline(fate, Vector2(252, 180), 12, Color("#8a8574"))
-    _text_outline("NIVEL %d" % player_level, Vector2(252, 204), 14, UI_GOLD)
-    var xp_label: String = "MÁXIMO" if player_level >= LEVEL_MAX else "%d/%d XP" % [xp, _xp_needed(player_level)]
-    _px_bar(Rect2(252, 210, 108, 14), _xp_fraction(), Color("#c9a25e"), xp_label)
-    _px_bar(Rect2(102, 236, 238, 18), minf(1.0, hp / max_hp), BAR_HP, ("VIDA %d/%d" % [int(ceil(hp)), int(max_hp)]) + ((" +%d" % int(ceil(hp - max_hp))) if hp > max_hp else ""))
-    _px_bar(Rect2(102, 258, 238, 18), stamina / 100.0, BAR_VIGOR, "VIGOR %d" % int(stamina))
-    _px_bar(Rect2(102, 280, 238, 18), fear / 100.0, BAR_FEAR, "MIEDO %d%%" % int(fear))
-    var stats := [
-        ["Daño del golpe", "%d" % int(_strike_damage())],
-        ["Daño de Resonancia", ("%d" % int(_pulse_damage())) if has_pulse else "—"],
-        ["Almas", "%d" % souls],
-        ["Muertes", "%d" % deaths],
-        ["Retornos", "%d" % reincarnations],
-        ["Pisos superados", "%d" % cleared],
-        ["Vida máxima", "%d" % int(max_hp)],
-        ["Marca", {"bendicion": "Bendición", "maldicion": "Maldición"}.get(_mark(), "Ninguna") + " (%+d)" % karma],
-    ]
-    _panel(Rect2(96, 310, 250, 268), Color("#0f1218"))
-    for i in range(stats.size()):
-        var y: float = 338.0 + float(i) * 29.0
-        _text_outline(stats[i][0], Vector2(112, y), 13, Color("#b9b29b"))
-        draw_string(font, Vector2(112, y), stats[i][1], HORIZONTAL_ALIGNMENT_RIGHT, 220.0, 15, CREAM)
-        if i < stats.size() - 1:
-            draw_rect(Rect2(112, y + 11.0, 220, 1), Color(1, 1, 1, 0.06))
-    # --- Columna derecha: pestañas EQUIPO / OBJETOS (casillas seleccionables).
-    for t in range(3):
-        var tr: Rect2 = _profile_tab_rect(t)
-        var on: bool = profile_tab == t
-        _panel(tr, Color("#2a1d22") if on else Color("#141922"), UI_GOLD if on else UI_EDGE)
-        _text_outline(["MOCHILA Y HABILIDADES", "OBJETOS (%d)" % _object_slots().size(), "EQUIPO"][t], Vector2(tr.position.x, tr.position.y + 17.0), 12, CREAM if on else Color("#9a957f"), tr.size.x)
-    if profile_tab == 0:
-        # Dos grupos con título: lo que llevas y lo que sabes hacer.
-        _text_outline("MOCHILA", Vector2(372, 111), 12, UI_GOLD)
-        draw_rect(Rect2(440, 106, 428, 1), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.3))
-        _text_outline("HABILIDADES NATIVAS", Vector2(372, 239), 12, SOUL)
-        draw_rect(Rect2(528, 234, 340, 1), Color(SOUL.r, SOUL.g, SOUL.b, 0.3))
-    for i in range(INVENTORY_SLOTS.size() if profile_tab == 0 else 0):
-        var box: Rect2 = _inventory_slot_rect(i)
-        var owned: bool = _slot_owned(i)
-        var sel: bool = inventory_sel == i
-        _panel(box, Color("#222c39") if sel else Color("#141922"), UI_GOLD if sel else UI_EDGE)
-        var key: String = INVENTORY_SLOTS[i][0]
-        if key == "antorcha" and torch_on:
-            key = "antorcha_encendida"
-        draw_texture_rect(ICONS[key], Rect2(box.position + Vector2(roundf(box.size.x * 0.5) - 22.0, 8), Vector2(44, 44)), false, Color.WHITE if owned else Color(0.1, 0.1, 0.12, 0.9))
-        var title: String = INVENTORY_SLOTS[i][1] if owned else "???"
-        if INVENTORY_SLOTS[i][0] == "fosforos" and owned:
-            title = "FÓSFOROS x%s" % _matches_label()
-        _text_outline(title, Vector2(box.position.x, box.end.y - 10.0), 11, CREAM if owned else Color("#5d5a52"), box.size.x)
-    if profile_tab == 1:
-        _draw_object_slots()
-    elif profile_tab == 2:
-        _draw_equip_tab()
-    # --- Ecos: iconos compactos (caben los diez pisos); el detalle está en HABILIDADES.
-    var keys: Array = ECOS.keys() if profile_tab != 2 else []
-    if profile_tab != 2:
-        _text_outline("ECOS", Vector2(372, 368), 13, UI_GOLD)
-    for i in range(keys.size()):
-        var r: Rect2 = _profile_eco_rect(i)
-        var has_it: bool = ecos.has(keys[i])
-        var sel_e: bool = inventory_sel == 100 + i
-        _panel(r, Color("#222c39") if sel_e else Color("#141922"), UI_GOLD if sel_e else (Color("#3b6f7d") if has_it else UI_EDGE))
-        draw_texture_rect(ICONS["eco_" + str(keys[i])], Rect2(r.position + Vector2(6, 6), Vector2(32, 32)), false, Color.WHITE if has_it else Color(0.15, 0.15, 0.18, 0.9))
-    var hot_ab: bool = PROFILE_ABIL_BTN.has_point(ui_hover)
-    _panel(PROFILE_ABIL_BTN, Color("#241a30") if hot_ab else Color("#141922"), UI_GOLD)
-    draw_texture_rect(ICONS["habilidades"], Rect2(PROFILE_ABIL_BTN.position + Vector2(8, 10), Vector2(24, 24)), false)
-    _text_outline("HABILIDADES" if touch_enabled and not pad_active else "HABILIDADES (%s)" % _key_label("habilidades"), Vector2(PROFILE_ABIL_BTN.position.x + 36.0, PROFILE_ABIL_BTN.position.y + 26.0), 12, CREAM)
-    # --- Descripción de la casilla señalada (cursor, flechas o toque).
-    var desc_box := Rect2(372, 454, 496, 76)
-    _panel(desc_box, Color("#0f1218"))
-    if inventory_sel >= 100:
-        var ek: String = str(ECOS.keys()[clampi(inventory_sel - 100, 0, ECOS.size() - 1)])
-        var has_e: bool = ecos.has(ek)
-        _text_outline(("ECO · " + ECOS[ek][0]) if has_e else "ECO SIN DESPERTAR", Vector2(388, 478), 15, SOUL if has_e else Color("#6d6a60"))
-        draw_string(font, Vector2(388, 502), ECOS[ek][1] if has_e else "Supera un piso para despertarlo.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, CREAM if has_e else Color("#8a8778"))
-    elif profile_tab == 1:
-        _draw_object_desc()
-    elif profile_tab == 2:
-        _draw_equip_desc()
-    else:
-        var owned_sel: bool = _slot_owned(inventory_sel)
-        _text_outline(INVENTORY_SLOTS[inventory_sel][1] if owned_sel else "???", Vector2(388, 478), 15, CREAM if owned_sel else Color("#6d6a60"))
-        draw_string(font, Vector2(388, 502), INVENTORY_SLOTS[inventory_sel][2] if owned_sel else "Aún no lo tienes.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, SOUL if owned_sel else Color("#8a8778"))
-    _text_outline(_hint("I / ESC: cerrar", "Toca fuera para cerrar", "B: cerrar"), Vector2(372, 564), 12, Color("#8a8574"), 320.0)
-
-
 ## Pantalla de entrada al piso (GDD §7): solo una vista parcial del interior,
 ## sin desvelar lo que hay tras las puertas.
 ## ¿Ya se puede cerrar la pantalla de muerte o de victoria? (se lee primero).
@@ -4943,41 +4913,13 @@ func _draw_hand_weapon(hand: Vector2, dir: int) -> void:
 
 
 ## Lo mismo sobre el retrato (64×64 de base, escalado al rectángulo dado).
+## El dibujo lo comparte con la pantalla de perfil (scripts/ui/equipo_retrato.gd).
 func _draw_portrait_gear(r: Rect2) -> void:
-    var k: float = r.size.x / 64.0
-    var o: Vector2 = r.position
-    var R := func(x: float, y: float, w: float, h: float, col: Color) -> void:
-        draw_rect(Rect2(o + Vector2(x, y) * k, Vector2(w, h) * k), col)
-    if gear.get("peto", "") != "":
-        R.call(6, 47, 52, 17, GEAR_OUTLINE)
-        R.call(7, 48, 50, 16, GEAR_STEEL)
-        R.call(7, 48, 50, 3, GEAR_STEEL_LIGHT)
-        R.call(31, 50, 2, 14, GEAR_STEEL_DARK)
-        R.call(2, 46, 10, 8, GEAR_LEATHER)
-        R.call(52, 46, 10, 8, GEAR_LEATHER)
-    if _worn("amuleto"):
-        for i in range(5):
-            R.call(23.0 + float(i) * 2.0, 44.0 + float(i), 2, 1, GEAR_GOLD)
-            R.call(39.0 - float(i) * 2.0, 44.0 + float(i), 2, 1, GEAR_GOLD)
-        R.call(30, 49, 5, 7, Color("#d8f0dc"))
-        R.call(31, 51, 3, 3, Color("#5f8f6a"))
-    if _mask_worn():
-        R.call(18, 15, 29, 27, GEAR_OUTLINE)
-        R.call(19, 16, 27, 25, MASK_WHITE)
-        R.call(19, 34, 27, 7, MASK_SHADE)
-        R.call(22, 22, 8, 5, Color(0.05, 0.04, 0.06))
-        R.call(35, 22, 8, 5, Color(0.05, 0.04, 0.06))
-        R.call(25, 27, 2, 6, MASK_RED)
-        R.call(38, 27, 2, 6, MASK_RED)
-        R.call(28, 35, 9, 2, MASK_RED)
-        R.call(33, 16, 1, 7, GEAR_OUTLINE)
-    if gear.get("casco", "") != "":
-        R.call(14, 3, 37, 19, GEAR_OUTLINE)
-        R.call(15, 4, 35, 17, GEAR_STEEL)
-        R.call(18, 4, 29, 3, GEAR_STEEL_LIGHT)
-        R.call(15, 18, 35, 3, GEAR_STEEL_DARK)
-        R.call(30, 21, 4, 9, GEAR_STEEL_DARK)
-        R.call(30, 0, 5, 4, Color(0.75, 0.2, 0.18))
+    EquipoRetrato.dibujar(self, r, _portrait_gear_worn())
+
+
+func _portrait_gear_worn() -> Dictionary:
+    return {"peto": gear.get("peto", "") != "", "amuleto": _worn("amuleto"), "mascara": _mask_worn(), "casco": gear.get("casco", "") != ""}
 
 
 ## Pestaña EQUIPO del perfil: siete huecos (arma, casco, peto, botas y los
@@ -4995,16 +4937,6 @@ func _mask_worn() -> bool:
 
 func _worn(key: String) -> bool:
     return trinkets.has(key) and not unworn.has(key)
-
-
-func _equip_slot_rect(i: int) -> Rect2:
-    if i < 4:
-        return Rect2(372.0 + float(i) * 126.0, 120.0, 118.0, 96.0)
-    return Rect2(372.0 + float(i - 4) * 126.0, 246.0, 118.0, 80.0)
-
-
-func _equip_owned_rect(i: int) -> Rect2:
-    return Rect2(372.0 + float(i % 8) * 62.0, 360.0, 56.0, 56.0)
 
 
 func _equip_owned_list() -> Array:
@@ -5144,76 +5076,6 @@ func _equip_desc(key: String) -> String:
         "brazalete":
             return "Golpe: +%d %% de daño." % (10 * _trinket_level("brazalete"))
     return ""
-
-
-func _draw_equip_tab() -> void:
-    _text_outline("LO QUE LLEVAS PUESTO · toca un hueco para quitar o poner", Vector2(372, 111), 12, UI_GOLD)
-    _text_outline("ACCESORIOS", Vector2(372, 240), 11, Color("#9a957f"))
-    for i in range(EQUIP_SLOTS.size()):
-        var box: Rect2 = _equip_slot_rect(i)
-        var key: String = _equip_in_slot(i)
-        var cand: String = _equip_candidate(i)
-        var sel: bool = inventory_sel == i
-        _panel(box, Color("#222c39") if sel else Color("#141922"), UI_GOLD if sel or key != "" else UI_EDGE)
-        _text_outline(EQUIP_SLOTS[i][1], Vector2(box.position.x, box.position.y + 15.0), 10, Color("#9a957f"), box.size.x)
-        var icon: String = key
-        var ghost: bool = false
-        if icon == "" and i == 0 and has_torch:
-            icon = "antorcha"
-        elif icon == "" and cand != "":
-            icon = cand
-            ghost = true # lo tienes, pero quitado
-        if icon != "" and ICONS.has(icon):
-            var isz: float = 40.0 if i < 4 else 32.0
-            draw_texture_rect(ICONS[icon], Rect2(box.position + Vector2(roundf(box.size.x * 0.5 - isz * 0.5), 20), Vector2(isz, isz)), false, Color(1, 1, 1, 0.3) if ghost else Color.WHITE)
-        var nm: String = "—"
-        if key != "":
-            nm = _equip_name(key)
-        elif i == 0:
-            nm = "ANTORCHA" if has_torch else "SIN ARMA"
-        elif cand != "":
-            nm = "QUITADO"
-        var nsize: int = 10
-        while nsize > 8 and font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, nsize).x > box.size.x - 8.0:
-            nsize -= 1
-        _text_outline(nm, Vector2(box.position.x, box.end.y - 9.0), nsize, CREAM if key != "" or (i == 0 and has_torch) else Color("#5d5a52"), box.size.x)
-    _text_outline("ENCONTRADO · toca para ponerlo o quitarlo", Vector2(372, 352), 12, SOUL)
-    var list: Array = _equip_owned_list()
-    for i in range(8):
-        var r: Rect2 = _equip_owned_rect(i)
-        var sel2: bool = inventory_sel == 10 + i
-        if i >= list.size():
-            _panel(r, Color("#10131a"), UI_EDGE)
-            continue
-        var k: String = list[i]
-        var on: bool = weapon == k or gear.values().has(k)
-        _panel(r, Color("#222c39") if sel2 else Color("#141922"), UI_GOLD if sel2 else (SOUL if on else UI_EDGE))
-        draw_texture_rect(ICONS[k], Rect2(r.position + Vector2(8, 8), Vector2(40, 40)), false, Color.WHITE if on else Color(1, 1, 1, 0.45))
-
-
-func _draw_equip_desc() -> void:
-    var key: String = ""
-    if inventory_sel < 10:
-        var si: int = clampi(inventory_sel, 0, EQUIP_SLOTS.size() - 1)
-        key = _equip_in_slot(si)
-        if key == "":
-            key = _equip_candidate(si)
-    else:
-        var list: Array = _equip_owned_list()
-        if inventory_sel - 10 < list.size():
-            key = list[inventory_sel - 10]
-    if key == "":
-        _text_outline("HUECO VACÍO", Vector2(388, 476), 15, Color("#6d6a60"))
-        draw_string(font, Vector2(388, 498), "Las armas y piezas de equipo están tiradas por las salas.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, Color("#8a8778"))
-        return
-    var worn_now: bool = weapon == key or gear.values().has(key) or (key == "mascara" and _mask_worn()) or (key in ["amuleto", "brazalete"] and _worn(key))
-    _text_outline(_equip_name(key) + ("" if worn_now else " · QUITADO"), Vector2(388, 476), 15, CREAM if worn_now else Color("#8a8778"))
-    var lines: PackedStringArray = _wrap_lines(_equip_desc(key), 470.0, 12)
-    for li in range(mini(2, lines.size())):
-        draw_string(font, Vector2(388, 496 + li * 15), lines[li], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, SOUL if worn_now else Color("#6d6a60"))
-    if WEAPONS.has(key):
-        var w: Dictionary = WEAPONS[key]
-        draw_string(font, Vector2(388, 526), "DAÑO ×%.2f · ALCANCE %d · RITMO %.2f s · VIGOR %d" % [float(w["dmg"]), int(w["range"]), float(w["cd"]), int(w["cost"])], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 11, Color("#ffd36b"))
 
 
 # ============================================================ MOBILIARIO DEL TEMPLO
@@ -6569,7 +6431,6 @@ func _hunt_mission_text() -> String:
 
 # ------------------------------------------------------------ JUGABILIDAD (etapa 1)
 const ABIL_BTN := Rect2(898, 62, 46, 36) # botón del HUD: pantalla de habilidades
-const PROFILE_ABIL_BTN := Rect2(706, 538, 162, 42)
 ## Regeneración: tras REGEN_WAIT s sin recibir daño, la vida vuelve poco a poco.
 const REGEN_WAIT := 4.0
 const REGEN_RATE := 2.0 # vida por segundo
@@ -9290,10 +9151,6 @@ func _heal(amount: float, overflow: bool = true) -> void:
     float_fx.append({"pos": player_pos + Vector2(0, -60), "text": "+%d" % int(round(hp - before)), "color": Color("#9fd8b0") if hp <= max_hp else Color("#ffd36b"), "t": 0.0})
 
 
-func _profile_tab_rect(t: int) -> Rect2:
-    return Rect2(372.0 + float(t) * 168.0, 72.0, 160.0, 24.0)
-
-
 func _profile_switch_tab() -> void:
     profile_tab = (profile_tab + 1) % 3
     inventory_sel = 0
@@ -9356,39 +9213,6 @@ func _use_bag_item(key: String) -> bool:
     _sfx("objeto", -6.0, 1.1)
     _say("Usas %s." % _tc(str(BAG_ITEMS.get(key, [key])[0])), 2.0)
     return true
-
-
-func _draw_object_slots() -> void:
-    var list: Array = _object_slots()
-    for i in range(OBJECT_SLOTS_MAX):
-        var box: Rect2 = _object_slot_rect(i)
-        var sel: bool = inventory_sel == i
-        _panel(box, Color("#222c39") if sel else Color("#141922"), UI_GOLD if sel else UI_EDGE)
-        if i >= list.size():
-            _text_outline("—", Vector2(box.position.x, box.get_center().y + 6.0), 16, Color("#4a4740"), box.size.x)
-            continue
-        var o: Array = list[i]
-        draw_texture_rect(ICONS[o[0]], Rect2(box.position + Vector2(roundf(box.size.x * 0.5) - 16.0, 4), Vector2(32, 32)), false)
-        _text_outline(str(o[2]), Vector2(box.position.x, box.position.y + 50.0), 10, Color("#ffd36b") if bool(o[4]) else SOUL, box.size.x)
-        var nsize: int = 10
-        while nsize > 8 and font.get_string_size(str(o[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, nsize).x > box.size.x - 8.0:
-            nsize -= 1
-        _text_outline(str(o[1]), Vector2(box.position.x, box.end.y - 8.0), nsize, CREAM, box.size.x)
-
-
-func _draw_object_desc() -> void:
-    var list: Array = _object_slots()
-    if inventory_sel < 0 or inventory_sel >= list.size():
-        _text_outline("SIN OBJETOS", Vector2(388, 478), 15, Color("#6d6a60"))
-        draw_string(font, Vector2(388, 502), "Cómpralos al Mercader del Piso VI o gánalos en la Vigilia.", HORIZONTAL_ALIGNMENT_LEFT, 470.0, 13, Color("#8a8778"))
-        return
-    var o: Array = list[inventory_sel]
-    _text_outline(str(o[1]), Vector2(388, 476), 15, CREAM)
-    var lines: PackedStringArray = _wrap_lines(str(o[3]), 470.0, 12)
-    for li in range(mini(2, lines.size())):
-        draw_string(font, Vector2(388, 496 + li * 15), lines[li], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, SOUL)
-    if bool(o[4]):
-        draw_string(font, Vector2(388, 526), _hint("ENTER: usar", "Toca otra vez: usar", "A: usar"), HORIZONTAL_ALIGNMENT_RIGHT, 470.0, 11, Color("#ffd36b"))
 
 
 # ------------------------------------------------------------ MARCA: BENDICIÓN Y MALDICIÓN
