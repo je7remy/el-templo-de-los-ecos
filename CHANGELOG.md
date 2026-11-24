@@ -1,5 +1,13 @@
 # Historial de versiones
 
+## v0.5.13-alpha — 2026-11-24 · Arquitectura por escenas, fase 2c
+
+- **Intro, creación del personaje, habilidades y mapa son escenas propias** (`scenes/pantallas/intro.tscn`, `creacion.tscn`, `habilidades.tscn`, `mapa.tscn`). Se ven y responden como antes al ratón, al toque, al teclado y al mando: el teclado en pantalla del nombre, el género, nombre al azar, las páginas de habilidades y las pestañas del mapa.
+- **Arreglo:** el texto de la intro vuelve a escribirse letra a letra; antes se quedaba vacío hasta pulsar.
+- La campaña conserva la lógica (validar el nombre, crear el personaje, qué habilidades hay) y les pasa los datos; la creación, las habilidades y el mapa los reciben cada cuadro.
+- `main.gd` baja a unas 10 900 líneas. `pantallas_test.gd` añade las cuatro pantallas con entrada real.
+- Versión Android 0.5.13-alpha (código 20).
+
 ## v0.5.12-alpha — 2026-11-24 · Arquitectura por escenas, fase 2b
 
 Sin cambios en las reglas del juego.

@@ -28,6 +28,10 @@ const MODOS := {
     "victory": &"Final",
     "altar": &"Altar",
     "shop": &"Tienda",
+    "intro": &"Intro",
+    "create": &"Creacion",
+    "abilities": &"Habilidades",
+    "map": &"Mapa",
 }
 
 @onready var maquina: Node = $Maquina

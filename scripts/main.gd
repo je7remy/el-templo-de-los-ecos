@@ -870,10 +870,6 @@ func _input_game(event: InputEvent) -> void:
                 inventory_sel = slot_h
         queue_redraw()
         return
-    elif event is InputEventMouseButton and event.pressed and game_mode == "abilities" and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-        _abil_turn(1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1)
-        queue_redraw()
-        return
     elif event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION:
         # Cada toque llega dos veces: como InputEventScreenTouch (ya atendido) y
         # como clic emulado. Se ignora el clic: abría el perfil, el mapa o el
@@ -882,7 +878,7 @@ func _input_game(event: InputEvent) -> void:
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
         var click_at: Vector2 = make_input_local(event).position
         _click_spark(click_at)
-        if game_mode in ["create", "inventory", "abilities", "map", "intro"]:
+        if game_mode == "inventory":
             _mobile_tap(click_at)
             return
         if game_mode == "play" and click_at.y < 104.0:
@@ -901,29 +897,6 @@ func _input_game(event: InputEvent) -> void:
         # F11 o Alt+Enter: pantalla completa / ventana, en cualquier pantalla.
         Ajustes.poner("pantalla_completa", not bool(Ajustes.obtener("pantalla_completa")))
         _apply_window_mode()
-        return
-    if game_mode == "map":
-        _map_key(k)
-        queue_redraw()
-        return
-    if game_mode == "abilities":
-        if k in [_key("habilidades"), KEY_ESCAPE, KEY_E, KEY_K]:
-            _close_abilities()
-        elif k in [KEY_RIGHT, KEY_D, KEY_DOWN, KEY_S, KEY_PAGEDOWN, KEY_TAB]:
-            _abil_turn(1)
-        elif k in [KEY_LEFT, KEY_A, KEY_UP, KEY_W, KEY_PAGEUP]:
-            _abil_turn(-1)
-        queue_redraw()
-        return
-    if game_mode == "create":
-        _create_key(k, event.unicode)
-        queue_redraw()
-        return
-    if game_mode == "intro":
-        if k == KEY_ESCAPE:
-            _end_intro()
-        elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E]:
-            _intro_next()
         return
     if game_mode == "inventory":
         if k in [_key("perfil"), KEY_TAB, KEY_ESCAPE, KEY_E]:
@@ -1066,6 +1039,31 @@ func _screen_data(mode: String) -> Dictionary:
             d["seleccion"] = clampi(inventory_sel, 0, 1)
         "shop":
             _shop_screen_data(d)
+        "intro":
+            var slide: Array = INTRO[clampi(intro_slide, 0, INTRO.size() - 1)]
+            d["tipo"] = slide[2]
+            d["fundido"] = clampf(intro_t * 1.5, 0.0, 1.0)
+            d["abrir"] = clampf(intro_t * 0.8, 0.0, 1.0)
+            d["texto"] = _lang_pick(slide).substr(0, int(intro_t * 38.0))
+            d["indice"] = intro_slide
+            d["total"] = INTRO.size()
+            d["siguiente"] = _t("siguiente")
+            d["hoja"] = _hero_sheet()
+            d["alma"] = ICONS["alma"]
+            d["cuerpos"] = CORPSES
+            d["t"] = elapsed
+        "create":
+            d["paso"] = create_step
+            d["nombre"] = create_buf
+            d["nombre_limpio"] = _clean_name(create_buf)
+            d["genero"] = create_gender
+            d["max"] = NAME_MAX
+            d["hojas"] = [art["visual_hero"], HERO_SHEET_F]
+            d["retratos"] = [PORTRAIT, PORTRAIT_F]
+        "abilities":
+            _abilities_screen_data(d)
+        "map":
+            _map_screen_data(d)
         "pause":
             d["titulo"] = _tc(_t("pausa"))
             d["opciones"] = _pause_options().map(func(id): return [id, _t(id)])
@@ -1122,6 +1120,98 @@ func _end_screen_data(d: Dictionary, win: bool) -> void:
     d["t"] = end_t
 
 
+## Habilidades y Ecos de la página que toca (scenes/pantallas/habilidades.tscn).
+func _abilities_screen_data(d: Dictionary) -> void:
+    abil_page = clampi(abil_page, 0, _abil_pages() - 1)
+    var rows: Array = _ability_rows()
+    var per_a: int = _abil_per_page()
+    var shown_rows: Array = []
+    for i in range(abil_page * per_a, mini(rows.size(), (abil_page + 1) * per_a)):
+        var row: Array = rows[i]
+        shown_rows.append({"icono": ICONS[row[0]], "nombre": row[1], "tecla": row[2], "detalle": row[3], "tiene": row[4], "coste": row[5]})
+    var keys: Array = ECOS.keys()
+    var per_e: int = _eco_per_page()
+    var shown_ecos: Array = []
+    for i in range(abil_page * per_e, mini(keys.size(), (abil_page + 1) * per_e)):
+        shown_ecos.append({"icono": ICONS["eco_" + str(keys[i])], "nombre": ECOS[keys[i]][0], "detalle": ECOS[keys[i]][1], "tiene": ecos.has(keys[i])})
+    d["filas"] = shown_rows
+    d["ecos"] = shown_ecos
+    d["vacia"] = abil_page * per_a >= rows.size()
+    d["resumen_ecos"] = "%d de %d Ecos despiertos: uno por cada piso superado." % [ecos.size(), keys.size()]
+    var pages: int = _abil_pages()
+    d["pagina"] = abil_page
+    d["paginas"] = pages
+    d["arriba"] = ABIL_TOP
+    d["alto_fila"] = ABIL_ROW_H
+    d["alto_eco"] = ECO_ROW_H
+    d["tecla_habilidades"] = _key("habilidades")
+    var paging: String = " · ◀ ▶ páginas" if pages > 1 else ""
+    d["ayuda"] = _hint("%s / ESC: cerrar%s" % [_key_label("habilidades"), paging], "Flechas: páginas · toca fuera para cerrar" if pages > 1 else "Toca para cerrar", "B: cerrar%s" % (" · cruceta/LB: páginas" if pages > 1 else ""))
+
+
+## Mapa grande: lo que se sabe de cada sala de este piso y del descenso.
+func _map_screen_data(d: Dictionary) -> void:
+    d["pestana"] = map_tab
+    d["tecla_interactuar"] = _key("interactuar")
+    d["ayuda"] = _hint("M / ESC: cerrar · TAB: pestaña", "Toca una pestaña · toca fuera para cerrar", "B: cerrar · cruceta: pestaña")
+    d["titulo_piso"] = "PISO %s · %s" % [_floor()["number"], _tc(_floor()["title"])]
+    var rooms: Array = []
+    var links: Array = []
+    for i in range(_room_count()):
+        var room: Dictionary = _floor()["rooms"][i]
+        var here: bool = i == current_room
+        var r := {"vista": i <= current_room, "aqui": here}
+        links.append(i < current_room)
+        if i <= current_room:
+            var parts: PackedStringArray = str(room["name"]).split(" · ")
+            r["numero"] = parts[0]
+            r["nombre"] = _tc(parts[parts.size() - 1])
+            if room.has("mission"):
+                r["mision"] = str(room["mission"]["text"])
+                r["mision_hecha"] = i < current_room or (here and _room_ready())
+            if room.has("chest"):
+                var open: bool = chests_opened.has("%d:%d" % [current_floor, i])
+                r["cofre"] = "COFRE ABIERTO" if open else "COFRE"
+                r["color_cofre"] = Color("#8a8574") if open else Color("#ffd36b")
+            var fell: int = (death_marks.get("%d:%d" % [current_floor, i], []) as Array).size()
+            if fell > 0:
+                r["caidas"] = "Caíste aquí %d %s" % [fell, "vez" if fell == 1 else "veces"]
+        rooms.append(r)
+    d["salas"] = rooms
+    d["enlaces"] = links
+    var reached: int = _floor_reached()
+    var floors_rows: Array = []
+    var last_cleared: int = -1
+    for i in range(mini(FLOORS.size(), reached + 2)):
+        var known: bool = i <= reached
+        var cleared: bool = known and _floor_cleared(i)
+        var f := {"conocido": known, "aqui": i == current_floor, "superado": cleared}
+        if known:
+            if cleared:
+                last_cleared = i
+            f["numero"] = FLOORS[i]["number"]
+            f["titulo"] = _tc(FLOORS[i]["title"])
+            f["etiqueta"] = "AQUÍ" if i == current_floor else ("SUPERADO" if cleared else "")
+            var fell2: int = _deaths_on_floor(i)
+            if fell2 > 0:
+                f["caidas"] = "%d %s" % [fell2, "caída" if fell2 == 1 else "caídas"]
+            var opened: int = 0
+            var total_chests: int = 0
+            for r2 in range((FLOORS[i]["rooms"] as Array).size()):
+                if (FLOORS[i]["rooms"][r2] as Dictionary).has("chest"):
+                    total_chests += 1
+                    if chests_opened.has("%d:%d" % [i, r2]):
+                        opened += 1
+            if total_chests > 0:
+                f["cofres"] = "cofres %d/%d" % [opened, total_chests]
+                f["color_cofres"] = Color("#ffd36b") if opened < total_chests else Color("#8a8574")
+        floors_rows.append(f)
+    d["pisos"] = floors_rows
+    # Lo descubierto en el último piso superado, como recuerdo del descenso.
+    if last_cleared >= 0 and last_cleared < Pisos.FLOOR_TRUTHS.size():
+        d["verdad"] = str(Pisos.FLOOR_TRUTHS[last_cleared])
+
+
 ## Ofertas del altar: Resonancia (o su mejora) y Llama Interior.
 func _altar_offers() -> Array:
     var offers := [
@@ -1165,7 +1255,7 @@ func _shop_screen_data(d: Dictionary) -> void:
 
 
 ## Pantallas que cambian mientras se ven: se les pasan datos nuevos cada cuadro.
-const LIVE_SCREENS := ["dialog", "dead", "victory", "shop", "altar"]
+const LIVE_SCREENS := ["dialog", "dead", "victory", "shop", "altar", "intro", "create", "abilities", "map"]
 
 
 ## Muestra la escena de la pantalla actual (o ninguna) y ajusta los avisos.
@@ -1273,10 +1363,59 @@ func _on_screen_action(screen: StringName, choice: StringName, value: Variant = 
                     _sfx("interfaz", -12.0, 0.9)
                 &"salir":
                     _close_shop()
+        &"Intro":
+            if choice == &"saltar":
+                _end_intro()
+            else:
+                _intro_next()
+        &"Creacion":
+            match choice:
+                &"letra":
+                    _create_type(str(value))
+                    _name_edit_sync()
+                &"borrar":
+                    create_buf = create_buf.substr(0, maxi(0, create_buf.length() - 1))
+                    _sfx("toque", -14.0, 0.8)
+                    _name_edit_sync()
+                &"espacio":
+                    _create_type(" ")
+                    _name_edit_sync()
+                &"azar":
+                    create_buf = RANDOM_NAMES[randi() % RANDOM_NAMES.size()]
+                    _sfx("toque", -12.0, 1.2)
+                    _name_edit_sync()
+                &"siguiente":
+                    _create_next()
+                &"genero":
+                    create_gender = int(value)
+                    _sfx("toque", -14.0, 1.0)
+                &"comenzar":
+                    _create_finish()
+                &"atras":
+                    _create_back()
+                &"foco_nativo":
+                    _name_edit_focus() # tocar el recuadro del nombre abre el teclado del móvil
+        &"Habilidades":
+            if choice == &"pagina":
+                _abil_turn(int(value))
+            else:
+                _close_abilities()
+        &"Mapa":
+            match choice:
+                &"pestana":
+                    map_tab = int(value)
+                    _sfx("toque", -14.0, 1.0)
+                &"cambiar":
+                    map_tab = 1 - map_tab
+                    _sfx("toque", -14.0, 1.0)
+                _:
+                    _close_map()
         &"Pausa":
             var opts: Array = _pause_options()
             if opts.has(String(choice)):
                 _pause_choose(opts.find(String(choice)))
+    if pantallas.posee(game_mode):
+        pantallas.refrescar(game_mode, _screen_data(game_mode))
     queue_redraw()
 
 
@@ -1295,7 +1434,6 @@ var pad_trigger: Dictionary = {}
 var pad_menu_dir: Vector2i = Vector2i.ZERO
 var pad_repeat_left: float = 0.0
 var pad_stick: Vector2 = Vector2.ZERO
-var pad_name_sel: int = 0
 
 
 func _pad_key(k: Key) -> void:
@@ -1319,9 +1457,6 @@ func _pad_button(b: int) -> void:
     pad_active = true
     var dpad := {JOY_BUTTON_DPAD_UP: Vector2i(0, -1), JOY_BUTTON_DPAD_DOWN: Vector2i(0, 1),
         JOY_BUTTON_DPAD_LEFT: Vector2i(-1, 0), JOY_BUTTON_DPAD_RIGHT: Vector2i(1, 0)}
-    if game_mode == "create" and create_step == 0:
-        _pad_create_name(b, dpad)
-        return
     if game_mode == "play":
         match b:
             JOY_BUTTON_A:
@@ -1341,10 +1476,6 @@ func _pad_button(b: int) -> void:
             JOY_BUTTON_START:
                 _pad_key(KEY_ESCAPE)
         return
-    if dpad.has(b) and game_mode == "abilities":
-        _abil_turn(1 if (dpad[b] as Vector2i).x + (dpad[b] as Vector2i).y > 0 else -1)
-        queue_redraw()
-        return
     if dpad.has(b):
         _pad_menu_step(dpad[b])
         return
@@ -1360,19 +1491,6 @@ func _pad_button(b: int) -> void:
                 JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK, JOY_BUTTON_START:
                     _pad_key(KEY_ESCAPE)
             return
-        "map":
-            if b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_BACK, JOY_BUTTON_START]:
-                _close_map()
-            elif b in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER]:
-                _map_key(KEY_TAB)
-            queue_redraw()
-            return
-        "abilities":
-            if b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_START]:
-                _pad_key(KEY_ESCAPE)
-            elif b == JOY_BUTTON_LEFT_SHOULDER:
-                _abil_turn(1)
-            return
     match b:
         JOY_BUTTON_A, JOY_BUTTON_START:
             _pad_key(KEY_ENTER)
@@ -1381,74 +1499,12 @@ func _pad_button(b: int) -> void:
 
 
 func _pad_menu_step(dir: Vector2i) -> void:
-    if game_mode == "create" and create_step == 0:
-        _pad_name_move(dir)
-    else:
-        _pad_key(_pad_dir_key(dir))
+    _pad_key(_pad_dir_key(dir))
 
 
 ## Teclado en pantalla para el nombre: la cruceta mueve un recuadro sobre las
 ## teclas (se reutiliza el resaltado de «cursor encima»).
-func _pad_create_name(b: int, dpad: Dictionary) -> void:
-    var keys: Array = _create_name_keys()
-    pad_name_sel = clampi(pad_name_sel, 0, keys.size() - 1)
-    if dpad.has(b):
-        _pad_name_move(dpad[b])
-        return
-    match b:
-        JOY_BUTTON_A:
-            _create_tap((keys[pad_name_sel][0] as Rect2).get_center())
-        JOY_BUTTON_X:
-            _create_tap(_pad_name_key_rect("borrar").get_center())
-        JOY_BUTTON_Y:
-            _create_tap(_pad_name_key_rect("azar").get_center())
-        JOY_BUTTON_START:
-            _create_next()
-        JOY_BUTTON_B, JOY_BUTTON_BACK:
-            if create_buf != "" and b == JOY_BUTTON_B:
-                _create_tap(_pad_name_key_rect("borrar").get_center())
-            else:
-                _create_back()
-    _pad_name_hover()
-    queue_redraw()
-
-
-func _pad_name_key_rect(action: String) -> Rect2:
-    for key in _create_name_keys():
-        if str(key[1]) == action:
-            return key[0]
-    return Rect2()
-
-
 ## Mueve la selección a la tecla más cercana en esa dirección.
-func _pad_name_move(dir: Vector2i) -> void:
-    var keys: Array = _create_name_keys()
-    pad_name_sel = clampi(pad_name_sel, 0, keys.size() - 1)
-    var from: Vector2 = (keys[pad_name_sel][0] as Rect2).get_center()
-    var best: int = -1
-    var best_score: float = INF
-    for i in range(keys.size()):
-        var d: Vector2 = (keys[i][0] as Rect2).get_center() - from
-        var along: float = d.x * dir.x + d.y * dir.y
-        if i == pad_name_sel or along < 8.0:
-            continue
-        var across: float = absf(d.x * dir.y) + absf(d.y * dir.x)
-        var score: float = along + across * 2.0
-        if score < best_score:
-            best_score = score
-            best = i
-    if best >= 0:
-        pad_name_sel = best
-        _sfx("toque", -18.0, 1.3)
-    _pad_name_hover()
-    queue_redraw()
-
-
-func _pad_name_hover() -> void:
-    if game_mode == "create" and create_step == 0:
-        ui_hover = (_create_name_keys()[clampi(pad_name_sel, 0, _create_name_keys().size() - 1)][0] as Rect2).get_center()
-
-
 func _pad_motion(axis: int, value: float) -> void:
     if axis == JOY_AXIS_TRIGGER_LEFT or axis == JOY_AXIS_TRIGGER_RIGHT:
         var was: bool = bool(pad_trigger.get(axis, false))
@@ -1566,26 +1622,6 @@ func _mobile_update_axis(at: Vector2) -> void:
 
 func _mobile_tap(at: Vector2) -> void:
     ui_hover = at
-    if game_mode == "intro":
-        if INTRO_SKIP_BTN.has_point(at):
-            _end_intro()
-        else:
-            _intro_next()
-        return
-    if game_mode == "create":
-        _create_tap(at)
-        return
-    if game_mode == "map":
-        _map_tap(at)
-        return
-    if game_mode == "abilities":
-        if _abil_pages() > 1 and ABIL_PREV_BTN.grow(8.0).has_point(at):
-            _abil_turn(-1)
-        elif _abil_pages() > 1 and ABIL_NEXT_BTN.grow(8.0).has_point(at):
-            _abil_turn(1)
-        else:
-            _close_abilities()
-        return
     if game_mode == "inventory":
         if PROFILE_ABIL_BTN.has_point(at):
             _open_abilities()
@@ -2433,6 +2469,8 @@ func _process(delta: float) -> void:
     if name_edit != null and name_edit.visible and (game_mode != "create" or create_step != 0):
         _name_edit_close()
     elapsed += delta
+    if game_mode == "intro":
+        intro_t += delta # el texto de la intro se escribe solo
     _update_camera(delta)
     end_t = end_t + delta if game_mode in ["dead", "victory"] else 0.0
     _tick_glow(delta)
@@ -2719,14 +2757,9 @@ func _draw() -> void:
             (objetos as CanvasItem).visible = true
     _draw_background()
     var screen: String = settings_return if game_mode == "settings" else game_mode
-    if screen == "intro":
-        _draw_intro()
-        return
-    if screen in ["title", "create", "floors", "splash", "eula"]:
-        # Inicio, menú, acuerdo, pisos y configuración son escenas
-        # (scenes/pantallas/): aquí solo queda la sala de fondo.
-        if screen == "create":
-            _draw_creation()
+    if screen in ["title", "create", "floors", "splash", "eula", "intro"]:
+        # Inicio, menú, acuerdo, pisos, intro, creación y configuración son
+        # escenas (scenes/pantallas/): aquí solo queda la sala de fondo.
         return
     _begin_world()
     _draw_room()
@@ -2740,10 +2773,6 @@ func _draw() -> void:
     # piso son escenas (scenes/pantallas/), por encima de esto.
     if game_mode == "inventory":
         _draw_inventory_overlay()
-    elif game_mode == "abilities":
-        _draw_abilities()
-    elif game_mode == "map":
-        _draw_map()
     _draw_tutorial_overlay()
     _draw_mobile_controls()
     # Los avisos de nivel y de botín los dibuja la capa de avisos
@@ -5675,55 +5704,6 @@ func _end_intro() -> void:
         game_mode = "title"
 
 
-func _draw_intro() -> void:
-    draw_rect(_full_rect(), Color(0, 0, 0, 1.0))
-    var slide: Array = INTRO[clampi(intro_slide, 0, INTRO.size() - 1)]
-    var fade: float = clampf(intro_t * 1.5, 0.0, 1.0)
-    var c := Vector2(480, 270)
-    match slide[2]:
-        "despertar":
-            # Mark tendido en un círculo de luz mortecina.
-            draw_circle(c + Vector2(0, 30), 120.0, Color(0.35, 0.45, 0.5, 0.10 * fade))
-            var region := Rect2(8.0 * 40.0, 0.0, 40.0, 56.0)
-            draw_texture_rect_region(_hero_sheet(), Rect2(c + Vector2(-60, -50), Vector2(120, 168)), region, Color(1, 1, 1, fade))
-        "templo":
-            _xf(Vector2(-240, -160) * fade * 0.05, 0.0, Vector2.ONE)
-            for k in range(4):
-                var x: float = 230.0 + float(k) * 170.0
-                draw_rect(Rect2(x, 150, 28, 260), Color(0.25, 0.3, 0.28, 0.6 * fade))
-                draw_rect(Rect2(x - 8, 140, 44, 14), Color(0.35, 0.4, 0.36, 0.6 * fade))
-            _xf(Vector2.ZERO, 0.0, Vector2.ONE)
-        "ojo":
-            var open_k: float = clampf(intro_t * 0.8, 0.0, 1.0)
-            _xf(c, 0.0, Vector2(1.0, 0.15 + 0.85 * open_k))
-            draw_circle(Vector2.ZERO, 110.0, Color(0.85, 0.82, 0.74, fade))
-            draw_circle(Vector2.ZERO, 58.0, Color(0.42, 0.24, 0.57, fade))
-            draw_circle(Vector2.ZERO, 26.0, Color(0.05, 0.03, 0.07, fade))
-            _xf(Vector2.ZERO, 0.0, Vector2.ONE)
-            for k in range(6):
-                var a: float = float(k) * 1.05
-                draw_line(c + Vector2.from_angle(a) * 80.0, c + Vector2.from_angle(a + 0.2) * 108.0, Color(0.76, 0.23, 0.25, 0.7 * fade), 2.0)
-        "almas":
-            for k in range(3):
-                var p := c + Vector2(-160.0 + float(k) * 160.0, 40.0)
-                _draw_corpse(p, k)
-                draw_circle(p + Vector2(0, -26), 30.0, Color(0.56, 0.78, 0.84, 0.15 * fade))
-                draw_texture_rect(ICONS["alma"], Rect2(p + Vector2(-16, -46 + sin(elapsed * 2.0 + float(k)) * 4.0), Vector2(32, 32)), false, Color(1, 1, 1, fade))
-        "descenso":
-            for k in range(6):
-                var w: float = 300.0 - float(k) * 44.0
-                draw_rect(Rect2(480.0 - w * 0.5, 140.0 + float(k) * 34.0, w, 26), Color(0.20, 0.24, 0.24, (0.7 - float(k) * 0.1) * fade))
-            draw_circle(Vector2(480, 380), 14.0, Color(1.0, 0.7, 0.3, 0.5 + 0.3 * sin(elapsed * 9.0)))
-    # Texto que se escribe letra a letra.
-    var text: String = _lang_pick(slide)
-    var shown: String = text.substr(0, int(intro_t * 38.0))
-    _text_outline(shown, Vector2(0, 500), 20, CREAM, W)
-    for k in range(INTRO.size()):
-        draw_rect(Rect2(430.0 + float(k) * 22.0, 540, 14, 4), UI_GOLD if k <= intro_slide else Color("#2a2e38"))
-    _text_outline(_t("siguiente"), Vector2(24, 622), 12, Color("#8a8574"))
-    _skip_button(INTRO_SKIP_BTN)
-
-
 # ------------------------------------------------------------ TUTORIAL
 ## Pasos: [texto ES, texto EN]. Las teclas se escriben según la configuración.
 func _tutorial_text(step: int) -> String:
@@ -5859,10 +5839,6 @@ func _draw_dummy() -> void:
 ## Creación del personaje: primero el nombre y después el género. Se guarda
 ## con el progreso y se usa en el HUD, el perfil, el menú y la muerte.
 const NAME_MAX := 12
-const NAME_ROWS := ["ABCDEFGHIJ", "KLMNÑOPQRS", "TUVWXYZ"]
-const NAME_KEY := Vector2(52, 44)
-const NAME_GRID := Vector2(193, 252)
-const CREATE_PANEL := Rect2(150, 104, 660, 452)
 const RANDOM_NAMES := ["ELÍAS", "TOMÁS", "DARÍO", "ADRIÁN", "JONÁS", "MATEO", "LUCÍA", "ELENA", "IRENE", "NORA", "ALBA", "MARA"]
 var create_step: int = 0 # 0 nombre, 1 género
 var create_buf: String = ""
@@ -5902,9 +5878,6 @@ func _start_creation(then: String) -> void:
     create_buf = player_name
     create_gender = 1 if player_gender == "femenino" else 0
     game_mode = "create"
-    pad_name_sel = 0
-    if pad_active:
-        _pad_name_hover()
     _sfx("interfaz", -8.0, 0.9)
     _name_edit_open()
 
@@ -5957,157 +5930,8 @@ func _create_back() -> void:
     _sfx("interfaz", -10.0, 0.8)
 
 
-func _create_key(k: Key, unicode: int) -> void:
-    if k == KEY_ESCAPE:
-        _create_back()
-        return
-    if create_step == 0:
-        if name_edit != null and name_edit.has_focus() and not k in [KEY_ENTER, KEY_KP_ENTER]:
-            return # el teclado del móvil escribe en el campo nativo
-        if k in [KEY_ENTER, KEY_KP_ENTER]:
-            _create_next()
-        elif k == KEY_BACKSPACE:
-            create_buf = create_buf.substr(0, maxi(0, create_buf.length() - 1))
-        elif unicode > 0:
-            _create_type(char(unicode))
-    else:
-        if k in [KEY_LEFT, KEY_A, KEY_RIGHT, KEY_D, KEY_TAB]:
-            create_gender = 1 - create_gender
-            _sfx("toque", -14.0, 1.0)
-        elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E]:
-            _create_finish()
-
-
 ## Teclas en pantalla: [rect, acción]. Acción: una letra o «borrar»,
 ## «espacio», «azar», «siguiente».
-func _create_name_keys() -> Array:
-    var keys: Array = []
-    for row in range(NAME_ROWS.size()):
-        var letters: String = NAME_ROWS[row]
-        for col in range(letters.length()):
-            keys.append([Rect2(NAME_GRID + Vector2(col * (NAME_KEY.x + 6.0), row * (NAME_KEY.y + 6.0)), NAME_KEY), letters[col]])
-    var y3: float = NAME_GRID.y + 2.0 * (NAME_KEY.y + 6.0)
-    keys.append([Rect2(NAME_GRID.x + 7.0 * (NAME_KEY.x + 6.0), y3, 3.0 * NAME_KEY.x + 12.0, NAME_KEY.y), "borrar"])
-    var y4: float = NAME_GRID.y + 3.0 * (NAME_KEY.y + 6.0) + 8.0
-    keys.append([Rect2(193, y4, 170, 44), "espacio"])
-    keys.append([Rect2(373, y4, 170, 44), "azar"])
-    keys.append([Rect2(553, y4, 214, 44), "siguiente"])
-    return keys
-
-
-func _create_card(i: int) -> Rect2:
-    return Rect2(215.0 + i * 280.0, 196.0, 250.0, 236.0)
-
-
-func _create_step2_buttons() -> Array:
-    return [[Rect2(215, 452, 200, 48), "atras"], [Rect2(545, 452, 200, 48), "comenzar"]]
-
-
-func _create_tap(at: Vector2) -> void:
-    if create_step == 0:
-        for key in _create_name_keys():
-            if not (key[0] as Rect2).has_point(at):
-                continue
-            match str(key[1]):
-                "borrar":
-                    create_buf = create_buf.substr(0, maxi(0, create_buf.length() - 1))
-                    _sfx("toque", -14.0, 0.8)
-                "espacio":
-                    _create_type(" ")
-                "azar":
-                    create_buf = RANDOM_NAMES[randi() % RANDOM_NAMES.size()]
-                    _sfx("toque", -12.0, 1.2)
-                "siguiente":
-                    _create_next()
-                _:
-                    _create_type(str(key[1]))
-            _name_edit_sync()
-            return
-        if NAME_BOX.has_point(at):
-            _name_edit_focus() # tocar el recuadro del nombre abre el teclado del móvil
-        return
-    for i in range(2):
-        if _create_card(i).has_point(at):
-            if create_gender == i:
-                _create_finish() # segundo toque sobre la misma tarjeta confirma
-            else:
-                create_gender = i
-                _sfx("toque", -14.0, 1.0)
-            return
-    for b in _create_step2_buttons():
-        if (b[0] as Rect2).has_point(at):
-            if b[1] == "atras":
-                _create_back()
-            else:
-                _create_finish()
-            return
-
-
-func _create_key_button(rect: Rect2, label: String, size: int, accent: bool = false) -> void:
-    var hot: bool = rect.has_point(ui_hover)
-    var fill := Color("#1d4a4f") if accent else Color("#141922")
-    _panel(rect, fill.lightened(0.12) if hot else fill, UI_GOLD if hot or accent else UI_EDGE)
-    _text_outline(label, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.5 + size * 0.36), size, CREAM, rect.size.x)
-
-
-func _draw_creation() -> void:
-    draw_rect(_full_rect(), Color(0.018, 0.027, 0.032, 0.72))
-    _panel(CREATE_PANEL, Color(0.045, 0.055, 0.07, 0.96), UI_GOLD)
-    draw_rect(CREATE_PANEL.grow(-8.0), Color("#3a3f4c"), false, 1.0)
-    # Indicador de paso (1 nombre · 2 género).
-    for i in range(2):
-        var dot := Rect2(462.0 + i * 24.0, 120.0, 12.0, 12.0)
-        draw_rect(dot, UI_GOLD if create_step >= i else UI_EDGE)
-    if create_step == 0:
-        _text_outline(_t("pj_nombre"), Vector2(150, 168), 30, CREAM, CREATE_PANEL.size.x)
-        var box := NAME_BOX
-        _panel(box, Color("#0b0e13"), SOUL)
-        var shown: String = create_buf + ("_" if int(elapsed * 2.0) % 2 == 0 and create_buf.length() < NAME_MAX else " ")
-        _text_outline(shown, Vector2(box.position.x, box.position.y + 38.0), 30, SOUL, box.size.x)
-        _text_outline("%d/%d" % [create_buf.length(), NAME_MAX], Vector2(box.end.x - 46.0, box.end.y - 6.0), 10, Color("#6b6f80"))
-        for key in _create_name_keys():
-            var action: String = str(key[1])
-            match action:
-                "borrar":
-                    _create_key_button(key[0], "< " + _t("pj_borrar"), 15)
-                "espacio":
-                    _create_key_button(key[0], _t("pj_espacio"), 15)
-                "azar":
-                    _create_key_button(key[0], _t("pj_azar"), 15)
-                "siguiente":
-                    _create_key_button(key[0], _t("pj_siguiente") + " »", 17, true)
-                _:
-                    _create_key_button(key[0], action, 20)
-        _text_outline(_t(_hint("pj_nombre_ayuda", "pj_nombre_tactil", "pj_nombre_mando")), Vector2(150, 520), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
-    else:
-        _text_outline(_t("pj_genero"), Vector2(150, 162), 30, CREAM, CREATE_PANEL.size.x)
-        _text_outline(_t("pj_te_llamas") % _clean_name(create_buf), Vector2(150, 186), 14, SOUL, CREATE_PANEL.size.x)
-        var labels := [_t("pj_masculino"), _t("pj_femenino")]
-        var sheets: Array = [art["visual_hero"], HERO_SHEET_F]
-        var portraits: Array = [PORTRAIT, PORTRAIT_F]
-        for i in range(2):
-            var card := _create_card(i)
-            var sel: bool = create_gender == i
-            _panel(card, Color("#1a2430") if sel else Color("#10141b"), UI_GOLD if sel else UI_EDGE)
-            if sel:
-                draw_rect(card.grow(3.0), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.25 + 0.2 * sin(elapsed * 4.0)), false, 2.0)
-            # Círculo de luz y el personaje caminando de frente (o quieto si no está elegido).
-            var feet := Vector2(card.position.x + 142.0, card.position.y + 186.0)
-            draw_circle(feet + Vector2(0, -4), 46.0, Color(0.95, 0.85, 0.55, 0.07 if sel else 0.03))
-            _xf(feet + Vector2(0, -2), 0.0, Vector2(1.0, 0.35))
-            draw_circle(Vector2.ZERO, 30.0, Color(0, 0, 0, 0.45))
-            _xf(Vector2.ZERO, 0.0, Vector2.ONE)
-            var frame_i: int = (2 + int(elapsed * 7.0) % 4) if sel else int(elapsed * 1.6) % 2
-            var region := Rect2(frame_i * 40.0, 0.0, 40.0, 56.0)
-            draw_texture_rect_region(sheets[i], Rect2(feet - Vector2(60, 150), Vector2(120, 168)), region, Color(1, 1, 1, 1.0 if sel else 0.6))
-            draw_texture_rect(portraits[i], Rect2(card.position + Vector2(12, 12), Vector2(64, 64)), false, Color(1, 1, 1, 1.0 if sel else 0.55))
-            _text_outline(labels[i], Vector2(card.position.x, card.end.y - 14.0), 22, CREAM if sel else Color("#8f8a7a"), card.size.x)
-        for b in _create_step2_buttons():
-            var is_go: bool = b[1] == "comenzar"
-            _create_key_button(b[0], (_t("pj_comenzar") + " »") if is_go else ("« " + _t("pj_atras")), 18, is_go)
-        _text_outline(_t(_hint("pj_genero_ayuda", "pj_genero_tactil", "pj_genero_mando")), Vector2(150, 530), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
-
-
 ## Tras la pantalla de muerte o de victoria.
 func _after_end() -> void:
     if game_mode == "dead" and soul_fate == "persistencia":
@@ -7247,8 +7071,6 @@ const ABIL_TOP := 102.0
 const ABIL_BOTTOM := 540.0
 const ABIL_ROW_H := 84.0
 const ECO_ROW_H := 70.0
-const ABIL_PREV_BTN := Rect2(372, 546, 48, 34)
-const ABIL_NEXT_BTN := Rect2(540, 546, 48, 34)
 
 
 func _abil_per_page() -> int:
@@ -7304,57 +7126,6 @@ func _ability_rows() -> Array:
         ["corazon", "RESPIRO", "PASIVA",
             "Tras %d s sin recibir daño recuperas %d de vida por segundo (no con el miedo al máximo)." % [int(REGEN_WAIT), int(REGEN_RATE)], true, "siempre"],
     ]
-
-
-func _draw_abilities() -> void:
-    draw_rect(_full_rect(), Color(0, 0, 0, 0.8))
-    var sheet := Rect2(70, 46, 820, 548)
-    _panel(sheet, Color(0.05, 0.05, 0.075, 0.97), UI_GOLD)
-    _panel(Rect2(360, 34, 240, 30), Color("#241a30"), UI_GOLD)
-    _title_text("Habilidades", Vector2(360, 58), 24, CREAM, 240.0)
-    _text_outline("ACTIVAS Y PROPIAS", Vector2(96, 92), 13, UI_GOLD)
-    abil_page = clampi(abil_page, 0, _abil_pages() - 1)
-    var rows: Array = _ability_rows()
-    var per_a: int = _abil_per_page()
-    for i in range(abil_page * per_a, mini(rows.size(), (abil_page + 1) * per_a)):
-        var row: Array = rows[i]
-        var r := Rect2(96, ABIL_TOP + float(i - abil_page * per_a) * ABIL_ROW_H, 420, 76)
-        var owned: bool = row[4]
-        _panel(r, Color("#141922") if owned else Color("#0e1015"), UI_EDGE if owned else Color("#24262c"))
-        draw_texture_rect(ICONS[row[0]], Rect2(r.position + Vector2(10, 14), Vector2(48, 48)), false, Color.WHITE if owned else Color(0.12, 0.12, 0.14, 0.9))
-        _text_outline(row[1] if owned else "???", Vector2(r.position.x + 70.0, r.position.y + 22.0), 14, CREAM if owned else Color("#5d5a52"))
-        var keytag: String = str(row[2])
-        var kw: float = font.get_string_size(keytag, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 14.0
-        _panel(Rect2(r.end.x - kw - 10.0, r.position.y + 8.0, kw, 18), Color("#1d2230"), UI_GOLD if owned else UI_EDGE)
-        _text_outline(keytag, Vector2(r.end.x - kw - 10.0, r.position.y + 22.0), 11, UI_GOLD if owned else Color("#5d5a52"), kw)
-        var desc: String = row[3] if owned else "Aún no la tienes."
-        draw_multiline_string(font, r.position + Vector2(70, 42), desc, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 84.0, 11, 2, Color("#b9b29b") if owned else Color("#5d5a52"))
-        if owned:
-            _text_outline(str(row[5]), Vector2(r.position.x + 70.0, r.end.y - 6.0), 10, SOUL)
-    _text_outline("ECOS · PASIVAS DE CADA PISO", Vector2(540, 92), 13, UI_GOLD)
-    var keys: Array = ECOS.keys()
-    var per_e: int = _eco_per_page()
-    var shown: int = 0
-    for i in range(abil_page * per_e, mini(keys.size(), (abil_page + 1) * per_e)):
-        var e := Rect2(540, ABIL_TOP + float(i - abil_page * per_e) * ECO_ROW_H, 324, 62)
-        shown += 1
-        var has_it: bool = ecos.has(keys[i])
-        _panel(e, Color("#141922"), Color("#3b6f7d") if has_it else UI_EDGE)
-        draw_texture_rect(ICONS["eco_" + str(keys[i])], Rect2(e.position + Vector2(10, 15), Vector2(32, 32)), false, Color.WHITE if has_it else Color(0.15, 0.15, 0.18, 0.9))
-        _text_outline(ECOS[keys[i]][0] if has_it else "ECO SIN DESPERTAR", Vector2(e.position.x + 52.0, e.position.y + 22.0), 12, SOUL if has_it else Color("#5d5a52"))
-        draw_multiline_string(font, e.position + Vector2(52, 40), ECOS[keys[i]][1] if has_it else "???", HORIZONTAL_ALIGNMENT_LEFT, e.size.x - 60.0, 10, 2, Color("#9a957f"))
-    if abil_page * per_a >= rows.size():
-        _text_outline("Tus habilidades están en la página 1.", Vector2(96, ABIL_TOP + 20.0), 12, Color("#8a8574"))
-    _text_outline("%d de %d Ecos despiertos: uno por cada piso superado." % [ecos.size(), keys.size()], Vector2(540, ABIL_TOP + float(shown) * ECO_ROW_H + 14.0), 11, Color("#8a8574"))
-    var pages: int = _abil_pages()
-    if pages > 1:
-        for b in [[ABIL_PREV_BTN, "<"], [ABIL_NEXT_BTN, ">"]]:
-            var hot: bool = (b[0] as Rect2).has_point(ui_hover)
-            _panel(b[0], Color("#241a30") if hot else Color("#141922"), UI_GOLD)
-            _text_outline(b[1], Vector2((b[0] as Rect2).position.x, (b[0] as Rect2).position.y + 23.0), 18, CREAM, (b[0] as Rect2).size.x)
-        _text_outline("PÁGINA %d / %d" % [abil_page + 1, pages], Vector2(420, 568), 13, UI_GOLD, 120.0)
-    var paging: String = " · ◀ ▶ páginas" if pages > 1 else ""
-    _text_outline(_hint("%s / ESC: cerrar%s" % [_key_label("habilidades"), paging], "Flechas: páginas · toca fuera para cerrar" if pages > 1 else "Toca para cerrar", "B: cerrar%s" % (" · cruceta/LB: páginas" if pages > 1 else "")), Vector2(96, 590), 11, Color("#8a8574"), 768.0)
 
 
 func _eco_floor(key: String) -> String:
@@ -8055,7 +7826,6 @@ func _save_path() -> String:
 # ------------------------------------------------------------ SALTAR Y VOLVER A LA PAUSA
 ## Botón para saltar diálogos y la intro (además de ESC); se puede tocar.
 const SKIP_BTN := Rect2(690, 390, 160, 34) # sobre el cuadro de diálogo
-const INTRO_SKIP_BTN := Rect2(780, 596, 160, 34)
 ## Adónde vuelven el perfil y las habilidades al cerrarse: al juego si se
 ## abrieron jugando, a la pausa si se abrieron desde la pausa.
 var overlay_return: String = "play"
@@ -10623,8 +10393,6 @@ func _draw_chest_label() -> void:
 ## Tocar el minimapa (o M / Select del mando) abre el mapa a pantalla grande.
 ## Pestaña 0: el piso actual sala por sala. Pestaña 1: el descenso, que se va
 ## dibujando con cada piso al que bajas.
-const MAP_PANEL := Rect2(48, 34, 864, 572)
-const MAP_TAB_RECTS := [Rect2(330, 92, 140, 34), Rect2(490, 92, 140, 34)]
 const MINIMAP_RECT := Rect2(634, 6, 258, 96)
 var map_tab: int = 0
 var map_return: String = "play"
@@ -10645,23 +10413,6 @@ func _close_map() -> void:
     _sfx("interfaz", -12.0, 0.9)
 
 
-func _map_key(k: int) -> void:
-    if k in [KEY_M, KEY_ESCAPE, KEY_E, KEY_ENTER] or k == _key("interactuar"):
-        _close_map()
-    elif k in [KEY_TAB, KEY_RIGHT, KEY_D, KEY_LEFT, KEY_A, KEY_PAGEDOWN, KEY_PAGEUP]:
-        map_tab = 1 - map_tab
-        _sfx("toque", -14.0, 1.0)
-
-
-func _map_tap(at: Vector2) -> void:
-    for i in range(2):
-        if (MAP_TAB_RECTS[i] as Rect2).grow(6.0).has_point(at):
-            map_tab = i
-            _sfx("toque", -14.0, 1.0)
-            return
-    _close_map()
-
-
 func _floor_reached() -> int:
     return maxi(max_floor, current_floor)
 
@@ -10678,109 +10429,8 @@ func _deaths_on_floor(i: int) -> int:
     return n
 
 
-func _draw_map() -> void:
-    draw_rect(_full_rect(), Color(0, 0, 0, 0.72))
-    _panel(MAP_PANEL, Color(0.035, 0.032, 0.045, 0.97), UI_GOLD)
-    _title_text("Mapa", Vector2(MAP_PANEL.position.x, MAP_PANEL.position.y + 44.0), 40, CREAM, MAP_PANEL.size.x)
-    var names := ["ESTE PISO", "DESCENSO"]
-    for i in range(2):
-        var r: Rect2 = MAP_TAB_RECTS[i]
-        var on: bool = i == map_tab
-        _panel(r, Color("#2a1d36") if on else Color("#141018"), UI_GOLD if on else UI_EDGE)
-        _text_outline(names[i], Vector2(r.position.x, r.position.y + 22.0), 13, CREAM if on else Color("#8a8574"), r.size.x)
-    if map_tab == 0:
-        _draw_map_floor()
-    else:
-        _draw_map_descent()
-    _text_outline(_hint("M / ESC: cerrar · TAB: pestaña", "Toca una pestaña · toca fuera para cerrar", "B: cerrar · cruceta: pestaña"), Vector2(MAP_PANEL.position.x, MAP_PANEL.end.y - 14.0), 11, Color("#8a8574"), MAP_PANEL.size.x)
-
-
-func _draw_map_floor() -> void:
-    var count: int = _room_count()
-    _text_outline("PISO %s · %s" % [_floor()["number"], _tc(_floor()["title"])], Vector2(MAP_PANEL.position.x, 160.0), 16, UI_GOLD, MAP_PANEL.size.x)
-    var card := Vector2(146, 230)
-    var gap: float = 22.0
-    var total: float = float(count) * card.x + float(count - 1) * gap
-    var x0: float = roundf(W * 0.5 - total * 0.5)
-    var y0: float = 196.0
-    for i in range(count):
-        var r := Rect2(x0 + float(i) * (card.x + gap), y0, card.x, card.y)
-        var room: Dictionary = _floor()["rooms"][i]
-        var seen: bool = i <= current_room
-        if i < count - 1:
-            draw_rect(Rect2(r.end.x, r.position.y + card.y * 0.5 - 3.0, gap, 6.0), UI_GOLD if i < current_room else Color("#2a2e38"))
-        var here: bool = i == current_room
-        var pulse: float = 0.6 + 0.4 * sin(elapsed * 4.0)
-        _panel(r, Color(0.78, 0.67, 0.43, 0.18 + 0.1 * pulse) if here else (Color("#1d212b") if seen else Color("#0e1016")), UI_GOLD if here else (UI_LIGHT if seen else Color("#2a2e38")))
-        if not seen:
-            _text_outline("???", Vector2(r.position.x, r.get_center().y + 8.0), 22, Color("#4a4e5a"), r.size.x)
-            continue
-        var parts: PackedStringArray = str(room["name"]).split(" · ")
-        _text_outline(parts[0], Vector2(r.position.x, r.position.y + 26.0), 15, UI_GOLD, r.size.x)
-        draw_multiline_string(font, Vector2(r.position.x + 8.0, r.position.y + 50.0), _tc(parts[parts.size() - 1]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 16.0, 12, 4, CREAM)
-        var y: float = r.position.y + 130.0
-        if room.has("mission"):
-            var done: bool = i < current_room or (here and _room_ready())
-            draw_multiline_string(font, Vector2(r.position.x + 8.0, y - 10.0), ("✓ " if done else "· ") + str(room["mission"]["text"]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 16.0, 10, 3, Color("#7fd6a0") if done else Color("#d9d2ba"))
-            y += 40.0
-        if room.has("chest"):
-            var key: String = "%d:%d" % [current_floor, i]
-            _text_outline("COFRE ABIERTO" if chests_opened.has(key) else "COFRE", Vector2(r.position.x, y), 10, Color("#8a8574") if chests_opened.has(key) else Color("#ffd36b"), r.size.x)
-            y += 20.0
-        var deaths: int = (death_marks.get("%d:%d" % [current_floor, i], []) as Array).size()
-        if deaths > 0:
-            _text_outline("Caíste aquí %d %s" % [deaths, "vez" if deaths == 1 else "veces"], Vector2(r.position.x, y), 10, Color("#ff8a8a"), r.size.x)
-        if here:
-            _text_outline("ESTÁS AQUÍ", Vector2(r.position.x, r.end.y - 12.0), 11, CREAM, r.size.x)
-
-
 ## El descenso: solo se dibujan los pisos a los que has bajado, y uno más
 ## por descubrir. El pozo crece a medida que avanzas.
-func _draw_map_descent() -> void:
-    var reached: int = _floor_reached()
-    var rows: int = mini(FLOORS.size(), reached + 2)
-    var top: float = 150.0
-    var row_h: float = minf(38.0, 380.0 / float(maxi(rows, 1)))
-    var shaft_x: float = 170.0
-    draw_rect(Rect2(shaft_x - 2.0, top + 8.0, 4.0, row_h * float(rows - 1)), Color("#3a3440"))
-    for i in range(rows):
-        var y: float = top + float(i) * row_h
-        var known: bool = i <= reached
-        var here: bool = i == current_floor
-        var cleared: bool = known and _floor_cleared(i)
-        var dot_col: Color = UI_GOLD if here else (Color("#7fd6a0") if cleared else (CREAM if known else Color("#4a4e5a")))
-        draw_circle(Vector2(shaft_x, y + 10.0), 8.0 if here else 6.0, dot_col)
-        if here:
-            draw_arc(Vector2(shaft_x, y + 10.0), 13.0 + 2.0 * sin(elapsed * 4.0), 0, TAU, 24, UI_GOLD, 2.0)
-        if not known:
-            _text_outline("PISO ???  ·  más abajo", Vector2(shaft_x + 24.0, y + 15.0), 13, Color("#4a4e5a"))
-            continue
-        _text_outline("PISO %s" % FLOORS[i]["number"], Vector2(shaft_x + 24.0, y + 15.0), 13, UI_GOLD)
-        _text_outline(_tc(FLOORS[i]["title"]), Vector2(shaft_x + 110.0, y + 15.0), 13, CREAM)
-        var tag: String = "AQUÍ" if here else ("SUPERADO" if cleared else "")
-        if tag != "":
-            _text_outline(tag, Vector2(560.0, y + 15.0), 11, UI_GOLD if here else Color("#7fd6a0"))
-        var d: int = _deaths_on_floor(i)
-        if d > 0:
-            _text_outline("%d %s" % [d, "caída" if d == 1 else "caídas"], Vector2(660.0, y + 15.0), 11, Color("#ff8a8a"))
-        var opened: int = 0
-        var total_chests: int = 0
-        for r in range((FLOORS[i]["rooms"] as Array).size()):
-            if (FLOORS[i]["rooms"][r] as Dictionary).has("chest"):
-                total_chests += 1
-                if chests_opened.has("%d:%d" % [i, r]):
-                    opened += 1
-        if total_chests > 0:
-            _text_outline("cofres %d/%d" % [opened, total_chests], Vector2(760.0, y + 15.0), 11, Color("#ffd36b") if opened < total_chests else Color("#8a8574"))
-    # Lo descubierto en el último piso superado, como recuerdo del descenso.
-    var last: int = -1
-    for i in range(FLOORS.size()):
-        if i <= reached and _floor_cleared(i):
-            last = i
-    if last >= 0 and last < Pisos.FLOOR_TRUTHS.size():
-        draw_multiline_string(font, Vector2(MAP_PANEL.position.x + 60.0, 560.0), "«%s»" % str(Pisos.FLOOR_TRUTHS[last]), HORIZONTAL_ALIGNMENT_CENTER, MAP_PANEL.size.x - 120.0, 12, 2, Color("#9fb3b3"))
-
-
 # ------------------------------------------------------------ PNJ CON VIDA PROPIA
 ## Los aliados tienen vida: las trampas y las entidades también les hacen
 ## daño, y se defienden (empujan a la entidad y aplastan alimañas). Además van

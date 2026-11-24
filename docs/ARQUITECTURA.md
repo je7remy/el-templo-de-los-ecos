@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.12)
+## Cómo está organizado hoy (v0.5.13)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -21,7 +21,8 @@ scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña, mundo, HUD y menús aú
 │       ├── Pisos    scenes/pantallas/pisos.tscn   (tarjetas: scripts/ui/tarjeta_piso.gd)
 │       ├── Ajustes  scenes/pantallas/ajustes.tscn (pestañas y páginas legales)
 │       ├── Dialogo, Eleccion, EntradaPiso, ResumenPiso, Final (muerte y victoria)
-│       └── Altar, Tienda                             (pantallas de la partida)
+│       ├── Altar, Tienda                             (pantallas de la partida)
+│       └── Intro, Creacion, Habilidades, Mapa
 └── CapaAvisos   scenes/ui/avisos.tscn             CanvasLayer 3 · mensajes y rótulos de nivel/botín
 
 scenes/defense.tscn  (Vigilia del Claustro · defense.gd)
@@ -73,7 +74,8 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 1 | Autoloads `Eventos`, `Progreso` y `Escenas` (pantalla de carga), máquina de estados, piezas de interfaz, capa de avisos. Inicio, menú principal y pausa como escenas. | **Hecha (v0.5.10)** |
 | 2a | Configuración (con las páginas legales), acuerdo y menú de pisos como escenas. Textos en `scripts/datos/textos.gd`. | **Hecha (v0.5.11)** |
 | 2b | Pantallas de la partida: diálogos, elección, entrada y resumen del piso, muerte y victoria, altar y tienda (con la ficha de la Vigilia). | **Hecha (v0.5.12)** |
-| 2c | Intro, creación del personaje, perfil/inventario, habilidades y mapa. El HUD (barra superior e inferior, minimapa, controles táctiles) como escena `Control`. | Pendiente |
+| 2c | Intro, creación del personaje, habilidades y mapa. | **Hecha (v0.5.13)** |
+| 2d | Perfil/inventario con el equipo. El HUD (barra superior e inferior, minimapa, controles táctiles) como escena `Control`. | Pendiente |
 | 3 | Jugador y entidades como escenas: `CharacterBody2D` + `AnimatedSprite2D` + áreas de colisión y señales (`herido`, `muerto`), con su máquina de estados. `main.gd` solo las instancia en la sala. | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
