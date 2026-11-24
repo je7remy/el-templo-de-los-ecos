@@ -10,6 +10,7 @@ func _initialize() -> void:
     call_deferred("_run_checks")
 
 func _run_checks() -> void:
+    root.size = Vector2i(960, 640) # sin pantalla la ventana mide 64 × 64
     var packed: PackedScene = load("res://scenes/main.tscn")
     if packed == null:
         _fail("No se puede cargar la escena principal.")
@@ -444,7 +445,7 @@ func _run_checks() -> void:
     # Saltar diálogos con el botón y volver a la pausa desde el perfil y las habilidades.
     game.set("game_mode", "play")
     game.call("_dialog", [["PEREGRINO", "Una frase."], ["PEREGRINO", "Otra frase."]])
-    game.call("_mobile_tap", (game.get("SKIP_BTN") as Rect2).get_center())
+    _clic((game.get_node("Pantallas/Maquina/Dialogo/Saltar") as Control).get_global_rect().get_center())
     if game.get("game_mode") != "play" or not (game.get("dialog_queue") as Array).is_empty():
         _fail("El botón SALTAR no salta la conversación.")
         return
@@ -695,7 +696,7 @@ func _run_checks() -> void:
     if str(game.get("game_mode")) != "choice" or (game.get("choice")["options"] as Array).size() != 2:
         _fail("Hablar con el grupo no muestra la elección de ayudarlos o no.")
         return
-    game.call("_choice_key", KEY_2)
+    _key(KEY_2) # la elección es una escena: la tecla le llega por la interfaz
     game.call("_dialog_skip")
     if bool(game.get("guiding")) or not bool(group[0]["waiting"]) or not bool(game.get("guides_refused")):
         _fail("Negarse a guiarlos no funciona.")
@@ -706,7 +707,7 @@ func _run_checks() -> void:
     game.set("karma", karma_before)
     game.set("game_mode", "play")
     game.call("_interact")
-    game.call("_choice_key", KEY_1)
+    _key(KEY_1)
     game.call("_dialog_skip")
     if not bool(game.get("guiding")) or bool(group[0]["waiting"]):
         _fail("Hablar con el grupo no lo convierte en tus guiados.")
@@ -733,9 +734,9 @@ func _run_checks() -> void:
     if game.get("game_mode") != "shop":
         _fail("El cuenco no abre el puesto del Mercader.")
         return
-    game.call("_shop_key", KEY_DOWN)
-    game.call("_shop_key", KEY_DOWN)
-    game.call("_shop_key", KEY_ENTER)
+    _key(KEY_DOWN)
+    _key(KEY_DOWN)
+    _key(KEY_ENTER)
     if not (game.get("trinkets") as Array).has("brazalete") or int(game.get("souls")) != 18 \
             or float(game.call("_strike_damage")) <= 18.0:
         _fail("El Brazalete de bronce no se compra o no se cobra primero.")
@@ -747,7 +748,7 @@ func _run_checks() -> void:
             or int(game.get("souls")) != 0 or float(game.call("_strike_damage")) <= dmg_b1:
         _fail("El Brazalete no sube de nivel al comprarlo otra vez.")
         return
-    game.call("_shop_key", KEY_ESCAPE)
+    _key(KEY_ESCAPE)
     var mh0: float = float(game.get("max_hp"))
     game.set("player_pos", game.call("_merchant_hem"))
     game.call("_interact")
@@ -1242,7 +1243,7 @@ func _run_checks() -> void:
     if not bool(game.get("shop_info")) or bool(game.get("vigil_unlocked")):
         _fail("La llave de la Vigilia se cobra sin explicar antes el modo.")
         return
-    game.call("_shop_key", KEY_1)
+    _key(KEY_1)
     if not bool(game.get("vigil_unlocked")) or int(game.get("souls")) > 400 or bool(game.get("shop_info")):
         _fail("Comprar la llave no abre la Vigilia.")
         return
@@ -1372,7 +1373,7 @@ func _run_checks() -> void:
     # Pantalla de muerte: un toque de más no la cierra antes de leerla.
     game.set("game_mode", "dead")
     game.set("end_t", 0.0)
-    game.call("_mobile_tap", Vector2(480, 400))
+    _clic(Vector2(480, 400))
     if str(game.get("game_mode")) != "dead":
         _fail("Un toque cierra la pantalla de muerte al instante.")
         return
@@ -1809,3 +1810,14 @@ func _pad_axis(_game: Node, axis: int, value: float) -> void:
     e.axis = axis
     e.axis_value = value
     root.push_input(e)
+
+
+func _clic(at: Vector2) -> void:
+    for pressed in [true, false]:
+        var m := InputEventMouseButton.new()
+        m.button_index = MOUSE_BUTTON_LEFT
+        m.position = at
+        m.global_position = at
+        m.pressed = pressed
+        m.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+        root.push_input(m)

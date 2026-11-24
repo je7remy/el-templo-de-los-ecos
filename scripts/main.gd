@@ -864,14 +864,10 @@ func _input_game(event: InputEvent) -> void:
         return
     elif event is InputEventMouseMotion:
         ui_hover = make_input_local(event).position
-        if game_mode in ["inventory", "altar"]:
-            var slot_h: int = _inventory_slot_at(ui_hover) if game_mode == "inventory" else _altar_row_at(ui_hover)
+        if game_mode == "inventory":
+            var slot_h: int = _inventory_slot_at(ui_hover)
             if slot_h >= 0:
                 inventory_sel = slot_h
-        if game_mode == "shop":
-            for i in range(SHOP.size()):
-                if _shop_row(i).has_point(ui_hover):
-                    shop_sel = i
         queue_redraw()
         return
     elif event is InputEventMouseButton and event.pressed and game_mode == "abilities" and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
@@ -886,7 +882,7 @@ func _input_game(event: InputEvent) -> void:
     elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
         var click_at: Vector2 = make_input_local(event).position
         _click_spark(click_at)
-        if game_mode in ["title", "create", "floors", "floor_summary", "shop", "inventory", "abilities", "map", "choice", "dialog", "altar", "floor_intro", "splash", "eula", "intro", "pause", "settings"]:
+        if game_mode in ["create", "inventory", "abilities", "map", "intro"]:
             _mobile_tap(click_at)
             return
         if game_mode == "play" and click_at.y < 104.0:
@@ -906,19 +902,8 @@ func _input_game(event: InputEvent) -> void:
         Ajustes.poner("pantalla_completa", not bool(Ajustes.obtener("pantalla_completa")))
         _apply_window_mode()
         return
-    if game_mode == "dialog":
-        if k == KEY_ESCAPE:
-            _dialog_skip()
-        elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E] or k == _key("interactuar"):
-            _dialog_advance()
-        queue_redraw()
-        return
     if game_mode == "map":
         _map_key(k)
-        queue_redraw()
-        return
-    if game_mode == "choice":
-        _choice_key(k)
         queue_redraw()
         return
     if game_mode == "abilities":
@@ -928,15 +913,6 @@ func _input_game(event: InputEvent) -> void:
             _abil_turn(1)
         elif k in [KEY_LEFT, KEY_A, KEY_UP, KEY_W, KEY_PAGEUP]:
             _abil_turn(-1)
-        queue_redraw()
-        return
-    if game_mode == "shop":
-        _shop_key(k)
-        queue_redraw()
-        return
-    if game_mode == "floor_summary":
-        if k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E, KEY_ESCAPE]:
-            _after_floor_summary()
         queue_redraw()
         return
     if game_mode == "create":
@@ -949,25 +925,7 @@ func _input_game(event: InputEvent) -> void:
         elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E]:
             _intro_next()
         return
-    if game_mode == "floor_intro":
-        if k in [KEY_ENTER, KEY_KP_ENTER, KEY_E, KEY_SPACE]:
-            _enter_floor()
-    elif game_mode == "dead" or game_mode == "victory":
-        if not _end_ready():
-            pass # se lee primero: los toques y teclas de más no la cierran
-        elif k == KEY_ENTER or k == KEY_KP_ENTER:
-            _after_end()
-        elif k == KEY_ESCAPE:
-            game_mode = "title"
-    elif game_mode == "altar":
-        if k == KEY_1:
-            _buy_upgrade(1)
-        elif k == KEY_2:
-            _buy_upgrade(2)
-        elif k == KEY_ESCAPE or k == KEY_E:
-            game_mode = "play"
-            _sfx("interfaz", -12.0, 0.9)
-    elif game_mode == "inventory":
+    if game_mode == "inventory":
         if k in [_key("perfil"), KEY_TAB, KEY_ESCAPE, KEY_E]:
             _close_inventory()
         elif k == _key("habilidades"):
@@ -1010,6 +968,9 @@ func _input_game(event: InputEvent) -> void:
 ## toques, el teclado y el mando les llegan por la interfaz de Godot. Aquí solo
 ## se atiende lo global (pantalla completa) y se recuerda con qué se juega.
 func _input_screen_scene(event: InputEvent) -> void:
+    # La escena decide con los datos de ahora mismo (no los del último cuadro).
+    if game_mode in LIVE_SCREENS:
+        pantallas.refrescar(game_mode, _screen_data(game_mode))
     if event is InputEventJoypadButton or event is InputEventJoypadMotion:
         pad_active = true
     elif event is InputEventKey or event is InputEventMouseButton:
@@ -1052,12 +1013,159 @@ func _screen_data(mode: String) -> Dictionary:
             d["pisos"] = _floor_cards()
             d["seleccion"] = floors_sel
             d["ayuda"] = _hint("Flechas elegir · ENTER descender · ESC volver", "Toca un piso y luego DESCENDER", "Cruceta elegir · A descender · B volver")
+        "dialog":
+            if not dialog_queue.is_empty():
+                var who: String = dialog_queue[0][0]
+                var text: String = dialog_queue[0][1]
+                d["quien"] = who
+                d["color_quien"] = _speaker_color(who)
+                d["texto"] = text
+                d["letras"] = int(dialog_chars)
+                var tap: String = _hint("clic / E", "toca", "A")
+                d["mas"] = "" if int(dialog_chars) < text.length() else ("»  " + tap if dialog_queue.size() > 1 else "»  " + tap + " para cerrar")
+            d["tecla_interactuar"] = _key("interactuar")
+        "choice":
+            d["quien"] = str(choice.get("speaker", ""))
+            d["texto"] = str(choice.get("text", ""))
+            d["opciones"] = choice.get("options", [])
+            d["ayuda"] = _hint("1 / 2 · ←/→ + ENTER · ESC: pensarlo", "Toca una opción", "Cruceta + A · B: pensarlo")
+            d["tecla_interactuar"] = _key("interactuar")
+        "floor_intro":
+            d["numero"] = _floor()["number"]
+            d["titulo"] = _tc(_floor()["title"])
+            if floor_intro_eco != "":
+                var eco: Array = ECOS[floor_intro_eco]
+                d["eco_ganado"] = "POR SUPERAR EL PISO ANTERIOR GANASTE EL ECO «%s»: %s" % [eco[0], eco[1]]
+            # La recompensa de este piso, dicha antes de entrar.
+            var own: String = str(_floor().get("eco", ""))
+            if own != "" and ECOS.has(own):
+                d["recompensa"] = "RECOMPENSA AL SUPERAR ESTE PISO: ECO «%s» (habilidad pasiva)%s" % [ECOS[own][0], " · ya lo tienes" if ecos.has(own) else ""]
+            elif bool(_floor().get("final", false)):
+                d["recompensa"] = "AL SUPERAR ESTE PISO: el final del primer arco"
+            d["ayuda"] = _hint("ENTRAR  ·  ENTER", "TOCA PARA ENTRAR", "ENTRAR  ·  A")
+        "floor_summary":
+            d["numero"] = summary.get("floor", "")
+            d["titulo"] = _tc(str(summary.get("title", "")))
+            d["filas"] = [["Tiempo", summary.get("time", "")], ["Almas ganadas", "%+d" % int(summary.get("souls", 0))],
+                ["Muertes", str(summary.get("deaths", 0))], ["Misiones", str(summary.get("missions", ""))],
+                ["Alimañas aplastadas", str(summary.get("critters", 0))], ["Aliados con vida", str(summary.get("allies", ""))]]
+            var eco_s: String = str(summary.get("eco", ""))
+            if eco_s != "" and ECOS.has(eco_s):
+                d["eco_icono"] = ICONS.get("eco_" + eco_s, null)
+                d["eco_texto"] = "POR SUPERAR EL PISO %s GANAS EL ECO «%s»" % [summary.get("floor", ""), ECOS[eco_s][0]]
+                d["eco_detalle"] = ECOS[eco_s][1]
+            d["verdad"] = str(summary.get("truth", ""))
+            d["ayuda"] = _hint("ENTER / clic: seguir descendiendo", "Toca para seguir descendiendo", "A: seguir descendiendo")
+        "dead", "victory":
+            _end_screen_data(d, mode == "victory")
+        "altar":
+            d["ofertas"] = _altar_offers()
+            d["almas"] = souls
+            d["icono_alma"] = ICONS["alma"]
+            d["ayuda"] = _hint("E / ESC: salir", "Toca fuera para salir", "B: salir")
+            d["seleccion"] = clampi(inventory_sel, 0, 1)
+        "shop":
+            _shop_screen_data(d)
         "pause":
             d["titulo"] = _tc(_t("pausa"))
             d["opciones"] = _pause_options().map(func(id): return [id, _t(id)])
             d["aviso_abandono"] = _t("aviso_abandono")
             d["tecla_pausa"] = _key("pausa")
     return d
+
+
+## Pantalla de muerte o de victoria: qué se cuenta según cómo terminó.
+func _end_screen_data(d: Dictionary, win: bool) -> void:
+    var lines: Array = []
+    var hint: String
+    var hint_y: float = 418.0
+    var title := func(text: String, y: float, color: Color) -> void:
+        lines.append({"texto": text, "y": y, "tam": 48, "color": color, "gotico": true})
+    var line := func(text: String, y: float, size: int, color: Color = CREAM) -> void:
+        lines.append({"texto": text, "y": y, "tam": size, "color": color})
+    if win and bool(_floor().get("final", false)):
+        title.call("Fin del primer arco", 214.0, SOUL)
+        line.call("La Puerta de la Cosecha no lleva a la salida, sino a otros escalones.", 262.0, 17)
+        line.call("«Esto no es una salida. Es una transición.»", 300.0, 20, Color("#e3bd7b"))
+        line.call("En el marco, doscientas marcas de alas: este lugar es solo uno de muchos.", 338.0, 15, Color("#9fb3b3"))
+        line.call("Continuará.", 376.0, 16)
+        hint = _hint("ENTER: volver a empezar  ·  ESC: menú", "Toca para volver a empezar", "A: volver a empezar  ·  B: menú")
+        hint_y = 430.0
+    elif win:
+        line.call("PISO %s SUPERADO" % _floor()["number"], 230.0, 33, SOUL)
+        line.call("No has escapado. El siguiente nivel sigue oculto.", 280.0, 18)
+        line.call("Nada es lo que parece.", 318.0, 16)
+        hint = _hint("ENTER: repetir prueba  ·  ESC: menú", "Toca para repetir la prueba", "A: repetir prueba  ·  B: menú")
+    elif soul_fate == "persistencia":
+        d["vineta"] = clampf(death_fx / 1.2, 0.0, 1.0) if death_fx >= 0.0 else 1.0
+        title.call("%s ha caído" % _tc(_hero_name()), 240.0, Color("#d0475a"))
+        line.call("Este lugar todavía no te reclama.", 278.0, 18)
+        line.call("Conservas almas, objetos, habilidades y ecos.", 318.0, 17)
+        line.call("(Modo de pruebas: la muerte no cuesta progreso.)", 352.0, 15, Color("#9fb3b3"))
+        hint = _hint("ENTER: levantarte en la entrada de la sala  ·  ESC: menú", "Toca para levantarte en la entrada de la sala", "A: levantarte  ·  B: menú")
+    elif soul_fate == "retorno":
+        line.call("TU ALMA HA REGRESADO", 230.0, 30, SOUL)
+        line.call("Resultado aleatorio de la muerte: reencarnación (50 %).", 278.0, 18)
+        line.call("Eres la misma persona. Conservas memoria y habilidades.", 318.0, 17)
+        line.call("Los niveles de habilidad regresaron a cero.", 352.0, 17)
+        hint = _hint("ENTER: reaparecer al inicio  ·  ESC: menú", "Toca para reaparecer al inicio", "A: reaparecer  ·  B: menú")
+    else:
+        line.call("ALMA ABSORBIDA", 230.0, 32, RED)
+        line.call("Resultado aleatorio: absorción definitiva (50 %).", 278.0, 18)
+        line.call("La persona anterior ha dejado de existir.", 318.0, 17)
+        line.call("Un nuevo humano ocupará el lugar, sin sus recuerdos.", 352.0, 17)
+        hint = _hint("ENTER: iniciar nueva identidad  ·  ESC: menú", "Toca para iniciar una nueva identidad", "A: nueva identidad  ·  B: menú")
+    d["lineas"] = lines
+    d["aviso"] = {"texto": hint, "y": hint_y}
+    # Se lee primero: hasta END_LOCK los toques y teclas de más no la cierran.
+    d["espera"] = 1.0 if _end_ready() else clampf(end_t / END_LOCK, 0.0, 1.0)
+    d["t"] = end_t
+
+
+## Ofertas del altar: Resonancia (o su mejora) y Llama Interior.
+func _altar_offers() -> Array:
+    var offers := [
+        ["resonancia", "[1] RESONANCIA" if not has_pulse else "[1] MEJORAR RESONANCIA", "Onda (Q) que daña y aturde a las entidades cercanas." if not has_pulse else "Nivel %d → %d: la onda hace más daño." % [ability_level, ability_level + 1], 14 if not has_pulse else RESONANCE_UPGRADE_BASE + RESONANCE_UPGRADE_STEP * ability_level, has_pulse and ability_level >= ABILITY_LEVEL_MAX, "NIVEL MÁXIMO"],
+        ["llama_interior", "[2] LLAMA INTERIOR", "Enciendes la antorcha sin gastar fósforos.", INNER_FLAME_PRICE, has_inner_flame, "ADQUIRIDA"],
+    ]
+    var out: Array = []
+    for o in offers:
+        out.append({"icono": ICONS[o[0]], "titulo": o[1], "detalle": o[2],
+            "derecha": o[5] if o[4] else "%d ALMAS" % o[3],
+            "color_derecha": SOUL if o[4] else (CREAM if souls >= o[3] else RED)})
+    return out
+
+
+## Puesto del Mercader: filas, almas y la ficha de la Vigilia.
+func _shop_screen_data(d: Dictionary) -> void:
+    match _mark():
+        "bendicion":
+            d["nota"] = "  ·  BENDICIÓN: te cobra menos"
+        "maldicion":
+            d["nota"] = "  ·  MALDICIÓN: te cobra más"
+    var rows: Array = []
+    for i in range(SHOP.size()):
+        var item: Array = SHOP[i]
+        var maxed: bool = _shop_maxed(i)
+        rows.append({"icono": ICONS.get(item[0], ICONS["descansar"]), "nombre": item[1], "detalle": item[3], "tenue": maxed,
+            "derecha": ("COMPRADA" if item[0] == "vigilia" else "MÁXIMO") if maxed else "%d ALMAS" % _shop_price(i),
+            "color_derecha": SOUL if maxed else (CREAM if souls >= _shop_price(i) else RED),
+            "llevas": _shop_owned_text(i), "destello": float(shop_flash.get(i, 0.0))})
+    d["filas"] = rows
+    d["almas"] = souls
+    d["icono_alma"] = ICONS["alma"]
+    d["vida"] = "VIDA MÁXIMA: %d" % int(max_hp)
+    d["color_vida"] = RED if hand_lost else CREAM
+    d["ayuda"] = _hint("ENTER comprar · ESC salir", "Toca para comprar · fuera para salir", "A comprar · B salir")
+    d["seleccion"] = shop_sel
+    d["info"] = shop_info
+    var price: int = _shop_price(shop_sel)
+    d["ficha"] = {"icono": VIGIL_ICON, "filas": VIGIL_INFO, "precio": price, "puede": souls >= price, "almas": souls}
+    d["tecla_interactuar"] = _key("interactuar")
+
+
+## Pantallas que cambian mientras se ven: se les pasan datos nuevos cada cuadro.
+const LIVE_SCREENS := ["dialog", "dead", "victory", "shop", "altar"]
 
 
 ## Muestra la escena de la pantalla actual (o ninguna) y ajusta los avisos.
@@ -1124,6 +1232,47 @@ func _on_screen_action(screen: StringName, choice: StringName, value: Variant = 
                     _open_settings("title")
                 &"cambiar_personaje":
                     _start_creation("title")
+        &"Dialogo":
+            if choice == &"saltar":
+                _dialog_skip()
+            else:
+                _dialog_advance()
+        &"Eleccion":
+            if choice == &"opcion":
+                _choice_pick(int(value))
+            else:
+                _choice_cancel()
+        &"EntradaPiso":
+            _enter_floor()
+        &"ResumenPiso":
+            _after_floor_summary()
+        &"Final":
+            # Se lee primero: los toques y teclas de más no la cierran.
+            if _end_ready():
+                if choice == &"menu":
+                    game_mode = "title"
+                else:
+                    _after_end()
+        &"Altar":
+            if choice == &"comprar":
+                inventory_sel = int(value) - 1
+                _buy_upgrade(int(value))
+            else:
+                game_mode = "play"
+                _sfx("interfaz", -12.0, 0.9)
+        &"Tienda":
+            match choice:
+                &"elegir":
+                    shop_sel = int(value)
+                    _shop_choose(shop_sel)
+                &"info_si":
+                    shop_info = false
+                    _shop_buy(shop_sel)
+                &"info_no":
+                    shop_info = false
+                    _sfx("interfaz", -12.0, 0.9)
+                &"salir":
+                    _close_shop()
         &"Pausa":
             var opts: Array = _pause_options()
             if opts.has(String(choice)):
@@ -1200,24 +1349,6 @@ func _pad_button(b: int) -> void:
         _pad_menu_step(dpad[b])
         return
     match game_mode:
-        "dialog":
-            if b in [JOY_BUTTON_A, JOY_BUTTON_B]:
-                _pad_key(KEY_ENTER)
-            elif b in [JOY_BUTTON_Y, JOY_BUTTON_START]:
-                _pad_key(KEY_ESCAPE)
-            return
-        "altar":
-            match b:
-                JOY_BUTTON_A:
-                    _buy_upgrade(inventory_sel + 1)
-                    queue_redraw()
-                JOY_BUTTON_X:
-                    _pad_key(KEY_1)
-                JOY_BUTTON_Y:
-                    _pad_key(KEY_2)
-                JOY_BUTTON_B, JOY_BUTTON_START:
-                    _pad_key(KEY_ESCAPE)
-            return
         "inventory":
             match b:
                 JOY_BUTTON_RIGHT_SHOULDER:
@@ -1228,13 +1359,6 @@ func _pad_button(b: int) -> void:
                     _pad_key(KEY_O)
                 JOY_BUTTON_B, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_BACK, JOY_BUTTON_START:
                     _pad_key(KEY_ESCAPE)
-            return
-        "choice":
-            if b == JOY_BUTTON_A:
-                _choice_pick(choice_sel)
-            elif b == JOY_BUTTON_B:
-                _choice_cancel()
-            queue_redraw()
             return
         "map":
             if b in [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_BACK, JOY_BUTTON_START]:
@@ -1259,9 +1383,6 @@ func _pad_button(b: int) -> void:
 func _pad_menu_step(dir: Vector2i) -> void:
     if game_mode == "create" and create_step == 0:
         _pad_name_move(dir)
-    elif game_mode == "altar":
-        inventory_sel = clampi(inventory_sel + dir.y + dir.x, 0, 1)
-        queue_redraw()
     else:
         _pad_key(_pad_dir_key(dir))
 
@@ -1454,39 +1575,8 @@ func _mobile_tap(at: Vector2) -> void:
     if game_mode == "create":
         _create_tap(at)
         return
-    if game_mode == "floor_summary":
-        _after_floor_summary()
-        return
-    if game_mode == "shop":
-        _shop_tap(at)
-        return
-    if game_mode == "dead" or game_mode == "victory":
-        if _end_ready():
-            _after_end()
-        return
-    if game_mode == "floor_intro":
-        _enter_floor()
-        return
-    if game_mode == "altar":
-        var row: int = _altar_row_at(at)
-        if row >= 0:
-            inventory_sel = row
-            _buy_upgrade(row + 1)
-        else:
-            game_mode = "play"
-            _sfx("interfaz", -12.0, 0.9)
-        return
-    if game_mode == "dialog":
-        if SKIP_BTN.has_point(at):
-            _dialog_skip()
-        else:
-            _dialog_advance()
-        return
     if game_mode == "map":
         _map_tap(at)
-        return
-    if game_mode == "choice":
-        _choice_tap(at)
         return
     if game_mode == "abilities":
         if _abil_pages() > 1 and ABIL_PREV_BTN.grow(8.0).has_point(at):
@@ -1864,17 +1954,6 @@ func _inventory_slot_at(at: Vector2) -> int:
 
 func _profile_eco_rect(i: int) -> Rect2:
     return Rect2(372.0 + float(i) * 49.0, 382.0, 44.0, 44.0) # caben los diez Ecos
-
-
-func _altar_row_rect(i: int) -> Rect2:
-    return Rect2(190.0, 262.0 + float(i) * 96.0, 580.0, 86.0)
-
-
-func _altar_row_at(at: Vector2) -> int:
-    for i in range(2):
-        if _altar_row_rect(i).has_point(at):
-            return i
-    return -1
 
 
 # ---------------------------------------------------------------- COMBATE
@@ -2361,6 +2440,8 @@ func _process(delta: float) -> void:
     _update_level_fx(delta)
     for i in shop_flash.keys():
         shop_flash[i] = maxf(0.0, float(shop_flash[i]) - delta * 1.8)
+    if game_mode in LIVE_SCREENS:
+        pantallas.refrescar(game_mode, _screen_data(game_mode))
     avisos.ancla = world_xf * player_pos
     avisos.zoom = cam_zoom
     avisos.tactil = touch_enabled
@@ -2655,28 +2736,14 @@ func _draw() -> void:
     _draw_mission_banner()
     _draw_room_souls_counter()
     _draw_room_fade()
-    if game_mode == "altar":
-        _draw_altar_overlay()
-    elif game_mode == "shop":
-        _draw_shop()
-    elif game_mode == "inventory":
+    # Altar, tienda, elección, diálogo, resumen, muerte/victoria y entrada al
+    # piso son escenas (scenes/pantallas/), por encima de esto.
+    if game_mode == "inventory":
         _draw_inventory_overlay()
     elif game_mode == "abilities":
         _draw_abilities()
     elif game_mode == "map":
         _draw_map()
-    elif game_mode == "choice":
-        _draw_choice()
-    elif game_mode == "floor_summary":
-        _draw_floor_summary()
-    elif game_mode == "dialog":
-        _draw_dialog()
-    elif game_mode == "dead":
-        _draw_end_overlay(false)
-    elif game_mode == "victory":
-        _draw_end_overlay(true)
-    elif game_mode == "floor_intro":
-        _draw_floor_intro()
     _draw_tutorial_overlay()
     _draw_mobile_controls()
     # Los avisos de nivel y de botín los dibuja la capa de avisos
@@ -3868,31 +3935,6 @@ func _start_updater() -> void:
     _sync_screens()
 
 
-func _draw_altar_overlay() -> void:
-    _overlay()
-    _panel(Rect2(164, 155, 632, 357), Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
-    _center("EL MERCADER SILENCIOSO", 200, 26, CREAM)
-    _center("'Todo préstamo tiene un dueño que no conoces.'", 232, 15, SOUL)
-    var offers := [
-        ["resonancia", "[1] RESONANCIA" if not has_pulse else "[1] MEJORAR RESONANCIA", "Onda (Q) que daña y aturde a las entidades cercanas." if not has_pulse else "Nivel %d → %d: la onda hace más daño." % [ability_level, ability_level + 1], 14 if not has_pulse else RESONANCE_UPGRADE_BASE + RESONANCE_UPGRADE_STEP * ability_level, has_pulse and ability_level >= ABILITY_LEVEL_MAX, "NIVEL MÁXIMO"],
-        ["llama_interior", "[2] LLAMA INTERIOR", "Enciendes la antorcha sin gastar fósforos.", INNER_FLAME_PRICE, has_inner_flame, "ADQUIRIDA"],
-    ]
-    for i in range(offers.size()):
-        var row: Rect2 = _altar_row_rect(i)
-        var o: Array = offers[i]
-        var hover: bool = inventory_sel == i
-        _panel(row, Color("#202a36") if hover else Color("#141922"), UI_GOLD if hover else UI_EDGE)
-        draw_texture_rect(ICONS[o[0]], Rect2(row.position + Vector2(12, 11), Vector2(64, 64)), false)
-        _text(o[1], row.position + Vector2(92, 32), 18, CREAM)
-        _text(o[2], row.position + Vector2(92, 60), 13, Color("#b9b29b"))
-        var right: String = o[5] if o[4] else "%d ALMAS" % o[3]
-        var tone: Color = SOUL if o[4] else (CREAM if souls >= o[3] else RED)
-        draw_string(font, row.position + Vector2(0, 32), right, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, 15, tone)
-    draw_texture_rect(ICONS["alma"], Rect2(196, 464, 26, 26), false)
-    _text("ALMAS: %d" % souls, Vector2(228, 484), 16, SOUL)
-    _text(_hint("E / ESC: salir", "Toca fuera para salir", "B: salir"), Vector2(600, 484), 14, CREAM)
-
-
 func _draw_inventory_overlay() -> void:
     ## PERFIL del jugador (I / Tab, o tocar el retrato): ficha de personaje al
     ## estilo de los roguelike de acción. Izquierda: retrato y estadísticas.
@@ -3999,86 +4041,9 @@ func _draw_inventory_overlay() -> void:
 
 ## Pantalla de entrada al piso (GDD §7): solo una vista parcial del interior,
 ## sin desvelar lo que hay tras las puertas.
-func _draw_floor_intro() -> void:
-    # Ventana circular: un fragmento de la sala, nada más. Fuera, oscuridad.
-    var c := Vector2(480, 330)
-    var r_in: float = 128.0
-    var dark := Color(0.01, 0.015, 0.02, 0.96)
-    var seg: int = 64
-    for i in range(seg):
-        var a0: float = TAU * float(i) / float(seg)
-        var a1: float = TAU * float(i + 1) / float(seg)
-        draw_colored_polygon(PackedVector2Array([
-            c + Vector2.from_angle(a0) * r_in, c + Vector2.from_angle(a0) * 1200.0,
-            c + Vector2.from_angle(a1) * 1200.0, c + Vector2.from_angle(a1) * r_in]), dark)
-    # Borde difuminado hacia dentro.
-    for k in range(6):
-        draw_arc(c, r_in - float(k) * 4.0, 0.0, TAU, seg, Color(0.01, 0.015, 0.02, 0.5 - float(k) * 0.08), 4.0)
-    draw_arc(c, r_in + 2.0, 0.0, TAU, seg, Color("#8d7957"), 2.0)
-    _title_text("Piso %s" % _floor()["number"], Vector2(0, 124), 24, UI_GOLD, W)
-    _title_text(_tc(_floor()["title"]), Vector2(0, 176), 48, CREAM, W)
-    if floor_intro_eco != "":
-        var eco: Array = ECOS[floor_intro_eco]
-        _center("POR SUPERAR EL PISO ANTERIOR GANASTE EL ECO «%s»: %s" % [eco[0], eco[1]], 474, 13, SOUL)
-    # La recompensa de este piso, dicha antes de entrar.
-    var own: String = str(_floor().get("eco", ""))
-    if own != "" and ECOS.has(own):
-        _center("RECOMPENSA AL SUPERAR ESTE PISO: ECO «%s» (habilidad pasiva)%s" % [ECOS[own][0], " · ya lo tienes" if ecos.has(own) else ""], 504, 14, Color("#ffd36b"))
-    elif bool(_floor().get("final", false)):
-        _center("AL SUPERAR ESTE PISO: el final del primer arco", 504, 14, Color("#ffd36b"))
-    var pulse: float = 0.6 + 0.4 * sin(elapsed * 3.0)
-    _center(_hint("ENTRAR  ·  ENTER", "TOCA PARA ENTRAR", "ENTRAR  ·  A"), 560, 18, Color(0.89, 0.74, 0.48, pulse))
-
-
-func _draw_end_overlay(win: bool) -> void:
-    _overlay()
-    if win and bool(_floor().get("final", false)):
-        _title_text("Fin del primer arco", Vector2(0, 214), 48, SOUL, W)
-        _center("La Puerta de la Cosecha no lleva a la salida, sino a otros escalones.", 262, 17, CREAM)
-        _center("«Esto no es una salida. Es una transición.»", 300, 20, Color("#e3bd7b"))
-        _center("En el marco, doscientas marcas de alas: este lugar es solo uno de muchos.", 338, 15, Color("#9fb3b3"))
-        _center("Continuará.", 376, 16, CREAM)
-        _end_hint(_hint("ENTER: volver a empezar  ·  ESC: menú", "Toca para volver a empezar", "A: volver a empezar  ·  B: menú"), 430)
-    elif win:
-        _center("PISO %s SUPERADO" % _floor()["number"], 230, 33, SOUL)
-        _center("No has escapado. El siguiente nivel sigue oculto.", 280, 18, CREAM)
-        _center("Nada es lo que parece.", 318, 16, CREAM)
-        _end_hint(_hint("ENTER: repetir prueba  ·  ESC: menú", "Toca para repetir la prueba", "A: repetir prueba  ·  B: menú"), 418)
-    elif soul_fate == "persistencia":
-        _death_vignette()
-        _title_text("%s ha caído" % _tc(_hero_name()), Vector2(0, 240), 48, Color("#d0475a"), W)
-        _center("Este lugar todavía no te reclama.", 278, 18, CREAM)
-        _center("Conservas almas, objetos, habilidades y ecos.", 318, 17, CREAM)
-        _center("(Modo de pruebas: la muerte no cuesta progreso.)", 352, 15, Color("#9fb3b3"))
-        _end_hint(_hint("ENTER: levantarte en la entrada de la sala  ·  ESC: menú", "Toca para levantarte en la entrada de la sala", "A: levantarte  ·  B: menú"), 418)
-    elif soul_fate == "retorno":
-        _center("TU ALMA HA REGRESADO", 230, 30, SOUL)
-        _center("Resultado aleatorio de la muerte: reencarnación (50 %).", 278, 18, CREAM)
-        _center("Eres la misma persona. Conservas memoria y habilidades.", 318, 17, CREAM)
-        _center("Los niveles de habilidad regresaron a cero.", 352, 17, CREAM)
-        _end_hint(_hint("ENTER: reaparecer al inicio  ·  ESC: menú", "Toca para reaparecer al inicio", "A: reaparecer  ·  B: menú"), 418)
-    else:
-        _center("ALMA ABSORBIDA", 230, 32, RED)
-        _center("Resultado aleatorio: absorción definitiva (50 %).", 278, 18, CREAM)
-        _center("La persona anterior ha dejado de existir.", 318, 17, CREAM)
-        _center("Un nuevo humano ocupará el lugar, sin sus recuerdos.", 352, 17, CREAM)
-        _end_hint(_hint("ENTER: iniciar nueva identidad  ·  ESC: menú", "Toca para iniciar una nueva identidad", "A: nueva identidad  ·  B: menú"), 418)
-
-
-## Aviso para continuar: primero una barra que se llena; luego el texto, latiendo.
+## ¿Ya se puede cerrar la pantalla de muerte o de victoria? (se lee primero).
 func _end_ready() -> bool:
     return end_t >= END_LOCK
-
-
-func _end_hint(msg: String, y: float) -> void:
-    if not _end_ready():
-        var k: float = clampf(end_t / END_LOCK, 0.0, 1.0)
-        var bar := Rect2(W * 0.5 - 90.0, y - 8.0, 180.0, 4.0)
-        draw_rect(bar, Color(1, 1, 1, 0.10))
-        draw_rect(Rect2(bar.position, Vector2(bar.size.x * k, bar.size.y)), Color(CREAM.r, CREAM.g, CREAM.b, 0.45))
-        return
-    var a: float = 0.65 + 0.35 * sin(end_t * 3.0)
-    _center(msg, y, 18, Color(CREAM.r, CREAM.g, CREAM.b, a))
 
 
 func _overlay() -> void:
@@ -7272,27 +7237,6 @@ func _speaker_color(who: String) -> Color:
     return SOUL
 
 
-func _draw_dialog() -> void:
-    if dialog_queue.is_empty():
-        return
-    var who: String = dialog_queue[0][0]
-    var text: String = dialog_queue[0][1]
-    draw_rect(_full_rect(), Color(0, 0, 0, 0.25))
-    var box := Rect2(110, 432, 740, 128)
-    _panel(box, Color(0.04, 0.045, 0.06, 0.95), UI_GOLD)
-    draw_rect(box.grow(-6.0), Color(1, 1, 1, 0.04), false, 1.0)
-    var tag := Rect2(box.position + Vector2(18, -16), Vector2(maxf(120.0, font.get_string_size(who, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x + 30.0), 28))
-    _panel(tag, Color("#2a1d22"), _speaker_color(who))
-    _text_outline(who, Vector2(tag.position.x, tag.position.y + 20.0), 15, _speaker_color(who), tag.size.x)
-    var shown: String = text.substr(0, int(dialog_chars))
-    draw_multiline_string(font, box.position + Vector2(24, 44), shown, HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 48.0, 18, 3, CREAM)
-    if int(dialog_chars) >= text.length():
-        var pulse: float = 0.5 + 0.5 * sin(elapsed * 5.0)
-        var more: String = ("»  " + _hint("clic / E", "toca", "A")) if dialog_queue.size() > 1 else ("»  " + _hint("clic / E", "toca", "A") + " para cerrar")
-        _text_outline(more, Vector2(box.end.x - 230.0, box.end.y - 12.0), 12, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.5 + 0.5 * pulse), 210.0)
-    _skip_button(SKIP_BTN)
-
-
 # --- Pantalla de habilidades ---------------------------------------------------------
 var abilities_return: String = "play"
 ## Páginas de la pantalla de habilidades: cada columna muestra las filas que
@@ -7464,13 +7408,6 @@ func _title_text(msg: String, at: Vector2, size: int, color: Color, width: float
 ## Filete ornamental dorado con rombo central.
 func _ornament_line(center: Vector2, half: float) -> void:
     Estilo.adorno(self, center, half)
-
-
-func _death_vignette() -> void:
-    var k: float = clampf(death_fx / 1.2, 0.0, 1.0) if death_fx >= 0.0 else 1.0
-    for i in range(6):
-        var g: float = float(i) * 18.0
-        draw_rect(Rect2(g, g, W - g * 2.0, H - g * 2.0), Color(0.45, 0.02, 0.06, 0.07 * k), false, 18.0)
 
 
 func _setup_post() -> void:
@@ -8031,33 +7968,6 @@ func _open_floor_summary(eco: String) -> void:
     game_mode = "floor_summary"
     _sfx("k_campana", -8.0, 0.9)
     _transition("barrido", false, 0.7)
-
-
-func _draw_floor_summary() -> void:
-    draw_rect(_full_rect(), Color(0.012, 0.01, 0.02, 0.82))
-    var panel := Rect2(170, 70, 620, 500)
-    _panel(panel, Color(0.035, 0.03, 0.045, 0.96), UI_GOLD)
-    _title_text("Piso %s superado" % summary.get("floor", ""), Vector2(170, 124), 48, CREAM, panel.size.x)
-    _text_outline(_tc(str(summary.get("title", ""))), Vector2(170, 150), 15, UI_GOLD, panel.size.x)
-    _ornament_line(Vector2(480, 166), 200.0)
-    var rows := [["Tiempo", summary.get("time", "")], ["Almas ganadas", "%+d" % int(summary.get("souls", 0))],
-        ["Muertes", str(summary.get("deaths", 0))], ["Misiones", str(summary.get("missions", ""))],
-        ["Alimañas aplastadas", str(summary.get("critters", 0))], ["Aliados con vida", str(summary.get("allies", ""))]]
-    for i in range(rows.size()):
-        var y: float = 200.0 + float(i) * 34.0
-        _text_outline(rows[i][0], Vector2(230, y), 15, Color("#b9b29b"))
-        _text_outline(str(rows[i][1]), Vector2(520, y), 15, CREAM, 210.0)
-        draw_rect(Rect2(230, y + 9.0, 500, 1), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.15))
-    var eco: String = str(summary.get("eco", ""))
-    if eco != "" and ECOS.has(eco):
-        draw_texture_rect(ICONS["eco_" + eco], Rect2(230, 408, 32, 32), false)
-        _text_outline("POR SUPERAR EL PISO %s GANAS EL ECO «%s»" % [summary.get("floor", ""), ECOS[eco][0]], Vector2(272, 422), 14, SOUL)
-        _text_outline(ECOS[eco][1], Vector2(272, 440), 11, Color("#9a957f"))
-    if str(summary.get("truth", "")) != "":
-        _text_outline("VERDAD REVELADA", Vector2(230, 476), 11, UI_GOLD)
-        draw_multiline_string(font, Vector2(230, 496), "«%s»" % summary["truth"], HORIZONTAL_ALIGNMENT_LEFT, 500.0, 15, 2, CREAM)
-    var pulse: float = 0.5 + 0.5 * sin(elapsed * 4.0)
-    _text_outline(_hint("ENTER / clic: seguir descendiendo", "Toca para seguir descendiendo", "A: seguir descendiendo"), Vector2(170, 552), 13, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.5 + 0.5 * pulse), panel.size.x)
 
 
 # --- Transiciones con máscara -----------------------------------------------------
@@ -8945,10 +8855,6 @@ func _close_shop() -> void:
     _sfx("interfaz", -12.0, 0.9)
 
 
-func _shop_row(i: int) -> Rect2:
-    return Rect2(180, 182 + float(i) * 55.0, 600, 51)
-
-
 ## Precio real: crece con el nivel de lo que mejoras y cambia con tu marca.
 func _shop_price(i: int) -> int:
     var key: String = SHOP[i][0]
@@ -8991,45 +8897,6 @@ func _shop_owned_text(i: int) -> String:
     return ""
 
 
-func _shop_key(k: int) -> void:
-    if shop_info:
-        if k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_1]:
-            shop_info = false
-            _shop_buy(shop_sel)
-        elif k in [KEY_ESCAPE, KEY_E, KEY_2, KEY_BACKSPACE, _key("interactuar")]:
-            shop_info = false
-            _sfx("interfaz", -12.0, 0.9)
-        return
-    if k in [KEY_ESCAPE, KEY_E, _key("interactuar")]:
-        _close_shop()
-    elif k in [KEY_DOWN, KEY_S, KEY_RIGHT, KEY_D]:
-        shop_sel = (shop_sel + 1) % SHOP.size()
-    elif k in [KEY_UP, KEY_W, KEY_LEFT, KEY_A]:
-        shop_sel = (shop_sel + SHOP.size() - 1) % SHOP.size()
-    elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
-        _shop_choose(shop_sel)
-    elif k >= KEY_1 and int(k) < int(KEY_1) + SHOP.size():
-        shop_sel = int(k) - int(KEY_1)
-        _shop_choose(shop_sel)
-
-
-func _shop_tap(at: Vector2) -> void:
-    if shop_info:
-        if _vigil_info_button(0).has_point(at):
-            shop_info = false
-            _shop_buy(shop_sel)
-        elif _vigil_info_button(1).has_point(at) or not _vigil_info_rect().has_point(at):
-            shop_info = false
-            _sfx("interfaz", -12.0, 0.9)
-        return
-    for i in range(SHOP.size()):
-        if _shop_row(i).has_point(at):
-            shop_sel = i
-            _shop_choose(i)
-            return
-    _close_shop()
-
-
 ## La llave de la Vigilia no se compra a ciegas: antes se explica qué abre.
 func _shop_choose(i: int) -> void:
     if str(SHOP[i][0]) == "vigilia" and not _shop_maxed(i):
@@ -9037,14 +8904,6 @@ func _shop_choose(i: int) -> void:
         _sfx("interfaz", -8.0, 0.8)
         return
     _shop_buy(i)
-
-
-func _vigil_info_rect() -> Rect2:
-    return Rect2(170, 96, 620, 474)
-
-
-func _vigil_info_button(i: int) -> Rect2:
-    return Rect2(230 + float(i) * 260.0, 500, 240, 50)
 
 
 ## Se paga primero: las almas van al cuenco y después él entrega.
@@ -9088,44 +8947,6 @@ func _shop_buy(i: int) -> bool:
     return true
 
 
-func _draw_shop() -> void:
-    _overlay()
-    var panel := Rect2(150, 86, 660, 494)
-    _panel(panel, Color(0.05, 0.045, 0.06, 0.97), UI_GOLD)
-    _title_text("El Mercader Silencioso", Vector2(150, 134), 40, CREAM, panel.size.x)
-    var mark_note: String = ""
-    match _mark():
-        "bendicion":
-            mark_note = "  ·  BENDICIÓN: te cobra menos"
-        "maldicion":
-            mark_note = "  ·  MALDICIÓN: te cobra más"
-    _text_outline("Se paga primero. No se toca el manto." + mark_note, Vector2(150, 164), 13, Color("#d1747b"), panel.size.x)
-    for i in range(SHOP.size()):
-        var row: Rect2 = _shop_row(i)
-        var item: Array = SHOP[i]
-        var sel: bool = shop_sel == i
-        var maxed: bool = _shop_maxed(i)
-        var flash: float = float(shop_flash.get(i, 0.0))
-        _panel(row, Color("#241c2c").lerp(Color("#5a4a2a"), flash) if sel or flash > 0.0 else Color("#141018"), UI_GOLD if sel else UI_EDGE)
-        draw_texture_rect(ICONS.get(item[0], ICONS["descansar"]), Rect2(row.position + Vector2(12, 5), Vector2(40, 40)), false, Color(1, 1, 1, 0.5) if maxed else Color.WHITE)
-        _text("[%d] %s" % [i + 1, item[1]], row.position + Vector2(66, 22), 16, CREAM)
-        _text(item[3], row.position + Vector2(66, 42), 11, Color("#b9b29b"))
-        var right: String = ("COMPRADA" if item[0] == "vigilia" else "MÁXIMO") if maxed else "%d ALMAS" % _shop_price(i)
-        var tone: Color = SOUL if maxed else (CREAM if souls >= _shop_price(i) else RED)
-        draw_string(font, row.position + Vector2(0, 22), right, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, 15, tone)
-        # Lo que ya llevas: el número salta al comprar.
-        var owned: String = _shop_owned_text(i)
-        var pop: float = 1.0 + 0.5 * flash
-        draw_string(font, row.position + Vector2(0, 42), owned, HORIZONTAL_ALIGNMENT_RIGHT, row.size.x - 14.0, int(13.0 * pop), Color("#ffd36b").lerp(SOUL, 1.0 - flash))
-    draw_texture_rect(ICONS["alma"], Rect2(180, 520, 26, 26), false)
-    _text("ALMAS: %d" % souls, Vector2(212, 540), 16, SOUL)
-    _text("VIDA MÁXIMA: %d" % int(max_hp), Vector2(360, 540), 14, RED if hand_lost else CREAM)
-    var hint: String = _hint("ENTER comprar · ESC salir", "Toca para comprar · fuera para salir", "A comprar · B salir")
-    draw_string(font, Vector2(180, 566), hint, HORIZONTAL_ALIGNMENT_RIGHT, 600, 13, CREAM)
-    if shop_info:
-        _draw_vigil_info()
-
-
 const VIGIL_INFO := [
     ["QUÉ ES", "Un modo aparte, fuera del descenso: una celda que defiendes fase tras fase, sin final."],
     ["CÓMO SE JUEGA", "Duermes en el lecho para ganar ecos; con ellos levantas centinelas, campanas y generadores en las losas, y reparas la puerta."],
@@ -9152,33 +8973,6 @@ func _wrap_lines(msg: String, width: float, size: int) -> PackedStringArray:
 
 
 const VIGIL_ICON := preload("res://assets/visual/iconos/lecho.png")
-
-
-func _draw_vigil_info() -> void:
-    _overlay()
-    var r := _vigil_info_rect()
-    _panel(r, Color(0.045, 0.035, 0.06, 0.985), UI_GOLD)
-    draw_texture_rect(VIGIL_ICON, Rect2(r.position + Vector2(22, 18), Vector2(48, 48)), false)
-    _title_text("La Vigilia del Claustro", Vector2(r.position.x + 40.0, r.position.y + 52.0), 34, CREAM, r.size.x - 40.0)
-    _text_outline("Lo que compras con la llave", Vector2(r.position.x, r.position.y + 80.0), 13, Color("#d1747b"), r.size.x)
-    var y: float = r.position.y + 112.0
-    for row in VIGIL_INFO:
-        _text(str(row[0]), Vector2(r.position.x + 34.0, y), 13, UI_GOLD)
-        var lines: int = 0
-        for ln in _wrap_lines(str(row[1]), r.size.x - 220.0, 13):
-            draw_string(font, Vector2(r.position.x + 190.0, y + float(lines) * 18.0), ln, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, CREAM)
-            lines += 1
-        y += maxf(1.0, float(lines)) * 18.0 + 14.0
-    var price: int = _shop_price(shop_sel)
-    var can: bool = souls >= price
-    for i in range(2):
-        var b := _vigil_info_button(i)
-        var hot: bool = b.has_point(ui_hover)
-        _panel(b, Color("#3a2a18") if i == 0 and can else (Color("#241c2c") if hot else Color("#141018")), UI_GOLD if hot or (i == 0 and can) else UI_EDGE)
-        var label: String = ("[1] COMPRAR · %d ALMAS" % price) if i == 0 else "[2] AHORA NO"
-        draw_string(font, b.position + Vector2(0, 31), label, HORIZONTAL_ALIGNMENT_CENTER, b.size.x, 15, (CREAM if can else RED) if i == 0 else CREAM)
-    if not can:
-        draw_string(font, Vector2(r.position.x, r.end.y - 12.0), "Tienes %d almas: te faltan %d." % [souls, price - souls], HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 12, Color("#b9b29b"))
 
 
 # --- Dibujo ----------------------------------------------------------------------
@@ -11117,10 +10911,6 @@ var choice_sel: int = 0
 var guides_refused: bool = false
 
 
-func _pick_rect(i: int) -> Rect2:
-    return Rect2(196.0 + float(i) * 292.0, 330.0, 276.0, 110.0)
-
-
 func _open_choice(speaker: String, text: String, options: Array) -> void:
     choice = {"speaker": speaker, "text": text, "options": options}
     choice_sel = 0
@@ -11147,44 +10937,6 @@ func _choice_pick(i: int) -> void:
 func _choice_cancel() -> void:
     choice = {}
     game_mode = "play"
-
-
-func _choice_key(k: int) -> void:
-    var n: int = (choice.get("options", []) as Array).size()
-    if k in [KEY_LEFT, KEY_A, KEY_UP, KEY_W]:
-        choice_sel = (choice_sel + n - 1) % n
-    elif k in [KEY_RIGHT, KEY_D, KEY_DOWN, KEY_S, KEY_TAB]:
-        choice_sel = (choice_sel + 1) % n
-    elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E] or k == _key("interactuar"):
-        _choice_pick(choice_sel)
-    elif k >= KEY_1 and int(k) < int(KEY_1) + n:
-        _choice_pick(int(k) - int(KEY_1))
-    elif k == KEY_ESCAPE:
-        _choice_cancel()
-
-
-func _choice_tap(at: Vector2) -> void:
-    for i in range((choice.get("options", []) as Array).size()):
-        if _pick_rect(i).has_point(at):
-            _choice_pick(i)
-            return
-
-
-func _draw_choice() -> void:
-    draw_rect(_full_rect(), Color(0, 0, 0, 0.62))
-    var panel := Rect2(170, 170, 620, 300)
-    _panel(panel, Color(0.04, 0.035, 0.05, 0.97), UI_GOLD)
-    _text_outline(str(choice.get("speaker", "")), Vector2(panel.position.x, panel.position.y + 34.0), 16, UI_GOLD, panel.size.x)
-    draw_multiline_string(font, Vector2(panel.position.x + 30.0, panel.position.y + 66.0), str(choice.get("text", "")), HORIZONTAL_ALIGNMENT_CENTER, panel.size.x - 60.0, 15, 4, CREAM)
-    var opts: Array = choice.get("options", [])
-    for i in range(opts.size()):
-        var r: Rect2 = _pick_rect(i)
-        var sel: bool = i == choice_sel or r.has_point(ui_hover)
-        var good: bool = i == 0
-        _panel(r, (Color("#1f3326") if good else Color("#3a1a20")) if sel else Color("#141018"), (Color("#7fd6a0") if good else UI_CRIMSON) if sel else UI_EDGE)
-        _text_outline("[%d] %s" % [i + 1, opts[i][1]], Vector2(r.position.x, r.position.y + 36.0), 17, CREAM, r.size.x)
-        draw_multiline_string(font, Vector2(r.position.x + 14.0, r.position.y + 62.0), str(opts[i][2]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 28.0, 12, 3, Color("#b9b29b"))
-    _text_outline(_hint("1 / 2 · ←/→ + ENTER · ESC: pensarlo", "Toca una opción", "Cruceta + A · B: pensarlo"), Vector2(panel.position.x, panel.end.y - 14.0), 11, Color("#8a8574"), panel.size.x)
 
 
 func _ask_guides() -> void:

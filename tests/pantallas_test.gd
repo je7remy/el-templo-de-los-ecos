@@ -209,6 +209,80 @@ func _run() -> void:
         _fail("El rótulo de botín no pasa a la capa de avisos.")
         return
     print("OK: pausa con teclado y avisos de nivel y botín encima de las pantallas.")
+
+    # --- Pantallas de la partida (fase 2b) ---------------------------------------
+    var maquina: Node = game.get_node("Pantallas/Maquina")
+    # Diálogo: el primer clic completa la frase, el segundo pasa; SALTAR corta.
+    game.set("game_mode", "play")
+    game.call("_dialog", [["PEREGRINO", "Una frase."], ["PEREGRINO", "Otra."], ["PEREGRINO", "La última."]])
+    if game.get("game_mode") != "dialog" or not (maquina.get_node("Dialogo") as Control).visible:
+        _fail("El diálogo no se muestra como escena.")
+        return
+    _clic(Vector2(480, 500))
+    _clic(Vector2(480, 500))
+    if (game.get("dialog_queue") as Array).size() != 2:
+        _fail("Un clic no completa la frase y el siguiente no pasa a la otra.")
+        return
+    _clic((maquina.get_node("Dialogo/Saltar") as Control).get_global_rect().get_center())
+    if game.get("game_mode") != "play" or not (game.get("dialog_queue") as Array).is_empty():
+        _fail("SALTAR no corta la conversación.")
+        return
+    # Elección: ESC la deja para luego.
+    game.call("_open_choice", "GRUPO", "¿Nos guías?", [["guiar", "GUIARLOS", "a"], ["rechazar", "NEGARTE", "b"]])
+    if not (maquina.get_node("Eleccion") as Control).visible:
+        _fail("La elección no se muestra como escena.")
+        return
+    _tecla(KEY_ESCAPE)
+    if game.get("game_mode") != "play" or not (game.get("choice") as Dictionary).is_empty():
+        _fail("ESC no cierra la elección.")
+        return
+    # Muerte: los primeros segundos no se cierra; luego ENTER sigue.
+    game.set("soul_fate", "persistencia")
+    game.set("game_mode", "dead")
+    game.set("end_t", 0.0)
+    _tecla(KEY_ENTER)
+    if game.get("game_mode") != "dead" or not (maquina.get_node("Final") as Control).visible:
+        _fail("La pantalla de muerte se cierra antes de leerla.")
+        return
+    game.set("end_t", 5.0)
+    _tecla(KEY_ESCAPE)
+    if game.get("game_mode") != "title":
+        _fail("ESC en la pantalla de muerte no vuelve al menú.")
+        return
+    # Altar: la tecla 2 compra Llama Interior.
+    game.set("game_mode", "title")
+    game.call("_new_run")
+    game.call("_dialog_skip")
+    game.set("souls", 50)
+    game.set("has_inner_flame", false)
+    game.set("game_mode", "altar")
+    _tecla(KEY_2)
+    if not bool(game.get("has_inner_flame")) or int(game.get("souls")) >= 50:
+        _fail("La tecla 2 del altar no compra la Llama Interior.")
+        return
+    _tecla(KEY_ESCAPE)
+    if game.get("game_mode") != "play":
+        _fail("ESC no cierra el altar.")
+        return
+    # Tienda: la llave de la Vigilia explica antes de cobrar; AHORA NO no paga.
+    game.set("souls", 900)
+    game.set("vigil_unlocked", false)
+    game.call("_open_shop")
+    var tienda: Node = maquina.get_node("Tienda")
+    var llave: int = (game.get("SHOP") as Array).size() - 1
+    _clic((tienda.call("rect_fila", llave) as Rect2).get_center())
+    if not bool(game.get("shop_info")) or bool(game.get("vigil_unlocked")):
+        _fail("La llave de la Vigilia se cobra sin explicar antes el modo.")
+        return
+    _clic((tienda.call("rect_boton_ficha", 1) as Rect2).get_center())
+    if bool(game.get("shop_info")) or bool(game.get("vigil_unlocked")) or int(game.get("souls")) != 900:
+        _fail("AHORA NO cobra la llave o no cierra la ficha.")
+        return
+    _tecla(KEY_ESCAPE)
+    if game.get("game_mode") != "play":
+        _fail("ESC no cierra la tienda.")
+        return
+    print("OK: diálogo, elección, muerte, altar y tienda como escenas.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

@@ -34,6 +34,45 @@ func salir() -> void:
     _al_salir()
 
 
+## Datos nuevos sin volver a entrar (pantallas que cambian mientras se ven:
+## el diálogo que se escribe, las almas en la tienda…). No toca la selección.
+func refrescar(nuevos: Dictionary) -> void:
+    datos = nuevos
+    _al_refrescar()
+    queue_redraw()
+
+
+func _al_refrescar() -> void:
+    pass
+
+
+## Pinta toda la pantalla (también los márgenes de las pantallas anchas).
+func oscurecer(color: Color) -> void:
+    var margen: Vector2 = datos.get("margen", Vector2.ZERO)
+    draw_rect(Rect2(-margen, size + margen * 2.0), color)
+
+
+## Tecla de un evento (0 si no es una tecla recién pulsada).
+func tecla_de(event: InputEvent) -> int:
+    if event is InputEventKey and event.pressed and not event.echo:
+        return int((event as InputEventKey).keycode)
+    return 0
+
+
+## Botón del mando recién pulsado (-1 si no lo es).
+func boton_de(event: InputEvent) -> int:
+    if event is InputEventJoypadButton and event.pressed:
+        return (event as InputEventJoypadButton).button_index
+    return -1
+
+
+## Clic o toque recién empezado (posición) o null.
+func clic_de(event: InputEvent) -> Variant:
+    if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+        return (event as InputEventMouseButton).position
+    return null
+
+
 ## Para las pantallas hijas.
 func _al_entrar() -> void:
     pass

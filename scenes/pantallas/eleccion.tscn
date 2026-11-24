@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/pantallas/eleccion.gd" id="1_eleccion"]
+
+[node name="Eleccion" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+script = ExtResource("1_eleccion")

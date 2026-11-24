@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/pantallas/gestor_pantallas.gd" id="1_gestor"]
 [ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
@@ -8,6 +8,13 @@
 [ext_resource type="PackedScene" path="res://scenes/pantallas/acuerdo.tscn" id="6_acuerdo"]
 [ext_resource type="PackedScene" path="res://scenes/pantallas/pisos.tscn" id="7_pisos"]
 [ext_resource type="PackedScene" path="res://scenes/pantallas/ajustes.tscn" id="8_ajustes"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/dialogo.tscn" id="9_dialogo"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/eleccion.tscn" id="10_eleccion"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/entrada_piso.tscn" id="11_entrada_piso"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/resumen_piso.tscn" id="12_resumen_piso"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/final.tscn" id="13_final"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/altar.tscn" id="14_altar"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/tienda.tscn" id="15_tienda"]
 
 [node name="Pantallas" type="CanvasLayer"]
 layer = 2
@@ -31,4 +38,25 @@ visible = false
 visible = false
 
 [node name="Ajustes" parent="Maquina" instance=ExtResource("8_ajustes")]
+visible = false
+
+[node name="Dialogo" parent="Maquina" instance=ExtResource("9_dialogo")]
+visible = false
+
+[node name="Eleccion" parent="Maquina" instance=ExtResource("10_eleccion")]
+visible = false
+
+[node name="EntradaPiso" parent="Maquina" instance=ExtResource("11_entrada_piso")]
+visible = false
+
+[node name="ResumenPiso" parent="Maquina" instance=ExtResource("12_resumen_piso")]
+visible = false
+
+[node name="Final" parent="Maquina" instance=ExtResource("13_final")]
+visible = false
+
+[node name="Altar" parent="Maquina" instance=ExtResource("14_altar")]
+visible = false
+
+[node name="Tienda" parent="Maquina" instance=ExtResource("15_tienda")]
 visible = false
