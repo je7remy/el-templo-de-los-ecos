@@ -20,6 +20,14 @@ const MODOS := {
     "eula": &"Acuerdo",
     "floors": &"Pisos",
     "settings": &"Ajustes",
+    "dialog": &"Dialogo",
+    "choice": &"Eleccion",
+    "floor_intro": &"EntradaPiso",
+    "floor_summary": &"ResumenPiso",
+    "dead": &"Final",
+    "victory": &"Final",
+    "altar": &"Altar",
+    "shop": &"Tienda",
 }
 
 @onready var maquina: Node = $Maquina
@@ -39,6 +47,13 @@ func posee(modo: String) -> bool:
 
 func mostrar(modo: String, datos: Dictionary = {}) -> void:
     maquina.cambiar_a(MODOS.get(modo, &""), datos)
+
+
+## Datos nuevos para la pantalla visible (si es la de ese modo).
+func refrescar(modo: String, datos: Dictionary) -> void:
+    var nombre: StringName = MODOS.get(modo, &"")
+    if nombre != &"" and maquina.nombre_actual() == nombre:
+        maquina.estado.call("refrescar", datos)
 
 
 func activa() -> StringName:

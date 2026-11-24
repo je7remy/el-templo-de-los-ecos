@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v0.5.12-alpha — 2026-11-24 · Arquitectura por escenas, fase 2b
+
+Sin cambios en las reglas del juego.
+
+- **Las pantallas de la partida son escenas propias** (`scenes/pantallas/`): diálogos (con su botón SALTAR), elección, entrada al piso, resumen del piso, muerte y victoria, altar y tienda del Mercader (con la ficha de la Vigilia). Se ven y responden como antes al ratón, al toque, al teclado y al mando.
+- La campaña sigue llevando la lógica (comprar, avanzar el diálogo, cuándo se puede cerrar la pantalla de muerte) y les pasa los datos; las que cambian mientras se ven (diálogo, muerte, tienda, altar) los reciben cada cuadro y justo antes de cada pulsación.
+- Más piezas en `estilo.gd`: texto sin borde, texto centrado y corte de líneas.
+- `main.gd` baja a unas 11 200 líneas. `pantallas_test.gd` añade diálogo, elección, muerte, altar y tienda con entrada real.
+- Versión Android 0.5.12-alpha (código 19).
+
 ## v0.5.11-alpha — 2026-11-24 · Arquitectura por escenas, fase 2a
 
 Sin cambios en las reglas del juego.

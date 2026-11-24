@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/pantallas/dialogo.gd" id="1_dialogo"]
+[ext_resource type="PackedScene" path="res://scenes/ui/boton_templo.tscn" id="2_boton"]
+
+[node name="Dialogo" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+script = ExtResource("1_dialogo")
+
+[node name="Saltar" parent="." instance=ExtResource("2_boton")]
+layout_mode = 0
+offset_left = 690.0
+offset_top = 390.0
+offset_right = 850.0
+offset_bottom = 424.0
+focus_mode = 0
+variante = "chico"
+texto = "SALTAR (ESC)  »»"
+relleno = Color(0.04, 0.035, 0.05, 0.9)
+borde = Color(0.356863, 0.321569, 0.384314, 1)
+relleno_activo = Color(0.164706, 0.113725, 0.133333, 1)
+tam_texto = 13

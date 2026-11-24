@@ -177,3 +177,29 @@ static func parrafo(ci: CanvasItem, msg: String, caja: Rect2, tam: int, color: C
     if linea != "":
         ci.draw_string(fuente(), Vector2(caja.position.x, y), linea, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, color)
     return y
+
+
+## Texto sin borde (como _text de la campaña).
+static func plano(ci: CanvasItem, msg: String, en: Vector2, tam: int = 16, color: Color = CREMA) -> void:
+    ci.draw_string(fuente(), en, msg, HORIZONTAL_ALIGNMENT_LEFT, -1.0, tam, color)
+
+
+## Texto sin borde centrado en la pantalla base (x 40 → 920).
+static func centrado(ci: CanvasItem, msg: String, y: float, tam: int = 16, color: Color = CREMA) -> void:
+    ci.draw_string(fuente(), Vector2(40, y), msg, HORIZONTAL_ALIGNMENT_CENTER, 880.0, tam, color)
+
+
+## Corta un texto en líneas que caben en «ancho».
+static func lineas(msg: String, ancho: float, tam: int) -> PackedStringArray:
+    var out := PackedStringArray()
+    var linea: String = ""
+    for p in msg.split(" ", false):
+        var prueba: String = p if linea == "" else linea + " " + p
+        if fuente().get_string_size(prueba, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x > ancho and linea != "":
+            out.append(linea)
+            linea = p
+        else:
+            linea = prueba
+    if linea != "":
+        out.append(linea)
+    return out
