@@ -7,11 +7,24 @@
 [![Estado: Alpha](https://img.shields.io/badge/estado-alpha-orange)](https://github.com/je7remy/el-templo-de-los-ecos/releases)
 [![Godot 4.3](https://img.shields.io/badge/Godot-4.3%2B-478cbf?logo=godot-engine&logoColor=white)](https://godotengine.org/)
 [![Validación Godot](https://github.com/je7remy/el-templo-de-los-ecos/actions/workflows/validar-godot.yml/badge.svg)](https://github.com/je7remy/el-templo-de-los-ecos/actions/workflows/validar-godot.yml)
-[![Último lanzamiento](https://img.shields.io/github/v/release/je7remy/el-templo-de-los-ecos?include_prereleases&label=versi%C3%B3n)](https://github.com/je7remy/el-templo-de-los-ecos/releases)
+[![Último lanzamiento](https://img.shields.io/github/v/release/je7remy/el-templo-de-los-ecos?sort=semver&include_prereleases&label=versi%C3%B3n&cacheSeconds=3600)](https://github.com/je7remy/el-templo-de-los-ecos/releases/latest)
 
 **El Templo de los Ecos** es un juego independiente de terror psicológico y cósmico, supervivencia y elementos roguelite, desarrollado en **Godot Engine 4** con **GDScript**. El jugador explora un templo cuyo funcionamiento desconoce. Cada entidad obedece reglas propias, y entenderlas vale tanto como cualquier habilidad.
 
 > **Estado:** prototipo con nueve pisos jugables. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
+
+## Descargar la última versión
+
+Estos enlaces bajan siempre la versión más reciente:
+
+| Plataforma | Descarga |
+|---|---|
+| **Windows 10/11** (instalador) | [ElTemploDeLosEcos-Windows-Setup.exe](https://github.com/je7remy/el-templo-de-los-ecos/releases/latest/download/ElTemploDeLosEcos-Windows-Setup.exe) |
+| **Windows 10/11** (portable, sin instalar) | [ElTemploDeLosEcos-Windows-Portable.zip](https://github.com/je7remy/el-templo-de-los-ecos/releases/latest/download/ElTemploDeLosEcos-Windows-Portable.zip) |
+| **Linux x86_64** | [ElTemploDeLosEcos-Linux-x86_64.tar.gz](https://github.com/je7remy/el-templo-de-los-ecos/releases/latest/download/ElTemploDeLosEcos-Linux-x86_64.tar.gz) |
+| **Android ARM64** | [ElTemploDeLosEcos-Android.apk](https://github.com/je7remy/el-templo-de-los-ecos/releases/latest/download/ElTemploDeLosEcos-Android.apk) |
+
+Las notas de cada versión están en la [página de la última versión](https://github.com/je7remy/el-templo-de-los-ecos/releases/latest). Una vez instalado, el juego avisa solo cuando sale una versión nueva (ver «Actualizaciones automáticas»). Es una alpha: no está firmada, así que Windows puede mostrar «Windows protegió tu PC» (**Más información → Ejecutar de todas formas**).
 
 ![Sala del Testigo: el ojo del muro está abierto y el Testigo vigila el sello](docs/galeria/04_testigo.png)
 
@@ -159,7 +172,7 @@ Todo el audio es original y se sintetiza con `herramientas/generar_audio.py`, si
 
 ## Jugar en Android
 
-Puedes descargar el [APK de prueba de v0.5.9-alpha](https://github.com/je7remy/el-templo-de-los-ecos/releases/tag/v0.5.9-alpha) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI publica sola su prerelease con el APK. No está en Google Play y necesita pruebas en dispositivos reales.
+Puedes descargar el [APK de la última versión](https://github.com/je7remy/el-templo-de-los-ecos/releases/latest/download/ElTemploDeLosEcos-Android.apk) para teléfonos Android ARM64, con los diez pisos y la Vigilia v3. Cuando una versión nueva llega a `main`, el CI la publica sola con el APK, los archivos de Windows y Linux, y la marca como la última. No está en Google Play y necesita pruebas en dispositivos reales.
 
 Desde v0.5.9 el CI firma el APK con una **llave fija** guardada en los secretos del repositorio (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`), así que cada APK nuevo se instala encima del anterior y conserva la partida. Si esos secretos no existen, el CI usa una llave temporal y avisa: en ese caso hay que desinstalar la versión anterior antes de instalar la nueva. El paso de la llave temporal a la fija también exige desinstalar una vez.
 
@@ -200,7 +213,7 @@ El registro para reportar errores está en `~/.local/share/godot/app_userdata/El
 
 ## Descargar y ejecutar en Fedora / Linux (desde el código)
 
-La [sección Releases](https://github.com/je7remy/el-templo-de-los-ecos/releases) ofrece **el proyecto fuente**, no un ejecutable listo para instalar. Descarga el ZIP del código fuente, descomprímelo y abre `project.godot` con Godot 4.3 o superior.
+Para jugar no hace falta el código: usa las descargas de arriba. Si quieres el proyecto fuente, cada [versión publicada](https://github.com/je7remy/el-templo-de-los-ecos/releases) trae también el ZIP del código: descomprímelo y abre `project.godot` con Godot 4.3 o superior.
 
 También puedes clonar el repositorio:
 
@@ -283,7 +296,7 @@ godot --headless --path . --script res://tests/brand_test.gd
 
 `comprobar_archivos.py` comprueba los archivos esenciales, que cada PNG conserve su `.import`, que no haya `.gd.uid` huérfanos y que el proyecto declare Godot 4.3 y filtrado nearest-neighbor. `visual_asset_test.gd` verifica además que las cinco salas conserven su arquitectura, objetos, marcadores y colisiones.
 
-**Publicación:** cada push a `main` valida Godot y puede producir un APK como artefacto de GitHub Actions, pero no reemplaza automáticamente los APK de releases existentes. Publicar una versión nueva requiere un proceso de etiquetado específico.
+**Publicación:** cuando un cambio llega a `main` con una versión nueva en `export_presets.cfg` (y sus notas en `docs/releases/vX.md`), el CI compila Android, Windows y Linux, publica la versión con esos archivos y la marca como **la última** (*Latest*). También sube copias con nombre fijo (`ElTemploDeLosEcos-Windows-Setup.exe`, etc.) para que los enlaces `releases/latest/download/…` sirvan siempre. Una versión ya publicada no se recompila.
 
 ## Estructura del proyecto
 

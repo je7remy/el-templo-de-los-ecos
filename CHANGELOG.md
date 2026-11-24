@@ -14,6 +14,7 @@
 - El instalador de Windows, ejecutado con `/S`, vuelve a abrir el juego al terminar.
 - La versión del juego vive en `project.godot` y el CI comprueba que coincida con la del APK y los instaladores.
 - Prueba nueva `tests/update_test.gd`. Versión Android 0.5.9-alpha (código 16).
+- **Publicación:** cada versión se publica como la última (*Latest*) en vez de *pre-release*, con copias de nombre fijo para enlaces de descarga permanentes (`releases/latest/download/ElTemploDeLosEcos-Windows-Setup.exe`, etc.). El README tiene ahora una sección «Descargar la última versión».
 
 ## v0.5.8-alpha — 2026-11-23 · Quitarse el equipo, golpes propios de cada arma y avisos siempre visibles
 
