@@ -1,10 +1,13 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/pantallas/gestor_pantallas.gd" id="1_gestor"]
 [ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
 [ext_resource type="PackedScene" path="res://scenes/pantallas/splash.tscn" id="3_splash"]
 [ext_resource type="PackedScene" path="res://scenes/pantallas/titulo.tscn" id="4_titulo"]
 [ext_resource type="PackedScene" path="res://scenes/pantallas/pausa.tscn" id="5_pausa"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/acuerdo.tscn" id="6_acuerdo"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/pisos.tscn" id="7_pisos"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/ajustes.tscn" id="8_ajustes"]
 
 [node name="Pantallas" type="CanvasLayer"]
 layer = 2
@@ -19,4 +22,13 @@ script = ExtResource("2_maquina")
 visible = false
 
 [node name="Pausa" parent="Maquina" instance=ExtResource("5_pausa")]
+visible = false
+
+[node name="Acuerdo" parent="Maquina" instance=ExtResource("6_acuerdo")]
+visible = false
+
+[node name="Pisos" parent="Maquina" instance=ExtResource("7_pisos")]
+visible = false
+
+[node name="Ajustes" parent="Maquina" instance=ExtResource("8_ajustes")]
 visible = false

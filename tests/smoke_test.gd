@@ -46,7 +46,7 @@ func _run_checks() -> void:
         return
     # Configuración: se abre desde el menú y vuelve a él.
     game.call("_open_settings", "title")
-    game.call("_settings_key", KEY_ESCAPE)
+    _key(KEY_ESCAPE) # la configuración es una escena: ESC le llega por la interfaz
     if game.get("game_mode") != "title":
         _fail("Configuración no vuelve al menú.")
         return
@@ -665,7 +665,7 @@ func _run_checks() -> void:
         return
     _pad_axis(game, JOY_AXIS_LEFT_Y, 1.0)
     _pad_axis(game, JOY_AXIS_LEFT_Y, 0.0)
-    if int(game.get("settings_sel")) != 1:
+    if int(game.get_node("Pantallas/Maquina/Ajustes").get("seleccion")) != 1:
         _fail("El stick no recorre los menús.")
         return
     _pad(game, JOY_BUTTON_B)
@@ -1508,15 +1508,14 @@ func _run_checks() -> void:
         return
     game.set("in_tutorial", false)
     # Textos legales: las pestañas de arriba no responden hasta pulsar VOLVER.
-    game.set("legal_page", "acuerdo")
-    game.set("settings_tab", 3)
-    for w in game.call("_settings_widgets"):
+    game.call("_open_settings", "play", 3, "acuerdo")
+    var aj: Node = game.get_node("Pantallas/Maquina/Ajustes")
+    for w in aj.call("widgets"):
         if str(w["kind"]) == "tab" and int(w["id"]) == 0:
-            game.call("_settings_activate", w)
-    if int(game.get("settings_tab")) != 3 or str(game.get("legal_page")) != "acuerdo":
+            aj.call("activar", w)
+    if int(aj.get("pestana")) != 3 or str(aj.get("legal")) != "acuerdo":
         _fail("Las pestañas cambian mientras se leen los términos.")
         return
-    game.set("legal_page", "")
     game.set("game_mode", "play")
     print("OK: armas, equipo, PNJ que sueltan almas, colisiones por la base, cámara, tutorial sin gasto y términos sin pestañas.")
 
@@ -1805,8 +1804,8 @@ func _key(k: Key) -> void:
     root.push_input(e)
 
 
-func _pad_axis(game: Node, axis: int, value: float) -> void:
+func _pad_axis(_game: Node, axis: int, value: float) -> void:
     var e := InputEventJoypadMotion.new()
     e.axis = axis
     e.axis_value = value
-    game.call("_input", e)
+    root.push_input(e)

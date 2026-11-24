@@ -20,8 +20,7 @@ func _run() -> void:
     # da paso al menú, y al acuerdo la primera vez.
     _tocar(Vector2(480, 300))
     if game.get("game_mode") == "eula":
-        game.call("_mobile_touch", 1, Vector2(300, 399), true) # ACEPTAR
-        game.call("_mobile_touch", 1, Vector2(300, 399), false)
+        _tocar(Vector2(300, 399)) # ACEPTAR
     if game.get("game_mode") != "title":
         _fail("Tocar la pantalla de inicio no lleva al menú.")
         return
@@ -35,9 +34,10 @@ func _run() -> void:
     if game.get("game_mode") != "floors":
         _fail("JUGAR no abre el menú de pisos.")
         return
-    var card: Vector2 = (game.call("_floor_card", 0) as Rect2).get_center()
-    game.call("_mobile_tap", card) # Piso I: el primer toque lo elige,
-    game.call("_mobile_tap", card) # el segundo desciende
+    var card: Vector2 = (game.get_node("Pantallas/Maquina/Pisos").call("tarjeta", 0) as Control).get_global_rect().get_center()
+    game.get_node("Pantallas/Maquina/Pisos").set("seleccion", 5)
+    _tocar(card) # Piso I: el primer toque lo elige,
+    _tocar(card) # el segundo desciende
     if game.get("game_mode") != "create":
         _fail("Explorar sin personaje no abre la creación.")
         return

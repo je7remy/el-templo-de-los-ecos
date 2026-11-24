@@ -1,0 +1,80 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/pantallas/pisos.gd" id="1_pisos"]
+[ext_resource type="Script" path="res://scripts/ui/panel_templo.gd" id="2_panel"]
+[ext_resource type="Script" path="res://scripts/ui/texto_templo.gd" id="3_texto"]
+[ext_resource type="Script" path="res://scripts/ui/adorno_templo.gd" id="4_adorno"]
+[ext_resource type="PackedScene" path="res://scenes/ui/boton_templo.tscn" id="5_boton"]
+
+[node name="Pisos" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+script = ExtResource("1_pisos")
+
+[node name="Panel" type="Control" parent="."]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 64.0
+offset_right = 880.0
+offset_bottom = 572.0
+script = ExtResource("2_panel")
+relleno = Color(0.035, 0.03, 0.045, 0.95)
+borde = Color(0.721569, 0.584314, 0.352941, 1)
+
+[node name="Titulo" type="Control" parent="."]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 64.0
+offset_right = 880.0
+offset_bottom = 124.0
+script = ExtResource("3_texto")
+texto = "Los Pisos"
+tam = 48
+gotico = true
+
+[node name="Adorno" type="Control" parent="."]
+layout_mode = 0
+offset_left = 260.0
+offset_top = 126.0
+offset_right = 700.0
+offset_bottom = 134.0
+script = ExtResource("4_adorno")
+
+[node name="Tarjetas" type="Control" parent="."]
+layout_mode = 0
+offset_left = 104.0
+offset_top = 150.0
+offset_right = 856.0
+offset_bottom = 496.0
+mouse_filter = 2
+
+[node name="Volver" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 104.0
+offset_top = 516.0
+offset_right = 284.0
+offset_bottom = 556.0
+focus_mode = 0
+texto = "« VOLVER"
+
+[node name="Descender" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 676.0
+offset_top = 516.0
+offset_right = 856.0
+offset_bottom = 556.0
+focus_mode = 0
+texto = "DESCENDER »"
+principal = true
+
+[node name="Ayuda" type="Control" parent="."]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 529.0
+offset_right = 880.0
+offset_bottom = 545.0
+script = ExtResource("3_texto")
+tam = 12
+color = Color(0.541176, 0.521569, 0.454902, 1)

@@ -139,3 +139,41 @@ static func boton_grande(ci: CanvasItem, r0: Rect2, etiqueta: String, icono: Tex
     if icono != null:
         ci.draw_texture_rect(icono, Rect2(r.position + Vector2(14, roundf(r.size.y * 0.5) - 16.0), Vector2(32, 32)), false)
     texto(ci, etiqueta, Vector2(r.position.x + 30.0, r.position.y + r.size.y * 0.5 + 8.0), 22, CREMA.lerp(Color.WHITE, k * 0.5), r.size.x - 30.0)
+
+
+## Barra estilizada: canal hundido, relleno en degradado con brillo superior,
+## un destello en el extremo y marcas cada 25 %.
+static func barra(ci: CanvasItem, r: Rect2, fraccion: float, color: Color, etiqueta: String = "") -> void:
+    ci.draw_rect(r, Color(0.015, 0.012, 0.02, 0.9))
+    var dentro := r.grow(-2.0)
+    ci.draw_rect(dentro, color.darkened(0.82))
+    var w: float = roundf(dentro.size.x * clampf(fraccion, 0.0, 1.0))
+    if w > 0.0:
+        degradado_v(ci, Rect2(dentro.position, Vector2(w, dentro.size.y)), color.lightened(0.22), color.darkened(0.4))
+        ci.draw_rect(Rect2(dentro.position, Vector2(w, 1.0)), Color(1, 1, 1, 0.35))
+        ci.draw_rect(Rect2(dentro.position.x + w - 2.0, dentro.position.y, 2.0, dentro.size.y), color.lightened(0.55))
+    for k in range(1, 4):
+        var x: float = roundf(dentro.position.x + dentro.size.x * float(k) / 4.0)
+        ci.draw_rect(Rect2(x, dentro.position.y, 1.0, dentro.size.y), Color(0, 0, 0, 0.35))
+    ci.draw_rect(r, Color(ORO.r, ORO.g, ORO.b, 0.35), false, 1.0)
+    if etiqueta != "":
+        texto(ci, etiqueta, Vector2(r.position.x, r.position.y + r.size.y * 0.5 + 5.0), 13, Color.WHITE, r.size.x)
+
+
+## Párrafo con saltos de línea automáticos dentro de «caja». Devuelve la
+## línea base de la última línea escrita.
+static func parrafo(ci: CanvasItem, msg: String, caja: Rect2, tam: int, color: Color) -> float:
+    var palabras: PackedStringArray = msg.split(" ")
+    var linea: String = ""
+    var y: float = caja.position.y + float(tam)
+    for p in palabras:
+        var prueba: String = p if linea == "" else linea + " " + p
+        if fuente().get_string_size(prueba, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x > caja.size.x and linea != "":
+            ci.draw_string(fuente(), Vector2(caja.position.x, y), linea, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, color)
+            y += float(tam) + 7.0
+            linea = p
+        else:
+            linea = prueba
+    if linea != "":
+        ci.draw_string(fuente(), Vector2(caja.position.x, y), linea, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, color)
+    return y

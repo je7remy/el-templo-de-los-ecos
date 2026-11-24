@@ -431,6 +431,7 @@ func _ready() -> void:
     Ajustes.cargar()
     _apply_touch_setting()
     pantallas.accion.connect(_on_screen_action)
+    Eventos.sonido_pedido.connect(_sfx)
     _start_updater()
     # Al abrir el juego se ve la pantalla de inicio; al volver de la Vigilia, el menú.
     game_mode = "title" if Engine.has_meta("splash_visto") else "splash"
@@ -861,15 +862,8 @@ func _input_game(event: InputEvent) -> void:
     elif event is InputEventScreenDrag and event.index == mobile_finger:
         _mobile_update_axis(make_input_local(event).position)
         return
-    elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-        dragging_slider = ""
-        return
     elif event is InputEventMouseMotion:
         ui_hover = make_input_local(event).position
-        if game_mode == "settings" and dragging_slider != "" and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
-            for w in _settings_widgets():
-                if w["kind"] == "slider" and w["id"] == dragging_slider:
-                    _set_slider(w, ui_hover.x)
         if game_mode in ["inventory", "altar"]:
             var slot_h: int = _inventory_slot_at(ui_hover) if game_mode == "inventory" else _altar_row_at(ui_hover)
             if slot_h >= 0:
@@ -936,10 +930,6 @@ func _input_game(event: InputEvent) -> void:
             _abil_turn(-1)
         queue_redraw()
         return
-    if game_mode == "floors":
-        _floors_key(k)
-        queue_redraw()
-        return
     if game_mode == "shop":
         _shop_key(k)
         queue_redraw()
@@ -952,14 +942,6 @@ func _input_game(event: InputEvent) -> void:
     if game_mode == "create":
         _create_key(k, event.unicode)
         queue_redraw()
-        return
-    if game_mode == "settings":
-        _settings_key(k)
-        queue_redraw()
-        return
-    if game_mode == "eula":
-        if k in [KEY_ENTER, KEY_KP_ENTER]:
-            _accept_eula()
         return
     if game_mode == "intro":
         if k == KEY_ESCAPE:
@@ -1062,6 +1044,14 @@ func _screen_data(mode: String) -> Dictionary:
             d["cambiar"] = _t("cambiar_pj")
             d["sin_personaje"] = _t("sin_pj")
             d["actualizador"] = actualizador
+        "settings":
+            d["pestana"] = int(settings_open.get("pestana", 0))
+            d["legal"] = str(settings_open.get("legal", ""))
+            d["ruta_progreso"] = _save_path()
+        "floors":
+            d["pisos"] = _floor_cards()
+            d["seleccion"] = floors_sel
+            d["ayuda"] = _hint("Flechas elegir · ENTER descender · ESC volver", "Toca un piso y luego DESCENDER", "Cruceta elegir · A descender · B volver")
         "pause":
             d["titulo"] = _tc(_t("pausa"))
             d["opciones"] = _pause_options().map(func(id): return [id, _t(id)])
@@ -1080,8 +1070,43 @@ func _sync_screens() -> void:
 
 
 ## Lo que el jugador elige en una pantalla-escena.
-func _on_screen_action(screen: StringName, choice: StringName) -> void:
+func _on_screen_action(screen: StringName, choice: StringName, value: Variant = null) -> void:
     match screen:
+        &"Acuerdo":
+            match choice:
+                &"aceptar":
+                    _accept_eula()
+                &"leer":
+                    _open_settings("eula", 3, "acuerdo")
+                &"salir":
+                    _ask_quit()
+        &"Pisos":
+            match choice:
+                &"piso":
+                    floors_sel = int(value)
+                    _choose_floor(floors_sel)
+                &"marcar":
+                    _sfx("toque", -14.0, 1.0)
+                &"volver":
+                    game_mode = "title"
+                    _sfx("interfaz", -10.0, 0.8)
+        &"Ajustes":
+            match choice:
+                &"volver":
+                    _close_settings()
+                &"repetir_tutorial":
+                    Ajustes.poner("tutorial_hecho", false)
+                    _start_tutorial()
+                &"ver_intro":
+                    _start_intro("title")
+                &"borrar":
+                    _wipe_everything()
+                &"ventana":
+                    _apply_window_mode()
+                &"actualizaciones":
+                    _start_updater()
+                &"tactil":
+                    _apply_touch_setting()
         &"Splash":
             if choice == &"ajustes":
                 _open_settings("splash")
@@ -1145,12 +1170,6 @@ func _pad_button(b: int) -> void:
     pad_active = true
     var dpad := {JOY_BUTTON_DPAD_UP: Vector2i(0, -1), JOY_BUTTON_DPAD_DOWN: Vector2i(0, 1),
         JOY_BUTTON_DPAD_LEFT: Vector2i(-1, 0), JOY_BUTTON_DPAD_RIGHT: Vector2i(1, 0)}
-    if game_mode == "settings" and rebinding != "":
-        # Las teclas se reasignan con teclado; el mando tiene su esquema fijo.
-        rebinding = ""
-        _say(_t("mando_reasignar"), 2.4)
-        queue_redraw()
-        return
     if game_mode == "create" and create_step == 0:
         _pad_create_name(b, dpad)
         return
@@ -1230,13 +1249,6 @@ func _pad_button(b: int) -> void:
             elif b == JOY_BUTTON_LEFT_SHOULDER:
                 _abil_turn(1)
             return
-        "settings":
-            if b in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER] and legal_page == "":
-                settings_tab = (settings_tab + (1 if b == JOY_BUTTON_RIGHT_SHOULDER else 3)) % 4
-                settings_sel = 0
-                _sfx("toque", -14.0, 1.0)
-                queue_redraw()
-                return
     match b:
         JOY_BUTTON_A, JOY_BUTTON_START:
             _pad_key(KEY_ENTER)
@@ -1433,22 +1445,6 @@ func _mobile_update_axis(at: Vector2) -> void:
 
 func _mobile_tap(at: Vector2) -> void:
     ui_hover = at
-    if game_mode == "settings":
-        _settings_click(at)
-        return
-    if game_mode == "eula":
-        for b in _eula_buttons():
-            if (b["rect"] as Rect2).has_point(at):
-                match b["id"]:
-                    "aceptar":
-                        _accept_eula()
-                    "leer":
-                        _open_settings("eula")
-                        settings_tab = 3
-                        legal_page = "acuerdo"
-                    "salir":
-                        _ask_quit()
-        return
     if game_mode == "intro":
         if INTRO_SKIP_BTN.has_point(at):
             _end_intro()
@@ -1457,9 +1453,6 @@ func _mobile_tap(at: Vector2) -> void:
         return
     if game_mode == "create":
         _create_tap(at)
-        return
-    if game_mode == "floors":
-        _floors_tap(at)
         return
     if game_mode == "floor_summary":
         _after_floor_summary()
@@ -2638,7 +2631,7 @@ func _draw() -> void:
     _end_world()
     if room_node == null:
         draw_rect(_full_rect(), BG)
-    elif game_mode in ["title", "create", "floors", "splash", "eula"] or (game_mode == "settings" and settings_return in ["title", "splash"]):
+    elif game_mode in ["title", "create", "floors", "splash", "eula"] or (game_mode == "settings" and settings_return in ["title", "splash", "eula", "floors"]):
         # En el menú se ve la sala completa, con sus objetos, detrás del panel.
         var objetos: Node = room_node.get_node_or_null("Objetos")
         if objetos != null:
@@ -2649,19 +2642,10 @@ func _draw() -> void:
         _draw_intro()
         return
     if screen in ["title", "create", "floors", "splash", "eula"]:
-        # El menú y la pantalla de inicio son escenas (scenes/pantallas/): aquí
-        # solo se oscurece la sala cuando la configuración se abre encima.
-        if screen in ["title", "splash"]:
-            if game_mode == "settings":
-                draw_rect(_full_rect(), Color(0.018, 0.027, 0.032, 0.62))
-        elif screen == "floors":
-            _draw_floors()
-        elif screen == "create":
+        # Inicio, menú, acuerdo, pisos y configuración son escenas
+        # (scenes/pantallas/): aquí solo queda la sala de fondo.
+        if screen == "create":
             _draw_creation()
-        else:
-            _draw_eula()
-        if game_mode == "settings":
-            _draw_settings()
         return
     _begin_world()
     _draw_room()
@@ -2693,8 +2677,6 @@ func _draw() -> void:
         _draw_end_overlay(true)
     elif game_mode == "floor_intro":
         _draw_floor_intro()
-    elif game_mode == "settings":
-        _draw_settings()
     _draw_tutorial_overlay()
     _draw_mobile_controls()
     # Los avisos de nivel y de botín los dibuja la capa de avisos
@@ -3755,22 +3737,7 @@ func _panel(rect: Rect2, fill: Color = UI_PANEL, edge: Color = UI_EDGE) -> void:
 
 
 func _px_bar(rect: Rect2, fraction: float, color: Color, label: String) -> void:
-    ## Barra estilizada: canal hundido, relleno en degradado con brillo
-    ## superior, un destello en el extremo y marcas cada 25 %.
-    draw_rect(rect, Color(0.015, 0.012, 0.02, 0.9))
-    var inner := rect.grow(-2.0)
-    draw_rect(inner, color.darkened(0.82))
-    var w: float = roundf(inner.size.x * clampf(fraction, 0.0, 1.0))
-    if w > 0.0:
-        _vgradient(Rect2(inner.position, Vector2(w, inner.size.y)), color.lightened(0.22), color.darkened(0.4))
-        draw_rect(Rect2(inner.position, Vector2(w, 1.0)), Color(1, 1, 1, 0.35))
-        draw_rect(Rect2(inner.position.x + w - 2.0, inner.position.y, 2.0, inner.size.y), color.lightened(0.55))
-    for k in range(1, 4):
-        var x: float = roundf(inner.position.x + inner.size.x * float(k) / 4.0)
-        draw_rect(Rect2(x, inner.position.y, 1.0, inner.size.y), Color(0, 0, 0, 0.35))
-    draw_rect(rect, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.35), false, 1.0)
-    if label != "":
-        _text_outline(label, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.5 + 5.0), 13, Color.WHITE, rect.size.x)
+    Estilo.barra(self, rect, fraction, color, label)
 
 
 func _text_outline(msg: String, at: Vector2, size: int, color: Color, width: float = -1.0) -> void:
@@ -5488,130 +5455,15 @@ func _draw_kprop_books() -> void:
 
 
 # ============================================================ INICIO, AJUSTES, INTRO, TUTORIAL Y PAUSA
-## Textos de las pantallas nuevas en español e inglés ([es, en]).
-## (El resto del juego sigue en español: la traducción completa está pendiente.)
-const T := {
-    "continuar": ["HAZ CLIC PARA CONTINUAR", "CLICK TO CONTINUE"],
-    "cambiar_pj": ["CAMBIAR (C)", "CHANGE (C)"],
-    "sin_pj": ["Al explorar crearás a tu personaje.", "Exploring will create your character."],
-    "pj_nombre": ["¿CÓMO TE LLAMAS?", "WHAT IS YOUR NAME?"],
-    "pj_nombre_ayuda": ["Escribe o toca las letras  ·  ENTER seguir  ·  ESC volver", "Type or tap the letters  ·  ENTER next  ·  ESC back"],
-    "pj_genero": ["ELIGE TU GÉNERO", "CHOOSE YOUR GENDER"],
-    "pj_nombre_mando": ["Cruceta elegir  ·  A letra  ·  X borrar  ·  Y al azar  ·  START seguir  ·  B volver", "D-pad choose  ·  A letter  ·  X delete  ·  Y random  ·  START next  ·  B back"],
-    "pj_genero_mando": ["Cruceta elegir  ·  A comenzar  ·  B atrás", "D-pad choose  ·  A start  ·  B back"],
-    "pj_nombre_tactil": ["Toca las letras (o AL AZAR) y luego SIGUIENTE", "Tap the letters (or RANDOM) and then NEXT"],
-    "pj_genero_tactil": ["Toca tu personaje y luego COMENZAR", "Tap your character and then START"],
-    "pj_genero_ayuda": ["A / D elegir  ·  ENTER comenzar  ·  ESC atrás", "A / D choose  ·  ENTER start  ·  ESC back"],
-    "pj_te_llamas": ["Te llamas %s.", "Your name is %s."],
-    "pj_masculino": ["MASCULINO", "MALE"],
-    "pj_femenino": ["FEMENINO", "FEMALE"],
-    "pj_borrar": ["BORRAR", "DELETE"],
-    "pj_espacio": ["ESPACIO", "SPACE"],
-    "pj_azar": ["AL AZAR", "RANDOM"],
-    "pj_siguiente": ["SIGUIENTE", "NEXT"],
-    "pj_atras": ["ATRÁS", "BACK"],
-    "pj_comenzar": ["COMENZAR", "START"],
-    "pj_vacio": ["Escribe un nombre primero.", "Type a name first."],
-    "continuar_tactil": ["TOCA PARA CONTINUAR", "TAP TO CONTINUE"],
-    "subtitulo": ["Un roguelike de terror. Despiertas a oscuras y nadie te dice por qué.", "A horror roguelike. You wake in the dark and no one tells you why."],
-    "ajustes": ["CONFIGURACIÓN", "SETTINGS"],
-    "sonido": ["SONIDO", "SOUND"],
-    "controles": ["CONTROLES", "CONTROLS"],
-    "idioma": ["IDIOMA", "LANGUAGE"],
-    "privacidad": ["PRIVACIDAD", "PRIVACY"],
-    "vol_general": ["Volumen general", "Master volume"],
-    "vol_musica": ["Música", "Music"],
-    "vol_efectos": ["Efectos", "Effects"],
-    "silencio": ["Silenciar todo", "Mute all"],
-    "si": ["SÍ", "ON"],
-    "no": ["NO", "OFF"],
-    "tactil": ["Controles táctiles", "Touch controls"],
-    "auto": ["AUTO", "AUTO"],
-    "siempre": ["SIEMPRE", "ALWAYS"],
-    "nunca": ["NUNCA", "NEVER"],
-    "restablecer": ["Restablecer teclas", "Reset keys"],
-    "repetir_tutorial": ["Repetir el tutorial", "Replay tutorial"],
-    "ver_intro": ["Ver la intro", "Watch the intro"],
-    "pulsa_tecla": ["Pulsa una tecla… (ESC cancela)", "Press a key… (ESC cancels)"],
-    "mando_reasignar": ["El mando tiene un esquema fijo; reasigna con el teclado.", "The gamepad layout is fixed; rebind with the keyboard."],
-    "mando_golpe": ["Enciende la antorcha (X) para golpear con fuego.", "Light the torch (X) to strike with fire."],
-    "mando_conectado": ["Mando conectado: %s", "Gamepad connected: %s"],
-    "mando_desconectado": ["Mando desconectado.", "Gamepad disconnected."],
-    "mando_hud": ["STICK mover · A/RT golpear · X antorcha · B/LT esquivar · Y resonancia · LB perfil · RB habilidades · START pausa",
-        "STICK move · A/RT strike · X torch · B/LT dodge · Y resonance · LB profile · RB abilities · START pause"],
-    "mando_esquema": ["MANDO: stick/cruceta mover · A usar/golpear · RT golpear · B/LT esquivar · X antorcha · Y resonancia",
-        "GAMEPAD: stick/D-pad move · A use/strike · RT strike · B/LT dodge · X torch · Y resonance"],
-    "mando_esquema2": ["LB perfil · RB habilidades · START pausa · en menús: A aceptar, B volver, LB/RB pestañas",
-        "LB profile · RB abilities · START pause · in menus: A accept, B back, LB/RB tabs"],
-    "mando_titulo": ["A  jugar   ·   X  personaje   ·   RB  vigilia   ·   SELECT  ajustes   ·   B  salir",
-        "A  play   ·   X  character   ·   RB  vigil   ·   SELECT  settings   ·   B  quit"],
-    "clic_cambiar": ["Haz clic en una acción para cambiar su tecla. Las flechas siempre mueven.", "Click an action to change its key. Arrow keys always move."],
-    "nota_idioma": ["La traducción al inglés cubre los menús nuevos; el resto llegará más adelante.", "English covers the new menus; the rest of the game is still in Spanish."],
-    "volver": ["VOLVER", "BACK"],
-    "acuerdo": ["Acuerdo de usuario", "User agreement"],
-    "politica": ["Política de privacidad", "Privacy policy"],
-    "borrar": ["Borrar mis datos", "Delete my data"],
-    "borrar_seguro": ["¿Seguro? Haz clic otra vez", "Sure? Click again"],
-    "borrado": ["Datos borrados.", "Data deleted."],
-    "privacidad_resumen": ["Este juego no recoge ni envía datos personales. Solo guarda tu progreso y tus ajustes en este equipo.", "This game does not collect or send personal data. It only stores your progress and settings on this device."],
-    "privacidad_ruta": ["Archivos: progreso (%s) y ajustes (%s).", "Files: progress (%s) and settings (%s)."],
-    "acuerdo_titulo": ["ANTES DE ENTRAR", "BEFORE YOU ENTER"],
-    "acuerdo_texto": [
-        "El Templo de los Ecos es una demo en desarrollo con terror, sangre y violencia. Juegas bajo tu responsabilidad. El juego no recoge datos personales: solo guarda tu progreso y tus ajustes en este equipo. Puedes leer el acuerdo completo y borrar tus datos en Configuración > Privacidad.",
-        "The Temple of Echoes is a demo in development with horror, blood and violence. You play at your own risk. The game does not collect personal data: it only stores your progress and settings on this device. You can read the full agreement and delete your data in Settings > Privacy.",
-    ],
-    "aceptar": ["ACEPTAR Y ENTRAR", "ACCEPT AND ENTER"],
-    "leer": ["LEER COMPLETO", "READ IN FULL"],
-    "salir_juego": ["SALIR", "QUIT"],
-    "pausa": ["PAUSA", "PAUSED"],
-    "reanudar": ["CONTINUAR", "RESUME"],
-    "perfil": ["PERFIL", "PROFILE"],
-    "habilidades": ["HABILIDADES", "ABILITIES"],
-    "pantalla_completa": ["Pantalla completa", "Fullscreen"],
-    "buscar_actualizaciones": ["Buscar actualizaciones al abrir", "Check for updates on launch"],
-    "creditos": ["CRÉDITOS", "CREDITS"],
-    "saltar_tutorial": ["SALTAR TUTORIAL", "SKIP TUTORIAL"],
-    "volver_inicio": ["VOLVER AL INICIO", "BACK TO START SCREEN"],
-    "aviso_abandono": ["La partida se abandonará. No ganarás almas.", "The run will be abandoned. No souls are kept."],
-    "saltar": ["ESC: saltar", "ESC: skip"],
-    "siguiente": ["CLIC / ENTER: seguir", "CLICK / ENTER: next"],
-    "tutorial": ["TUTORIAL", "TUTORIAL"],
-}
-## Acuerdo de usuario y privacidad (resumen en el juego; texto completo en docs/legal/).
-## BORRADOR: no es asesoramiento legal; revisar antes de vender el juego.
-const LEGAL := {
-    "creditos": [
-        ["EL TEMPLO DE LOS ECOS · creado por je7remy. Diseño, historia y desarrollo.", "THE TEMPLE OF ECHOES · created by je7remy. Design, story and development."],
-        ["Escenario: Knowledge Temple, por pingupollas (pingupollas.itch.io/knowledge-temple). Criaturas: GothicVania Church Pack, por Luis Zuno (Ansimuz).", "Environment: Knowledge Temple by pingupollas (pingupollas.itch.io/knowledge-temple). Creatures: GothicVania Church Pack by Luis Zuno (Ansimuz)."],
-        ["Protagonistas, entidades, iconos, efectos, música y la mayoría de sonidos: originales del proyecto. Sonidos de impacto y pasos, y controles táctiles: Kenney (kenney.nl), CC0.", "Protagonists, entities, icons, effects, music and most sounds: original to the project. Impact and footstep sounds and touch controls: Kenney (kenney.nl), CC0."],
-        ["Tipografías: Jersey 15 y Jacquard 24 (SIL Open Font License 1.1).", "Fonts: Jersey 15 and Jacquard 24 (SIL Open Font License 1.1)."],
-        ["Nacido de un primer juego: Craving Candy. En memoria de Leudy Antonio Mendez.", "Born from a first game: Craving Candy. In memory of Leudy Antonio Mendez."],
-    ],
-    "acuerdo": [
-        ["1. Licencia. Puedes jugar esta copia para uso personal. No puedes revender, redistribuir ni descompilar el juego salvo lo que permita la ley.", "1. License. You may play this copy for personal use. You may not resell, redistribute or decompile the game except as the law allows."],
-        ["2. Contenido. Incluye terror, sangre, violencia y temas perturbadores. No recomendado para menores.", "2. Content. It includes horror, blood, violence and disturbing themes. Not recommended for minors."],
-        ["3. Demo en desarrollo. Puede contener errores; el progreso puede perderse entre versiones.", "3. Demo in development. It may contain bugs; progress may be lost between versions."],
-        ["4. Sin garantía. Se ofrece «tal cual», sin garantías, en la medida que permita la ley.", "4. No warranty. It is provided \"as is\", without warranties, to the extent the law allows."],
-        ["5. Terceros. Las tipografías Jersey 15 y Jacquard 24 se usan bajo la licencia SIL OFL 1.1.", "5. Third parties. The Jersey 15 and Jacquard 24 fonts are used under the SIL OFL 1.1 license."],
-    ],
-    "politica": [
-        ["Qué guarda: tu progreso (almas, identidad, habilidades, Ecos) y tus ajustes (volumen, teclas, idioma, si aceptaste este acuerdo).", "What is stored: your progress (souls, identity, abilities, Echoes) and your settings (volume, keys, language, whether you accepted this agreement)."],
-        ["Dónde: solo en este equipo, en la carpeta de datos del juego. Tus datos no se envían por internet.", "Where: only on this device, in the game's data folder. Your data is not sent over the internet."],
-        ["Actualizaciones: al abrir, el juego pregunta a GitHub si hay versión nueva; GitHub ve tu IP y la versión del juego. Se apaga en Configuración > Sonido.", "Updates: on launch, the game asks GitHub whether there is a new version; GitHub sees your IP and the game version. Turn it off in Settings > Sound."],
-        ["Qué no hace: no hay cuentas, ni publicidad, ni estadísticas, ni seguimiento.", "What it does not do: no accounts, no ads, no analytics, no tracking."],
-        ["Tus derechos: puedes borrar todos tus datos desde Configuración > Privacidad > Borrar mis datos.", "Your rights: you can delete all your data from Settings > Privacy > Delete my data."],
-    ],
-}
+## Los textos en español e inglés viven en scripts/datos/textos.gd.
+const Textos := preload("res://scripts/datos/textos.gd")
+const T = Textos.T
+const LEGAL = Textos.LEGAL
 const Ajustes := preload("res://scripts/ajustes.gd")
 const GEAR_RECT := Rect2(16, 572, 52, 52)
-const SETTINGS_PANEL := Rect2(100, 60, 760, 520)
-var settings_tab: int = 0
-var settings_sel: int = 0
 var settings_return: String = "splash"
-var rebinding: String = ""
-var dragging_slider: String = ""
-var confirm_delete: bool = false
-var legal_page: String = ""
+## Con qué pestaña (y página legal) se abre la configuración.
+var settings_open: Dictionary = {}
 var ui_hover: Vector2 = Vector2(-100, -100)
 var intro_slide: int = 0
 var intro_t: float = 0.0
@@ -5637,12 +5489,11 @@ var dummy_shake: float = 0.0
 
 
 func _t(key: String) -> String:
-    var pair: Array = T.get(key, [key, key])
-    return pair[1] if Ajustes.obtener("idioma") == "en" else pair[0]
+    return Textos.t(key)
 
 
 func _lang_pick(pair: Array) -> String:
-    return pair[1] if Ajustes.obtener("idioma") == "en" else pair[0]
+    return Textos.elegir(pair)
 
 
 func _key(action: String) -> int:
@@ -5683,40 +5534,9 @@ func _back_to_splash() -> void:
     _enter_room() # la sala del Umbral vuelve como fondo
 
 
-func _draw_eula() -> void:
-    draw_rect(_full_rect(), Color(0.01, 0.012, 0.02, 0.88))
-    var panel := Rect2(150, 150, 660, 300)
-    _panel(panel, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
-    _text_outline(_t("acuerdo_titulo"), Vector2(panel.position.x, 196), 26, CREAM, panel.size.x)
-    _draw_text_block(_t("acuerdo_texto"), Rect2(186, 222, 588, 120), 15, Color("#d0c8b0"))
-    for b in _eula_buttons():
-        _ui_button(b["rect"], _t(b["label"]), b["id"] == "aceptar")
-
-
-func _eula_buttons() -> Array:
-    return [
-        {"id": "aceptar", "label": "aceptar", "rect": Rect2(180, 374, 250, 50)},
-        {"id": "leer", "label": "leer", "rect": Rect2(446, 374, 180, 50)},
-        {"id": "salir", "label": "salir_juego", "rect": Rect2(642, 374, 136, 50)},
-    ]
-
-
 ## Texto con saltos de línea automáticos dentro de un rectángulo.
 func _draw_text_block(text: String, box: Rect2, size: int, color: Color) -> float:
-    var words: PackedStringArray = text.split(" ")
-    var line: String = ""
-    var y: float = box.position.y + float(size)
-    for w in words:
-        var test: String = w if line == "" else line + " " + w
-        if font.get_string_size(test, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > box.size.x and line != "":
-            draw_string(font, Vector2(box.position.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
-            y += float(size) + 7.0
-            line = w
-        else:
-            line = test
-    if line != "":
-        draw_string(font, Vector2(box.position.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
-    return y
+    return Estilo.parrafo(self, text, box, size, color)
 
 
 ## Botón de interfaz con bisel; resaltado al pasar el cursor.
@@ -5725,264 +5545,20 @@ func _ui_button(rect: Rect2, label: String, primary: bool = false, selected: boo
 
 
 # ------------------------------------------------------------ CONFIGURACIÓN
-func _open_settings(from_mode: String) -> void:
+## La configuración es una escena (scenes/pantallas/ajustes.tscn).
+func _open_settings(from_mode: String, tab: int = 0, legal: String = "") -> void:
     settings_return = from_mode
+    settings_open = {"pestana": tab, "legal": legal}
     game_mode = "settings"
-    settings_tab = 0
-    settings_sel = 0
-    rebinding = ""
-    confirm_delete = false
-    legal_page = ""
     _sfx("interfaz", -8.0)
 
 
 func _close_settings() -> void:
-    rebinding = ""
-    legal_page = ""
     game_mode = settings_return
     _sfx("interfaz", -12.0, 0.9)
 
 
 ## Lista de controles de la pestaña actual: se usa para dibujar y para la entrada.
-func _settings_widgets() -> Array:
-    var list: Array = []
-    var tabs := ["sonido", "controles", "idioma", "privacidad"]
-    for i in range(tabs.size()):
-        # Leyendo un texto legal, las pestañas quedan apagadas: se sale con VOLVER.
-        list.append({"kind": "tab", "id": i, "label": _t(tabs[i]), "rect": Rect2(118.0 + float(i) * 182.0, 112.0, 174.0, 40.0), "off": legal_page != ""})
-    if legal_page != "":
-        list.append({"kind": "button", "id": "cerrar_legal", "label": _t("volver"), "rect": Rect2(660, 520, 180, 44)})
-        return list
-    match settings_tab:
-        0:
-            var rows := [["slider", "volumen_general", "vol_general"], ["slider", "volumen_musica", "vol_musica"], ["slider", "volumen_efectos", "vol_efectos"], ["toggle", "silencio", "silencio"], ["toggle", "pantalla_completa", "pantalla_completa"], ["toggle", "buscar_actualizaciones", "buscar_actualizaciones"]]
-            for i in range(rows.size()):
-                list.append({"kind": rows[i][0], "id": rows[i][1], "label": _t(rows[i][2]), "rect": Rect2(140, 168.0 + float(i) * 58.0, 680, 50)})
-        1:
-            for i in range(Ajustes.ORDEN.size()):
-                var action: String = Ajustes.ORDEN[i]
-                var col: int = i / 6
-                list.append({"kind": "key", "id": action, "label": _lang_pick(Ajustes.ACCIONES[action]),
-                    "rect": Rect2(130.0 + float(col) * 356.0, 182.0 + float(i % 6) * 38.0, 344, 33)})
-            list.append({"kind": "choice", "id": "tactil", "label": _t("tactil"), "rect": Rect2(130, 418, 700, 40)})
-            list.append({"kind": "button", "id": "restablecer", "label": _t("restablecer"), "rect": Rect2(130, 470, 224, 42)})
-            list.append({"kind": "button", "id": "repetir_tutorial", "label": _t("repetir_tutorial"), "rect": Rect2(368, 470, 224, 42)})
-            list.append({"kind": "button", "id": "ver_intro", "label": _t("ver_intro"), "rect": Rect2(606, 470, 224, 42)})
-        2:
-            list.append({"kind": "lang", "id": "es", "label": "ESPAÑOL", "rect": Rect2(250, 200, 460, 56)})
-            list.append({"kind": "lang", "id": "en", "label": "ENGLISH", "rect": Rect2(250, 268, 460, 56)})
-        3:
-            list.append({"kind": "button", "id": "acuerdo", "label": _t("acuerdo"), "rect": Rect2(140, 330, 330, 46)})
-            list.append({"kind": "button", "id": "politica", "label": _t("politica"), "rect": Rect2(490, 330, 330, 46)})
-            list.append({"kind": "button", "id": "borrar", "label": _t("borrar_seguro") if confirm_delete else _t("borrar"), "rect": Rect2(140, 392, 330, 46)})
-            list.append({"kind": "button", "id": "creditos", "label": _t("creditos"), "rect": Rect2(490, 392, 330, 46)})
-    list.append({"kind": "button", "id": "volver", "label": _t("volver"), "rect": Rect2(660, 520, 180, 44)})
-    return list
-
-
-func _settings_focusable() -> Array:
-    return _settings_widgets().filter(func(w): return w["kind"] != "tab")
-
-
-func _draw_settings() -> void:
-    draw_rect(_full_rect(), Color(0, 0, 0, 0.82))
-    _panel(SETTINGS_PANEL, Color(0.05, 0.06, 0.08, 0.98), UI_GOLD)
-    _panel(Rect2(380, 48, 200, 30), Color("#2a1d22"), UI_GOLD)
-    _title_text(_tc(_t("ajustes")), Vector2(380, 72), 24, CREAM, 200.0)
-    var focus: Array = _settings_focusable()
-    var focused: Dictionary = focus[clampi(settings_sel, 0, focus.size() - 1)] if not focus.is_empty() else {}
-    for w in _settings_widgets():
-        var r: Rect2 = w["rect"]
-        var hot: bool = r.has_point(ui_hover) or (not focused.is_empty() and str(w["id"]) == str(focused["id"]) and w["kind"] == focused["kind"])
-        match w["kind"]:
-            "tab":
-                if bool(w.get("off", false)):
-                    _panel(r, Color("#0d1015"), Color(UI_EDGE.r, UI_EDGE.g, UI_EDGE.b, 0.4))
-                    _text_outline(w["label"], Vector2(r.position.x, r.position.y + 26.0), 15, Color("#4a4740"), r.size.x)
-                    continue
-                var on: bool = int(w["id"]) == settings_tab
-                _panel(r, Color("#2a1d22") if on else Color("#141922"), UI_GOLD if on or hot else UI_EDGE)
-                _text_outline(w["label"], Vector2(r.position.x, r.position.y + 26.0), 15, CREAM if on else Color("#9a957f"), r.size.x)
-            "slider":
-                _panel(r, Color("#1a1f2a") if hot else Color("#11151c"), UI_GOLD if hot else UI_EDGE)
-                _text_outline(w["label"], Vector2(r.position.x + 18.0, r.position.y + 33.0), 15, CREAM)
-                var v: float = float(Ajustes.obtener(w["id"]))
-                _px_bar(_slider_track(r), v, SOUL, "%d%%" % int(round(v * 100.0)))
-            "toggle":
-                _panel(r, Color("#1a1f2a") if hot else Color("#11151c"), UI_GOLD if hot else UI_EDGE)
-                _text_outline(w["label"], Vector2(r.position.x + 18.0, r.position.y + 33.0), 15, CREAM)
-                var on2: bool = bool(Ajustes.obtener(w["id"]))
-                var pill := Rect2(r.end.x - 110.0, r.position.y + 10.0, 92, 34)
-                _panel(pill, Color("#5a1f26") if on2 else Color("#1d3a2c"), UI_LIGHT)
-                _text_outline(_t("si") if on2 else _t("no"), Vector2(pill.position.x, pill.position.y + 23.0), 14, CREAM, pill.size.x)
-            "key":
-                var waiting: bool = rebinding == str(w["id"])
-                _panel(r, Color("#2a1d22") if waiting else (Color("#1a1f2a") if hot else Color("#11151c")), UI_GOLD if hot or waiting else UI_EDGE)
-                _text_outline(w["label"], Vector2(r.position.x + 12.0, r.position.y + 25.0), 13, CREAM)
-                var cap := Rect2(r.end.x - 118.0, r.position.y + 5.0, 110, 28)
-                _panel(cap, Color("#232836"), UI_GOLD if waiting else UI_LIGHT)
-                _text_outline("…" if waiting else Ajustes.nombre_tecla(w["id"]), Vector2(cap.position.x, cap.position.y + 20.0), 13, UI_GOLD if waiting else CREAM, cap.size.x)
-            "choice":
-                _panel(r, Color("#1a1f2a") if hot else Color("#11151c"), UI_GOLD if hot else UI_EDGE)
-                _text_outline(w["label"], Vector2(r.position.x + 12.0, r.position.y + 26.0), 14, CREAM)
-                var opts := ["auto", "siempre", "nunca"]
-                for i in range(3):
-                    var o := _choice_rect(r, i)
-                    var sel: bool = str(Ajustes.obtener("tactil")) == opts[i]
-                    _panel(o, Color("#1d4a4f") if sel else Color("#141922"), SOUL if sel else UI_EDGE)
-                    _text_outline(_t(opts[i]), Vector2(o.position.x, o.position.y + 21.0), 13, CREAM, o.size.x)
-            "lang":
-                var sel2: bool = str(Ajustes.obtener("idioma")) == str(w["id"])
-                _panel(r, Color("#1d4a4f") if sel2 else (Color("#1a1f2a") if hot else Color("#11151c")), SOUL if sel2 else (UI_GOLD if hot else UI_EDGE))
-                _text_outline(("● " if sel2 else "○ ") + w["label"], Vector2(r.position.x, r.position.y + 36.0), 20, CREAM, r.size.x)
-            "button":
-                _ui_button(r, w["label"], str(w["id"]) == "volver", hot)
-    # Textos propios de cada pestaña.
-    if legal_page != "":
-        _text_outline(_t(legal_page), Vector2(140, 192), 18, UI_GOLD)
-        var y: float = 210.0
-        for para in LEGAL[legal_page]:
-            y = _draw_text_block(_lang_pick(para), Rect2(140, y, 680, 60), 13, Color("#d0c8b0")) + 14.0
-        if legal_page != "creditos":
-            _text_outline("BORRADOR · no es asesoramiento legal" if Ajustes.obtener("idioma") == "es" else "DRAFT · not legal advice", Vector2(140, 548), 11, Color("#8a8574"))
-        return
-    match settings_tab:
-        1:
-            _text_outline(_t("pulsa_tecla") if rebinding != "" else _t("clic_cambiar"), Vector2(130, 176 - 4), 12, UI_GOLD if rebinding != "" else Color("#9a957f"))
-            _text_outline(_t("mando_esquema"), Vector2(118, 538), 11, SOUL)
-            _text_outline(_t("mando_esquema2"), Vector2(118, 556), 11, SOUL)
-        2:
-            _draw_text_block(_t("nota_idioma"), Rect2(250, 350, 460, 60), 13, Color("#9a957f"))
-        3:
-            _draw_text_block(_t("privacidad_resumen"), Rect2(140, 178, 680, 60), 15, Color("#d0c8b0"))
-            _draw_text_block(_t("privacidad_ruta") % [_save_path(), Ajustes.ruta()], Rect2(140, 262, 680, 40), 12, Color("#9a957f"))
-            if confirm_delete:
-                _text_outline("Se borrará todo (campaña, Vigilia y ajustes) y empezarás de cero." if Ajustes.obtener("idioma") == "es" else "Everything (campaign, Vigil and settings) will be deleted; you will start over.", Vector2(490, 420), 12, RED)
-
-
-func _slider_track(r: Rect2) -> Rect2:
-    return Rect2(r.position.x + 300.0, r.position.y + 15.0, r.size.x - 320.0, 24.0)
-
-
-func _choice_rect(r: Rect2, i: int) -> Rect2:
-    return Rect2(r.end.x - 360.0 + float(i) * 120.0, r.position.y + 5.0, 112, 30)
-
-
-func _settings_click(at: Vector2) -> void:
-    for w in _settings_widgets():
-        if not (w["rect"] as Rect2).has_point(at):
-            continue
-        _settings_activate(w, at)
-        return
-
-
-func _settings_activate(w: Dictionary, at: Vector2 = Vector2(-1, -1)) -> void:
-    if bool(w.get("off", false)):
-        return # pestaña apagada mientras se lee un texto legal
-    match w["kind"]:
-        "tab":
-            settings_tab = int(w["id"])
-            settings_sel = 0
-            confirm_delete = false
-            rebinding = ""
-            _sfx("interfaz", -12.0, 1.1)
-        "slider":
-            dragging_slider = w["id"]
-            if at.x >= 0.0:
-                _set_slider(w, at.x)
-        "toggle":
-            Ajustes.poner(w["id"], not bool(Ajustes.obtener(w["id"])))
-            Ajustes.aplicar_audio()
-            if w["id"] == "pantalla_completa":
-                _apply_window_mode()
-            elif w["id"] == "buscar_actualizaciones":
-                _start_updater()
-            _sfx("toque", -8.0)
-        "key":
-            rebinding = w["id"]
-        "choice":
-            var opts := ["auto", "siempre", "nunca"]
-            var idx: int = opts.find(str(Ajustes.obtener("tactil")))
-            if at.x >= 0.0:
-                for i in range(3):
-                    if _choice_rect(w["rect"], i).has_point(at):
-                        idx = i
-            else:
-                idx = (idx + 1) % 3
-            Ajustes.poner("tactil", opts[idx])
-            _apply_touch_setting()
-        "lang":
-            Ajustes.poner("idioma", w["id"])
-            _sfx("interfaz", -10.0)
-        "button":
-            match w["id"]:
-                "volver":
-                    _close_settings()
-                "cerrar_legal":
-                    legal_page = ""
-                "acuerdo", "politica", "creditos":
-                    legal_page = w["id"]
-                "restablecer":
-                    Ajustes.restablecer_teclas()
-                    _sfx("interfaz", -8.0)
-                "repetir_tutorial":
-                    Ajustes.poner("tutorial_hecho", false)
-                    _start_tutorial()
-                "ver_intro":
-                    _start_intro("title" if settings_return in ["splash", "title"] else "title")
-                "borrar":
-                    if confirm_delete:
-                        _wipe_everything()
-                    else:
-                        confirm_delete = true
-
-
-func _set_slider(w: Dictionary, x: float) -> void:
-    var track: Rect2 = _slider_track(w["rect"])
-    var v: float = clampf((x - track.position.x) / track.size.x, 0.0, 1.0)
-    Ajustes.datos[w["id"]] = snappedf(v, 0.05)
-    Ajustes.aplicar_audio()
-
-
-func _settings_key(k: int) -> void:
-    if rebinding != "":
-        if k != KEY_ESCAPE:
-            Ajustes.asignar_tecla(rebinding, k)
-            _sfx("interfaz", -8.0, 1.2)
-        rebinding = ""
-        return
-    var focus: Array = _settings_focusable()
-    if k == KEY_ESCAPE:
-        if legal_page != "":
-            legal_page = ""
-        else:
-            _close_settings()
-        return
-    if focus.is_empty():
-        return
-    settings_sel = clampi(settings_sel, 0, focus.size() - 1)
-    var w: Dictionary = focus[settings_sel]
-    if k in [KEY_DOWN, KEY_S]:
-        settings_sel = (settings_sel + 1) % focus.size()
-    elif k in [KEY_UP, KEY_W]:
-        settings_sel = (settings_sel + focus.size() - 1) % focus.size()
-    elif k in [KEY_LEFT, KEY_RIGHT, KEY_A, KEY_D]:
-        var dir: float = -1.0 if k in [KEY_LEFT, KEY_A] else 1.0
-        if w["kind"] == "slider":
-            Ajustes.datos[w["id"]] = clampf(float(Ajustes.obtener(w["id"])) + 0.05 * dir, 0.0, 1.0)
-            Ajustes.aplicar_audio()
-        elif w["kind"] == "choice":
-            _settings_activate(w)
-        elif legal_page == "":
-            settings_tab = (settings_tab + (1 if dir > 0.0 else 3)) % 4
-            settings_sel = 0
-    elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
-        _settings_activate(w)
-    elif k == KEY_TAB and legal_page == "":
-        settings_tab = (settings_tab + 1) % 4
-        settings_sel = 0
-
-
 ## Borrar perfil: se borran el progreso de la campaña, los récords de la
 ## Vigilia y los ajustes, y el juego se reinicia desde cero (intro, tutorial
 ## y creación del personaje, con todos los pisos bloqueados salvo el I).
@@ -5996,7 +5572,6 @@ func _wipe_everything() -> void:
         if (path.contains("prueba") == Engine.has_meta("modo_prueba")) and FileAccess.file_exists(path):
             DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
     Ajustes.aplicar_audio()
-    confirm_delete = false
     if Engine.has_meta("splash_visto"):
         Engine.remove_meta("splash_visto")
     if Engine.has_meta("modo_prueba"):
@@ -8058,43 +7633,45 @@ func _floors_unlocked() -> int:
     return mini(top, FLOORS.size() - 1)
 
 
-func _floor_card(i: int) -> Rect2:
-    return Rect2(104.0 + float(i % 5) * 152.0, 150.0 + float(i / 5) * 178.0, 144.0, 168.0)
+## Tarjetas del menú de pisos (scenes/pantallas/pisos.tscn).
+func _floor_cards() -> Array:
+    var unlocked: int = _floors_unlocked()
+    var cards: Array = []
+    for i in range(FLOOR_PLAN.size()):
+        var playable: bool = i < FLOORS.size()
+        var open: bool = playable and i <= unlocked
+        var c := {"numero": FLOOR_PLAN[i][0], "abierto": open,
+            # Sin pistas: lo que no has alcanzado no tiene nombre todavía.
+            "nombre": _tc(FLOOR_PLAN[i][1]) if open else "???"}
+        if not playable:
+            c["estado"] = "EN LAS PROFUNDIDADES"
+            c["color_estado"] = Color("#5d5865")
+        elif not open:
+            c["estado"] = "SIN ALCANZAR"
+            c["color_estado"] = Color("#8a5a64")
+        else:
+            var eco: String = str(FLOORS[i].get("eco", ""))
+            var done: bool = eco != "" and ecos.has(eco)
+            c["estado"] = "SUPERADO" if done else "DISPONIBLE"
+            c["color_estado"] = SOUL if done else Color("#9fd8b0")
+            if _has_checkpoint(i):
+                c["estado"] = "SEGUIR · SALA %d" % (int(checkpoint[1]) + 1)
+                c["color_estado"] = Color("#ffd36b")
+            if done and ICONS.has("eco_" + eco):
+                c["icono"] = ICONS["eco_" + eco]
+            elif bool(FLOORS[i].get("final", false)) and ICONS.has("calavera"):
+                c["icono"] = ICONS["calavera"]
+                c["icono_tinte"] = Color(1.0, 0.75, 0.6)
+        if not open:
+            c["candado"] = ICONS["calavera"]
+        cards.append(c)
+    return cards
 
 
 func _open_floors() -> void:
     game_mode = "floors"
     floors_sel = mini(current_floor, _floors_unlocked())
     _sfx("interfaz", -8.0, 0.9)
-
-
-func _floors_key(k: int) -> void:
-    if k == KEY_ESCAPE:
-        game_mode = "title"
-        _sfx("interfaz", -10.0, 0.8)
-    elif k in [KEY_RIGHT, KEY_D]:
-        floors_sel = (floors_sel + 1) % FLOOR_PLAN.size()
-    elif k in [KEY_LEFT, KEY_A]:
-        floors_sel = (floors_sel + FLOOR_PLAN.size() - 1) % FLOOR_PLAN.size()
-    elif k in [KEY_DOWN, KEY_S, KEY_UP, KEY_W]:
-        floors_sel = (floors_sel + 5) % FLOOR_PLAN.size()
-    elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_E, KEY_SPACE]:
-        _choose_floor(floors_sel)
-
-
-func _floors_tap(at: Vector2) -> void:
-    for i in range(FLOOR_PLAN.size()):
-        if _floor_card(i).has_point(at):
-            if floors_sel == i:
-                _choose_floor(i)
-            else:
-                floors_sel = i
-                _sfx("toque", -14.0, 1.0)
-            return
-    if Rect2(104, 516, 180, 40).has_point(at):
-        game_mode = "title"
-    elif Rect2(676, 516, 180, 40).has_point(at):
-        _choose_floor(floors_sel)
 
 
 ## Punto de control: cada sala a la que entras queda guardada. Si cierras el
@@ -8172,57 +7749,6 @@ func _start_floor(i: int) -> void:
     _enter_room()
     _sfx("puerta", -4.0, 0.7)
     _transition("espiral", false, 1.0)
-
-
-func _draw_floors() -> void:
-    draw_rect(_full_rect(), Color(0.012, 0.01, 0.02, 0.8))
-    var panel := Rect2(80, 64, 800, 508)
-    _panel(panel, Color(0.035, 0.03, 0.045, 0.95), UI_GOLD)
-    _title_text("Los Pisos", Vector2(80, 112), 48, CREAM, panel.size.x)
-    _ornament_line(Vector2(480, 130), 220.0)
-    var unlocked: int = _floors_unlocked()
-    for i in range(FLOOR_PLAN.size()):
-        var card: Rect2 = _floor_card(i)
-        var playable: bool = i < FLOORS.size()
-        var open: bool = playable and i <= unlocked
-        var sel: bool = floors_sel == i
-        var fill := Color("#1c1428") if sel else Color("#0f0c15")
-        var edge: Color = UI_GOLD if sel else (Color("#6a4a8a") if open else UI_EDGE)
-        _panel(card, Color(fill.r, fill.g, fill.b, 0.95), edge)
-        if sel:
-            draw_rect(card.grow(3.0), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.25 + 0.15 * sin(elapsed * 4.0)), false, 2.0)
-        var tone: Color = CREAM if open else Color("#5d5865")
-        _title_text(FLOOR_PLAN[i][0], Vector2(card.position.x, card.position.y + 52.0), 48, UI_GOLD if open else Color("#4a4452"), card.size.x)
-        # Sin pistas: lo que no has alcanzado no tiene nombre todavía.
-        draw_multiline_string(font, Vector2(card.position.x + 10.0, card.position.y + 82.0), _tc(FLOOR_PLAN[i][1]) if open else "???", HORIZONTAL_ALIGNMENT_CENTER, card.size.x - 20.0, 13, 3, tone)
-        var status: String
-        var status_col: Color
-        if not playable:
-            status = "EN LAS PROFUNDIDADES"
-            status_col = Color("#5d5865")
-        elif not open:
-            status = "SIN ALCANZAR"
-            status_col = Color("#8a5a64")
-        else:
-            var eco: String = str(FLOORS[i].get("eco", ""))
-            status = "SUPERADO" if eco != "" and ecos.has(eco) else "DISPONIBLE"
-            status_col = SOUL if status == "SUPERADO" else Color("#9fd8b0")
-            if _has_checkpoint(i):
-                status = "SEGUIR · SALA %d" % (int(checkpoint[1]) + 1)
-                status_col = Color("#ffd36b")
-        _text_outline(status, Vector2(card.position.x, card.end.y - 14.0), 10, status_col, card.size.x)
-        if open and str(FLOORS[i].get("eco", "")) != "" and ecos.has(str(FLOORS[i]["eco"])):
-            var ek: String = "eco_" + str(FLOORS[i]["eco"])
-            if ICONS.has(ek):
-                draw_texture_rect(ICONS[ek], Rect2(card.get_center() + Vector2(-16, 26), Vector2(32, 32)), false, Color.WHITE if open else Color(0.2, 0.2, 0.24, 0.8))
-        elif open and bool(FLOORS[i].get("final", false)) and ICONS.has("calavera"):
-            draw_texture_rect(ICONS["calavera"], Rect2(card.get_center() + Vector2(-16, 26), Vector2(32, 32)), false, Color(1.0, 0.75, 0.6) if open else Color(0.2, 0.2, 0.24, 0.8))
-        if not open:
-            draw_texture_rect(ICONS["calavera"], Rect2(card.position + Vector2(card.size.x - 26.0, 8.0), Vector2(18, 18)), false, Color(1, 1, 1, 0.35))
-    var playable_sel: bool = floors_sel < FLOORS.size() and floors_sel <= unlocked
-    _ui_button(Rect2(104, 516, 180, 40), "« VOLVER")
-    _ui_button(Rect2(676, 516, 180, 40), "DESCENDER »" if playable_sel else "BLOQUEADO", playable_sel)
-    _text_outline(_hint("Flechas elegir · ENTER descender · ESC volver", "Toca un piso y luego DESCENDER", "Cruceta elegir · A descender · B volver"), Vector2(80, 541), 12, Color("#8a8574"), panel.size.x)
 
 
 # ------------------------------------------------------------ DEL PRIMER JUEGO (etapa 3)

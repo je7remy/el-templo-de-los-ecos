@@ -69,6 +69,7 @@ jobs:
         run: |
           godot --headless --path . --script res://tests/pantallas_test.gd 2>&1 | tee "$RUNNER_TEMP/pantallas.log"
           grep -Fq 'OK: autoloads Eventos, Progreso y Escenas, máquina de estados, inicio y menú como escenas.' "$RUNNER_TEMP/pantallas.log"
+          grep -Fq 'OK: acuerdo, configuración (deslizadores, interruptores, teclas, textos legales) y pisos como escenas.' "$RUNNER_TEMP/pantallas.log"
           grep -Fq 'OK: pausa con teclado y avisos de nivel y botín encima de las pantallas.' "$RUNNER_TEMP/pantallas.log"
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/pantallas.log"; then exit 1; fi
 

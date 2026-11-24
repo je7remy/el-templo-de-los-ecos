@@ -10,13 +10,16 @@ extends CanvasLayer
 ## «accion». Las pantallas que aún se dibujan en main.gd se irán moviendo
 ## aquí por fases (docs/ARQUITECTURA.md).
 
-signal accion(pantalla: StringName, nombre: StringName)
+signal accion(pantalla: StringName, nombre: StringName, valor: Variant)
 
 ## Modo de la campaña → estado (nodo hijo de Maquina).
 const MODOS := {
     "splash": &"Splash",
     "title": &"Titulo",
     "pause": &"Pausa",
+    "eula": &"Acuerdo",
+    "floors": &"Pisos",
+    "settings": &"Ajustes",
 }
 
 @onready var maquina: Node = $Maquina
@@ -50,8 +53,8 @@ func ajustar_margen(m: Vector2) -> void:
     offset = m
 
 
-func _al_elegir(nombre: StringName, pantalla: StringName) -> void:
-    accion.emit(pantalla, nombre)
+func _al_elegir(nombre: StringName, valor: Variant, pantalla: StringName) -> void:
+    accion.emit(pantalla, nombre, valor)
 
 
 ## Con mando, A acepta y B vuelve en todos los menús hechos con nodos de

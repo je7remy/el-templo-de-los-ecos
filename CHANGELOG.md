@@ -1,5 +1,18 @@
 # Historial de versiones
 
+## v0.5.11-alpha — 2026-11-24 · Arquitectura por escenas, fase 2a
+
+Sin cambios en las reglas del juego.
+
+- **Configuración, acuerdo de usuario y menú de pisos son escenas propias** (`scenes/pantallas/ajustes.tscn`, `acuerdo.tscn`, `pisos.tscn`), gobernadas por el gestor de pantallas. Ya no se dibujan dentro de `main.gd`.
+- La configuración edita los ajustes por sí misma y solo avisa a la campaña de lo que la afecta. Mantiene todo: deslizadores que se arrastran, interruptores, reasignar teclas, controles táctiles, idioma, privacidad, textos legales con las pestañas bloqueadas y borrar los datos.
+- Las tarjetas del menú de pisos son botones (`scripts/ui/tarjeta_piso.gd`): el primer toque elige y el segundo desciende, como antes.
+- En el acuerdo, ACEPTAR tiene el foco al abrirse.
+- Todos los textos en español e inglés pasan a `scripts/datos/textos.gd`. Nuevas piezas `parrafo_templo.gd` y, en `estilo.gd`, la barra y el párrafo.
+- `Eventos.sonido_pedido`: las escenas piden sonidos sin conocer a la campaña.
+- `main.gd` baja de unas 12 000 a 11 500 líneas. `pantallas_test.gd` prueba las tres pantallas nuevas con clics y teclas de verdad.
+- Versión Android 0.5.11-alpha (código 18).
+
 ## v0.5.10-alpha — 2026-11-24 · Arquitectura por escenas, fase 1
 
 Sin cambios en las reglas del juego: es una reorganización del código (ver `docs/ARQUITECTURA.md`).
