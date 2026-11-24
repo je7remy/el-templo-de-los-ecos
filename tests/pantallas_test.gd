@@ -75,27 +75,91 @@ func _run() -> void:
         _fail("No arranca mostrando la escena de inicio.")
         return
     var Ajustes = load("res://scripts/ajustes.gd")
-    Ajustes.poner("acuerdo_aceptado", true)
+    # Primera vez: el acuerdo (escena) antes del menú; «LEER COMPLETO» abre
+    # el texto en la configuración y al volver sigue el acuerdo.
     _tecla(KEY_SPACE)
-    if game.get("game_mode") != "title" or pantallas.call("activa") != &"Titulo":
-        _fail("Una tecla en el inicio no lleva al menú.")
+    if game.get("game_mode") != "eula" or pantallas.call("activa") != &"Acuerdo":
+        _fail("La primera vez no aparece la escena del acuerdo.")
+        return
+    var acuerdo: Node = pantallas.call("pantalla", &"Acuerdo")
+    _clic((acuerdo.get_node("Leer") as Control).get_global_rect().get_center())
+    var ajustes: Node = pantallas.call("pantalla", &"Ajustes")
+    if game.get("game_mode") != "settings" or str(ajustes.get("legal")) != "acuerdo" or int(ajustes.get("pestana")) != 3:
+        _fail("LEER COMPLETO no abre el acuerdo en la configuración.")
+        return
+    # Con un texto legal abierto, las pestañas no responden; ESC lo cierra.
+    _clic(Vector2(118 + 87, 132)) # pestaña SONIDO
+    if int(ajustes.get("pestana")) != 3 or str(ajustes.get("legal")) != "acuerdo":
+        _fail("Las pestañas cambian mientras se leen los términos.")
+        return
+    _tecla(KEY_ESCAPE)
+    _tecla(KEY_ESCAPE)
+    if game.get("game_mode") != "eula":
+        _fail("Cerrar la configuración no vuelve al acuerdo.")
+        return
+    _clic((acuerdo.get_node("Aceptar") as Control).get_global_rect().get_center())
+    if game.get("game_mode") != "title" or pantallas.call("activa") != &"Titulo" or not bool(Ajustes.obtener("acuerdo_aceptado")):
+        _fail("ACEPTAR no guarda el acuerdo ni lleva al menú.")
         return
     # Engranaje → configuración (dibujada aún por main.gd) → vuelve al menú.
     var titulo: Node = pantallas.call("pantalla", &"Titulo")
     _clic((titulo.get_node("Engranaje") as Control).get_global_rect().get_center())
-    if game.get("game_mode") != "settings" or pantallas.call("activa") != &"":
+    if game.get("game_mode") != "settings" or pantallas.call("activa") != &"Ajustes" or (titulo as Control).visible:
         _fail("El engranaje del menú no abre la configuración (o el menú no se oculta).")
         return
-    game.call("_settings_key", KEY_ESCAPE)
+    # Deslizador arrastrado con el ratón y un interruptor con un clic.
+    var antes: float = float(Ajustes.obtener("volumen_musica"))
+    _clic(Vector2(440 + 10, 168 + 58 + 25)) # al principio de la barra de Música
+    if float(Ajustes.obtener("volumen_musica")) >= antes or float(Ajustes.obtener("volumen_musica")) > 0.1:
+        _fail("El deslizador de la música no responde al clic.")
+        return
+    var silencio: bool = bool(Ajustes.obtener("silencio"))
+    _clic(Vector2(480, 168 + 3 * 58 + 25))
+    if bool(Ajustes.obtener("silencio")) == silencio:
+        _fail("El interruptor de silencio no responde al clic.")
+        return
+    _clic(Vector2(480, 168 + 3 * 58 + 25))
+    Ajustes.poner("volumen_musica", antes)
+    # Teclado: ↓ recorre, TAB cambia de pestaña, una tecla se reasigna.
+    _tecla(KEY_TAB)
+    if int(ajustes.get("pestana")) != 1:
+        _fail("TAB no cambia de pestaña en la configuración.")
+        return
+    _tecla(KEY_ENTER) # primera acción: reasignar
+    _tecla(KEY_I)
+    if int(Ajustes.tecla(str(Ajustes.ORDEN[0]))) != KEY_I:
+        _fail("No se puede reasignar una tecla.")
+        return
+    Ajustes.restablecer_teclas()
+    _tecla(KEY_ESCAPE)
     if game.get("game_mode") != "title" or not (titulo as Control).visible:
         _fail("Cerrar la configuración no devuelve el menú.")
         return
-    # JUGAR con un clic de verdad abre los pisos.
+    # JUGAR con un clic de verdad abre los pisos (escena con diez tarjetas).
     _clic((titulo.get_node("Jugar") as Control).get_global_rect().get_center())
-    if game.get("game_mode") != "floors" or (titulo as Control).visible:
+    var pisos: Node = pantallas.call("pantalla", &"Pisos")
+    if game.get("game_mode") != "floors" or (titulo as Control).visible or not (pisos as Control).visible:
         _fail("JUGAR no abre el menú de pisos.")
         return
+    _tecla(KEY_RIGHT)
+    if int(pisos.get("seleccion")) != 1:
+        _fail("Las flechas no mueven la selección de pisos.")
+        return
+    _clic((pisos.call("tarjeta", 3) as Control).get_global_rect().get_center())
+    if int(pisos.get("seleccion")) != 3 or game.get("game_mode") != "floors":
+        _fail("Tocar una tarjeta debe elegirla sin descender.")
+        return
+    _clic((pisos.call("tarjeta", 3) as Control).get_global_rect().get_center()) # bloqueado: avisa y no entra
+    if game.get("game_mode") != "floors":
+        _fail("Se puede descender a un piso bloqueado.")
+        return
+    _tecla(KEY_ESCAPE)
+    if game.get("game_mode") != "title":
+        _fail("ESC en los pisos no vuelve al menú.")
+        return
+    _clic((titulo.get_node("Jugar") as Control).get_global_rect().get_center())
     print("OK: autoloads Eventos, Progreso y Escenas, máquina de estados, inicio y menú como escenas.")
+    print("OK: acuerdo, configuración (deslizadores, interruptores, teclas, textos legales) y pisos como escenas.")
 
     # --- Pausa ----------------------------------------------------------------
     Ajustes.poner("intro_vista", true)

@@ -43,8 +43,7 @@ var _t: float = 0.0
 
 func _ready() -> void:
     Estilo.preparar_fuentes()
-    focus_mode = Control.FOCUS_ALL
-    ignore_texture_size = true
+    ignore_texture_size = true # el foco lo decide la escena (por defecto, todos)
     mouse_entered.connect(queue_redraw)
     mouse_exited.connect(queue_redraw)
     focus_entered.connect(queue_redraw)

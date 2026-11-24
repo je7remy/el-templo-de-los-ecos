@@ -323,6 +323,7 @@ scripts/                Lógica de juego en GDScript
   comun/                Máquina de estados genérica
   pantallas/            Scripts de las pantallas
   ui/                   Estilo común y piezas de interfaz
+  datos/                Pisos, conversaciones y textos en español e inglés
 tests/                  Pruebas para Godot sin interfaz
 herramientas/           Validación, apertura en Fedora y generadores de salas, protagonista, entidades, iconos y audio
 docs/                   Diseño, licencias, guías, notas de versión y galería del README
@@ -353,4 +354,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.10-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.11-alpha** (se publica al fusionar esta versión en `main`).

@@ -14,6 +14,8 @@ required += ["scripts/autoload/eventos.gd", "scripts/autoload/progreso.gd",
              "scenes/autoload/escenas.tscn", "scripts/comun/maquina_estados.gd",
              "scenes/pantallas/pantallas.tscn", "scenes/pantallas/splash.tscn",
              "scenes/pantallas/titulo.tscn", "scenes/pantallas/pausa.tscn",
+             "scenes/pantallas/acuerdo.tscn", "scenes/pantallas/pisos.tscn",
+             "scenes/pantallas/ajustes.tscn", "scripts/datos/textos.gd",
              "scenes/ui/avisos.tscn", "scenes/ui/boton_templo.tscn",
              "tests/pantallas_test.gd"]
 required += [f"assets/knowledge/rooms/room_{i}.png" for i in range(5)]

@@ -120,8 +120,7 @@ func _run() -> void:
         return
     game.set("game_mode", "title")
     var ids: Array = []
-    game.set("settings_tab", 0)
-    for w in game.call("_settings_widgets"):
+    for w in game.get_node("Pantallas/Maquina/Ajustes").call("widgets"):
         ids.append(w["id"])
     if not ids.has("buscar_actualizaciones"):
         _fail("Falta el interruptor de actualizaciones en Ajustes.")

@@ -1,0 +1,63 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/pantallas/acuerdo.gd" id="1_acuerdo"]
+[ext_resource type="Script" path="res://scripts/ui/panel_templo.gd" id="2_panel"]
+[ext_resource type="Script" path="res://scripts/ui/texto_templo.gd" id="3_texto"]
+[ext_resource type="Script" path="res://scripts/ui/parrafo_templo.gd" id="4_parrafo"]
+[ext_resource type="PackedScene" path="res://scenes/ui/boton_templo.tscn" id="5_boton"]
+
+[node name="Acuerdo" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+script = ExtResource("1_acuerdo")
+
+[node name="Panel" type="Control" parent="."]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 150.0
+offset_right = 810.0
+offset_bottom = 450.0
+script = ExtResource("2_panel")
+relleno = Color(0.05, 0.06, 0.08, 0.97)
+borde = Color(0.721569, 0.584314, 0.352941, 1)
+
+[node name="Titulo" type="Control" parent="."]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 170.0
+offset_right = 810.0
+offset_bottom = 204.0
+script = ExtResource("3_texto")
+tam = 26
+
+[node name="Texto" type="Control" parent="."]
+layout_mode = 0
+offset_left = 186.0
+offset_top = 222.0
+offset_right = 774.0
+offset_bottom = 342.0
+script = ExtResource("4_parrafo")
+
+[node name="Aceptar" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 180.0
+offset_top = 374.0
+offset_right = 430.0
+offset_bottom = 424.0
+principal = true
+
+[node name="Leer" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 446.0
+offset_top = 374.0
+offset_right = 626.0
+offset_bottom = 424.0
+
+[node name="Salir" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 642.0
+offset_top = 374.0
+offset_right = 778.0
+offset_bottom = 424.0

@@ -15,6 +15,9 @@ extends Node
 ## Mensaje breve para el jugador (lo muestra la capa de avisos).
 signal aviso_pedido(texto: String, segundos: float)
 
+## Un sonido de interfaz (lo toca la campaña con su banco de efectos).
+signal sonido_pedido(nombre: String, volumen_db: float, tono: float)
+
 ## El progreso del personaje se escribió en disco / se borró.
 signal progreso_guardado
 signal progreso_borrado

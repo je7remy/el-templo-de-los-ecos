@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.10)
+## Cómo está organizado hoy (v0.5.11)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -16,7 +16,10 @@ scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña, mundo, HUD y menús aú
 │   └── Maquina  scripts/comun/maquina_estados.gd  una pantalla activa a la vez
 │       ├── Splash   scenes/pantallas/splash.tscn
 │       ├── Titulo   scenes/pantallas/titulo.tscn  (incluye ui/aviso_actualizacion.tscn)
-│       └── Pausa    scenes/pantallas/pausa.tscn
+│       ├── Pausa    scenes/pantallas/pausa.tscn
+│       ├── Acuerdo  scenes/pantallas/acuerdo.tscn
+│       ├── Pisos    scenes/pantallas/pisos.tscn   (tarjetas: scripts/ui/tarjeta_piso.gd)
+│       └── Ajustes  scenes/pantallas/ajustes.tscn (pestañas y páginas legales)
 └── CapaAvisos   scenes/ui/avisos.tscn             CanvasLayer 3 · mensajes y rótulos de nivel/botín
 
 scenes/defense.tscn  (Vigilia del Claustro · defense.gd)
@@ -29,7 +32,8 @@ Piezas de interfaz reutilizables (`scenes/ui/` y `scripts/ui/`):
 | --- | --- |
 | `estilo.gd` | Colores, tipografías y el dibujo común (panel, texto con borde, rótulo gótico, botones). `main.gd` y las escenas dibujan con lo mismo, así todo se ve igual. |
 | `boton_templo.tscn` | Botón de verdad (`TextureButton` sin texturas): ratón, toque, foco de teclado y mando, señal `pressed`. Variantes `menu`, `grande`, `chico` e `icono`. |
-| `texto_templo.gd`, `panel_templo.gd`, `adorno_templo.gd` | Texto pixel o gótico, panel ornamentado y filete dorado como nodos colocables en el editor. |
+| `texto_templo.gd`, `parrafo_templo.gd`, `panel_templo.gd`, `adorno_templo.gd` | Texto pixel o gótico, párrafo con saltos de línea, panel ornamentado y filete dorado como nodos colocables en el editor. |
+| `scripts/datos/textos.gd` | Todos los textos en español e inglés y los textos legales. Las escenas los piden con `Textos.t("clave")`. |
 | `avisos.tscn` | Mensaje breve, «Nivel N» y objeto conseguido, siempre por encima de cualquier pantalla. |
 | `pantalla_carga.gd` | Barra con el progreso real de `ResourceLoader.load_threaded_request`. |
 
@@ -40,7 +44,8 @@ Piezas de interfaz reutilizables (`scenes/ui/` y `scripts/ui/`):
 - **La entrada va por la interfaz de Godot.** En las pantallas migradas, `main.gd` solo atiende lo global (F11). Botones, foco, teclado y mando los resuelve Godot. Si una tecla de la campaña abre una pantalla (ESC → pausa), se marca como atendida para que no la cierre en el mismo instante.
 - **El progreso pasa siempre por `Progreso`.** Antes la campaña y el botín de la Vigilia escribían el mismo archivo cada uno por su lado.
 - **Cambiar de escena pasa por `Escenas.ir_a(ruta)`**: fundido, carga en segundo plano con barra y fundido de vuelta.
-- **Mensajes desde cualquier sitio:** `Eventos.aviso_pedido.emit(texto, segundos)`.
+- **Mensajes y sonidos desde cualquier sitio:** `Eventos.aviso_pedido.emit(texto, segundos)` y `Eventos.sonido_pedido.emit(nombre, db, tono)` (la campaña tiene el banco de efectos).
+- **La configuración edita los ajustes directamente** (`scripts/ajustes.gd`); a la campaña solo le avisa de lo que la afecta (pantalla completa, controles táctiles, buscar actualizaciones, repetir el tutorial, borrar los datos).
 
 ## Reglas para el código nuevo
 
@@ -63,7 +68,8 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | Fase | Qué | Estado |
 | --- | --- | --- |
 | 1 | Autoloads `Eventos`, `Progreso` y `Escenas` (pantalla de carga), máquina de estados, piezas de interfaz, capa de avisos. Inicio, menú principal y pausa como escenas. | **Hecha (v0.5.10)** |
-| 2 | El resto de pantallas como escenas: configuración (con las páginas legales), acuerdo, intro, creación del personaje, menú de pisos, perfil/inventario, habilidades, mapa, tienda, altar, diálogos, elección, resumen del piso, muerte y victoria. El HUD (barra superior e inferior, minimapa) como escena `Control`. | Pendiente |
+| 2a | Configuración (con las páginas legales), acuerdo y menú de pisos como escenas. Textos en `scripts/datos/textos.gd`. | **Hecha (v0.5.11)** |
+| 2b | Intro, creación del personaje, perfil/inventario, habilidades, mapa, tienda, altar, diálogos, elección, resumen del piso, muerte y victoria. El HUD (barra superior e inferior, minimapa) como escena `Control`. | Pendiente |
 | 3 | Jugador y entidades como escenas: `CharacterBody2D` + `AnimatedSprite2D` + áreas de colisión y señales (`herido`, `muerto`), con su máquina de estados. `main.gd` solo las instancia en la sala. | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
