@@ -255,7 +255,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publicar prerelease con Android, Windows y Linux (solo si esa version no existe)
+      - name: Publicar la version (Android, Windows y Linux) y marcarla como la ultima
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -263,8 +263,31 @@ jobs:
           VERSION="$(sed -n 's/^version\/name="\(.*\)"$/\1/p' export_presets.cfg)"
           TAG="v$VERSION"
           NOTES="docs/releases/$TAG.md"
+          # Ademas de los archivos con la version en el nombre, se suben copias
+          # con nombre fijo para que estos enlaces bajen siempre la ultima:
+          #   https://github.com/<repo>/releases/latest/download/ElTemploDeLosEcos-Windows-Setup.exe
+          publicar_fijos() {
+            local origen="$1"
+            rm -rf build/fijos
+            mkdir -p build/fijos
+            cp "$origen/ElTemploDeLosEcos-$TAG-Android.apk" build/fijos/ElTemploDeLosEcos-Android.apk
+            cp "$origen/ElTemploDeLosEcos-$TAG-Windows-Setup.exe" build/fijos/ElTemploDeLosEcos-Windows-Setup.exe
+            cp "$origen/ElTemploDeLosEcos-$TAG-Windows-Portable.zip" build/fijos/ElTemploDeLosEcos-Windows-Portable.zip
+            cp "$origen/ElTemploDeLosEcos-$TAG-Linux-x86_64.tar.gz" build/fijos/ElTemploDeLosEcos-Linux-x86_64.tar.gz
+            gh release upload "$TAG" build/fijos/* --clobber
+          }
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "El release $TAG ya existe y es inmutable: no se toca."
+            # La version ya existe: sus archivos no se recompilan (seguirian
+            # siendo los mismos que se probaron). Solo se asegura que figure
+            # como la ultima version y que tenga las copias de nombre fijo,
+            # hechas con sus propios archivos.
+            echo "El release $TAG ya existe: se marca como la ultima version."
+            gh release edit "$TAG" --prerelease=false --latest
+            if ! gh release view "$TAG" --json assets --jq '.assets[].name' | grep -qx 'ElTemploDeLosEcos-Windows-Setup.exe'; then
+              rm -rf build/existente
+              gh release download "$TAG" -D build/existente -p "ElTemploDeLosEcos-$TAG-*"
+              publicar_fijos build/existente
+            fi
             exit 0
           fi
           test -s "$NOTES"
@@ -278,7 +301,8 @@ jobs:
           test -s "$LINUX"
           gh release create "$TAG" "$APK" "$SETUP" "$PORTABLE" "$LINUX" \
             --target "$GITHUB_SHA" \
-            --prerelease \
+            --latest \
             --title "El Templo de los Ecos $TAG" \
             --notes-file "$NOTES"
-          echo "Publicado $TAG con $APK, $SETUP, $PORTABLE y $LINUX"
+          publicar_fijos build
+          echo "Publicado $TAG con $APK, $SETUP, $PORTABLE y $LINUX (y sus copias de nombre fijo)"

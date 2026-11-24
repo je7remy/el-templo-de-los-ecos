@@ -43,6 +43,9 @@ func _run() -> void:
             {"name": "ElTemploDeLosEcos-%s-Windows-Setup.exe" % tag, "browser_download_url": "https://x/%s-setup.exe" % tag, "size": 20},
             {"name": "ElTemploDeLosEcos-%s-Windows-Portable.zip" % tag, "browser_download_url": "https://x/%s.zip" % tag, "size": 30},
             {"name": "ElTemploDeLosEcos-%s-Linux-x86_64.tar.gz" % tag, "browser_download_url": "https://x/%s.tar.gz" % tag, "size": 40},
+            # Copias de nombre fijo para los enlaces «latest/download»: no deben confundir al actualizador.
+            {"name": "ElTemploDeLosEcos-Android.apk", "browser_download_url": "https://x/%s.apk" % tag, "size": 10},
+            {"name": "ElTemploDeLosEcos-Windows-Setup.exe", "browser_download_url": "https://x/%s-setup.exe" % tag, "size": 20},
         ]
     var releases := [
         {"tag_name": "v0.5.8-alpha", "html_url": "p58", "assets": assets.call("v0.5.8-alpha")},

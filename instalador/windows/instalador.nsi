@@ -3,8 +3,8 @@
 ; Lo compila el CI (.github/workflows/android-alpha.yml) después de exportar el
 ; juego con el preset «Windows Desktop». A mano, desde la raíz del repositorio:
 ;
-;   makensis -DVERSION=0.5.4-alpha -DEXE="$PWD/build/windows/ElTemploDeLosEcos.exe" \
-;            -DSALIDA="$PWD/build/ElTemploDeLosEcos-v0.5.4-alpha-Windows-Setup.exe" \
+;   makensis -DVERSION=0.5.9-alpha -DEXE="$PWD/build/windows/ElTemploDeLosEcos.exe" \
+;            -DSALIDA="$PWD/build/ElTemploDeLosEcos-v0.5.9-alpha-Windows-Setup.exe" \
 ;            instalador/windows/instalador.nsi
 ;
 ; (Las rutas relativas se leen desde esta carpeta; por eso se pasan absolutas.)
