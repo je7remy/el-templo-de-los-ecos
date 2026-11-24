@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.15)
+## Cómo está organizado hoy (v0.5.16)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -12,6 +12,8 @@ Autoloads (project.godot → Globales)
 └── ConfirmarSalida   scenes/confirmar_salida.tscn    «¿Salir del juego?»
 
 scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña y mundo)
+├── Jugador      scenes/entidades/jugador.tscn     posición, dirección y movimiento
+│   └── Maquina  Quieto, Camina, Esquiva           (scripts/entidades/jugador/)
 ├── Hud          scenes/ui/hud.tscn                CanvasLayer 1 · piezas en scripts/ui/hud/
 │   └── Piezas   FranjaSuperior, PanelJugador, CartelPiso, Minimapa, FranjaInferior, Mision,
 │                PanelArma, AvisoMision, ContadorAlmas, Fundido, Tutorial, ControlesTactiles
@@ -83,11 +85,16 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 2c | Intro, creación del personaje, habilidades y mapa. | **Hecha (v0.5.13)** |
 | 2d | Perfil: mochila, objetos, equipo y Ecos. El equipo sobre el retrato pasa a `scripts/ui/equipo_retrato.gd`. | **Hecha (v0.5.14)** |
 | 2e | El HUD como escena de piezas (`scenes/ui/hud.tscn`): barras, minimapa, misión, arma, rótulos y controles táctiles. | **Hecha (v0.5.15)** |
-| 3 | Jugador y entidades como escenas: `CharacterBody2D` + `AnimatedSprite2D` + áreas de colisión y señales (`herido`, `muerto`), con su máquina de estados. `main.gd` solo las instancia en la sala. | Pendiente |
+| 3a | Jugador como escena (`scenes/entidades/jugador.tscn`) con su máquina de estados Quieto, Camina y Esquiva: posición, dirección, inercia, esquive, colisiones con la sala y señales `paso` y `choque`. `main.gd` le pasa los controles y escucha las señales. | **Hecha (v0.5.16)** |
+| 3b | Vida, vigor, miedo y daño del jugador en su escena, con las señales `herido` y `muerto` y los estados Herido y Muerto. | Pendiente |
+| 3c | Entidades (Ghoul, Testigo, Hechicero, Segador, Tejedora, mastines…) como escenas con su máquina de estados y señales (`herida`, `desterrada`). | Pendiente |
+| 3d | El mundo como nodos con orden por profundidad (`y_sort_enabled`): cada escena (jugador, entidades, objetos) se dibuja sola con `AnimatedSprite2D`, y `main.gd` solo las instancia en la sala. | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
 
-Al terminar la fase 2, `main.gd` debería quedar como el controlador de la partida y del mundo, sin código de menús. Al terminar la 3, sin código de enemigos.
+La fase 2 está terminada: `main.gd` ya no dibuja menús ni el HUD. Al terminar la 3, no tendrá código del jugador ni de enemigos.
+
+Por qué la fase 3 va en partes: el jugador, los enemigos y los objetos se dibujan juntos, ordenados por su altura en la sala (lo de abajo tapa a lo de arriba). Mientras el mundo no sea de nodos con orden por profundidad (3d), sus dibujos siguen en `main.gd`; primero se mueven la lógica y los estados, que es lo que más se toca al ajustar el juego.
 
 ## Fuentes
 

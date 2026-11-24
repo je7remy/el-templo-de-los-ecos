@@ -77,6 +77,13 @@ jobs:
           grep -Fq 'OK: HUD (barras, minimapa, misión, arma y controles táctiles) como escena.' "$RUNNER_TEMP/pantallas.log"
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/pantallas.log"; then exit 1; fi
 
+      - name: Verificar el jugador y las entidades
+        shell: bash
+        run: |
+          godot --headless --path . --script res://tests/entidades_test.gd 2>&1 | tee "$RUNNER_TEMP/entidades.log"
+          grep -Fq 'OK: jugador como escena con máquina de estados (quieto, camina, esquiva).' "$RUNNER_TEMP/entidades.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/entidades.log"; then exit 1; fi
+
       - name: Verificar el actualizador
         shell: bash
         run: |
