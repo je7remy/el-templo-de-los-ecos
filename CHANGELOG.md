@@ -1,5 +1,16 @@
 # Historial de versiones
 
+## v0.5.16-alpha — 2026-11-24 · Arquitectura por escenas, fase 3a
+
+Sin cambios en las reglas del juego.
+
+- **El jugador es una escena propia** (`scenes/entidades/jugador.tscn`) con su **máquina de estados**: Quieto, Camina y Esquiva (`scripts/entidades/jugador/`). Lleva la posición, la dirección, la inercia al andar, el impulso del esquive, las siluetas que deja, las colisiones con la sala y los pasos.
+- Avisa con señales: `paso` (suena y levanta polvo) y `choque`. La campaña le pasa los controles y la velocidad (con Ecos y equipo) y escucha esas señales.
+- El movimiento es idéntico al de antes: una simulación de 360 cuadros con andar, girar, parar y cuatro esquives da exactamente las mismas posiciones.
+- Nueva prueba `tests/entidades_test.gd` (estados, esquive, pasos y muros), también en los flujos de GitHub.
+- La vida, el daño y el dibujo del jugador, y los enemigos, son las siguientes partes de la fase 3 (`docs/ARQUITECTURA.md`).
+- Versión Android 0.5.16-alpha (código 23).
+
 ## v0.5.15-alpha — 2026-11-24 · Arquitectura por escenas, fase 2e
 
 Sin cambios en las reglas del juego.

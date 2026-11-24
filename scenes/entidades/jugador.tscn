@@ -1,0 +1,22 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/entidades/jugador.gd" id="1_jugador"]
+[ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
+[ext_resource type="Script" path="res://scripts/entidades/jugador/quieto.gd" id="3_quieto"]
+[ext_resource type="Script" path="res://scripts/entidades/jugador/camina.gd" id="4_camina"]
+[ext_resource type="Script" path="res://scripts/entidades/jugador/esquiva.gd" id="5_esquiva"]
+
+[node name="Jugador" type="Node2D"]
+script = ExtResource("1_jugador")
+
+[node name="Maquina" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Quieto" type="Node" parent="Maquina"]
+script = ExtResource("3_quieto")
+
+[node name="Camina" type="Node" parent="Maquina"]
+script = ExtResource("4_camina")
+
+[node name="Esquiva" type="Node" parent="Maquina"]
+script = ExtResource("5_esquiva")

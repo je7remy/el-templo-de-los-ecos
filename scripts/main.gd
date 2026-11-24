@@ -34,6 +34,7 @@ const Pisos := preload("res://scripts/datos/pisos.gd")
 const Actualizador := preload("res://scripts/actualizador.gd")
 const Estilo := preload("res://scripts/ui/estilo.gd")
 const EquipoRetrato := preload("res://scripts/ui/equipo_retrato.gd")
+const Jugador := preload("res://scripts/entidades/jugador.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -252,15 +253,30 @@ var game_mode: String = "title":
 @onready var pantallas: CanvasLayer = $Pantallas
 @onready var avisos: Control = $CapaAvisos/Avisos
 @onready var hud: CanvasLayer = $Hud
+@onready var jugador: Node2D = $Jugador
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
 var current_room: int = 0
 var elapsed: float = 0.0
 var room_elapsed: float = 0.0
-var player_pos: Vector2 = Vector2(120, 355)
-var player_dir: Vector2 = Vector2.RIGHT
-var player_moving: bool = false
+## El jugador es una escena (scenes/entidades/jugador.tscn) con su máquina de
+## estados; estas variables son atajos a sus datos para el resto de main.gd.
+var player_pos: Vector2:
+    get:
+        return jugador.position
+    set(v):
+        jugador.position = v
+var player_dir: Vector2:
+    get:
+        return jugador.direccion
+    set(v):
+        jugador.direccion = v
+var player_moving: bool:
+    get:
+        return jugador.moviendose
+    set(v):
+        jugador.moviendose = v
 var hp: float = 100.0
 var max_hp: float = 100.0
 var fear: float = 0.0
@@ -315,9 +331,11 @@ var pilgrim_line: String = ""
 var pilgrim_line_t: float = 0.0
 var pilgrim_corpse: Dictionary = {} # {key, pos}
 var nuca_cd: float = 0.0
-var step_t: float = 0.0
-var step_i: int = 0
-var dash_left: float = 0.0
+var dash_left: float:
+    get:
+        return jugador.esquiva_t
+    set(v):
+        jugador.esquiva_t = v
 var dash_cd: float = 0.0
 var pulse_cd: float = 0.0
 var ward_left: float = 0.0
@@ -360,8 +378,16 @@ var reincarnations: int = 0
 var art: Dictionary = {}
 var visual_interaction_left: float = 0.0
 ## Solo visual: polvo a los pies al chocar con un objeto sólido.
-var bump_left: float = 0.0
-var bump_at: Vector2 = Vector2.ZERO
+var bump_left: float:
+    get:
+        return jugador.choque_t
+    set(v):
+        jugador.choque_t = v
+var bump_at: Vector2:
+    get:
+        return jugador.choque_en
+    set(v):
+        jugador.choque_en = v
 var mobile_axis: Vector2 = Vector2.ZERO
 var mobile_finger: int = -1
 var touch_enabled: bool = false
@@ -437,6 +463,8 @@ func _ready() -> void:
     _start_updater()
     # Al abrir el juego se ve la pantalla de inicio; al volver de la Vigilia, el menú.
     game_mode = "title" if Engine.has_meta("splash_visto") else "splash"
+    jugador.preparar(_is_blocked, _hits_obstacle)
+    jugador.paso.connect(_on_player_step)
     _load_progress()
     _load_art()
     _load_room_scene() # sala 1 como fondo del menú
@@ -755,8 +783,7 @@ func _enter_room() -> void:
     _place_wall_props()
     _load_critters()
     _place_gear_pickup()
-    player_vel = Vector2.ZERO
-    dash_ghosts.clear()
+    jugador.detener()
     _update_camera(0.0, true)
     door_state = "unknown"
     if game_mode == "floor_intro":
@@ -2547,61 +2574,12 @@ func _update_play(dt: float) -> void:
     pulse_cd = maxf(0.0, pulse_cd - dt)
     strike_cd = maxf(0.0, strike_cd - dt)
     damage_cd = maxf(0.0, damage_cd - dt)
-    dash_left = maxf(0.0, dash_left - dt)
-    for gh in dash_ghosts:
-        gh["t"] = float(gh["t"]) + dt
-    dash_ghosts = dash_ghosts.filter(func(gh): return float(gh["t"]) < 0.22)
     enemy_stun = maxf(0.0, enemy_stun - dt)
     stamina = minf(100.0, stamina + _stamina_regen() * dt)
-    var move: Vector2 = _controls_axis()
+    # El movimiento lo lleva el jugador (scenes/entidades/jugador.tscn):
+    # Quieto, Camina o Esquiva, con las colisiones de la sala.
     var walk: float = WALK_SPEED * (1.05 if ecos.has("paso") else 1.0) * _gear_speed_mult()
-    # Movimiento con inercia corta: arranca y frena en décimas de segundo, sin
-    # tirones. El esquive sale disparado y se frena solo, y su impulso enlaza
-    # con el paso normal (curva de velocidad, no un salto de 157 a 480).
-    var target: Vector2
-    if dash_left > 0.0:
-        var p: float = 1.0 - dash_left / DASH_TIME
-        target = dash_dir * lerpf(DASH_PEAK, DASH_END, p * p)
-        player_vel = target
-    else:
-        target = move * walk
-        var rate: float = WALK_ACCEL if move.length_squared() > 0.001 else WALK_DECEL
-        player_vel = player_vel.move_toward(target, rate * dt)
-    player_moving = player_vel.length() > 12.0
-    if move.length_squared() > 0.001 and dash_left <= 0.0:
-        player_dir = move
-    elif dash_left > 0.0:
-        player_dir = dash_dir
-    if player_moving:
-        var nx := Vector2(player_pos.x + player_vel.x * dt, player_pos.y)
-        var blocked_x: bool = absf(player_vel.x) > walk * 0.3 and _hits_obstacle(nx)
-        if not _is_blocked(nx):
-            player_pos.x = nx.x
-        else:
-            player_vel.x = 0.0
-        var ny := Vector2(player_pos.x, player_pos.y + player_vel.y * dt)
-        var blocked_y: bool = absf(player_vel.y) > walk * 0.3 and _hits_obstacle(ny)
-        if not _is_blocked(ny):
-            player_pos.y = ny.y
-        else:
-            player_vel.y = 0.0
-        if dash_left > 0.0:
-            dash_ghost_t -= dt
-            if dash_ghost_t <= 0.0:
-                dash_ghost_t = 0.035
-                dash_ghosts.append({"pos": player_pos, "dir": player_dir, "t": 0.0})
-        if (blocked_x or blocked_y) and bump_left <= 0.0:
-            bump_left = 0.35
-            bump_at = player_pos + Vector2(signf(move.x) * 10.0 if blocked_x else 0.0, 2.0)
-        # Pasos: tres pisadas que se alternan, más rápidas al esquivar.
-        step_t -= dt
-        if step_t <= 0.0:
-            step_t = 0.33 if dash_left <= 0.0 else 0.12
-            _sfx("k_paso", -19.0, 0.85) # pasos sobre piedra
-            _emit(player_pos + Vector2(0, 2), 3, Color(0.55, 0.5, 0.45, 0.5), 8.0, 26.0, 0.5, 2.0, -10.0, Vector2.UP, 1.2)
-            step_i += 1
-    else:
-        step_t = 0.06
+    jugador.avanzar(dt, _controls_axis(), walk)
 
     # Las almas se recogen al tocarlas.
     for i in range(relics.size()):
@@ -2668,6 +2646,12 @@ func _update_play(dt: float) -> void:
         _bones_hold()
     if hp <= 0.0:
         _lose_run()
+
+## Pasos sobre piedra: suenan y levantan un poco de polvo.
+func _on_player_step(at: Vector2, _dashing: bool) -> void:
+    _sfx("k_paso", -19.0, 0.85)
+    _emit(at + Vector2(0, 2), 3, Color(0.55, 0.5, 0.45, 0.5), 8.0, 26.0, 0.5, 2.0, -10.0, Vector2.UP, 1.2)
+
 
 func _collect_relic(i: int) -> void:
     collected[i] = true
@@ -6361,7 +6345,7 @@ const ABIL_BTN := Rect2(898, 62, 46, 36) # botón del HUD: pantalla de habilidad
 const REGEN_WAIT := 4.0
 const REGEN_RATE := 2.0 # vida por segundo
 ## Esquivar: impulso hacia donde te mueves o, quieto, hacia donde miras.
-const DASH_TIME := 0.22
+const DASH_TIME := Jugador.ESQUIVA_TIEMPO
 const DASH_COST := 28.0
 ## Trampas de pinchos (homenaje a los pinchos del primer juego del autor):
 ## ciclo con aviso visible y sonoro; esquivar te hace inmune a ellas.
@@ -6370,7 +6354,6 @@ const TRAP_CYCLE := 3.2
 const TRAP_WARN := 1.7 # desde aquí asoman y suenan
 const TRAP_UP := 2.3 # desde aquí hieren
 const TRAP_DAMAGE := 18.0
-var dash_dir: Vector2 = Vector2.RIGHT
 var regen_wait: float = 0.0
 var hp_prev: float = 100.0
 var traps: Array = [] # {pos, phase, warned, bloody}
@@ -6387,21 +6370,17 @@ var talks_seen: Dictionary = {}
 
 
 const WALK_SPEED := 157.0
-const WALK_ACCEL := 1500.0 # px/s²: a toda velocidad en una décima
-const WALK_DECEL := 2100.0
-const DASH_PEAK := 640.0 # el esquive arranca rápido…
-const DASH_END := 170.0 # …y se frena hasta el paso normal
-var player_vel: Vector2 = Vector2.ZERO
-var dash_ghosts: Array = [] # siluetas que deja el esquive {pos, dir, t}
-var dash_ghost_t: float = 0.0
+var dash_ghosts: Array:
+    get:
+        return jugador.siluetas
 
 
 func _start_dash() -> void:
     if dash_cd > 0.0 or stamina < _dash_cost() or game_mode != "play":
         return
     var move: Vector2 = _controls_axis()
-    dash_dir = move.normalized() if move.length() > 0.1 else (player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT)
-    dash_left = DASH_TIME
+    var dash_dir: Vector2 = move.normalized() if move.length() > 0.1 else (player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT)
+    jugador.esquivar(dash_dir)
     dash_cd = _dash_cooldown()
     dash_cd_max = dash_cd
     stamina -= _dash_cost()
