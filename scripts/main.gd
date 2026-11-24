@@ -277,10 +277,27 @@ var player_moving: bool:
         return jugador.moviendose
     set(v):
         jugador.moviendose = v
-var hp: float = 100.0
-var max_hp: float = 100.0
-var fear: float = 0.0
-var stamina: float = 100.0
+## Vida, vida máxima, miedo y vigor: los guarda el jugador (su escena).
+var hp: float:
+    get:
+        return jugador.vida
+    set(v):
+        jugador.vida = v
+var max_hp: float:
+    get:
+        return jugador.vida_max
+    set(v):
+        jugador.vida_max = v
+var fear: float:
+    get:
+        return jugador.miedo
+    set(v):
+        jugador.miedo = v
+var stamina: float:
+    get:
+        return jugador.vigor
+    set(v):
+        jugador.vigor = v
 var souls: int = 0
 var torch_on: bool = false
 ## Inventario de la partida (se pierde al empezar otra).
@@ -339,7 +356,11 @@ var dash_left: float:
 var dash_cd: float = 0.0
 var pulse_cd: float = 0.0
 var ward_left: float = 0.0
-var damage_cd: float = 0.0
+var damage_cd: float:
+    get:
+        return jugador.invulnerable_t
+    set(v):
+        jugador.invulnerable_t = v
 var enemy_stun: float = 0.0
 var enemy_pos: Vector2 = Vector2(788, 370)
 var enemy_home: Vector2 = Vector2(788, 370)
@@ -465,6 +486,8 @@ func _ready() -> void:
     game_mode = "title" if Engine.has_meta("splash_visto") else "splash"
     jugador.preparar(_is_blocked, _hits_obstacle)
     jugador.paso.connect(_on_player_step)
+    jugador.herido.connect(func(_amount: float) -> void: _on_hurt())
+    jugador.muerto.connect(_lose_run)
     _load_progress()
     _load_art()
     _load_room_scene() # sala 1 como fondo del menú
@@ -2573,7 +2596,6 @@ func _update_play(dt: float) -> void:
     dash_cd = maxf(0.0, dash_cd - dt)
     pulse_cd = maxf(0.0, pulse_cd - dt)
     strike_cd = maxf(0.0, strike_cd - dt)
-    damage_cd = maxf(0.0, damage_cd - dt)
     enemy_stun = maxf(0.0, enemy_stun - dt)
     stamina = minf(100.0, stamina + _stamina_regen() * dt)
     # El movimiento lo lleva el jugador (scenes/entidades/jugador.tscn):
@@ -2645,7 +2667,7 @@ func _update_play(dt: float) -> void:
     if hp <= 0.0 and ecos.has("huesos") and not bones_used:
         _bones_hold()
     if hp <= 0.0:
-        _lose_run()
+        jugador.morir() # avisa con «muerto» → _lose_run
 
 ## Pasos sobre piedra: suenan y levantan un poco de polvo.
 func _on_player_step(at: Vector2, _dashing: bool) -> void:
@@ -2664,6 +2686,12 @@ func _collect_relic(i: int) -> void:
     _emit(relics[i] + Vector2(0, -16), 18, Color(0.56, 0.86, 0.95), 15.0, 60.0, 1.1, 2.0, -40.0, Vector2.UP, 1.0, true)
     _say("Fragmento reunido: +7 almas.", 2.5)
     _sfx("alma", -5.0)
+
+
+## Daño recibido: lo aplica el jugador (vida, miedo e invulnerabilidad un
+## momento) y avisa con «herido», que hace sonar y sacudir el golpe.
+func _hurt(amount: float, fear_add: float = 0.0, invulnerable: float = -1.0) -> void:
+    jugador.herir(amount, fear_add, invulnerable)
 
 
 ## Golpe recibido: sacudida, destello y sonido. No cambia el daño.
@@ -2727,11 +2755,8 @@ func _update_enemy(dt: float) -> void:
             ball["life"] = float(ball["life"]) - dt
             if p.distance_to(player_pos) < 23.0:
                 if damage_cd <= 0.0:
-                    hp -= 25.0 * _depth_mult()
-                    fear = minf(100.0, fear + 13.0)
-                    damage_cd = 1.1
                     _say("El conjuro te alcanza.", 2.6)
-                    _on_hurt()
+                    _hurt(25.0 * _depth_mult(), 13.0, 1.1)
                 fireballs.remove_at(i)
             elif float(ball["life"]) <= 0.0 or _is_blocked(p):
                 fireballs.remove_at(i)
@@ -2739,9 +2764,6 @@ func _update_enemy(dt: float) -> void:
                 fireballs[i] = ball
     if (_enemy_kind() == "ghoul" or _enemy_kind() == "testigo") and enemy_alert and enemy_stun <= 0.0:
         if enemy_pos.distance_to(player_pos) < 31.0 and damage_cd <= 0.0:
-            hp -= (33.0 if _enemy_kind() == "ghoul" else 42.0) * _depth_mult()
-            fear = minf(100.0, fear + 21.0)
-            damage_cd = 1.5
             var away := (player_pos - enemy_pos).normalized()
             if away == Vector2.ZERO:
                 away = Vector2.LEFT
@@ -2749,7 +2771,7 @@ func _update_enemy(dt: float) -> void:
             if not _is_blocked(escape):
                 player_pos = escape
             _say("La criatura te ha herido.", 3.0)
-            _on_hurt()
+            _hurt((33.0 if _enemy_kind() == "ghoul" else 42.0) * _depth_mult(), 21.0, 1.5)
 
 
 func _draw() -> void:
@@ -4083,10 +4105,7 @@ func _update_pilgrim(dt: float) -> void:
                     pilgrim_lunge = 0.22
                     pilgrim_cd = 1.2
                     if pilgrim_pos.distance_to(player_pos) < 46.0 and damage_cd <= 0.0:
-                        hp -= 26.0
-                        fear = minf(100.0, fear + 14.0)
-                        damage_cd = 1.2
-                        _on_hurt()
+                        _hurt(26.0, 14.0, 1.2)
                         _say("El cuchillo del Peregrino te alcanza.", 2.2)
             else:
                 _pilgrim_move_to(player_pos, 172.0, dt)
@@ -5930,11 +5949,8 @@ func _segador_fire() -> void:
         if dash_left > 0.0:
             float_fx.append({"pos": player_pos + Vector2(0, -60), "text": "ESQUIVA", "color": SOUL, "t": 0.0})
         elif damage_cd <= 0.0:
-            hp -= SEG_DAMAGE * _depth_mult()
-            fear = minf(100.0, fear + 24.0)
-            damage_cd = 1.2
             _say("El hilo te atraviesa.", 3.0)
-            _on_hurt()
+            _hurt(SEG_DAMAGE * _depth_mult(), 24.0, 1.2)
     if allies_here:
         for ally in allies:
             if bool(ally["alive"]) and _on_thread(ally["pos"]):
@@ -6436,12 +6452,9 @@ func _update_traps(_dt: float) -> void:
             if dash_left > 0.0:
                 continue # esquivando se pasa por encima
             if damage_cd <= 0.0:
-                hp -= TRAP_DAMAGE
-                fear = minf(100.0, fear + 10.0)
-                damage_cd = 1.0
                 trap["bloody"] = true
                 _say("Pinchos en el suelo.", 3.0)
-                _on_hurt()
+                _hurt(TRAP_DAMAGE, 10.0, 1.0)
 
 
 func _draw_traps() -> void:
@@ -6566,9 +6579,6 @@ func _update_hazards(_dt: float) -> void:
     var hit: String = _hazard_hit(player_pos)
     if hit == "":
         return
-    hp -= FLAME_DAMAGE if hit == "llama" else PENDULUM_DAMAGE
-    fear = minf(100.0, fear + 10.0)
-    damage_cd = 1.0
     if hit == "pendulo":
         # La cuchilla te empuja en la dirección en que barre.
         for pd in pendulums:
@@ -6583,7 +6593,7 @@ func _update_hazards(_dt: float) -> void:
     else:
         _emit(player_pos + Vector2(0, -18), 14, Color(1.0, 0.5, 0.15), 30.0, 110.0, 0.6, 2.5, -80.0, Vector2.UP, 0.9, true)
         _say("El suelo escupe fuego. Espera a que se apague o esquiva.", 3.0)
-    _on_hurt()
+    _hurt(FLAME_DAMAGE if hit == "llama" else PENDULUM_DAMAGE, 10.0, 1.0)
 
 
 func _draw_hazards_floor() -> void:
@@ -7358,10 +7368,7 @@ func _update_critters(dt: float) -> void:
                 _critter_die(cr)
             elif float(cr["bite_cd"]) <= 0.0 and damage_cd <= 0.0:
                 cr["bite_cd"] = 1.0
-                hp -= float(info["bite"])
-                damage_cd = 0.6
-                fear = minf(100.0, fear + float(info["fear"]))
-                _on_hurt()
+                _hurt(float(info["bite"]), float(info["fear"]), 0.6)
 
 
 func _critter_die(cr: Dictionary) -> void:
@@ -7707,10 +7714,7 @@ func _update_fire(dt: float) -> void:
         _sfx("fuego", -12.0, 1.2)
     # Quemaduras: el jugador (no esquivando) y las alimañas.
     if _cell_burning(player_pos) and dash_left <= 0.0 and damage_cd <= 0.0:
-        hp -= FIRE_DAMAGE
-        fear = minf(100.0, fear + 5.0)
-        damage_cd = 0.45
-        _on_hurt()
+        _hurt(FIRE_DAMAGE, 5.0, 0.45)
     for cr in critters:
         if bool(cr["alive"]) and _cell_burning(cr["pos"]):
             _critter_die(cr)
@@ -7832,10 +7836,7 @@ func _update_tejedora(dt: float) -> void:
                 teje_t = 0.35
                 shake = maxf(shake, 0.25)
                 if d < TEJE_REACH + 16.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                    hp -= TEJE_DAMAGE * _depth_mult()
-                    fear = minf(100.0, fear + 12.0)
-                    damage_cd = 0.8
-                    _on_hurt()
+                    _hurt(TEJE_DAMAGE * _depth_mult(), 12.0, 0.8)
         "zarpa":
             teje_t -= dt
             if teje_t <= 0.0:
@@ -7959,10 +7960,7 @@ func _update_hounds(dt: float) -> void:
                     h["bite_t"] = 0.25
                     h["flee"] = 0.5 # muerde y se aparta un instante
                     if dash_left <= 0.0 and damage_cd <= 0.0:
-                        hp -= HOUND_BITE * _depth_mult()
-                        fear = minf(100.0, fear + 14.0)
-                        damage_cd = 0.8
-                        _on_hurt()
+                        _hurt(HOUND_BITE * _depth_mult(), 14.0, 0.8)
                         _sfx("grunido", -4.0, 1.3)
         else:
             h["wander_t"] = float(h["wander_t"]) - dt
@@ -8313,8 +8311,7 @@ func _reach_under_cloak() -> void:
     hand_lost = true
     max_hp = maxf(40.0, max_hp - HAND_LOSS)
     hp = minf(hp, max_hp)
-    fear = minf(100.0, fear + 30.0)
-    _on_hurt()
+    _hurt(0.0, 30.0)
     float_fx.append({"pos": player_pos + Vector2(0, -64), "text": "-%d VIDA MÁXIMA" % int(HAND_LOSS), "color": RED, "t": 0.0})
     _dialog([[_hero_name(), "¡Algo me ha agarrado la mano desde dentro! ¡Está helada... y ya no la siento!"],
         [_hero_name(), "La regla estaba escrita en la pared. En esta vida no la recuperaré."]])
@@ -8700,11 +8697,8 @@ func _update_gaze(dt: float) -> void:
         "golpe":
             gaze_pos = gaze_pos.move_toward(gaze_target, 560.0 * dt)
             if gaze_pos.distance_to(player_pos) < 34.0 and damage_cd <= 0.0 and dash_left <= 0.0:
-                hp -= GAZE_DAMAGE * _depth_mult()
-                fear = minf(100.0, fear + 20.0)
-                damage_cd = 1.0
                 shake = maxf(shake, 0.5)
-                _on_hurt()
+                _hurt(GAZE_DAMAGE * _depth_mult(), 20.0, 1.0)
                 _sfx("dano", -4.0, 0.8)
                 gaze_state_t = 0.0
             if gaze_state_t <= 0.0 or gaze_pos.distance_to(gaze_target) < 4.0:
@@ -9327,10 +9321,7 @@ func _update_rams(dt: float) -> void:
                 else:
                     r["pos"] = nxt2
                     if nxt2.distance_to(player_pos) < 30.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                        hp -= RAM_DAMAGE
-                        fear = minf(100.0, fear + 12.0)
-                        damage_cd = 1.0
-                        _on_hurt()
+                        _hurt(RAM_DAMAGE, 12.0, 1.0)
                         var push: Vector2 = player_pos + Vector2(r["dir"]) * 34.0
                         if not _is_blocked(push):
                             player_pos = push
@@ -9447,10 +9438,7 @@ func _update_colossus(dt: float) -> void:
                 _sfx("k_golpe", -2.0, 0.4)
                 _emit(colossus_pos, 30, Color(0.55, 0.5, 0.45), 60.0, 200.0, 0.8, 3.0, 60.0, Vector2.UP, 3.0)
                 if d < COLOSSUS_STOMP_RADIUS and dash_left <= 0.0 and damage_cd <= 0.0:
-                    hp -= COLOSSUS_DAMAGE
-                    fear = minf(100.0, fear + 18.0)
-                    damage_cd = 1.0
-                    _on_hurt()
+                    _hurt(COLOSSUS_DAMAGE, 18.0, 1.0)
         "stomp":
             if colossus_t <= 0.0:
                 colossus_state = "walk"
@@ -9734,9 +9722,7 @@ func _update_harvest(dt: float) -> void:
         s["t"] = float(s["t"]) - dt
         if float(s["t"]) <= 0.0:
             if player_pos.distance_to(s["pos"]) < 34.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                hp -= 10.0
-                damage_cd = 0.6
-                _on_hurt()
+                _hurt(10.0, 0.0, 0.6)
             _emit(Vector2(s["pos"]), 10, Color(0.55, 0.52, 0.48), 20.0, 80.0, 0.5, 2.0, 150.0, Vector2.UP, 1.2)
     elder_stones = elder_stones.filter(func(s): return float(s["t"]) > 0.0)
     if not elder_active:
@@ -9788,9 +9774,7 @@ func _update_harvest(dt: float) -> void:
         "swipe":
             if elder_t <= 0.0:
                 if look.length() < 80.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                    hp -= ELDER_SWIPE_DAMAGE
-                    damage_cd = 0.8
-                    _on_hurt()
+                    _hurt(ELDER_SWIPE_DAMAGE, 0.0, 0.8)
                 elder_state = "walk"
                 elder_cd = maxf(elder_cd, 1.0)
         "threads_aim":
@@ -9802,10 +9786,7 @@ func _update_harvest(dt: float) -> void:
             if dash_left <= 0.0 and damage_cd <= 0.0:
                 for th in elder_threads:
                     if _dist_to_segment(player_pos, th[0], th[1]) < 12.0:
-                        hp -= ELDER_THREAD_DAMAGE
-                        damage_cd = 0.9
-                        fear = minf(100.0, fear + 8.0)
-                        _on_hurt()
+                        _hurt(ELDER_THREAD_DAMAGE, 8.0, 0.9)
                         break
             if elder_t <= 0.0:
                 elder_threads.clear()
@@ -9817,10 +9798,7 @@ func _update_harvest(dt: float) -> void:
                 _sfx("grunido", -2.0, 0.6)
                 _emit(elder_pos + Vector2(0, -30), 40, Color(0.85, 0.3, 0.3), 80.0, 240.0, 0.7, 3.0, 0.0, Vector2.UP, PI)
                 if look.length() < ELDER_ROAR_RADIUS and dash_left <= 0.0:
-                    hp -= ELDER_ROAR_DAMAGE
-                    fear = minf(100.0, fear + 15.0)
-                    damage_cd = 0.8
-                    _on_hurt()
+                    _hurt(ELDER_ROAR_DAMAGE, 15.0, 0.8)
                 elder_state = "tired"
                 elder_t = 2.5
         "tired":
@@ -9831,9 +9809,7 @@ func _update_harvest(dt: float) -> void:
             elder_tick = maxf(0.0, elder_tick - dt)
             if fled and elder_tick <= 0.0:
                 elder_tick = 0.5
-                hp -= ELDER_GAZE_TICK
-                fear = minf(100.0, fear + 6.0)
-                _on_hurt()
+                _hurt(ELDER_GAZE_TICK, 6.0)
             if elder_t <= 0.0:
                 elder_state = "walk"
                 elder_cd = 1.8 if enraged else 2.4
