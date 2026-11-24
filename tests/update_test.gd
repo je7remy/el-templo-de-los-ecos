@@ -111,6 +111,7 @@ func _run() -> void:
     if not bool(Ajustes.obtener("buscar_actualizaciones")):
         _fail("Buscar actualizaciones debe venir activado.")
         return
+    root.size = Vector2i(960, 640) # sin pantalla la ventana mide 64 × 64
     var game: Node = load("res://scenes/main.tscn").instantiate()
     root.add_child(game)
     await process_frame
@@ -130,20 +131,31 @@ func _run() -> void:
     game.set("actualizador", u)
     u.version_nueva = "0.6.0-alpha"
     u.estado = "disponible"
-    if not bool(game.call("_update_banner_on")):
+    # El aviso es un componente del menú (scenes/ui/aviso_actualizacion.tscn).
+    game.set("game_mode", "title")
+    var aviso: Control = game.get_node("Pantallas/Maquina/Titulo/AvisoActualizacion")
+    await process_frame
+    if not aviso.is_visible_in_tree() or not aviso.call("visible_aviso"):
         _fail("El aviso de versión nueva no se muestra.")
         return
-    game.queue_redraw()
-    await process_frame
-    var no_btn: Rect2 = game.get("UPDATE_NO")
-    game.call("_mobile_touch", 1, no_btn.get_center(), true)
-    game.call("_mobile_touch", 1, no_btn.get_center(), false)
-    if bool(game.call("_update_banner_on")) or game.get("game_mode") != "title":
+    # AHORA NO, tocado de verdad sobre el botón.
+    var no_btn: Control = aviso.get_node("Descartar")
+    var centro: Vector2 = no_btn.get_global_rect().get_center()
+    for pressed in [true, false]:
+        var m := InputEventMouseButton.new()
+        m.button_index = MOUSE_BUTTON_LEFT
+        m.position = centro
+        m.global_position = centro
+        m.pressed = pressed
+        m.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+        root.push_input(m)
+    if aviso.visible or game.get("game_mode") != "title":
         _fail("AHORA NO debe cerrar el aviso y quedarse en el menú.")
         return
     u.descartada = false
     u.estado = "error"
-    if game.call("_update_buttons")[0] == "":
+    u.cambiado.emit()
+    if aviso.call("botones")[0] == "" or not aviso.visible:
         _fail("Si falla, el aviso debe ofrecer la descarga a mano.")
         return
     print("OK: actualizador con versiones, archivo por plataforma, reemplazo del juego y aviso en el menú.")

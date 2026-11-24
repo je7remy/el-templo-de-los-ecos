@@ -7,9 +7,6 @@ extends Node2D
 const W: float = 960.0
 const H: float = 640.0
 const ARENA: Rect2 = Rect2(40.0, 122.0, 880.0, 458.0)
-const SAVE_PATH: String = "user://templo_personaje_v03.json"
-## Las pruebas automáticas guardan aparte: nunca pisan tu partida real.
-const SAVE_PATH_TEST: String = "user://prueba_progreso.json"
 const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ## PISOS (docs: «DISEÑO DE 10 PISOS»). Cada sala usa una escena
 ## rooms/sala_N.tscn y declara qué contiene: entidad, rasgos (altar, sello,
@@ -35,6 +32,7 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ##           si les llega el fuego de las secas.
 const Pisos := preload("res://scripts/datos/pisos.gd")
 const Actualizador := preload("res://scripts/actualizador.gd")
+const Estilo := preload("res://scripts/ui/estilo.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -238,7 +236,20 @@ const PIXEL_FONT := preload("res://assets/fonts/Jersey15-Templo.ttf")
 ## Personaje creado por el jugador (se guarda con el progreso).
 var player_name: String = ""
 var player_gender: String = "masculino" # masculino | femenino
-var game_mode: String = "title" # title, create, play, altar, inventory, floor_intro, dead, victory
+## Pantalla actual: title, create, play, altar, inventory, floor_intro, dead,
+## victory… Al cambiar, el gestor de pantallas muestra la escena que le toca
+## (splash, menú y pausa ya son escenas propias: scenes/pantallas/).
+var game_mode: String = "title":
+    set(v):
+        var antes: String = game_mode
+        game_mode = v
+        if is_node_ready():
+            _sync_screens()
+            if antes != v:
+                Eventos.pantalla_cambiada.emit(antes, v)
+## Escenas hijas (main.tscn): pantallas de interfaz y capa de avisos.
+@onready var pantallas: CanvasLayer = $Pantallas
+@onready var avisos: Control = $CapaAvisos/Avisos
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
@@ -352,8 +363,6 @@ var bump_at: Vector2 = Vector2.ZERO
 var mobile_axis: Vector2 = Vector2.ZERO
 var mobile_finger: int = -1
 var touch_enabled: bool = false
-var toast: String = ""
-var toast_left: float = 0.0
 var deaths: int = 0
 var cleared: int = 0
 ## Audio original (herramientas/generar_audio.py): ambiente + capa de tensión
@@ -421,6 +430,7 @@ func _ready() -> void:
     randomize()
     Ajustes.cargar()
     _apply_touch_setting()
+    pantallas.accion.connect(_on_screen_action)
     _start_updater()
     # Al abrir el juego se ve la pantalla de inicio; al volver de la Vigilia, el menú.
     game_mode = "title" if Engine.has_meta("splash_visto") else "splash"
@@ -470,6 +480,7 @@ func _ready() -> void:
             for file in SFX_GROUPS[group]:
                 takes.append(load("res://audio/kenney/%s.ogg" % file))
             sfx_streams[group] = takes
+    _sync_screens()
     queue_redraw()
 
 func _load_art() -> void:
@@ -528,10 +539,10 @@ func _update_audio(delta: float) -> void:
 
 
 func _load_progress() -> void:
-    if not FileAccess.file_exists(_save_path()):
+    if not Progreso.existe():
         return
-    var data = JSON.parse_string(FileAccess.get_file_as_string(_save_path()))
-    if data is Dictionary:
+    var data: Dictionary = Progreso.cargar()
+    if not data.is_empty():
         identity_number = maxi(1, int(data.get("identity_number", 1)))
         new_humans = maxi(0, int(data.get("new_humans", 0)))
         reincarnations = maxi(0, int(data.get("reincarnations", 0)))
@@ -581,42 +592,40 @@ func _load_progress() -> void:
         trinkets = (saved_trinkets as Array).filter(func(e): return str(e) in ["brazalete", "amuleto"]) if saved_trinkets is Array else []
 
 func _save_progress() -> void:
-    var file := FileAccess.open(_save_path(), FileAccess.WRITE)
-    if file != null:
-        file.store_string(JSON.stringify({
-            "identity_number": identity_number,
-            "new_humans": new_humans,
-            "reincarnations": reincarnations,
-            "has_pulse": has_pulse,
-            "has_inner_flame": has_inner_flame,
-            "ecos": ecos,
-            "ability_level": ability_level,
-            "remembered_rule": remembered_rule,
-            "deaths": deaths,
-            "cleared": cleared,
-            "player_name": player_name,
-            "player_gender": player_gender,
-            "max_floor": max_floor,
-            "has_mask": has_mask,
-            "rescued": rescued,
-            "guided": guided,
-            "player_level": player_level,
-            "death_marks": death_marks,
-            "xp": xp,
-            "trinkets": trinkets,
-            "trinket_levels": trinket_levels,
-            "bag": bag,
-            "karma": karma,
-            "chests_opened": chests_opened,
-            "souls": souls,
-            "vigil_unlocked": vigil_unlocked,
-            "odon_told": odon_told,
-            "weapon": weapon,
-            "gear": gear,
-            "gear_owned": gear_owned,
-            "unworn": unworn,
-            "checkpoint": checkpoint
-        }))
+    Progreso.guardar({
+        "identity_number": identity_number,
+        "new_humans": new_humans,
+        "reincarnations": reincarnations,
+        "has_pulse": has_pulse,
+        "has_inner_flame": has_inner_flame,
+        "ecos": ecos,
+        "ability_level": ability_level,
+        "remembered_rule": remembered_rule,
+        "deaths": deaths,
+        "cleared": cleared,
+        "player_name": player_name,
+        "player_gender": player_gender,
+        "max_floor": max_floor,
+        "has_mask": has_mask,
+        "rescued": rescued,
+        "guided": guided,
+        "player_level": player_level,
+        "death_marks": death_marks,
+        "xp": xp,
+        "trinkets": trinkets,
+        "trinket_levels": trinket_levels,
+        "bag": bag,
+        "karma": karma,
+        "chests_opened": chests_opened,
+        "souls": souls,
+        "vigil_unlocked": vigil_unlocked,
+        "odon_told": odon_told,
+        "weapon": weapon,
+        "gear": gear,
+        "gear_owned": gear_owned,
+        "unworn": unworn,
+        "checkpoint": checkpoint
+    })
 
 
 ## --- Datos del piso y de la sala actuales -------------------------------
@@ -748,7 +757,7 @@ func _enter_room() -> void:
     _update_camera(0.0, true)
     door_state = "unknown"
     if game_mode == "floor_intro":
-        toast_left = 0.0 # el susurro se oye al pulsar ENTRAR
+        avisos.callar() # el susurro se oye al pulsar ENTRAR
     elif _has("tutorial") and not has_torch:
         _say("Oscuridad. Busca madera y fósforos para hacer una antorcha.", 4.5)
     else:
@@ -825,6 +834,17 @@ func _marker(marker_name: String, fallback: Vector2) -> Vector2:
 
 
 func _input(event: InputEvent) -> void:
+    if pantallas.posee(game_mode):
+        _input_screen_scene(event)
+        return
+    _input_game(event)
+    # Si esta tecla abrió una pantalla-escena (p. ej. ESC → pausa), el mismo
+    # evento no debe llegarle también a ella (la cerraría al instante).
+    if pantallas.posee(game_mode) and is_inside_tree():
+        get_viewport().set_input_as_handled()
+
+
+func _input_game(event: InputEvent) -> void:
     if event is InputEventJoypadButton:
         if event.pressed:
             _pad_button(event.button_index)
@@ -858,10 +878,6 @@ func _input(event: InputEvent) -> void:
             for i in range(SHOP.size()):
                 if _shop_row(i).has_point(ui_hover):
                     shop_sel = i
-        if game_mode == "pause":
-            for i in range(_pause_options().size()):
-                if _pause_rect(i).has_point(ui_hover):
-                    pause_sel = i
         queue_redraw()
         return
     elif event is InputEventMouseButton and event.pressed and game_mode == "abilities" and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
@@ -941,9 +957,6 @@ func _input(event: InputEvent) -> void:
         _settings_key(k)
         queue_redraw()
         return
-    if game_mode == "splash":
-        _splash_continue()
-        return
     if game_mode == "eula":
         if k in [KEY_ENTER, KEY_KP_ENTER]:
             _accept_eula()
@@ -954,25 +967,7 @@ func _input(event: InputEvent) -> void:
         elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E]:
             _intro_next()
         return
-    if game_mode == "pause":
-        _pause_key(k)
-        queue_redraw()
-        return
-    if game_mode == "title":
-        if k == KEY_U and _update_banner_on():
-            _update_tap(UPDATE_OK.get_center())
-            return
-        if k == KEY_ENTER or k == KEY_KP_ENTER:
-            _open_floors() # los pisos son la entrada al juego
-        elif k == KEY_C:
-            _start_creation("title")
-        elif k == KEY_P:
-            _open_floors()
-        elif k == KEY_H:
-            _open_defense()
-        elif k == KEY_ESCAPE:
-            _ask_quit()
-    elif game_mode == "floor_intro":
+    if game_mode == "floor_intro":
         if k in [KEY_ENTER, KEY_KP_ENTER, KEY_E, KEY_SPACE]:
             _enter_floor()
     elif game_mode == "dead" or game_mode == "victory":
@@ -1026,6 +1021,88 @@ func _input(event: InputEvent) -> void:
             _open_map()
         elif k == _key("pausa") or k == KEY_ESCAPE:
             _open_pause()
+    queue_redraw()
+
+
+## Splash, menú y pausa son escenas con botones de verdad: el ratón, los
+## toques, el teclado y el mando les llegan por la interfaz de Godot. Aquí solo
+## se atiende lo global (pantalla completa) y se recuerda con qué se juega.
+func _input_screen_scene(event: InputEvent) -> void:
+    if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+        pad_active = true
+    elif event is InputEventKey or event is InputEventMouseButton:
+        pad_active = false
+    if event is InputEventMouseMotion:
+        ui_hover = make_input_local(event).position
+    if event is InputEventKey and event.pressed and not event.echo:
+        var k: Key = event.keycode
+        if k == KEY_F11 or (k == KEY_ENTER and event.alt_pressed):
+            Ajustes.poner("pantalla_completa", not bool(Ajustes.obtener("pantalla_completa")))
+            _apply_window_mode()
+            get_viewport().set_input_as_handled()
+
+
+## Datos que necesita cada pantalla-escena para mostrarse.
+func _screen_data(mode: String) -> Dictionary:
+    var d := {"margen": screen_pad, "entrada": "mando" if pad_active else ("tactil" if touch_enabled else "teclado")}
+    match mode:
+        "splash":
+            d["subtitulo"] = _t("subtitulo")
+            d["continuar"] = _t("continuar_tactil") if touch_enabled else _t("continuar")
+            d["ajustes"] = _t("ajustes")
+            d["version"] = Actualizador.version_local()
+        "title":
+            d["nombre"] = player_name
+            d["id"] = identity_number
+            d["muertes"] = deaths
+            d["retrato"] = _portrait(false)
+            d["vigilia_abierta"] = vigil_unlocked
+            d["ultimo_piso"] = FLOORS[FLOORS.size() - 1]["number"]
+            d["ayuda"] = _hint("ENTER  jugar (elegir piso)   ·   H  vigilia   ·   ESC  salir", "Toca JUGAR para elegir piso", _t("mando_titulo"))
+            d["cambiar"] = _t("cambiar_pj")
+            d["sin_personaje"] = _t("sin_pj")
+            d["actualizador"] = actualizador
+        "pause":
+            d["titulo"] = _tc(_t("pausa"))
+            d["opciones"] = _pause_options().map(func(id): return [id, _t(id)])
+            d["aviso_abandono"] = _t("aviso_abandono")
+            d["tecla_pausa"] = _key("pausa")
+    return d
+
+
+## Muestra la escena de la pantalla actual (o ninguna) y ajusta los avisos.
+func _sync_screens() -> void:
+    if pantallas == null:
+        return
+    pantallas.mostrar(game_mode, _screen_data(game_mode) if pantallas.posee(game_mode) else {})
+    avisos.en_juego = game_mode == "play"
+    avisos.ocultar_rotulos = game_mode in ["title", "create", "floors", "splash", "eula", "intro"]
+
+
+## Lo que el jugador elige en una pantalla-escena.
+func _on_screen_action(screen: StringName, choice: StringName) -> void:
+    match screen:
+        &"Splash":
+            if choice == &"ajustes":
+                _open_settings("splash")
+            else:
+                _splash_continue()
+        &"Titulo":
+            match choice:
+                &"jugar":
+                    _open_floors() # los pisos son la entrada al juego
+                &"vigilia":
+                    _open_defense()
+                &"salir":
+                    _ask_quit()
+                &"ajustes":
+                    _open_settings("title")
+                &"cambiar_personaje":
+                    _start_creation("title")
+        &"Pausa":
+            var opts: Array = _pause_options()
+            if opts.has(String(choice)):
+                _pause_choose(opts.find(String(choice)))
     queue_redraw()
 
 
@@ -1109,22 +1186,6 @@ func _pad_button(b: int) -> void:
                 _pad_key(KEY_ENTER)
             elif b in [JOY_BUTTON_Y, JOY_BUTTON_START]:
                 _pad_key(KEY_ESCAPE)
-            return
-        "title":
-            match b:
-                JOY_BUTTON_A, JOY_BUTTON_START:
-                    _pad_key(KEY_ENTER)
-                JOY_BUTTON_X:
-                    _pad_key(KEY_C)
-                JOY_BUTTON_Y:
-                    _pad_key(KEY_P)
-                JOY_BUTTON_RIGHT_SHOULDER:
-                    _pad_key(KEY_H)
-                JOY_BUTTON_BACK:
-                    _open_settings("title")
-                    queue_redraw()
-                JOY_BUTTON_B:
-                    _pad_key(KEY_ESCAPE)
             return
         "altar":
             match b:
@@ -1346,7 +1407,7 @@ func _open_defense() -> void:
         _say("La Vigilia está cerrada. Alguien en las profundidades guarda su llave.", 3.2)
         _sfx("toque", -10.0, 0.8)
         return
-    get_tree().change_scene_to_file("res://scenes/defense.tscn")
+    Escenas.ir_a("res://scenes/defense.tscn")
 
 func _mobile_touch(finger: int, at: Vector2, pressed: bool) -> void:
     if not pressed:
@@ -1375,12 +1436,6 @@ func _mobile_tap(at: Vector2) -> void:
     if game_mode == "settings":
         _settings_click(at)
         return
-    if game_mode == "splash":
-        if GEAR_RECT.has_point(at):
-            _open_settings("splash")
-        else:
-            _splash_continue()
-        return
     if game_mode == "eula":
         for b in _eula_buttons():
             if (b["rect"] as Rect2).has_point(at):
@@ -1400,12 +1455,6 @@ func _mobile_tap(at: Vector2) -> void:
         else:
             _intro_next()
         return
-    if game_mode == "pause":
-        for i in range(_pause_options().size()):
-            if _pause_rect(i).has_point(at):
-                _pause_choose(i)
-                return
-        return
     if game_mode == "create":
         _create_tap(at)
         return
@@ -1417,20 +1466,6 @@ func _mobile_tap(at: Vector2) -> void:
         return
     if game_mode == "shop":
         _shop_tap(at)
-        return
-    if game_mode == "title":
-        if _update_tap(at):
-            return
-        if CHANGE_CHAR_RECT.has_point(at):
-            _start_creation("title")
-        elif GEAR_RECT.has_point(at):
-            _open_settings("title")
-        elif FLOORS_BTN.has_point(at):
-            _open_floors()
-        elif VIGIL_BTN.has_point(at):
-            _open_defense()
-        elif QUIT_BTN.has_point(at):
-            _ask_quit()
         return
     if game_mode == "dead" or game_mode == "victory":
         if _end_ready():
@@ -2197,8 +2232,7 @@ func _lose_run() -> void:
 
 
 func _say(message: String, duration: float = 2.8) -> void:
-    toast = message
-    toast_left = duration
+    avisos.decir(message, duration)
 
 
 func _controls_axis() -> Vector2:
@@ -2334,7 +2368,9 @@ func _process(delta: float) -> void:
     _update_level_fx(delta)
     for i in shop_flash.keys():
         shop_flash[i] = maxf(0.0, float(shop_flash[i]) - delta * 1.8)
-    toast_left = maxf(0.0, toast_left - delta)
+    avisos.ancla = world_xf * player_pos
+    avisos.zoom = cam_zoom
+    avisos.tactil = touch_enabled
     visual_interaction_left = maxf(0.0, visual_interaction_left - delta)
     bump_left = maxf(0.0, bump_left - delta)
     souls_flash = maxf(0.0, souls_flash - delta)
@@ -2613,14 +2649,15 @@ func _draw() -> void:
         _draw_intro()
         return
     if screen in ["title", "create", "floors", "splash", "eula"]:
-        if screen == "title":
-            _draw_title()
+        # El menú y la pantalla de inicio son escenas (scenes/pantallas/): aquí
+        # solo se oscurece la sala cuando la configuración se abre encima.
+        if screen in ["title", "splash"]:
+            if game_mode == "settings":
+                draw_rect(_full_rect(), Color(0.018, 0.027, 0.032, 0.62))
         elif screen == "floors":
             _draw_floors()
         elif screen == "create":
             _draw_creation()
-        elif screen == "splash":
-            _draw_splash()
         else:
             _draw_eula()
         if game_mode == "settings":
@@ -2631,8 +2668,6 @@ func _draw() -> void:
     _end_world()
     _draw_topbar()
     _draw_footer()
-    if toast_left > 0.0:
-        _draw_toast()
     _draw_mission_banner()
     _draw_room_souls_counter()
     _draw_room_fade()
@@ -2658,17 +2693,12 @@ func _draw() -> void:
         _draw_end_overlay(true)
     elif game_mode == "floor_intro":
         _draw_floor_intro()
-    elif game_mode == "pause":
-        _draw_pause()
     elif game_mode == "settings":
         _draw_settings()
     _draw_tutorial_overlay()
     _draw_mobile_controls()
-    # Avisos de nivel y de botín: lo último que se dibuja, encima de cualquier
-    # menú, junto al personaje (y siempre dentro de la pantalla).
-    notice_y = -1.0
-    _draw_level_banner()
-    _draw_loot_banner()
+    # Los avisos de nivel y de botín los dibuja la capa de avisos
+    # (scenes/ui/avisos.tscn), encima de cualquier menú.
 
 
 func _draw_background() -> void:
@@ -3046,7 +3076,6 @@ func _draw_visual_atmosphere() -> void:
         var ember: bool = float(m["ph"]) < wear * 0.9
         var col: Color = Color(0.95, 0.35, 0.22, 0.10 + 0.22 * tw) if ember else Color(0.86, 0.8, 0.66, 0.06 + 0.12 * tw)
         draw_rect(Rect2(p.round(), Vector2(float(m["s"]), float(m["s"]))), col)
-
 
 
 func _draw_ellipse(center: Vector2, radius_x: float, radius_y: float, color: Color) -> void:
@@ -3722,26 +3751,7 @@ func _bar(rect: Rect2, fraction: float, color: Color) -> void:
 
 ## Panel biselado de pixel art: sombra, borde, luz superior y esquinas recortadas.
 func _panel(rect: Rect2, fill: Color = UI_PANEL, edge: Color = UI_EDGE) -> void:
-    ## Panel de la etapa 2: fondo oscuro translúcido, filete fino del color del
-    ## borde y esquinas ornamentadas en los paneles grandes.
-    var r := rect
-    draw_rect(Rect2(r.position + Vector2(0, 3), r.size), Color(0, 0, 0, 0.35 * fill.a)) # sombra
-    draw_rect(r, fill)
-    _vgradient(Rect2(r.position, Vector2(r.size.x, minf(r.size.y * 0.5, 22.0))), Color(1, 1, 1, 0.035 * fill.a), Color(1, 1, 1, 0.0))
-    draw_rect(r, Color(0, 0, 0, 0.7 * fill.a), false, 1.0)
-    var inner := r.grow(-2.0)
-    draw_rect(inner, Color(edge.r, edge.g, edge.b, edge.a * 0.9), false, 1.0)
-    if r.size.x >= 70.0 and r.size.y >= 40.0:
-        var orn: Color = edge.lightened(0.25)
-        orn.a = edge.a
-        for corner in [inner.position, Vector2(inner.end.x, inner.position.y), inner.end, Vector2(inner.position.x, inner.end.y)]:
-            var sx: float = 1.0 if corner.x < r.get_center().x else -1.0
-            var sy: float = 1.0 if corner.y < r.get_center().y else -1.0
-            draw_rect(Rect2(corner + Vector2(minf(0.0, sx * 7.0), minf(0.0, sy * 1.0)), Vector2(7, 1)), orn)
-            draw_rect(Rect2(corner + Vector2(minf(0.0, sx * 1.0), minf(0.0, sy * 7.0)), Vector2(1, 7)), orn)
-            var d: Vector2 = corner + Vector2(sx * 4.0, sy * 4.0)
-            draw_colored_polygon(PackedVector2Array([d + Vector2(0, -2), d + Vector2(2, 0), d + Vector2(0, 2), d + Vector2(-2, 0)]), orn)
-
+    Estilo.panel(self, rect, fill, edge)
 
 
 func _px_bar(rect: Rect2, fraction: float, color: Color, label: String) -> void:
@@ -3763,13 +3773,8 @@ func _px_bar(rect: Rect2, fraction: float, color: Color, label: String) -> void:
         _text_outline(label, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.5 + 5.0), 13, Color.WHITE, rect.size.x)
 
 
-
 func _text_outline(msg: String, at: Vector2, size: int, color: Color, width: float = -1.0) -> void:
-    var align: int = HORIZONTAL_ALIGNMENT_CENTER if width > 0.0 else HORIZONTAL_ALIGNMENT_LEFT
-    var dark := Color(0, 0, 0, color.a * 0.9)
-    for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(1, 1)]:
-        draw_string(font, at + o, msg, align, width, size, dark)
-    draw_string(font, at, msg, align, width, size, color)
+    Estilo.texto(self, msg, at, size, color, width)
 
 
 func _draw_footer() -> void:
@@ -3881,20 +3886,9 @@ func _draw_ability_icon(box: Rect2, key: String, ready_to_use: bool, cooldown: f
     _text_outline(hotkey, Vector2(badge.position.x, badge.end.y - 4.0), 11, CREAM, badge.size.x)
 
 
-func _draw_toast() -> void:
-    ## Mensaje flotante bajo el HUD, centrado y con desvanecimiento.
-    var alpha: float = clampf(toast_left * 3.0, 0.0, 1.0)
-    var size: int = 16 if touch_enabled else 14
-    var width: float = minf(font.get_string_size(toast, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 40.0, W - 40.0)
-    var box := Rect2(roundf((W - width) * 0.5), 110.0, width, 28.0)
-    _panel(box, Color(0.035, 0.045, 0.06, 0.94 * alpha), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.8 * alpha))
-    _text_outline(toast, Vector2(box.position.x, box.position.y + 19.0), size, Color(CREAM.r, CREAM.g, CREAM.b, alpha), box.size.x)
-
-
 ## ---- Actualizaciones -------------------------------------------------------
-const UPDATE_BAR := Rect2(149, 88, 662, 54)
-const UPDATE_OK := Rect2(574, 98, 120, 34)
-const UPDATE_NO := Rect2(702, 98, 100, 34)
+## El aviso del menú es un componente propio (scenes/ui/aviso_actualizacion.tscn)
+## que escucha al nodo Actualizador.
 
 
 func _start_updater() -> void:
@@ -3903,148 +3897,8 @@ func _start_updater() -> void:
     actualizador = Actualizador.new()
     actualizador.name = "Actualizador"
     add_child(actualizador)
-    actualizador.cambiado.connect(queue_redraw)
     actualizador.buscar()
-
-
-func _update_banner_on() -> bool:
-    return actualizador != null and actualizador.aviso_visible()
-
-
-## Botones que muestra el aviso en cada estado: [aceptar, descartar] ("" = no hay).
-func _update_buttons() -> Array:
-    match str(actualizador.estado):
-        "disponible":
-            return [_t("act_actualizar"), _t("act_ahora_no")]
-        "error":
-            return [_t("act_a_mano"), _t("act_ahora_no")]
-        "abierto":
-            return [_t("act_a_mano"), _t("act_cerrar")]
-    return ["", ""]
-
-
-func _update_tap(at: Vector2) -> bool:
-    if not _update_banner_on():
-        return false
-    var labels: Array = _update_buttons()
-    if labels[0] != "" and UPDATE_OK.has_point(at):
-        _sfx("toque", -8.0)
-        match str(actualizador.estado):
-            "disponible":
-                actualizador.actualizar()
-            "error", "abierto":
-                actualizador.abrir_pagina()
-        queue_redraw()
-        return true
-    if labels[1] != "" and UPDATE_NO.has_point(at):
-        _sfx("interfaz", -12.0, 1.1)
-        actualizador.ahora_no()
-        queue_redraw()
-        return true
-    return UPDATE_BAR.has_point(at)
-
-
-func _draw_update_banner() -> void:
-    if not _update_banner_on():
-        return
-    var st := str(actualizador.estado)
-    var bad := st == "error"
-    _panel(UPDATE_BAR, Color("#2a1418") if bad else Color("#141f1c"), UI_CRIMSON if bad else SOUL)
-    var nueva := "v" + str(actualizador.version_nueva)
-    var line1 := ""
-    var line2 := ""
-    match st:
-        "disponible":
-            line1 = _t("act_nueva") % nueva
-            line2 = _t("act_actual") % ("v" + Actualizador.version_local())
-        "descargando":
-            line1 = _t("act_descargando") % [nueva, int(round(float(actualizador.progreso) * 100.0))]
-        "instalando":
-            line1 = _t("act_instalando")
-        "abierto":
-            line1 = _t("act_android")
-            line2 = _t("act_android2")
-        "error":
-            line1 = _t("act_error") % str(actualizador.detalle)
-    var y: float = UPDATE_BAR.position.y + (24.0 if line2 != "" else 33.0)
-    _text_outline(line1, Vector2(UPDATE_BAR.position.x + 14.0, y), 14, CREAM)
-    if line2 != "":
-        _text_outline(line2, Vector2(UPDATE_BAR.position.x + 14.0, y + 18.0), 11, Color("#b9b29b"))
-    if st == "descargando":
-        var bar := Rect2(UPDATE_BAR.position.x + 330.0, UPDATE_BAR.position.y + 20.0, 316.0, 14.0)
-        draw_rect(bar, Color("#0b0f12"))
-        draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(float(actualizador.progreso), 0.0, 1.0), bar.size.y)), SOUL)
-        draw_rect(bar, UI_LIGHT, false, 1.0)
-    var labels: Array = _update_buttons()
-    for i in range(2):
-        if labels[i] == "":
-            continue
-        var r: Rect2 = UPDATE_OK if i == 0 else UPDATE_NO
-        var hot: bool = r.has_point(ui_hover)
-        var edge: Color = UI_GOLD if i == 0 else UI_LIGHT
-        _panel(r, Color("#2c3a2a") if (hot and i == 0) else (Color("#222c39") if hot else Color("#141922")), UI_GOLD if hot else edge)
-        _text_outline(labels[i], r.position + Vector2(0, 22), 12, CREAM, r.size.x)
-
-
-func _draw_title() -> void:
-    ## Menú principal estilo roguelike: panel biselado, botones gruesos con icono.
-    # La sala actual (escena) queda detrás; solo se oscurece.
-    draw_rect(_full_rect(), Color(0.018, 0.027, 0.032, 0.62))
-    var main := Rect2(149, 150, 662, 410)
-    _panel(main, Color(0.045, 0.055, 0.07, 0.95), UI_GOLD)
-    draw_rect(main.grow(-8.0), Color("#3a3f4c"), false, 1.0)
-    draw_texture_rect(BRAND_ICON, Rect2(443, 164, 74, 74), false)
-    _title_text("El Templo de los Ecos", Vector2(149, 300), 48, CREAM, main.size.x)
-    _ornament_line(Vector2(480, 318), 150.0)
-    _text_outline("DESPIERTAS A OSCURAS. NADIE TE DICE POR QUÉ.", Vector2(149, 362), 14, CREAM, main.size.x)
-    draw_rect(Rect2(318, 376, 324, 2), UI_GOLD.darkened(0.3))
-    _text_outline("ROGUELIKE DE TERROR · PISOS I–%s · REGLAS POR DESCUBRIR" % FLOORS[FLOORS.size() - 1]["number"], Vector2(149, 398), 12, SOUL, main.size.x)
-    _text_outline("No conoces las reglas. Aún.", Vector2(149, 422), 15, Color("#b9b29b"), main.size.x)
-    ## Botones: los PISOS son la entrada al juego (el Piso I empieza desde el
-    ## principio); la VIGILIA es el modo aparte.
-    _big_button(FLOORS_BTN, "JUGAR", "antorcha_encendida", Color("#3b2550"), Color("#a988d0"))
-    if vigil_unlocked:
-        _big_button(VIGIL_BTN, "VIGILIA", "descansar", Color("#43301a"), UI_GOLD)
-    else:
-        _big_button(VIGIL_BTN, "VIGILIA", "descansar", Color("#1a1620"), Color("#4a4452"))
-        _text_outline("BLOQUEADA", Vector2(VIGIL_BTN.position.x, VIGIL_BTN.end.y + 14.0), 11, Color("#8a5a64"), VIGIL_BTN.size.x)
-    var hot_q: bool = QUIT_BTN.has_point(ui_hover)
-    _panel(QUIT_BTN, Color("#3a1a20") if hot_q else Color("#141922"), UI_CRIMSON if hot_q else UI_LIGHT)
-    _text_outline("SALIR", QUIT_BTN.position + Vector2(0, 19), 12, CREAM if hot_q else Color("#b9b29b"), QUIT_BTN.size.x)
-    _text_outline(_hint("ENTER  jugar (elegir piso)   ·   H  vigilia   ·   ESC  salir", "Toca JUGAR para elegir piso", _t("mando_titulo")), Vector2(149, 526), 12, Color("#9fb3b3"), main.size.x)
-    # Ficha rápida del personaje.
-    if player_name != "":
-        draw_texture_rect(_portrait(false), Rect2(171, 510, 40, 40), false)
-        _text_outline("%s · ID %03d   |   MUERTES %d" % [player_name, identity_number, deaths], Vector2(149, 548), 12, CREAM, main.size.x)
-        var hot_c: bool = CHANGE_CHAR_RECT.has_point(ui_hover)
-        _panel(CHANGE_CHAR_RECT, Color("#222c39") if hot_c else Color("#141922"), UI_GOLD if hot_c else UI_LIGHT)
-        _text_outline(_t("cambiar_pj"), CHANGE_CHAR_RECT.position + Vector2(0, 19), 12, CREAM if hot_c else Color("#b9b29b"), CHANGE_CHAR_RECT.size.x)
-    else:
-        _text_outline(_t("sin_pj"), Vector2(149, 548), 12, Color("#b9b29b"), main.size.x)
-    var hot: bool = GEAR_RECT.has_point(ui_hover)
-    _panel(GEAR_RECT, Color("#222c39") if hot else Color("#141922"), UI_GOLD if hot else UI_LIGHT)
-    draw_texture_rect(ICONS["engranaje"], Rect2(GEAR_RECT.position + Vector2(10, 10), Vector2(32, 32)), false)
-    _draw_update_banner()
-    if toast_left > 0:
-        _draw_toast()
-
-
-## Botón grueso de pixel art: bisel claro arriba, oscuro abajo, icono y texto.
-func _big_button(rect: Rect2, label: String, icon: String, fill: Color, edge: Color) -> void:
-    ## Botón principal: crece un poco y brilla al pasar el cursor (como los
-    ## botones animados del primer juego del autor).
-    var hot: bool = rect.has_point(ui_hover)
-    var k: float = move_toward(float(btn_anim.get(label, 0.0)), 1.0 if hot else 0.0, 0.12)
-    btn_anim[label] = k
-    var r := rect.grow(roundf(3.0 * k))
-    var pulse: float = 0.5 + 0.5 * sin(elapsed * 3.0)
-    draw_rect(r.grow(4.0), Color(edge.r, edge.g, edge.b, 0.05 + 0.12 * k + 0.04 * pulse), false, 3.0)
-    _panel(r, Color(fill.r, fill.g, fill.b, 0.55 + 0.35 * k), edge)
-    _vgradient(Rect2(r.position + Vector2(3, 3), Vector2(r.size.x - 6.0, r.size.y * 0.45)), Color(1, 1, 1, 0.05 + 0.06 * k), Color(1, 1, 1, 0.0))
-    var icon_tex: Texture2D = DEFENSE_ICONS.get(icon, ICONS.get(icon, null))
-    if icon_tex != null:
-        draw_texture_rect(icon_tex, Rect2(r.position + Vector2(14, roundf(r.size.y * 0.5) - 16.0), Vector2(32, 32)), false)
-    _text_outline(label, Vector2(r.position.x + 30.0, r.position.y + r.size.y * 0.5 + 8.0), 22, CREAM.lerp(Color.WHITE, k * 0.5), r.size.x - 30.0)
+    _sync_screens()
 
 
 func _draw_altar_overlay() -> void:
@@ -5715,17 +5569,6 @@ const T := {
     "habilidades": ["HABILIDADES", "ABILITIES"],
     "pantalla_completa": ["Pantalla completa", "Fullscreen"],
     "buscar_actualizaciones": ["Buscar actualizaciones al abrir", "Check for updates on launch"],
-    "act_nueva": ["NUEVA VERSIÓN %s DISPONIBLE", "NEW VERSION %s AVAILABLE"],
-    "act_actual": ["Tienes la %s. Tu partida se conserva.", "You have %s. Your save is kept."],
-    "act_actualizar": ["ACTUALIZAR", "UPDATE"],
-    "act_ahora_no": ["AHORA NO", "NOT NOW"],
-    "act_descargando": ["DESCARGANDO %s · %d%%", "DOWNLOADING %s · %d%%"],
-    "act_instalando": ["INSTALANDO… EL JUEGO SE REABRIRÁ SOLO", "INSTALLING… THE GAME WILL REOPEN"],
-    "act_android": ["ABRE LA DESCARGA Y TOCA «INSTALAR»", "OPEN THE DOWNLOAD AND TAP «INSTALL»"],
-    "act_android2": ["Android pide confirmarlo. Tu partida se conserva.", "Android asks you to confirm. Your save is kept."],
-    "act_error": ["NO SE PUDO ACTUALIZAR SOLO (%s)", "COULD NOT UPDATE BY ITSELF (%s)"],
-    "act_a_mano": ["DESCARGAR", "DOWNLOAD"],
-    "act_cerrar": ["CERRAR", "CLOSE"],
     "creditos": ["CRÉDITOS", "CREDITS"],
     "saltar_tutorial": ["SALTAR TUTORIAL", "SKIP TUTORIAL"],
     "volver_inicio": ["VOLVER AL INICIO", "BACK TO START SCREEN"],
@@ -5769,7 +5612,6 @@ var rebinding: String = ""
 var dragging_slider: String = ""
 var confirm_delete: bool = false
 var legal_page: String = ""
-var pause_sel: int = 0
 var ui_hover: Vector2 = Vector2(-100, -100)
 var intro_slide: int = 0
 var intro_t: float = 0.0
@@ -5841,38 +5683,6 @@ func _back_to_splash() -> void:
     _enter_room() # la sala del Umbral vuelve como fondo
 
 
-func _draw_splash() -> void:
-    # El templo detrás, casi a oscuras, con niebla que respira.
-    draw_rect(_full_rect(), Color(0.01, 0.012, 0.02, 0.82))
-    for i in range(9):
-        var x: float = fmod(float(i) * 137.0 + elapsed * (6.0 + float(i % 3) * 3.0), W + 300.0) - 150.0
-        var y: float = 470.0 + float(i % 4) * 34.0 + sin(elapsed * 0.5 + float(i)) * 10.0
-        var rad: float = 90.0 + float(i % 3) * 30.0
-        for k in range(4): # bordes suaves: discos concéntricos muy tenues
-            draw_circle(Vector2(x, y), rad * (1.0 - float(k) * 0.22), Color(0.55, 0.65, 0.68, 0.007))
-    var glow: float = 0.5 + 0.5 * sin(elapsed * 1.4)
-    for k in range(10): # halo suave: muchos discos muy tenues
-        draw_circle(Vector2(480, 175), (40.0 + float(k) * 14.0) * (1.0 + glow * 0.05), Color(0.45, 0.75, 0.85, 0.012))
-    _draw_visual_atmosphere()
-    draw_texture_rect(BRAND_ICON, Rect2(424, 118, 112, 112), false)
-    _ornament_line(Vector2(480, 384), 200.0)
-    _title_text("El Templo", Vector2(0, 306), 72, CREAM, W)
-    _title_text("de los Ecos", Vector2(0, 366), 72, SOUL, W)
-    _text_outline(_t("subtitulo"), Vector2(0, 410), 15, Color("#b9b29b"), W)
-    var pulse: float = 0.35 + 0.65 * (0.5 + 0.5 * sin(elapsed * 3.2))
-    _text_outline(_t("continuar_tactil") if touch_enabled else _t("continuar"), Vector2(0, 478), 24, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, pulse), W)
-    # Engranaje de configuración, abajo a la izquierda.
-    var hot: bool = GEAR_RECT.has_point(ui_hover)
-    _panel(GEAR_RECT, Color("#222c39") if hot else Color("#141922"), UI_GOLD if hot else UI_LIGHT)
-    var spin: float = elapsed * (1.5 if hot else 0.3)
-    _xf(GEAR_RECT.get_center(), spin, Vector2.ONE)
-    draw_texture_rect(ICONS["engranaje"], Rect2(Vector2(-16, -16), Vector2(32, 32)), false)
-    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
-    if hot:
-        _text_outline(_t("ajustes"), Vector2(78, 604), 14, CREAM)
-    _text_outline("v0.9 · demo", Vector2(820, 630), 11, Color("#6d6a60"))
-
-
 func _draw_eula() -> void:
     draw_rect(_full_rect(), Color(0.01, 0.012, 0.02, 0.88))
     var panel := Rect2(150, 150, 660, 300)
@@ -5911,12 +5721,7 @@ func _draw_text_block(text: String, box: Rect2, size: int, color: Color) -> floa
 
 ## Botón de interfaz con bisel; resaltado al pasar el cursor.
 func _ui_button(rect: Rect2, label: String, primary: bool = false, selected: bool = false) -> void:
-    var hot: bool = rect.has_point(ui_hover) or selected
-    var fill: Color = Color("#1d4a4f") if primary else Color("#1a1f2a")
-    if hot:
-        fill = fill.lightened(0.15)
-    _panel(rect, fill, UI_GOLD if hot else (SOUL if primary else UI_LIGHT))
-    _text_outline(label, Vector2(rect.position.x, rect.position.y + rect.size.y * 0.5 + 6.0), 16, CREAM, rect.size.x)
+    Estilo.boton(self, rect, label, primary, rect.has_point(ui_hover) or selected)
 
 
 # ------------------------------------------------------------ CONFIGURACIÓN
@@ -6186,6 +5991,7 @@ const VIGILIA_SAVES := ["user://vigilia_claustro_records.json", "user://prueba_v
 
 func _wipe_everything() -> void:
     Ajustes.borrar_todo(_save_path())
+    Progreso.borrar()
     for path in VIGILIA_SAVES:
         if (path.contains("prueba") == Engine.has_meta("modo_prueba")) and FileAccess.file_exists(path):
             DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
@@ -6243,7 +6049,6 @@ func _open_pause() -> void:
     if game_mode != "play":
         return
     game_mode = "pause"
-    pause_sel = 0
     mobile_axis = Vector2.ZERO
     mobile_finger = -1
     _sfx("interfaz", -8.0, 0.8)
@@ -6255,10 +6060,6 @@ func _pause_options() -> Array:
         opts.append("saltar_tutorial")
     opts.append("volver_inicio")
     return opts
-
-
-func _pause_rect(i: int) -> Rect2:
-    return Rect2(330, 210.0 + float(i) * 62.0, 300, 50)
 
 
 func _pause_choose(i: int) -> void:
@@ -6278,30 +6079,6 @@ func _pause_choose(i: int) -> void:
             _end_tutorial()
         "volver_inicio":
             _back_to_splash()
-
-
-func _draw_pause() -> void:
-    draw_rect(_full_rect(), Color(0, 0, 0, 0.7))
-    var opts: Array = _pause_options()
-    var panel := Rect2(300, 130, 360, 90.0 + float(opts.size()) * 62.0)
-    _panel(panel, Color(0.05, 0.06, 0.08, 0.97), UI_GOLD)
-    _title_text(_tc(_t("pausa")), Vector2(panel.position.x, 186), 48, CREAM, panel.size.x)
-    for i in range(opts.size()):
-        _ui_button(_pause_rect(i), _t(opts[i]), i == 0, i == pause_sel)
-    if opts[pause_sel] == "volver_inicio":
-        _text_outline(_t("aviso_abandono"), Vector2(0, panel.end.y + 24.0), 13, RED, W)
-
-
-func _pause_key(k: int) -> void:
-    var n: int = _pause_options().size()
-    if k == KEY_ESCAPE or k == _key("pausa"):
-        _pause_choose(0)
-    elif k in [KEY_DOWN, KEY_S]:
-        pause_sel = (pause_sel + 1) % n
-    elif k in [KEY_UP, KEY_W]:
-        pause_sel = (pause_sel + n - 1) % n
-    elif k in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_E]:
-        _pause_choose(pause_sel)
 
 
 # ------------------------------------------------------------ INTRO
@@ -6545,7 +6322,6 @@ const NAME_MAX := 12
 const NAME_ROWS := ["ABCDEFGHIJ", "KLMNÑOPQRS", "TUVWXYZ"]
 const NAME_KEY := Vector2(52, 44)
 const NAME_GRID := Vector2(193, 252)
-const CHANGE_CHAR_RECT := Rect2(676, 528, 120, 26)
 const CREATE_PANEL := Rect2(150, 104, 660, 452)
 const RANDOM_NAMES := ["ELÍAS", "TOMÁS", "DARÍO", "ADRIÁN", "JONÁS", "MATEO", "LUCÍA", "ELENA", "IRENE", "NORA", "ALBA", "MARA"]
 var create_step: int = 0 # 0 nombre, 1 género
@@ -6790,8 +6566,6 @@ func _draw_creation() -> void:
             var is_go: bool = b[1] == "comenzar"
             _create_key_button(b[0], (_t("pj_comenzar") + " »") if is_go else ("« " + _t("pj_atras")), 18, is_go)
         _text_outline(_t(_hint("pj_genero_ayuda", "pj_genero_tactil", "pj_genero_mando")), Vector2(150, 530), 12, Color("#9fb3b3"), CREATE_PANEL.size.x)
-    if toast_left > 0.0:
-        _draw_toast()
 
 
 ## Tras la pantalla de muerte o de victoria.
@@ -7427,7 +7201,6 @@ func _hunt_mission_text() -> String:
     if _has("recuento"):
         return "SOBREVIVIERON %d DE 3" % alive
     return ""
-
 
 
 # ------------------------------------------------------------ JUGABILIDAD (etapa 1)
@@ -8076,9 +7849,6 @@ func _eco_floor(key: String) -> String:
 ## Capas visuales nuevas: tipografía gótica de rótulos, partículas, niebla,
 ## rayos de luz, fundidos y un postproceso con bloom, gradación y viñeta.
 const FADE_TIME := 0.5
-const FLOORS_BTN := Rect2(190, 440, 330, 64)
-const VIGIL_BTN := Rect2(540, 440, 230, 64)
-const QUIT_BTN := Rect2(700, 162, 96, 26)
 var title_font: Font
 var motes: Array = [] # {p, v, s, f, ph}
 var fx_parts: Array = [] # {p, v, life, max, size, col, grav, glow}
@@ -8089,7 +7859,6 @@ var death_fx: float = -1.0
 const END_LOCK := 2.6
 var end_t: float = 0.0
 var respawn_fx: float = 0.0
-var btn_anim: Dictionary = {}
 var post_rect: ColorRect = null
 var max_floor: int = 0 # piso más profundo alcanzado (menú de pisos)
 var floors_sel: int = 0
@@ -8114,22 +7883,12 @@ func _tc(msg: String) -> String:
 
 
 func _title_text(msg: String, at: Vector2, size: int, color: Color, width: float = -1.0) -> void:
-    var align: int = HORIZONTAL_ALIGNMENT_CENTER if width > 0.0 else HORIZONTAL_ALIGNMENT_LEFT
-    var f: Font = title_font if title_font != null else font
-    var shade := Color(0.0, 0.0, 0.0, color.a * 0.85)
-    draw_string(f, at + Vector2(0, maxf(2.0, float(size) / 16.0)), msg, align, width, size, Color(0.12, 0.02, 0.05, color.a * 0.8))
-    for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
-        draw_string(f, at + o, msg, align, width, size, shade)
-    draw_string(f, at, msg, align, width, size, color)
+    Estilo.titulo(self, msg, at, size, color, width)
 
 
 ## Filete ornamental dorado con rombo central.
 func _ornament_line(center: Vector2, half: float) -> void:
-    var gold := Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.8)
-    _hgradient(Rect2(center.x - half, center.y, half - 8.0, 1), Color(gold.r, gold.g, gold.b, 0.0), gold)
-    _hgradient(Rect2(center.x + 8.0, center.y, half - 8.0, 1), gold, Color(gold.r, gold.g, gold.b, 0.0))
-    draw_colored_polygon(PackedVector2Array([center + Vector2(0, -4), center + Vector2(4, 0), center + Vector2(0, 4), center + Vector2(-4, 0)]), gold)
-    draw_circle(center, 1.5, Color("#2a1d22"))
+    Estilo.adorno(self, center, half)
 
 
 func _death_vignette() -> void:
@@ -8464,8 +8223,6 @@ func _draw_floors() -> void:
     _ui_button(Rect2(104, 516, 180, 40), "« VOLVER")
     _ui_button(Rect2(676, 516, 180, 40), "DESCENDER »" if playable_sel else "BLOQUEADO", playable_sel)
     _text_outline(_hint("Flechas elegir · ENTER descender · ESC volver", "Toca un piso y luego DESCENDER", "Cruceta elegir · A descender · B volver"), Vector2(80, 541), 12, Color("#8a8574"), panel.size.x)
-    if toast_left > 0.0:
-        _draw_toast()
 
 
 # ------------------------------------------------------------ DEL PRIMER JUEGO (etapa 3)
@@ -8856,7 +8613,7 @@ func _draw_critter_eyes() -> void:
 
 
 func _save_path() -> String:
-    return SAVE_PATH_TEST if Engine.has_meta("modo_prueba") else SAVE_PATH
+    return Progreso.ruta()
 
 
 # ------------------------------------------------------------ SALTAR Y VOLVER A LA PAUSA
@@ -8872,7 +8629,6 @@ func _skip_button(rect: Rect2) -> void:
     var hot: bool = rect.has_point(ui_hover)
     _panel(rect, Color("#2a1d22") if hot else Color(0.04, 0.035, 0.05, 0.9), UI_GOLD if hot else UI_LIGHT)
     _text_outline("SALTAR (ESC)  »»", Vector2(rect.position.x, rect.position.y + 22.0), 13, CREAM if hot else Color("#b9b29b"), rect.size.x)
-
 
 
 # ------------------------------------------------------------ PISO IV · EL CLAUSTRO ENRAIZADO
@@ -9842,8 +9598,6 @@ func _draw_shop() -> void:
     draw_string(font, Vector2(180, 566), hint, HORIZONTAL_ALIGNMENT_RIGHT, 600, 13, CREAM)
     if shop_info:
         _draw_vigil_info()
-    if toast_left > 0.0:
-        _draw_toast()
 
 
 const VIGIL_INFO := [
@@ -9960,7 +9714,6 @@ const XP_FLOOR := 30
 var player_level: int = 1
 var xp: int = 0
 var level_flash: float = 0.0
-var level_banner_t: float = 0.0
 
 
 func _xp_needed(level: int) -> int:
@@ -10001,7 +9754,7 @@ func _level_up(ups: int) -> void:
     max_hp += LEVEL_HP * float(ups)
     hp = maxf(hp, max_hp) # cura sin borrar la vida extra
     level_flash = 1.0
-    level_banner_t = 3.4
+    avisos.mostrar_nivel(player_level, "+%d VIDA MÁX · +%d %% DAÑO · +%d %% VIGOR" % [int(LEVEL_HP), int(LEVEL_POWER * 100.0), int(LEVEL_VIGOR * 100.0)])
     _save_progress()
     _sfx("sello", -5.0, 1.3)
     _sfx("k_campana", -9.0, 1.4)
@@ -10010,39 +9763,6 @@ func _level_up(ups: int) -> void:
 
 func _update_level_fx(dt: float) -> void:
     level_flash = maxf(0.0, level_flash - dt * 1.5)
-    level_banner_t = maxf(0.0, level_banner_t - dt)
-
-
-## Dónde poner un aviso de tamaño «sz»: sobre el personaje tal como se ve en
-## pantalla (con la cámara), o debajo si está muy arriba; nunca fuera de la
-## pantalla ni encima de la barra superior. Dos avisos a la vez se apilan.
-var notice_y: float = -1.0
-
-
-func _notice_rect(sz: Vector2) -> Rect2:
-    var p: Vector2 = world_xf * player_pos
-    var x: float = clampf(p.x - sz.x * 0.5, -screen_pad.x + 8.0, W + screen_pad.x - sz.x - 8.0)
-    var y: float
-    if notice_y >= 0.0:
-        y = notice_y
-    else:
-        y = p.y - 86.0 * cam_zoom - sz.y
-        if y < 118.0:
-            y = p.y + 22.0 * cam_zoom
-        y = clampf(y, 118.0, H + screen_pad.y - 70.0 - sz.y * 2.0 - 8.0)
-    notice_y = y + sz.y + 6.0
-    return Rect2(Vector2(x, y).round(), sz)
-
-
-func _draw_level_banner() -> void:
-    if level_banner_t <= 0.0 or game_mode in ["title", "create", "floors", "splash", "eula", "intro"]:
-        return
-    var a: float = clampf(level_banner_t * 2.0, 0.0, 1.0) * clampf((3.4 - level_banner_t) * 4.0, 0.0, 1.0)
-    var box := _notice_rect(Vector2(420, 74))
-    _panel(box, Color(0.1, 0.06, 0.12, 0.94 * a), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, a))
-    _title_text("Nivel %d" % player_level, Vector2(box.position.x, box.position.y + 38.0), 36, Color(1.0, 0.9, 0.6, a), box.size.x)
-    _text_outline("+%d VIDA MÁX · +%d %% DAÑO · +%d %% VIGOR" % [int(LEVEL_HP), int(LEVEL_POWER * 100.0), int(LEVEL_VIGOR * 100.0)],
-        Vector2(box.position.x, box.position.y + 62.0), 13, Color(CREAM.r, CREAM.g, CREAM.b, a), box.size.x)
 
 
 # ------------------------------------------------------------ PISO VII · LA QUE NO APARTA LA VISTA
@@ -11477,36 +11197,20 @@ const Botin := preload("res://scripts/botin.gd")
 const CHEST_REACH := 62.0
 var chests_opened: Dictionary = {} # "piso:sala" -> clave del objeto
 var chest_open_t: float = 0.0
-var loot_banner: Dictionary = {} # {key, t}: rótulo grande con el objeto que acabas de conseguir
+## Rótulo grande con el objeto que acabas de conseguir ({key, t, info?, header?}).
+## Lo dibuja y lo descuenta la capa de avisos.
+var loot_banner: Dictionary:
+    get:
+        return avisos.botin if avisos != null else {}
+    set(v):
+        if avisos != null:
+            avisos.botin = v
 
 
 ## Rótulo grande para lo que te da un PNJ (mismo aspecto que el del cofre).
 func _gift_banner(key: String, who: String) -> void:
     var info: Array = Botin.OBJETOS.get(key, [key.to_upper(), "", 2, key])
     loot_banner = {"key": key, "t": 5.0, "info": [str(info[0]), "", int(info[2]), str(info[3])], "header": who}
-
-
-func _draw_loot_banner() -> void:
-    if loot_banner.is_empty() or game_mode in ["title", "create", "floors", "splash", "eula", "intro"]:
-        return
-    if game_mode == "play": # mientras lees la nota o el diálogo, el rótulo espera
-        loot_banner["t"] = float(loot_banner["t"]) - get_process_delta_time()
-    if float(loot_banner["t"]) <= 0.0:
-        loot_banner = {}
-        return
-    var key: String = loot_banner["key"]
-    var info: Array = loot_banner.get("info", Botin.OBJETOS.get(key, [key, "", 1, "alma"]))
-    var a: float = clampf(float(loot_banner["t"]), 0.0, 1.0)
-    var box := _notice_rect(Vector2(360, 74))
-    var tier: int = clampi(int(info[2]), 1, 4)
-    var tier_col: Color = [Color("#9a957f"), SOUL, Color("#a988d0"), Color("#e3bd7b")][tier - 1]
-    _panel(box, Color(0.04, 0.035, 0.05, 0.94 * a), Color(tier_col.r, tier_col.g, tier_col.b, a))
-    var icon: String = str(info[3])
-    if ICONS.has(icon):
-        draw_texture_rect(ICONS[icon], Rect2(box.position + Vector2(12, 13), Vector2(48, 48)), false, Color(1, 1, 1, a))
-    _text_outline(str(loot_banner.get("header", "OBJETO ENCONTRADO")) + " · " + ["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][tier - 1], Vector2(box.position.x + 70.0, box.position.y + 22.0), 11, Color(tier_col.r, tier_col.g, tier_col.b, a))
-    _text_outline(str(info[0]), Vector2(box.position.x + 70.0, box.position.y + 44.0), 17, Color(CREAM.r, CREAM.g, CREAM.b, a))
-    _text_outline("Ya está en tu perfil.", Vector2(box.position.x + 70.0, box.position.y + 62.0), 10, Color(0.62, 0.6, 0.55, a))
 
 
 func _chest_here() -> bool:
@@ -11757,7 +11461,6 @@ func _draw_map_descent() -> void:
         draw_multiline_string(font, Vector2(MAP_PANEL.position.x + 60.0, 560.0), "«%s»" % str(Pisos.FLOOR_TRUTHS[last]), HORIZONTAL_ALIGNMENT_CENTER, MAP_PANEL.size.x - 120.0, 12, 2, Color("#9fb3b3"))
 
 
-
 # ------------------------------------------------------------ PNJ CON VIDA PROPIA
 ## Los aliados tienen vida: las trampas y las entidades también les hacen
 ## daño, y se defienden (empujan a la entidad y aplastan alimañas). Además van
@@ -11880,7 +11583,6 @@ func _ally_hazards(ally: Dictionary, dt: float) -> void:
             _sfx("golpe", -12.0, 1.1)
 
 
-
 # ------------------------------------------------------------ ELECCIONES CLARAS
 ## Ventana con dos opciones grandes (p. ej. guiar o no al grupo del Piso VI).
 ## Teclas 1/2, ←/→ + Enter, toque o mando (cruceta + A; B cancela).
@@ -11991,7 +11693,6 @@ func _draw_guides_request() -> void:
         if player_pos.distance_to(ally["pos"]) < 72.0:
             near = true
     _label_center(_prompt("HABLAR: PIDEN AYUDA") if near else "EL GRUPO PIDE AYUDA", lead + Vector2(0, -118), Color("#ffd36b"))
-
 
 
 # ------------------------------------------------------------ PANTALLA COMPLETA REAL
@@ -12124,6 +11825,9 @@ func _fit_screen() -> void:
     if DisplayServer.get_name() == "headless":
         screen_pad = Vector2.ZERO # sin pantalla (pruebas automáticas): disposición base
     position = screen_pad
+    pantallas.ajustar_margen(screen_pad)
+    ($CapaAvisos as CanvasLayer).offset = screen_pad
+    avisos.margen = screen_pad
     if name_edit != null:
         name_edit.position = NAME_BOX.position + screen_pad
     if mobile_finger < 0:
@@ -12138,6 +11842,7 @@ func _fit_screen() -> void:
             (r as Control).position = Vector2.ZERO
             (r as Control).size = view
     _update_backdrop()
+    _sync_screens()
     queue_redraw()
 
 
@@ -12191,7 +11896,6 @@ func _tb_pos(id: String) -> Vector2:
 ## Joystick: anclado a la esquina inferior izquierda real de la pantalla.
 func _joy_home() -> Vector2:
     return JOY_HOME + Vector2(-screen_pad.x, screen_pad.y)
-
 
 
 # ------------------------------------------------------------ TECLADO DEL MÓVIL

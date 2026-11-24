@@ -1,0 +1,50 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/pantallas/pausa.gd" id="1_pausa"]
+[ext_resource type="Script" path="res://scripts/ui/panel_templo.gd" id="2_panel"]
+[ext_resource type="Script" path="res://scripts/ui/texto_templo.gd" id="3_texto"]
+
+[node name="Pausa" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+script = ExtResource("1_pausa")
+
+[node name="Panel" type="Control" parent="."]
+layout_mode = 0
+offset_left = 300.0
+offset_top = 130.0
+offset_right = 660.0
+offset_bottom = 530.0
+script = ExtResource("2_panel")
+relleno = Color(0.05, 0.06, 0.08, 0.97)
+borde = Color(0.721569, 0.584314, 0.352941, 1)
+
+[node name="Titulo" type="Control" parent="."]
+layout_mode = 0
+offset_left = 300.0
+offset_top = 138.0
+offset_right = 660.0
+offset_bottom = 198.0
+script = ExtResource("3_texto")
+texto = "Pausa"
+tam = 48
+gotico = true
+
+[node name="Lista" type="Control" parent="."]
+layout_mode = 0
+offset_left = 330.0
+offset_top = 210.0
+offset_right = 630.0
+offset_bottom = 520.0
+mouse_filter = 2
+
+[node name="Aviso" type="Control" parent="."]
+layout_mode = 0
+offset_top = 500.0
+offset_right = 960.0
+offset_bottom = 520.0
+script = ExtResource("3_texto")
+tam = 13
+color = Color(0.815686, 0.392157, 0.439216, 1)

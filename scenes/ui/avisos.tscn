@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/avisos.gd" id="1_avisos"]
+
+[node name="CapaAvisos" type="CanvasLayer"]
+layer = 3
+
+[node name="Avisos" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("1_avisos")

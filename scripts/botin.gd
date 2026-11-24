@@ -1,14 +1,12 @@
 extends RefCounted
 ## Botín de la Vigilia: cada fase superada da un objeto al azar que pasa a la
-## campaña (se escribe en el archivo de progreso del personaje). Cuanto más
-## alta la fase, mejor el botín.
+## campaña (se escribe en el progreso del personaje a través del autoload
+## Progreso). Cuanto más alta la fase, mejor el botín.
 ##
 ## Uso:  const Botin := preload("res://scripts/botin.gd")
 ##       var clave := Botin.sortear(fase)
 ##       var texto := Botin.aplicar(clave)
 
-const RUTA := "user://templo_personaje_v03.json"
-const RUTA_PRUEBA := "user://prueba_progreso.json"
 
 ## clave: [nombre, descripción, nivel de botín (1-4), icono]
 const OBJETOS := {
@@ -24,10 +22,6 @@ const OBJETOS := {
 }
 const NIVEL_OBJETO_MAX := 5
 const NIVEL_HABILIDAD_MAX := 5
-
-
-static func ruta() -> String:
-    return RUTA_PRUEBA if Engine.has_meta("modo_prueba") else RUTA
 
 
 ## Nivel de botín según la fase: 1-2 → 1, 3-4 → 2, 5-6 → 3, 7 o más → 4.
@@ -51,11 +45,8 @@ static func sortear(fase: int, rng: RandomNumberGenerator = null) -> String:
 
 ## Aplica el objeto al progreso de la campaña y devuelve su nombre.
 static func aplicar(clave: String) -> String:
-    var datos: Dictionary = {}
-    if FileAccess.file_exists(ruta()):
-        var leido = JSON.parse_string(FileAccess.get_file_as_string(ruta()))
-        if leido is Dictionary:
-            datos = leido
+    var progreso: Node = Engine.get_main_loop().root.get_node("/root/Progreso")
+    var datos: Dictionary = progreso.cargar()
     var bolsa: Dictionary = datos.get("bag", {}) if datos.get("bag", {}) is Dictionary else {}
     var objetos: Array = datos.get("trinkets", []) if datos.get("trinkets", []) is Array else []
     var niveles: Dictionary = datos.get("trinket_levels", {}) if datos.get("trinket_levels", {}) is Dictionary else {}
@@ -77,7 +68,5 @@ static func aplicar(clave: String) -> String:
     datos["bag"] = bolsa
     datos["trinkets"] = objetos
     datos["trinket_levels"] = niveles
-    var archivo := FileAccess.open(ruta(), FileAccess.WRITE)
-    if archivo != null:
-        archivo.store_string(JSON.stringify(datos))
+    progreso.guardar(datos)
     return str(OBJETOS.get(clave, [clave])[0])

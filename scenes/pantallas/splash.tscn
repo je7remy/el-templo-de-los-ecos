@@ -1,0 +1,82 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/pantallas/splash.gd" id="1_splash"]
+[ext_resource type="Script" path="res://scripts/ui/texto_templo.gd" id="2_texto"]
+[ext_resource type="PackedScene" path="res://scenes/ui/boton_templo.tscn" id="3_boton"]
+[ext_resource type="Texture2D" path="res://assets/visual/iconos/engranaje.png" id="4_engranaje"]
+
+[node name="Splash" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+script = ExtResource("1_splash")
+
+[node name="TituloArriba" type="Control" parent="."]
+layout_mode = 0
+offset_top = 234.0
+offset_right = 960.0
+offset_bottom = 324.0
+script = ExtResource("2_texto")
+texto = "El Templo"
+tam = 72
+gotico = true
+
+[node name="TituloAbajo" type="Control" parent="."]
+layout_mode = 0
+offset_top = 294.0
+offset_right = 960.0
+offset_bottom = 384.0
+script = ExtResource("2_texto")
+texto = "de los Ecos"
+tam = 72
+color = Color(0.560784, 0.780392, 0.843137, 1)
+gotico = true
+
+[node name="Subtitulo" type="Control" parent="."]
+layout_mode = 0
+offset_top = 395.0
+offset_right = 960.0
+offset_bottom = 420.0
+script = ExtResource("2_texto")
+tam = 15
+color = Color(0.72549, 0.698039, 0.607843, 1)
+
+[node name="Continuar" type="Control" parent="."]
+layout_mode = 0
+offset_top = 454.0
+offset_right = 960.0
+offset_bottom = 486.0
+script = ExtResource("2_texto")
+tam = 24
+color = Color(0.721569, 0.584314, 0.352941, 1)
+
+[node name="Engranaje" parent="." instance=ExtResource("3_boton")]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 572.0
+offset_right = 68.0
+offset_bottom = 624.0
+variante = "icono"
+icono = ExtResource("4_engranaje")
+girar = true
+
+[node name="AyudaEngranaje" type="Control" parent="."]
+layout_mode = 0
+offset_left = 78.0
+offset_top = 590.0
+offset_right = 300.0
+offset_bottom = 610.0
+script = ExtResource("2_texto")
+centrado = false
+
+[node name="Version" type="Control" parent="."]
+layout_mode = 0
+offset_left = 820.0
+offset_top = 619.0
+offset_right = 950.0
+offset_bottom = 634.0
+script = ExtResource("2_texto")
+tam = 11
+color = Color(0.427451, 0.415686, 0.376471, 1)
+centrado = false
