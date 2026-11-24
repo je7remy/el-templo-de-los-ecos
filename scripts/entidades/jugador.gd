@@ -7,10 +7,16 @@ extends Node2D
 ## aplica el movimiento con las colisiones de la sala, se dejan las siluetas
 ## del esquive y se cuentan los pasos.
 ##
+## Una segunda máquina, «Salud», lleva Vivo, Herido (invulnerable un
+## momento tras un golpe) y Muerto. El jugador guarda su vida, vida máxima,
+## vigor y miedo; herir() aplica un golpe y avisa con «herido», y morir()
+## avisa con «muerto».
+##
 ## La campaña (main.gd) llama a avanzar() cada cuadro de juego con el eje de
 ## los controles y la velocidad de paso (que cambia con Ecos y equipo), y
-## escucha las señales para el sonido y las partículas. La vida, el vigor y
-## el dibujo siguen en main.gd por ahora (docs/ARQUITECTURA.md, fase 3).
+## escucha las señales para el sonido, las partículas y el desenlace. Las
+## reglas que dependen de la partida (regeneración, Ecos, equipo) y el dibujo
+## siguen en main.gd por ahora (docs/ARQUITECTURA.md, fase 3).
 ##
 ## position es la posición de los pies en coordenadas de la sala.
 
@@ -18,6 +24,10 @@ extends Node2D
 signal paso(en: Vector2, esquivando: bool)
 ## Choca de frente contra un objeto sólido.
 signal choque(en: Vector2)
+## Recibe un golpe (ya aplicado a la vida).
+signal herido(cantidad: float)
+## Se queda sin vida y la campaña lo da por muerto.
+signal muerto
 
 const ESQUIVA_TIEMPO := 0.22
 const ESQUIVA_PICO := 640.0 # el esquive arranca rápido…
@@ -40,16 +50,58 @@ var paso_i: int = 0
 var choque_t: float = 0.0 # polvo del choque que queda
 var choque_en: Vector2 = Vector2.ZERO
 
+var vida: float = 100.0 # puede pasar del máximo (vida extra)
+var vida_max: float = 100.0
+var vigor: float = 100.0
+var miedo: float = 0.0 # 0..100
+var invulnerable_t: float = 0.0 # tras un golpe no se recibe otro
+
 ## ¿Se puede estar en ese punto? / ¿Ese punto toca un objeto (no un muro)?
 var _bloqueado: Callable = func(_en: Vector2) -> bool: return false
 var _choca: Callable = func(_en: Vector2) -> bool: return false
 
 @onready var maquina: Node = $Maquina
+@onready var salud: Node = $Salud
 
 
 func _ready() -> void:
     position = Vector2(120, 355)
     maquina.cambiar_a(&"Quieto")
+    salud.cambiar_a(&"Vivo")
+
+
+func estado_salud() -> StringName:
+    return salud.nombre_actual()
+
+
+## Un golpe: resta vida, suma miedo y, si «invulnerable» ≥ 0, deja al jugador
+## a salvo de otro golpe ese tiempo. Avisa con «herido».
+func herir(cantidad: float, miedo_extra: float = 0.0, invulnerable: float = -1.0) -> void:
+    vida -= cantidad
+    if miedo_extra != 0.0:
+        miedo = minf(100.0, miedo + miedo_extra)
+    if invulnerable >= 0.0:
+        invulnerable_t = invulnerable
+    if estado_salud() != &"Muerto":
+        salud.cambiar_a(&"Herido" if invulnerable_t > 0.0 else &"Vivo")
+    herido.emit(cantidad)
+
+
+## Sin vida: la campaña decide antes si algo lo salva (Huesos firmes).
+func morir() -> void:
+    salud.cambiar_a(&"Muerto")
+    muerto.emit()
+
+
+func _actualizar_salud(dt: float) -> void:
+    invulnerable_t = maxf(0.0, invulnerable_t - dt)
+    var quiere: StringName = &"Vivo"
+    if estado_salud() == &"Muerto" and vida <= 0.0:
+        quiere = &"Muerto"
+    elif invulnerable_t > 0.0:
+        quiere = &"Herido"
+    if quiere != estado_salud():
+        salud.cambiar_a(quiere)
 
 
 ## La sala dice dónde no se puede pisar.
@@ -76,6 +128,7 @@ func esquivar(hacia: Vector2) -> void:
 ## Un cuadro de juego. «eje»: controles (longitud ≤ 1); «paso»: velocidad al
 ## andar en px/s.
 func avanzar(dt: float, eje: Vector2, paso_vel: float) -> void:
+    _actualizar_salud(dt)
     esquiva_t = maxf(0.0, esquiva_t - dt)
     for s in siluetas:
         s["t"] = float(s["t"]) + dt

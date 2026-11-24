@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v0.5.17-alpha — 2026-11-24 · Arquitectura por escenas, fase 3b
+
+Sin cambios en las reglas del juego.
+
+- **La salud del jugador vive en su escena**: vida, vida máxima, vigor y miedo, con una segunda máquina de estados, **Salud** (Vivo, Herido, Muerto).
+- Todos los golpes (entidades, trampas, fuego, péndulos, mastines, alimañas, Coloso, Hermano Mayor…) pasan por un solo `herir()`, que aplica el daño, el miedo y la invulnerabilidad y avisa con la señal `herido` (sonido, sacudida y sangre). Quedarse sin vida avisa con `muerto`, que lleva a la pantalla de muerte.
+- El daño es idéntico al de antes: una simulación de 40 salas de 8 pisos, caminando 5 segundos por cada una, da exactamente la misma vida, miedo, posición y muertes.
+- `entidades_test.gd` prueba los golpes, la invulnerabilidad, la muerte y volver a empezar.
+- Versión Android 0.5.17-alpha (código 24).
+
 ## v0.5.16-alpha — 2026-11-24 · Arquitectura por escenas, fase 3a
 
 Sin cambios en las reglas del juego.

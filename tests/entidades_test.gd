@@ -1,6 +1,7 @@
 extends SceneTree
 ## Arquitectura por escenas (fase 3): el jugador y las entidades como escenas
 ## con su máquina de estados. Fase 3a: el jugador (Quieto, Camina, Esquiva).
+## Fase 3b: su salud (Vivo, Herido, Muerto) con las señales herido y muerto.
 
 
 func _initialize() -> void:
@@ -99,6 +100,52 @@ func _run() -> void:
         _fail("El jugador atraviesa el muro izquierdo.")
         return
     print("OK: jugador como escena con máquina de estados (quieto, camina, esquiva).")
+
+    # --- Fase 3b: salud del jugador ------------------------------------------------
+    game.set("mobile_axis", Vector2.ZERO)
+    game.call("_new_run")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    for estado in ["Vivo", "Herido", "Muerto"]:
+        if not bool(jugador.get_node("Salud").call("tiene", StringName(estado))):
+            _fail("La salud del jugador no tiene el estado %s." % estado)
+            return
+    if float(game.get("hp")) != float(jugador.get("vida")) or float(game.get("stamina")) != float(jugador.get("vigor")):
+        _fail("La vida y el vigor de la campaña no son los del jugador.")
+        return
+    var golpes: Array = []
+    jugador.herido.connect(func(c): golpes.append(c))
+    var vida0: float = float(game.get("hp"))
+    game.set("fear", 0.0)
+    game.call("_hurt", 20.0, 10.0, 1.0)
+    if golpes != [20.0] or float(game.get("hp")) != vida0 - 20.0 or float(game.get("fear")) != 10.0:
+        _fail("herir() no aplica el golpe o no avisa con «herido».")
+        return
+    if String(jugador.call("estado_salud")) != "Herido" or float(game.get("shake")) <= 0.0:
+        _fail("Tras un golpe el jugador no pasa a Herido o no tiembla la pantalla.")
+        return
+    for i in range(70):
+        game.call("_update_play", dt)
+    if String(jugador.call("estado_salud")) != "Vivo" or float(game.get("damage_cd")) > 0.0:
+        _fail("Al pasar la invulnerabilidad el jugador no vuelve a Vivo.")
+        return
+    # Sin vida: «muerto», pantalla de muerte y estado Muerto.
+    var muertes: Array = []
+    jugador.muerto.connect(func(): muertes.append(true))
+    game.set("hp", 1.0)
+    game.call("_hurt", 5.0, 0.0, 1.0)
+    game.call("_update_play", dt)
+    if muertes.size() != 1 or game.get("game_mode") != "dead" or String(jugador.call("estado_salud")) != "Muerto":
+        _fail("Sin vida el jugador no muere (señal «muerto» y pantalla de muerte).")
+        return
+    game.call("_new_run")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.call("_update_play", dt)
+    if String(jugador.call("estado_salud")) != "Vivo":
+        _fail("Al empezar otra partida el jugador no vuelve a Vivo.")
+        return
+    print("OK: salud del jugador (vivo, herido, muerto) con las señales herido y muerto.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

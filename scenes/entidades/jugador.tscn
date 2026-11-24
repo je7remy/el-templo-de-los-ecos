@@ -1,10 +1,13 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/entidades/jugador.gd" id="1_jugador"]
 [ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
 [ext_resource type="Script" path="res://scripts/entidades/jugador/quieto.gd" id="3_quieto"]
 [ext_resource type="Script" path="res://scripts/entidades/jugador/camina.gd" id="4_camina"]
 [ext_resource type="Script" path="res://scripts/entidades/jugador/esquiva.gd" id="5_esquiva"]
+[ext_resource type="Script" path="res://scripts/entidades/jugador/vivo.gd" id="6_vivo"]
+[ext_resource type="Script" path="res://scripts/entidades/jugador/herido.gd" id="7_herido"]
+[ext_resource type="Script" path="res://scripts/entidades/jugador/muerto.gd" id="8_muerto"]
 
 [node name="Jugador" type="Node2D"]
 script = ExtResource("1_jugador")
@@ -20,3 +23,15 @@ script = ExtResource("4_camina")
 
 [node name="Esquiva" type="Node" parent="Maquina"]
 script = ExtResource("5_esquiva")
+
+[node name="Salud" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Vivo" type="Node" parent="Salud"]
+script = ExtResource("6_vivo")
+
+[node name="Herido" type="Node" parent="Salud"]
+script = ExtResource("7_herido")
+
+[node name="Muerto" type="Node" parent="Salud"]
+script = ExtResource("8_muerto")

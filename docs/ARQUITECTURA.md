@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.16)
+## Cómo está organizado hoy (v0.5.17)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -12,8 +12,9 @@ Autoloads (project.godot → Globales)
 └── ConfirmarSalida   scenes/confirmar_salida.tscn    «¿Salir del juego?»
 
 scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña y mundo)
-├── Jugador      scenes/entidades/jugador.tscn     posición, dirección y movimiento
-│   └── Maquina  Quieto, Camina, Esquiva           (scripts/entidades/jugador/)
+├── Jugador      scenes/entidades/jugador.tscn     posición, movimiento, vida, vigor y miedo
+│   ├── Maquina  Quieto, Camina, Esquiva           (scripts/entidades/jugador/)
+│   └── Salud    Vivo, Herido, Muerto              señales herido y muerto
 ├── Hud          scenes/ui/hud.tscn                CanvasLayer 1 · piezas en scripts/ui/hud/
 │   └── Piezas   FranjaSuperior, PanelJugador, CartelPiso, Minimapa, FranjaInferior, Mision,
 │                PanelArma, AvisoMision, ContadorAlmas, Fundido, Tutorial, ControlesTactiles
@@ -86,7 +87,7 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 2d | Perfil: mochila, objetos, equipo y Ecos. El equipo sobre el retrato pasa a `scripts/ui/equipo_retrato.gd`. | **Hecha (v0.5.14)** |
 | 2e | El HUD como escena de piezas (`scenes/ui/hud.tscn`): barras, minimapa, misión, arma, rótulos y controles táctiles. | **Hecha (v0.5.15)** |
 | 3a | Jugador como escena (`scenes/entidades/jugador.tscn`) con su máquina de estados Quieto, Camina y Esquiva: posición, dirección, inercia, esquive, colisiones con la sala y señales `paso` y `choque`. `main.gd` le pasa los controles y escucha las señales. | **Hecha (v0.5.16)** |
-| 3b | Vida, vigor, miedo y daño del jugador en su escena, con las señales `herido` y `muerto` y los estados Herido y Muerto. | Pendiente |
+| 3b | Vida, vigor, miedo y daño del jugador en su escena: segunda máquina «Salud» (Vivo, Herido, Muerto), `herir()` para todos los golpes y señales `herido` y `muerto`. La regeneración, los Ecos y el equipo, que dependen de la partida, siguen en `main.gd`. | **Hecha (v0.5.17)** |
 | 3c | Entidades (Ghoul, Testigo, Hechicero, Segador, Tejedora, mastines…) como escenas con su máquina de estados y señales (`herida`, `desterrada`). | Pendiente |
 | 3d | El mundo como nodos con orden por profundidad (`y_sort_enabled`): cada escena (jugador, entidades, objetos) se dibuja sola con `AnimatedSprite2D`, y `main.gd` solo las instancia en la sala. | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
