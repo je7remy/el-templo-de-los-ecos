@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v0.5.15-alpha — 2026-11-24 · Arquitectura por escenas, fase 2e
+
+Sin cambios en las reglas del juego.
+
+- **El HUD es una escena propia** (`scenes/ui/hud.tscn`, capa 1: encima de la sala, debajo de las pantallas), hecha de piezas que se dibujan solas (`scripts/ui/hud/`): franjas, panel del jugador, cartel del piso con las almas, minimapa con los botones de pausa y habilidades, misión y atajos, panel del arma, rótulo de misión, almas de la sala, fundido entre salas, tutorial y controles táctiles. Cada pieza se puede ver y mover en el editor.
+- La campaña decide qué muestra cada pieza y le pasa los datos cada cuadro; los toques sobre el HUD (retrato, pausa, minimapa, habilidades, joystick) funcionan igual que antes.
+- El HUD se sacude con la sala, como antes. Única diferencia visible: el brillo de las antorchas ya no aclara los rótulos que están dentro de la sala.
+- Con esto `main.gd` ya no dibuja ningún menú ni el HUD: queda la campaña y el mundo (unas 10 600 líneas). `pantallas_test.gd` prueba el HUD.
+- Versión Android 0.5.15-alpha (código 22).
+
 ## v0.5.14-alpha — 2026-11-24 · Arquitectura por escenas, fase 2d
 
 Sin cambios en las reglas del juego.
