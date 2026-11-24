@@ -251,6 +251,7 @@ var game_mode: String = "title":
 ## Escenas hijas (main.tscn): pantallas de interfaz y capa de avisos.
 @onready var pantallas: CanvasLayer = $Pantallas
 @onready var avisos: Control = $CapaAvisos/Avisos
+@onready var hud: CanvasLayer = $Hud
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
@@ -1780,59 +1781,6 @@ func _mobile_tap(at: Vector2) -> void:
             _use_pulse()
     queue_redraw()
 
-func _draw_mobile_controls() -> void:
-    if not touch_enabled:
-        return
-    if game_mode != "play":
-        return
-    # Joystick flotante a la izquierda y botones agrupados a la derecha, al
-    # alcance del pulgar (controles de Kenney, CC0, teñidos con la paleta).
-    var idle: bool = mobile_finger < 0
-    draw_texture_rect(JOY_BASE_TEX, Rect2(joy_center - Vector2(76, 76), Vector2(152, 152)), false, Color(0.75, 0.68, 0.8, 0.35 if idle else 0.7))
-    draw_texture_rect(BUTTON_TEX, Rect2(joy_center + mobile_axis * 48.0 - Vector2(30, 30), Vector2(60, 60)), false, Color(0.62, 0.81, 0.83, 0.5 if idle else 0.85))
-    var ctx: Array = _touch_context()
-    for id in TOUCH_BUTTONS:
-        var at: Vector2 = _tb_pos(id)
-        var r: float = TOUCH_BUTTONS[id][1]
-        if id == "resonancia" and not has_pulse:
-            continue
-        var wait: float = 0.0
-        var icon: String = ""
-        var label: String = ""
-        match id:
-            "accion":
-                label = ctx[0]
-                icon = ctx[1]
-                if ctx[2]:
-                    wait = _vigor_wait(10.0)
-            "antorcha":
-                label = "APAGAR" if torch_on else "LUZ"
-                icon = "antorcha_encendida" if torch_on else "antorcha"
-            "esquivar":
-                label = "ESQUIVA"
-                icon = "vigor"
-                wait = _dash_wait()
-            "resonancia":
-                label = "RUGIDO" if _mask_worn() else "ONDA"
-                icon = "resonancia"
-                wait = _vigor_wait(RESONANCE_COST)
-        var ready_b: bool = wait <= 0.0 and (id != "antorcha" or has_torch)
-        var tint := Color(0.85, 0.75, 0.6, 0.72) if ready_b else Color(0.45, 0.42, 0.48, 0.55)
-        if id == "accion" and ctx[3]:
-            tint = Color(1.0, 0.85, 0.5, 0.85 + 0.15 * sin(elapsed * 5.0)) # hay algo con qué interactuar
-        draw_texture_rect(BUTTON_TEX, Rect2(at - Vector2(r, r), Vector2(r * 2.0, r * 2.0)), false, tint)
-        if not ready_b and wait > 0.0:
-            draw_arc(at, r - 6.0, -PI * 0.5, -PI * 0.5 + TAU * (1.0 - wait), 32, SOUL, 3.0)
-        var isz: float = r * 0.8
-        if icon != "" and ICONS.has(icon):
-            draw_texture_rect(ICONS[icon], Rect2(at - Vector2(isz * 0.5, isz * 0.62), Vector2(isz, isz)), false, Color(1, 1, 1, 0.95 if ready_b else 0.5))
-        _text_outline(label, Vector2(at.x - r, at.y + r * 0.62), 13 if id == "accion" else 11, CREAM, r * 2.0)
-        if id == "antorcha" and has_torch and not has_inner_flame:
-            var tag := Rect2(at + Vector2(r * 0.35, -r - 4.0), Vector2(30, 18))
-            _panel(tag, Color("#2a1d22"), UI_GOLD)
-            _text_outline("×%d" % matches, Vector2(tag.position.x, tag.position.y + 14.0), 11, CREAM, tag.size.x)
-
-
 func _buy_upgrade(choice: int) -> void:
     if choice == 2:
         _buy_inner_flame()
@@ -2590,6 +2538,7 @@ func _process(delta: float) -> void:
     _update_fx(delta)
     _update_audio(delta)
     queue_redraw()
+    _update_hud()
 
 
 func _update_play(dt: float) -> void:
@@ -2840,17 +2789,9 @@ func _draw() -> void:
     _begin_world()
     _draw_room()
     _end_world()
-    _draw_topbar()
-    _draw_footer()
-    _draw_mission_banner()
-    _draw_room_souls_counter()
-    _draw_room_fade()
-    # Altar, tienda, elección, diálogo, resumen, muerte/victoria, entrada al
-    # piso y perfil son escenas (scenes/pantallas/), por encima de esto.
-    _draw_tutorial_overlay()
-    _draw_mobile_controls()
-    # Los avisos de nivel y de botín los dibuja la capa de avisos
-    # (scenes/ui/avisos.tscn), encima de cualquier menú.
+    # El HUD es la escena scenes/ui/hud.tscn (capa 1, encima de la sala); las
+    # pantallas (scenes/pantallas/) van encima, y los avisos de nivel y de
+    # botín (scenes/ui/avisos.tscn) encima de todo.
 
 
 func _draw_background() -> void:
@@ -3771,132 +3712,6 @@ func _draw_hand_torch(hand: Vector2) -> void:
     draw_colored_polygon(PackedVector2Array([tip + Vector2(-1.5, -1), tip + Vector2(1.5, -1), tip + Vector2(0, -6)]), Color("#ffd36b"))
 
 
-func _draw_topbar() -> void:
-    ## HUD estilo roguelike de acción: paneles flotantes sobre una franja oscura.
-    _vgradient(Rect2(-screen_pad.x, -screen_pad.y, W + screen_pad.x * 2.0, 112.0 + screen_pad.y), Color(0.02, 0.025, 0.035, 0.96), Color(0.02, 0.025, 0.035, 0.55))
-    _draw_player_panel()
-    _draw_floor_banner()
-    _draw_minimap()
-
-
-## Panel del jugador: retrato, nombre y barras con icono y números.
-func _draw_player_panel() -> void:
-    var panel := Rect2(8, 6, 318, 96)
-    _panel(panel)
-    var frame := Rect2(16, 12, 72, 72)
-    _panel(frame, Color("#1a1f2a"), UI_GOLD)
-    var hurt: bool = hp / max_hp < 0.35
-    var shake_x: float = roundf(sin(elapsed * 40.0)) if damage_cd > 0.9 else 0.0
-    draw_texture_rect(_portrait(hurt), Rect2(frame.position + Vector2(4.0 + shake_x, 4.0), Vector2(64, 64)), false)
-    _draw_portrait_gear(Rect2(frame.position + Vector2(4.0 + shake_x, 4.0), Vector2(64, 64)))
-    if damage_cd > 0.0:
-        draw_rect(frame.grow(-2.0), Color(0.8, 0.05, 0.08, 0.35 * clampf(damage_cd / 1.2, 0.0, 1.0)))
-    # Placa con el nombre bajo el retrato.
-    _panel(Rect2(16, 82, 72, 17), Color("#2a1d22"), UI_GOLD)
-    _text_outline(_hero_name(), Vector2(16, 95), 12, CREAM, 72.0)
-    # Nivel: placa en la esquina del retrato y barra de experiencia.
-    if _mark() != "":
-        var mk := Rect2(54, 6, 34, 18)
-        var bless: bool = _mark() == "bendicion"
-        _panel(mk, Color("#4a3a12") if bless else Color("#4a121a"), Color("#ffd36b") if bless else UI_CRIMSON)
-        _text_outline("BEN" if bless else "MAL", Vector2(mk.position.x, mk.position.y + 14.0), 11, CREAM, mk.size.x)
-    var badge := Rect2(10, 6, 34, 18)
-    _panel(badge, Color("#3b2550"), UI_GOLD)
-    _text_outline("NV%d" % player_level, Vector2(badge.position.x, badge.position.y + 14.0), 11, CREAM, badge.size.x)
-    var xpbar := Rect2(122, 94, 196, 4)
-    draw_rect(xpbar, Color(0, 0, 0, 0.7))
-    draw_rect(Rect2(xpbar.position, Vector2(xpbar.size.x * _xp_fraction(), xpbar.size.y)), Color("#c9a25e").lerp(Color.WHITE, 0.4 * level_flash))
-    var bars := [
-        ["corazon", minf(hp, max_hp), max_hp, BAR_HP, ("%d/%d" % [int(ceil(hp)), int(max_hp)]) if hp <= max_hp else ("%d/%d +%d" % [int(max_hp), int(max_hp), int(ceil(hp - max_hp))])],
-        ["vigor", stamina, 100.0, BAR_VIGOR, "%d/100" % int(stamina)],
-        ["miedo", fear, 100.0, BAR_FEAR, "MIEDO %d%%" % int(fear)],
-    ]
-    for i in range(bars.size()):
-        var y: float = 15.0 + float(i) * 27.0
-        var b: Array = bars[i]
-        draw_texture_rect(ICONS[b[0]], Rect2(96, y - 1.0, 22, 22), false)
-        _px_bar(Rect2(122, y, 196, 20), float(b[1]) / float(b[2]), b[3], b[4])
-    if hp > max_hp:
-        # Vida extra por encima del máximo: franja dorada sobre la barra.
-        var k_over: float = clampf((hp - max_hp) / OVERHEAL_MAX, 0.0, 1.0)
-        draw_rect(Rect2(124, 15, 192.0 * k_over, 4), Color("#ffd36b"))
-        draw_rect(Rect2(122, 15, 196, 20), Color(1.0, 0.85, 0.4, 0.35 + 0.2 * sin(elapsed * 4.0)), false, 2.0)
-    if fear > 70.0:
-        # Al borde del pánico la barra de miedo late.
-        var k: float = 0.5 + 0.5 * sin(elapsed * 9.0)
-        draw_rect(Rect2(121, 68, 198, 22), Color(0.7, 0.3, 1.0, 0.35 * k), false, 2.0)
-
-
-## Cartel del piso y la sala, con el contador de almas.
-func _draw_floor_banner() -> void:
-    var banner := Rect2(336, 6, 288, 58)
-    _panel(banner)
-    var floor_label: String = _floor()["title"] if in_tutorial else "PISO %s · %s" % [_floor()["number"], _floor()["title"]]
-    var banner_title: String = _tc(floor_label)
-    var state_line: String = _floor()["state"]
-    if title_font != null and title_font.get_string_size(banner_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x > banner.size.x - 12.0:
-        # Título largo: el número en gótica y el nombre del piso abajo, en pequeño.
-        banner_title = _tc(floor_label.get_slice(" · ", 0))
-        state_line = floor_label.get_slice(" · ", 1)
-    _title_text(banner_title, Vector2(banner.position.x, 27), 24, UI_GOLD, banner.size.x)
-    _text_outline(_room()["name"], Vector2(banner.position.x, 44), 14, CREAM, banner.size.x)
-    _text_outline(state_line, Vector2(banner.position.x, 58), 10, Color("#8a8574"), banner.size.x)
-    # Almas: icono y número que destella al recoger.
-    var souls_box := Rect2(420, 68, 120, 34)
-    _panel(souls_box)
-    var bounce: float = souls_flash * 6.0
-    draw_texture_rect(ICONS["alma"], Rect2(428, 72.0 - roundf(bounce * 0.5), 26, 26), false)
-    var soul_color: Color = SOUL.lerp(Color.WHITE, clampf(souls_flash / 0.8, 0.0, 1.0))
-    _text_outline("%d" % souls, Vector2(460, 93), 18 + int(round(bounce)), soul_color)
-
-
-## Minimapa del piso: salas en cadena, la actual resaltada.
-func _draw_minimap() -> void:
-    var panel := Rect2(634, 6, 318, 96)
-    _panel(panel)
-    var map_hot: bool = MINIMAP_RECT.has_point(ui_hover)
-    _text_outline("MAPA DEL PISO", Vector2(644, 24), 11, UI_GOLD if map_hot else Color("#8a8574"))
-    _text_outline("M · ampliar" if not DisplayServer.is_touchscreen_available() else "toca: ampliar", Vector2(760, 24), 9, Color("#6d6772"), 128.0)
-    var count: int = _room_count()
-    var cell := Vector2(28, 22)
-    var gap: float = 12.0
-    var total: float = float(count) * cell.x + float(count - 1) * gap
-    var x0: float = roundf(634.0 + (258.0 - total) * 0.5)
-    var y0: float = 40.0
-    for i in range(count):
-        var r := Rect2(x0 + float(i) * (cell.x + gap), y0, cell.x, cell.y)
-        if i < count - 1:
-            draw_rect(Rect2(r.end.x, r.position.y + 9.0, gap, 4.0), UI_GOLD if i < current_room else Color("#2a2e38"))
-        var room: Dictionary = _floor()["rooms"][i]
-        if i < current_room:
-            _panel(r, Color("#3a3f4c"), UI_LIGHT)
-        elif i == current_room:
-            var pulse: float = 0.6 + 0.4 * sin(elapsed * 4.0)
-            _panel(r, Color(0.78, 0.67, 0.43, 0.35 + 0.2 * pulse), UI_GOLD)
-            draw_rect(Rect2(r.get_center() - Vector2(3, 3), Vector2(6, 6)), CREAM)
-        else:
-            _panel(r, Color("#12151c"), Color("#2a2e38"))
-            if i < count - 1:
-                _text_outline("?", Vector2(r.position.x, r.position.y + 16.0), 12, Color("#4a4e5a"), r.size.x)
-        # Marcas: amenaza viva en la sala actual; el final del piso, una calavera.
-        if i == current_room and (_enemy_active() or pilgrim_state in ["tell", "hostile"]):
-            draw_rect(Rect2(r.end.x - 7.0, r.position.y + 3.0, 4, 4), RED)
-        if i == count - 1 and i > current_room:
-            draw_texture_rect(ICONS["calavera"], Rect2(r.position + Vector2(5, 2), Vector2(18, 18)), false, Color(1, 1, 1, 0.8))
-        if "cosecha" in room["traits"] and i <= current_room:
-            draw_texture_rect(ICONS["calavera"], Rect2(r.position + Vector2(-5, -10), Vector2(14, 14)), false)
-    _text_outline("SALA %d/%d" % [current_room + 1, count], Vector2(644, 92), 12, CREAM)
-    _text_outline("ID %03d" % identity_number, Vector2(800, 92), 11, Color("#8a8574"))
-    # Botón de pausa (en móvil vuelve al menú).
-    var pause := Rect2(898, 12, 46, 46)
-    _panel(pause, Color("#1a1f2a"), UI_LIGHT)
-    draw_texture_rect(ICONS["pausa"], Rect2(pause.position + Vector2(7, 7), Vector2(32, 32)), false, Color(1, 1, 1, 0.85))
-    var abil_hot: bool = ABIL_BTN.has_point(ui_hover)
-    _panel(ABIL_BTN, Color("#241a30") if abil_hot else Color("#1a1f2a"), UI_GOLD if abil_hot else UI_LIGHT)
-    draw_texture_rect(ICONS["habilidades"], Rect2(ABIL_BTN.position + Vector2(11, 4), Vector2(24, 24)), false)
-    _text_outline("K", Vector2(ABIL_BTN.end.x - 9.0, ABIL_BTN.end.y - 3.0), 9, UI_GOLD)
-
-
 func _bar(rect: Rect2, fraction: float, color: Color) -> void:
     _px_bar(rect, fraction, color, "")
 
@@ -3914,36 +3729,132 @@ func _text_outline(msg: String, at: Vector2, size: int, color: Color, width: flo
     Estilo.texto(self, msg, at, size, color, width)
 
 
-func _draw_footer() -> void:
-    ## Abajo: misión a la izquierda; arma y habilidades a la derecha.
-    _vgradient(Rect2(-screen_pad.x, 572, W + screen_pad.x * 2.0, 68.0 + screen_pad.y), Color(0.02, 0.025, 0.035, 0.55), Color(0.02, 0.025, 0.035, 0.96))
-    var task: String = _mission_text()
+# ------------------------------------------------------------ HUD
+## El HUD es una escena (scenes/ui/hud.tscn) hecha de piezas que se dibujan
+## solas. Aquí solo se decide qué muestra cada una; los toques sobre él
+## (retrato, pausa, minimapa, habilidades, joystick) se siguen atendiendo
+## en _mobile_tap y _mobile_touch.
+const HUD_HIDDEN_SCREENS := ["title", "create", "floors", "splash", "eula", "intro"]
+
+
+func _update_hud() -> void:
+    if hud == null:
+        return
+    hud.offset = position # se sacude con la sala, como antes
+    var screen: String = settings_return if game_mode == "settings" else game_mode
+    if screen in HUD_HIDDEN_SCREENS:
+        hud.ocultar()
+        return
+    hud.actualizar(_hud_data())
+
+
+func _hud_data() -> Dictionary:
+    var d := {}
+    var dark := Color(0.02, 0.025, 0.035, 0.96)
+    var soft := Color(0.02, 0.025, 0.035, 0.55)
+    d["FranjaSuperior"] = {"rect": Rect2(-screen_pad.x, -screen_pad.y, W + screen_pad.x * 2.0, 112.0 + screen_pad.y), "arriba": dark, "abajo": soft}
+    d["PanelJugador"] = _hud_player()
+    d["CartelPiso"] = _hud_floor()
+    d["Minimapa"] = _hud_minimap()
+    d["FranjaInferior"] = {"rect": Rect2(-screen_pad.x, 572, W + screen_pad.x * 2.0, 68.0 + screen_pad.y), "arriba": soft, "abajo": dark}
     var task_color: Color = SOUL if _room_ready() else CREAM
     if _has("sello") and _enemy_active() and _enemy_kind() == "testigo" and watcher_open and not seal_acquired:
         task_color = RED
     if pilgrim_state in ["tell", "hostile"]:
         task_color = RED
-    var mission := Rect2(8, 580, 568, 34)
-    _panel(mission)
-    draw_colored_polygon(PackedVector2Array([Vector2(22, 597), Vector2(28, 591), Vector2(34, 597), Vector2(28, 603)]), UI_GOLD)
-    _text_outline(task, Vector2(42, 603), 15, task_color)
+    var hint: String = ""
     if not touch_enabled:
         var n := func(a: String) -> String: return _key_label(a)
-        var hint: String = _t("mando_hud") if pad_active else "%s%s%s%s mover · %s/CLIC golpear · %s antorcha · %s esquivar · %s resonancia · %s perfil · %s habilidades · %s pausa" % [
+        hint = _t("mando_hud") if pad_active else "%s%s%s%s mover · %s/CLIC golpear · %s antorcha · %s esquivar · %s resonancia · %s perfil · %s habilidades · %s pausa" % [
             n.call("arriba"), n.call("izquierda"), n.call("abajo"), n.call("derecha"), n.call("interactuar"), n.call("antorcha"),
             n.call("esquivar"), n.call("resonancia"), n.call("perfil"), n.call("habilidades"), n.call("pausa")]
-        _text_outline(hint, Vector2(12, 632), 10, Color("#8d8877"))
-    _draw_weapon_panel()
+    d["Mision"] = {"texto": _mission_text(), "color": task_color, "atajos": hint}
+    if not (touch_enabled and game_mode == "play"): # en móvil esa información está en los botones
+        d["PanelArma"] = _hud_weapon()
+    if mission_banner_t > 0.0:
+        var a: float = clampf(mission_banner_t * 2.0, 0.0, 1.0) * clampf((3.2 - mission_banner_t) * 4.0, 0.0, 1.0)
+        d["AvisoMision"] = {"texto": mission_banner, "alfa": a}
+    if game_mode == "play" and not relics.is_empty():
+        d["ContadorAlmas"] = {"caja": Rect2(ARENA.end.x - 150.0, ARENA.position.y + 6.0, 142.0, 24.0),
+            "recogidas": collected.count(true), "total": relics.size(), "icono": ICONS["alma"]}
+    if fade_t > 0.0:
+        d["Fundido"] = {"caja": ARENA, "k": fade_t / FADE_TIME}
+    if in_tutorial and game_mode == "play":
+        d["Tutorial"] = {"titulo": "%s %d/%d" % [_t("tutorial"), mini(tutorial_step + 1, TUTORIAL_LAST + 1), TUTORIAL_LAST + 1],
+            "texto": _tutorial_text(tutorial_step), "t": elapsed}
+    if touch_enabled and game_mode == "play":
+        d["ControlesTactiles"] = _hud_touch()
+    return d
+
+
+## Panel del jugador: retrato, nombre y barras con icono y números.
+func _hud_player() -> Dictionary:
+    var bars := [
+        [ICONS["corazon"], minf(hp, max_hp) / max_hp, BAR_HP, ("%d/%d" % [int(ceil(hp)), int(max_hp)]) if hp <= max_hp else ("%d/%d +%d" % [int(max_hp), int(max_hp), int(ceil(hp - max_hp))])],
+        [ICONS["vigor"], stamina / 100.0, BAR_VIGOR, "%d/100" % int(stamina)],
+        [ICONS["miedo"], fear / 100.0, BAR_FEAR, "MIEDO %d%%" % int(fear)],
+    ]
+    return {
+        "retrato": _portrait(hp / max_hp < 0.35),
+        "equipo_retrato": _portrait_gear_worn(),
+        "temblor": roundf(sin(elapsed * 40.0)) if damage_cd > 0.9 else 0.0,
+        "herida": clampf(damage_cd / 1.2, 0.0, 1.0) if damage_cd > 0.0 else 0.0,
+        "nombre": _hero_name(),
+        "marca": _mark(),
+        "nivel": player_level,
+        "xp_fraccion": _xp_fraction(),
+        "destello_nivel": level_flash,
+        "barras": bars,
+        "vida_extra": clampf((hp - max_hp) / OVERHEAL_MAX, 0.0, 1.0) if hp > max_hp else -1.0,
+        "miedo_alto": fear > 70.0,
+        "t": elapsed,
+    }
+
+
+## Cartel del piso y la sala, con el contador de almas.
+func _hud_floor() -> Dictionary:
+    var floor_label: String = _floor()["title"] if in_tutorial else "PISO %s · %s" % [_floor()["number"], _floor()["title"]]
+    return {
+        "titulo": _tc(floor_label),
+        "titulo_corto": _tc(floor_label.get_slice(" · ", 0)),
+        "estado": _floor()["state"],
+        "estado_corto": floor_label.get_slice(" · ", 1),
+        "sala": _room()["name"],
+        "almas": souls,
+        "destello": souls_flash,
+        "icono_alma": ICONS["alma"],
+    }
+
+
+## Minimapa del piso: salas en cadena, la actual resaltada.
+func _hud_minimap() -> Dictionary:
+    var count: int = _room_count()
+    var rooms: Array = []
+    for i in range(count):
+        var room: Dictionary = _floor()["rooms"][i]
+        rooms.append({
+            "estado": "pasada" if i < current_room else ("actual" if i == current_room else "futura"),
+            "amenaza": i == current_room and (_enemy_active() or pilgrim_state in ["tell", "hostile"]),
+            "final": i == count - 1 and i > current_room,
+            "cosecha": "cosecha" in room["traits"] and i <= current_room,
+        })
+    return {
+        "resaltado": MINIMAP_RECT.has_point(ui_hover),
+        "ayuda": "M · ampliar" if not DisplayServer.is_touchscreen_available() else "toca: ampliar",
+        "salas": rooms,
+        "sala_texto": "SALA %d/%d" % [current_room + 1, count],
+        "id": identity_number,
+        "boton_habilidades": ABIL_BTN,
+        "habilidades_resaltado": ABIL_BTN.has_point(ui_hover),
+        "icono_calavera": ICONS["calavera"],
+        "icono_pausa": ICONS["pausa"],
+        "icono_habilidades": ICONS["habilidades"],
+        "t": elapsed,
+    }
 
 
 ## Arma equipada (la antorcha) con su «munición» y las habilidades.
-func _draw_weapon_panel() -> void:
-    if touch_enabled and game_mode == "play":
-        return # en móvil esa información está en los botones
-    var panel := Rect2(586, 578, 366, 58)
-    _panel(panel)
-    var slot := Rect2(594, 583, 48, 48)
-    _panel(slot, Color("#1a1f2a"), UI_GOLD if has_torch and torch_on else UI_LIGHT)
+func _hud_weapon() -> Dictionary:
     var icon: String = ("antorcha_encendida" if torch_on else "antorcha") if has_torch else "madera"
     var owned: bool = has_torch or has_wood
     var name_txt: String = "ANTORCHA" if has_torch else ("MADERA" if has_wood else "SIN ARMA")
@@ -3951,16 +3862,64 @@ func _draw_weapon_panel() -> void:
         name_txt = str(WEAPONS[weapon]["name"])
         owned = true
         icon = weapon
-    draw_texture_rect(ICONS[icon], Rect2(slot.position + Vector2(8, 8), Vector2(32, 32)), false, Color.WHITE if owned else Color(0.3, 0.3, 0.3, 0.5))
-    _text_outline(name_txt, Vector2(650, 600), 14, CREAM if owned else Color("#6d6a60"))
-    var ammo: String = "LLAMA INTERIOR" if has_inner_flame else "FÓSFOROS x%s" % _matches_label()
-    var ammo_col: Color = SOUL if has_inner_flame else (Color("#f0c98a") if matches > 0 else RED)
-    draw_texture_rect(ICONS["llama_interior" if has_inner_flame else "fosforos"], Rect2(648, 608, 20, 20), false)
-    _text_outline(ammo, Vector2(672, 624), 12, ammo_col)
-    _draw_torch_fuel()
-    _draw_ability_icon(Rect2(780, 583, 48, 48), "vigor", true, _dash_wait(), _short_key("esquivar"))
-    _draw_ability_icon(Rect2(838, 583, 48, 48), "golpe", (has_torch and torch_on) or weapon != "", maxf(strike_cd / _weapon_stat("cd"), _vigor_wait(_weapon_stat("cost"))), _short_key("interactuar"))
-    _draw_ability_icon(Rect2(896, 583, 48, 48), "resonancia", has_pulse, _vigor_wait(RESONANCE_COST), _short_key("resonancia"))
+    var fuel_max: float = float(_floor().get("fuel", 0.0))
+    var fuel: float = -1.0
+    if fuel_max > 0.0 and has_torch:
+        fuel = clampf(torch_fuel / fuel_max, 0.0, 1.0) if torch_on else 0.0
+    return {
+        "encendida": has_torch and torch_on,
+        "icono": ICONS[icon],
+        "tiene": owned,
+        "nombre": name_txt,
+        "municion": "LLAMA INTERIOR" if has_inner_flame else "FÓSFOROS x%s" % _matches_label(),
+        "color_municion": SOUL if has_inner_flame else (Color("#f0c98a") if matches > 0 else RED),
+        "icono_municion": ICONS["llama_interior" if has_inner_flame else "fosforos"],
+        "combustible": fuel,
+        "habilidades": [
+            [ICONS["vigor"], true, _dash_wait(), _short_key("esquivar")],
+            [ICONS["golpe"], (has_torch and torch_on) or weapon != "", maxf(strike_cd / _weapon_stat("cd"), _vigor_wait(_weapon_stat("cost"))), _short_key("interactuar")],
+            [ICONS["resonancia"], has_pulse, _vigor_wait(RESONANCE_COST), _short_key("resonancia")],
+        ],
+        "t": elapsed,
+    }
+
+
+## Joystick flotante y botones táctiles (dónde están y qué harán ahora).
+func _hud_touch() -> Dictionary:
+    var ctx: Array = _touch_context()
+    var buttons: Array = []
+    for id in TOUCH_BUTTONS:
+        if id == "resonancia" and not has_pulse:
+            continue
+        var r: float = TOUCH_BUTTONS[id][1]
+        var wait: float = 0.0
+        var icon: String = ""
+        var label: String = ""
+        match id:
+            "accion":
+                label = ctx[0]
+                icon = ctx[1]
+                if ctx[2]:
+                    wait = _vigor_wait(10.0)
+            "antorcha":
+                label = "APAGAR" if torch_on else "LUZ"
+                icon = "antorcha_encendida" if torch_on else "antorcha"
+            "esquivar":
+                label = "ESQUIVA"
+                icon = "vigor"
+                wait = _dash_wait()
+            "resonancia":
+                label = "RUGIDO" if _mask_worn() else "ONDA"
+                icon = "resonancia"
+                wait = _vigor_wait(RESONANCE_COST)
+        var ready_b: bool = wait <= 0.0 and (id != "antorcha" or has_torch)
+        var tint := Color(0.85, 0.75, 0.6, 0.72) if ready_b else Color(0.45, 0.42, 0.48, 0.55)
+        if id == "accion" and ctx[3]:
+            tint = Color(1.0, 0.85, 0.5, 0.85 + 0.15 * sin(elapsed * 5.0)) # hay algo con qué interactuar
+        buttons.append({"pos": _tb_pos(id), "radio": r, "icono": ICONS[icon] if icon != "" and ICONS.has(icon) else null,
+            "etiqueta": label, "tam": 13 if id == "accion" else 11, "listo": ready_b, "espera": wait, "tinte": tint,
+            "fosforos": matches if id == "antorcha" and has_torch and not has_inner_flame else -1})
+    return {"centro": joy_center, "eje": mobile_axis, "quieto": mobile_finger < 0, "botones": buttons}
 
 
 ## Objetivo de la sala para el pie de pantalla.
@@ -3998,29 +3957,6 @@ func _mission_text() -> String:
     if current_floor == 0:
         return "MISIÓN: Recuperar el sello del Testigo"
     return "LA PUERTA ESTÁ ABIERTA" if _room_ready() else "BUSCA LA SALIDA"
-
-
-func _draw_ability_icon(box: Rect2, key: String, ready_to_use: bool, cooldown: float, hotkey: String) -> void:
-    ## Botón de habilidad redondo; la recuperación se ve como un reloj que se vacía.
-    var c: Vector2 = box.get_center()
-    var r: float = box.size.x * 0.5
-    draw_circle(c + Vector2(1, 2), r, Color(0, 0, 0, 0.45))
-    draw_circle(c, r, UI_EDGE)
-    draw_circle(c, r - 2.0, Color("#1a1f2a"))
-    draw_texture_rect(ICONS[key], Rect2(c - Vector2(16, 16), Vector2(32, 32)), false, Color.WHITE if ready_to_use else Color(0.3, 0.3, 0.3, 0.55))
-    if ready_to_use and cooldown > 0.0:
-        var k: float = clampf(cooldown, 0.0, 1.0)
-        var pts := PackedVector2Array([c])
-        for i in range(25):
-            pts.append(c + Vector2.from_angle(-PI * 0.5 + TAU * k * float(i) / 24.0) * (r - 2.0))
-        draw_colored_polygon(pts, Color(0.02, 0.03, 0.05, 0.72))
-    var ready_now: bool = ready_to_use and cooldown <= 0.0
-    draw_arc(c, r - 1.0, 0.0, TAU, 32, UI_GOLD if ready_now else UI_LIGHT, 2.0)
-    if ready_now:
-        draw_arc(c, r + 1.5, 0.0, TAU, 32, Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.25 + 0.2 * sin(elapsed * 5.0)), 2.0)
-    var badge := Rect2(box.end.x - 15.0, box.end.y - 15.0, 16, 16)
-    _panel(badge, Color("#2a1d22"), UI_GOLD)
-    _text_outline(hotkey, Vector2(badge.position.x, badge.end.y - 4.0), 11, CREAM, badge.size.x)
 
 
 ## ---- Actualizaciones -------------------------------------------------------
@@ -5672,16 +5608,6 @@ func _update_tutorial(dt: float) -> void:
             _say("Toma una antorcha de práctica." if Ajustes.obtener("idioma") == "es" else "Take a practice torch.", 2.5)
 
 
-func _draw_tutorial_overlay() -> void:
-    if not in_tutorial or game_mode != "play":
-        return
-    var box := Rect2(230, 146, 500, 52)
-    var pulse: float = 0.5 + 0.5 * sin(elapsed * 4.0)
-    _panel(box, Color(0.05, 0.06, 0.08, 0.93), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, 0.7 + 0.3 * pulse))
-    _text_outline("%s %d/%d" % [_t("tutorial"), mini(tutorial_step + 1, TUTORIAL_LAST + 1), TUTORIAL_LAST + 1], Vector2(box.position.x, box.position.y + 18.0), 11, UI_GOLD, box.size.x)
-    _text_outline(_tutorial_text(tutorial_step), Vector2(box.position.x, box.position.y + 40.0), 15, CREAM, box.size.x)
-
-
 ## Muñeco de entrenamiento: poste y saco relleno de paja, con diana pintada.
 func _draw_dummy() -> void:
     var p := DUMMY_POS + Vector2(sin(elapsed * 50.0) * 3.0 * dummy_shake * 4.0, 0.0)
@@ -6818,15 +6744,6 @@ func _complete_mission() -> void:
     _sfx("sello", -6.0, 1.2)
 
 
-func _draw_mission_banner() -> void:
-    if mission_banner_t <= 0.0:
-        return
-    var a: float = clampf(mission_banner_t * 2.0, 0.0, 1.0) * clampf((3.2 - mission_banner_t) * 4.0, 0.0, 1.0)
-    var box := Rect2(220, 186, 520, 44)
-    _panel(box, Color(0.08, 0.07, 0.04, 0.92 * a), Color(UI_GOLD.r, UI_GOLD.g, UI_GOLD.b, a))
-    _text_outline(mission_banner, Vector2(box.position.x, box.position.y + 28.0), 15, Color(CREAM.r, CREAM.g, CREAM.b, a), box.size.x)
-
-
 # --- Diálogos ----------------------------------------------------------------------
 ## Conversaciones al entrar en salas con más personajes. «{yo}» es tu nombre.
 ## Las líneas de quien ya no está (aliado muerto, sin Peregrino) se omiten.
@@ -7175,13 +7092,6 @@ func _draw_fog() -> void:
                 var src := Rect2(x0 - x, 0, x1 - x0, 128)
                 draw_texture_rect_region(FOG_TEX, Rect2(x0, y, x1 - x0, 150), src, Color(tint.r, tint.g, tint.b, alpha))
             x += 256.0
-
-
-func _draw_room_fade() -> void:
-    if fade_t <= 0.0:
-        return
-    var k: float = fade_t / FADE_TIME
-    draw_rect(ARENA, Color(0.01, 0.005, 0.015, k * k))
 
 
 # --- Menú de pisos -------------------------------------------------------------
@@ -7569,19 +7479,6 @@ func _update_door_celebration() -> void:
 
 
 # --- Contador de almas de la sala --------------------------------------------
-func _draw_room_souls_counter() -> void:
-    if game_mode != "play" or relics.is_empty():
-        return
-    var got: int = 0
-    for c in collected:
-        if c:
-            got += 1
-    var box := Rect2(ARENA.end.x - 150.0, ARENA.position.y + 6.0, 142.0, 24.0)
-    _panel(box, Color(0.035, 0.03, 0.045, 0.7), UI_EDGE)
-    draw_texture_rect(ICONS["alma"], Rect2(box.position + Vector2(6, 2), Vector2(20, 20)), false)
-    _text_outline("ALMAS %d/%d" % [got, relics.size()], Vector2(box.position.x + 30.0, box.position.y + 17.0), 12, SOUL if got == relics.size() else CREAM)
-
-
 # --- Resumen del piso -------------------------------------------------------------
 func _open_floor_summary(eco: String) -> void:
     var done: int = 0
@@ -8261,16 +8158,6 @@ func _draw_labyrinth_glow() -> void:
         var head: Vector2 = Vector2(h["pos"]) + Vector2(10.0 if int(h["facing"]) == 2 else (-10.0 if int(h["facing"]) == 3 else 0.0), -20.0)
         draw_circle(head, 4.0, Color(0.95, 0.92, 0.85, 0.12))
         draw_rect(Rect2(head.round() - Vector2(1, 1), Vector2(2, 2)), Color(0.95, 0.92, 0.85, 0.55))
-
-
-func _draw_torch_fuel() -> void:
-    var fuel_max: float = float(_floor().get("fuel", 0.0))
-    if fuel_max <= 0.0 or not has_torch:
-        return
-    var bar := Rect2(596, 628, 44, 4)
-    draw_rect(bar, Color(0, 0, 0, 0.7))
-    var k: float = clampf(torch_fuel / fuel_max, 0.0, 1.0) if torch_on else 0.0
-    draw_rect(Rect2(bar.position, Vector2(bar.size.x * k, bar.size.y)), Color("#ff9a3c") if k > 0.25 else Color("#d1474f"))
 
 
 # ------------------------------------------------------------ PISO VI · LA OFRENDA

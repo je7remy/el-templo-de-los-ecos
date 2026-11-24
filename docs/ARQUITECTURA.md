@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.14)
+## Cómo está organizado hoy (v0.5.15)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -11,7 +11,10 @@ Autoloads (project.godot → Globales)
 ├── Escenas           scenes/autoload/escenas.tscn    cambio de escena con pantalla de carga real
 └── ConfirmarSalida   scenes/confirmar_salida.tscn    «¿Salir del juego?»
 
-scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña, mundo, HUD y menús aún no migrados)
+scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña y mundo)
+├── Hud          scenes/ui/hud.tscn                CanvasLayer 1 · piezas en scripts/ui/hud/
+│   └── Piezas   FranjaSuperior, PanelJugador, CartelPiso, Minimapa, FranjaInferior, Mision,
+│                PanelArma, AvisoMision, ContadorAlmas, Fundido, Tutorial, ControlesTactiles
 ├── Pantallas    scenes/pantallas/pantallas.tscn   CanvasLayer 2 · gestor de pantallas
 │   └── Maquina  scripts/comun/maquina_estados.gd  una pantalla activa a la vez
 │       ├── Splash   scenes/pantallas/splash.tscn
@@ -39,6 +42,7 @@ Piezas de interfaz reutilizables (`scenes/ui/` y `scripts/ui/`):
 | `texto_templo.gd`, `parrafo_templo.gd`, `panel_templo.gd`, `adorno_templo.gd` | Texto pixel o gótico, párrafo con saltos de línea, panel ornamentado y filete dorado como nodos colocables en el editor. |
 | `scripts/datos/textos.gd` | Todos los textos en español e inglés y los textos legales. Las escenas los piden con `Textos.t("clave")`. |
 | `equipo_retrato.gd` | Casco, peto, amuleto y máscara dibujados sobre el retrato; lo comparten el panel del jugador y el perfil. |
+| `hud.tscn` | HUD de la partida: cada pieza (`scripts/ui/hud/`) es un nodo que se dibuja solo con sus datos. La campaña le pasa `{pieza: datos}` cada cuadro; sin datos, la pieza no se ve. Los toques sobre el HUD los sigue atendiendo `main.gd`. |
 | `avisos.tscn` | Mensaje breve, «Nivel N» y objeto conseguido, siempre por encima de cualquier pantalla. |
 | `pantalla_carga.gd` | Barra con el progreso real de `ResourceLoader.load_threaded_request`. |
 
@@ -78,7 +82,7 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 2b | Pantallas de la partida: diálogos, elección, entrada y resumen del piso, muerte y victoria, altar y tienda (con la ficha de la Vigilia). | **Hecha (v0.5.12)** |
 | 2c | Intro, creación del personaje, habilidades y mapa. | **Hecha (v0.5.13)** |
 | 2d | Perfil: mochila, objetos, equipo y Ecos. El equipo sobre el retrato pasa a `scripts/ui/equipo_retrato.gd`. | **Hecha (v0.5.14)** |
-| 2e | El HUD (barra superior e inferior, minimapa, controles táctiles) como escena `Control`. | Pendiente |
+| 2e | El HUD como escena de piezas (`scenes/ui/hud.tscn`): barras, minimapa, misión, arma, rótulos y controles táctiles. | **Hecha (v0.5.15)** |
 | 3 | Jugador y entidades como escenas: `CharacterBody2D` + `AnimatedSprite2D` + áreas de colisión y señales (`herido`, `muerto`), con su máquina de estados. `main.gd` solo las instancia en la sala. | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |

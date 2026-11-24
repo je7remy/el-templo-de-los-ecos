@@ -1,0 +1,134 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud/hud.gd" id="1_hud"]
+[ext_resource type="Script" path="res://scripts/ui/hud/aviso_mision.gd" id="2_aviso_mision"]
+[ext_resource type="Script" path="res://scripts/ui/hud/cartel_piso.gd" id="3_cartel_piso"]
+[ext_resource type="Script" path="res://scripts/ui/hud/contador_almas.gd" id="4_contador_almas"]
+[ext_resource type="Script" path="res://scripts/ui/hud/controles_tactiles.gd" id="5_controles_tactiles"]
+[ext_resource type="Script" path="res://scripts/ui/hud/franja.gd" id="6_franja"]
+[ext_resource type="Script" path="res://scripts/ui/hud/fundido.gd" id="7_fundido"]
+[ext_resource type="Script" path="res://scripts/ui/hud/minimapa.gd" id="8_minimapa"]
+[ext_resource type="Script" path="res://scripts/ui/hud/mision.gd" id="9_mision"]
+[ext_resource type="Script" path="res://scripts/ui/hud/panel_arma.gd" id="10_panel_arma"]
+[ext_resource type="Script" path="res://scripts/ui/hud/panel_jugador.gd" id="11_panel_jugador"]
+[ext_resource type="Script" path="res://scripts/ui/hud/tutorial.gd" id="12_tutorial"]
+
+[node name="Hud" type="CanvasLayer"]
+layer = 1
+script = ExtResource("1_hud")
+
+[node name="Piezas" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+texture_filter = 1
+
+[node name="FranjaSuperior" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("6_franja")
+
+[node name="PanelJugador" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("11_panel_jugador")
+
+[node name="CartelPiso" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("3_cartel_piso")
+
+[node name="Minimapa" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("8_minimapa")
+
+[node name="FranjaInferior" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("6_franja")
+
+[node name="Mision" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("9_mision")
+
+[node name="PanelArma" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("10_panel_arma")
+
+[node name="AvisoMision" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("2_aviso_mision")
+
+[node name="ContadorAlmas" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("4_contador_almas")
+
+[node name="Fundido" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("7_fundido")
+
+[node name="Tutorial" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("12_tutorial")
+
+[node name="ControlesTactiles" type="Control" parent="Piezas"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("5_controles_tactiles")

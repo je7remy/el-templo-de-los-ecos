@@ -416,6 +416,56 @@ func _run() -> void:
         _fail("Tocar fuera no cierra el perfil.")
         return
     print("OK: perfil (mochila, objetos, equipo y Ecos) como escena.")
+
+    # --- Fase 2e: HUD como escena ---------------------------------------------------
+    var hud: CanvasLayer = game.get_node("Hud")
+    if not (int(hud.layer) > 0 and int(hud.layer) < int((pantallas as CanvasLayer).layer)):
+        _fail("El HUD debe ir encima de la sala y debajo de las pantallas.")
+        return
+    game.set("touch_enabled", false)
+    game.set("souls", 23)
+    await process_frame
+    var piezas := ["FranjaSuperior", "PanelJugador", "CartelPiso", "Minimapa", "FranjaInferior", "Mision", "PanelArma"]
+    for nombre in piezas:
+        if not (hud.call("pieza", StringName(nombre)) as Control).visible:
+            _fail("La pieza %s del HUD no se ve al jugar." % nombre)
+            return
+    if int((hud.call("pieza", &"CartelPiso") as Control).get("d").get("almas", -1)) != 23:
+        _fail("El cartel del HUD no muestra las almas.")
+        return
+    if ((hud.call("pieza", &"Minimapa") as Control).get("d").get("salas", []) as Array).size() != int(game.call("_room_count")):
+        _fail("El minimapa del HUD no tiene todas las salas.")
+        return
+    if (hud.call("pieza", &"ControlesTactiles") as Control).visible:
+        _fail("Los controles táctiles se ven sin pantalla táctil.")
+        return
+    game.set("touch_enabled", true)
+    await process_frame
+    if not (hud.call("pieza", &"ControlesTactiles") as Control).visible or (hud.call("pieza", &"PanelArma") as Control).visible:
+        _fail("En móvil, el HUD debe mostrar los botones táctiles en lugar del panel del arma.")
+        return
+    game.set("touch_enabled", false)
+    game.set("mission_banner", "PRUEBA")
+    game.set("mission_banner_t", 1.0)
+    game.set("fade_t", 0.2)
+    await process_frame
+    if not (hud.call("pieza", &"AvisoMision") as Control).visible or not (hud.call("pieza", &"Fundido") as Control).visible:
+        _fail("El rótulo de misión o el fundido de la sala no aparecen en el HUD.")
+        return
+    game.set("mission_banner_t", 0.0)
+    game.set("fade_t", 0.0)
+    game.set("shake", 0.5)
+    await process_frame
+    if (hud as CanvasLayer).offset != (game as Node2D).position:
+        _fail("El HUD no se sacude con la sala.")
+        return
+    game.set("shake", 0.0)
+    game.set("game_mode", "title")
+    await process_frame
+    if (hud.call("pieza", &"PanelJugador") as Control).visible:
+        _fail("El HUD se ve en el menú principal.")
+        return
+    print("OK: HUD (barras, minimapa, misión, arma y controles táctiles) como escena.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
