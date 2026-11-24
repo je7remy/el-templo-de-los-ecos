@@ -9,6 +9,13 @@ required = ["project.godot", "scenes/main.tscn", "scenes/defense.tscn",
             "tests/smoke_test.gd", "tests/visual_asset_test.gd",
             "assets/visual/protagonist_sheet.png",
             "assets/branding/icon.svg", "assets/branding/logo.svg"]
+# Arquitectura por escenas (docs/ARQUITECTURA.md): autoloads y pantallas.
+required += ["scripts/autoload/eventos.gd", "scripts/autoload/progreso.gd",
+             "scenes/autoload/escenas.tscn", "scripts/comun/maquina_estados.gd",
+             "scenes/pantallas/pantallas.tscn", "scenes/pantallas/splash.tscn",
+             "scenes/pantallas/titulo.tscn", "scenes/pantallas/pausa.tscn",
+             "scenes/ui/avisos.tscn", "scenes/ui/boton_templo.tscn",
+             "tests/pantallas_test.gd"]
 required += [f"assets/knowledge/rooms/room_{i}.png" for i in range(5)]
 required += [f"assets/visual/rooms/room_{i}.png" for i in range(5)]
 required += [f"assets/gothic_enemies/angel_{i}.png" for i in range(1, 9)]

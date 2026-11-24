@@ -1,5 +1,19 @@
 # Historial de versiones
 
+## v0.5.10-alpha — 2026-11-24 · Arquitectura por escenas, fase 1
+
+Sin cambios en las reglas del juego: es una reorganización del código (ver `docs/ARQUITECTURA.md`).
+
+- **Autoloads nuevos:** `Eventos` (bus de señales), `Progreso` (el único que lee y escribe la partida; el botín de la Vigilia también pasa por él) y `Escenas` (cambio de escena con **pantalla de carga real**: fundido y barra con el progreso de la carga en segundo plano). Ir a la Vigilia y volver ya la usa.
+- **Inicio, menú principal y pausa son escenas propias** (`scenes/pantallas/`), con botones de verdad: ratón, toque, teclado y mando van por la interfaz de Godot. Las gobierna un gestor con una **máquina de estados** genérica (`scripts/comun/maquina_estados.gd`), que servirá también para el jugador y las entidades.
+- **Capa de avisos** (`scenes/ui/avisos.tscn`): el mensaje breve y los rótulos de nivel y de objeto, siempre por encima de cualquier menú.
+- **Estilo común** (`scripts/ui/estilo.gd`): paneles, textos y botones se dibujan igual en las escenas y en `main.gd`. El menú, la pausa y el inicio se ven como antes.
+- En el menú y la pausa, el botón con el foco se resalta (para jugar con teclado o mando). En la pausa, la cruceta da la vuelta de la última opción a la primera.
+- El aviso de versión nueva es un componente propio del menú.
+- La pantalla de inicio muestra la versión real del juego (antes decía «v0.9 · demo»).
+- `main.gd` pierde unas 290 líneas de menús. Prueba nueva `tests/pantallas_test.gd`, que pulsa los botones de verdad.
+- Versión Android 0.5.10-alpha (código 17).
+
 ## v0.5.9-alpha — 2026-11-23 · Actualizaciones automáticas en Android, Windows y Linux
 
 - **El juego avisa y se actualiza solo.** Al abrir una copia instalada, consulta las versiones publicadas en GitHub. Si hay una más nueva, el menú muestra «NUEVA VERSIÓN … DISPONIBLE» con ACTUALIZAR y AHORA NO (también la tecla **U**):

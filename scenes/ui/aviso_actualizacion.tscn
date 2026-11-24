@@ -1,0 +1,33 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/aviso_actualizacion.gd" id="1_aviso"]
+[ext_resource type="PackedScene" path="res://scenes/ui/boton_templo.tscn" id="2_boton"]
+
+[node name="AvisoActualizacion" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 662.0
+offset_bottom = 54.0
+script = ExtResource("1_aviso")
+
+[node name="Aceptar" parent="." instance=ExtResource("2_boton")]
+layout_mode = 0
+offset_left = 425.0
+offset_top = 10.0
+offset_right = 545.0
+offset_bottom = 44.0
+variante = "chico"
+relleno = Color(0.0784314, 0.0980392, 0.133333, 1)
+borde = Color(0.721569, 0.584314, 0.352941, 1)
+relleno_activo = Color(0.172549, 0.227451, 0.164706, 1)
+
+[node name="Descartar" parent="." instance=ExtResource("2_boton")]
+layout_mode = 0
+offset_left = 553.0
+offset_top = 10.0
+offset_right = 653.0
+offset_bottom = 44.0
+variante = "chico"
+relleno = Color(0.0784314, 0.0980392, 0.133333, 1)
+borde = Color(0.356863, 0.321569, 0.384314, 1)
+relleno_activo = Color(0.133333, 0.172549, 0.223529, 1)

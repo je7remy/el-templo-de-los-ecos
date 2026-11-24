@@ -9,12 +9,16 @@ func _initialize() -> void:
     call_deferred("_run")
 
 func _run() -> void:
+    # Sin pantalla la ventana mide 64 × 64: se le da el tamaño del juego para
+    # que los toques caigan sobre los botones de las pantallas.
+    root.size = Vector2i(960, 640)
     var a: PackedScene = load("res://scenes/main.tscn")
     var game: Node = a.instantiate()
     root.add_child(game)
-    # Primer toque: la pantalla de inicio da paso al menú (y al acuerdo la primera vez).
-    game.call("_mobile_touch", 1, Vector2(480, 300), true)
-    game.call("_mobile_touch", 1, Vector2(480, 300), false)
+    await process_frame
+    # Primer toque: la pantalla de inicio (una escena con nodos de interfaz)
+    # da paso al menú, y al acuerdo la primera vez.
+    _tocar(Vector2(480, 300))
     if game.get("game_mode") == "eula":
         game.call("_mobile_touch", 1, Vector2(300, 399), true) # ACEPTAR
         game.call("_mobile_touch", 1, Vector2(300, 399), false)
@@ -27,8 +31,7 @@ func _run() -> void:
     Ajustes.poner("tutorial_hecho", true)
     # Sin personaje guardado, EXPLORAR abre la creación: nombre y luego género.
     game.set("player_name", "")
-    game.call("_mobile_touch", 1, Vector2(300, 470), true) # JUGAR
-    game.call("_mobile_touch", 1, Vector2(300, 470), false)
+    _tocar(Vector2(300, 470)) # botón JUGAR del menú
     if game.get("game_mode") != "floors":
         _fail("JUGAR no abre el menú de pisos.")
         return
@@ -145,3 +148,22 @@ func _run() -> void:
 func _fail(reason: String) -> void:
     push_error(reason)
     quit(1)
+
+
+## Un dedo en la pantalla, como en un móvil: el toque (lo usa el juego) y el
+## clic que Godot emula a partir de él (lo usan los botones de interfaz).
+func _tocar(at: Vector2) -> void:
+    for pressed in [true, false]:
+        var t := InputEventScreenTouch.new()
+        t.index = 0
+        t.position = at
+        t.pressed = pressed
+        root.push_input(t)
+        var m := InputEventMouseButton.new()
+        m.device = InputEvent.DEVICE_ID_EMULATION
+        m.button_index = MOUSE_BUTTON_LEFT
+        m.position = at
+        m.global_position = at
+        m.pressed = pressed
+        m.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+        root.push_input(m)

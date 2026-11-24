@@ -70,7 +70,7 @@ func _run_checks() -> void:
     if game.get("game_mode") != "pause":
         _fail("No se puede pausar el juego.")
         return
-    game.call("_pause_key", KEY_ESCAPE)
+    _key(KEY_ESCAPE) # la pausa es una escena: ESC le llega por la interfaz
     if game.get("game_mode") != "play" or not bool(game.get("tut_paused")):
         _fail("La pausa no vuelve al juego.")
         return
@@ -621,7 +621,7 @@ func _run_checks() -> void:
         return
     _pad(game, JOY_BUTTON_START)
     _pad(game, JOY_BUTTON_DPAD_DOWN)
-    if game.get("game_mode") != "pause" or int(game.get("pause_sel")) != 1:
+    if game.get("game_mode") != "pause" or int(game.get_node("Pantallas/Maquina/Pausa").call("seleccion")) != 1:
         _fail("START no pausa o la cruceta no mueve el menú de pausa.")
         return
     _pad(game, JOY_BUTTON_B)
@@ -1788,11 +1788,21 @@ func _fail(message: String) -> void:
     quit(1)
 
 
-func _pad(game: Node, button: int) -> void:
+## El botón del mando entra por la ventana, como uno de verdad: le llega al
+## juego y a las pantallas hechas con nodos de interfaz (pausa, menú…).
+func _pad(_game: Node, button: int) -> void:
     var e := InputEventJoypadButton.new()
     e.button_index = button
     e.pressed = true
-    game.call("_input", e)
+    root.push_input(e)
+
+
+func _key(k: Key) -> void:
+    var e := InputEventKey.new()
+    e.keycode = k
+    e.physical_keycode = k
+    e.pressed = true
+    root.push_input(e)
 
 
 func _pad_axis(game: Node, axis: int, value: float) -> void:

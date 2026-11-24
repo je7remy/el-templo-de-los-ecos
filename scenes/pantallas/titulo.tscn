@@ -1,0 +1,201 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/pantallas/titulo.gd" id="1_titulo"]
+[ext_resource type="Script" path="res://scripts/ui/panel_templo.gd" id="2_panel"]
+[ext_resource type="Script" path="res://scripts/ui/texto_templo.gd" id="3_texto"]
+[ext_resource type="Script" path="res://scripts/ui/adorno_templo.gd" id="4_adorno"]
+[ext_resource type="PackedScene" path="res://scenes/ui/boton_templo.tscn" id="5_boton"]
+[ext_resource type="PackedScene" path="res://scenes/ui/aviso_actualizacion.tscn" id="6_aviso"]
+[ext_resource type="Texture2D" path="res://assets/branding/icon.svg" id="7_marca"]
+[ext_resource type="Texture2D" path="res://assets/visual/iconos/antorcha_encendida.png" id="8_antorcha"]
+[ext_resource type="Texture2D" path="res://assets/visual/iconos/descansar.png" id="9_descansar"]
+[ext_resource type="Texture2D" path="res://assets/visual/iconos/engranaje.png" id="10_engranaje"]
+
+[node name="Titulo" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+script = ExtResource("1_titulo")
+
+[node name="Panel" type="Control" parent="."]
+layout_mode = 0
+offset_left = 149.0
+offset_top = 150.0
+offset_right = 811.0
+offset_bottom = 560.0
+script = ExtResource("2_panel")
+relleno = Color(0.045, 0.055, 0.07, 0.95)
+borde = Color(0.721569, 0.584314, 0.352941, 1)
+linea_interior = Color(0.227451, 0.247059, 0.298039, 1)
+
+[node name="Marca" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 443.0
+offset_top = 164.0
+offset_right = 517.0
+offset_bottom = 238.0
+mouse_filter = 2
+texture = ExtResource("7_marca")
+expand_mode = 1
+
+[node name="Nombre" type="Control" parent="."]
+layout_mode = 0
+offset_left = 149.0
+offset_top = 252.0
+offset_right = 811.0
+offset_bottom = 312.0
+script = ExtResource("3_texto")
+texto = "El Templo de los Ecos"
+tam = 48
+gotico = true
+
+[node name="Adorno" type="Control" parent="."]
+layout_mode = 0
+offset_left = 330.0
+offset_top = 314.0
+offset_right = 630.0
+offset_bottom = 322.0
+script = ExtResource("4_adorno")
+
+[node name="Lema" type="Control" parent="."]
+layout_mode = 0
+offset_left = 149.0
+offset_top = 348.0
+offset_right = 811.0
+offset_bottom = 368.0
+script = ExtResource("3_texto")
+texto = "DESPIERTAS A OSCURAS. NADIE TE DICE POR QUÉ."
+
+[node name="Linea" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 318.0
+offset_top = 376.0
+offset_right = 642.0
+offset_bottom = 378.0
+mouse_filter = 2
+color = Color(0.504698, 0.40902, 0.247059, 1)
+
+[node name="Genero" type="Control" parent="."]
+layout_mode = 0
+offset_left = 149.0
+offset_top = 386.0
+offset_right = 811.0
+offset_bottom = 402.0
+script = ExtResource("3_texto")
+tam = 12
+color = Color(0.560784, 0.780392, 0.843137, 1)
+
+[node name="Frase" type="Control" parent="."]
+layout_mode = 0
+offset_left = 149.0
+offset_top = 407.0
+offset_right = 811.0
+offset_bottom = 427.0
+script = ExtResource("3_texto")
+texto = "No conoces las reglas. Aún."
+tam = 15
+color = Color(0.72549, 0.698039, 0.607843, 1)
+
+[node name="Jugar" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 190.0
+offset_top = 440.0
+offset_right = 520.0
+offset_bottom = 504.0
+focus_neighbor_right = NodePath("../Vigilia")
+variante = "grande"
+texto = "JUGAR"
+icono = ExtResource("8_antorcha")
+relleno = Color(0.231373, 0.145098, 0.313726, 1)
+borde = Color(0.662745, 0.533333, 0.815686, 1)
+
+[node name="Vigilia" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 540.0
+offset_top = 440.0
+offset_right = 770.0
+offset_bottom = 504.0
+focus_neighbor_left = NodePath("../Jugar")
+variante = "grande"
+texto = "VIGILIA"
+icono = ExtResource("9_descansar")
+
+[node name="Bloqueada" type="Control" parent="."]
+layout_mode = 0
+offset_left = 540.0
+offset_top = 507.0
+offset_right = 770.0
+offset_bottom = 522.0
+script = ExtResource("3_texto")
+texto = "BLOQUEADA"
+tam = 11
+color = Color(0.541176, 0.352941, 0.392157, 1)
+
+[node name="Salir" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 700.0
+offset_top = 162.0
+offset_right = 796.0
+offset_bottom = 188.0
+variante = "chico"
+texto = "SALIR"
+relleno = Color(0.0784314, 0.0980392, 0.133333, 1)
+borde = Color(0.356863, 0.321569, 0.384314, 1)
+borde_activo = Color(0.556863, 0.121569, 0.172549, 1)
+relleno_activo = Color(0.227451, 0.101961, 0.12549, 1)
+
+[node name="Ayuda" type="Control" parent="."]
+layout_mode = 0
+offset_left = 149.0
+offset_top = 514.0
+offset_right = 811.0
+offset_bottom = 530.0
+script = ExtResource("3_texto")
+tam = 12
+color = Color(0.623529, 0.701961, 0.701961, 1)
+
+[node name="Retrato" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 171.0
+offset_top = 510.0
+offset_right = 211.0
+offset_bottom = 550.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Ficha" type="Control" parent="."]
+layout_mode = 0
+offset_left = 149.0
+offset_top = 536.0
+offset_right = 811.0
+offset_bottom = 552.0
+script = ExtResource("3_texto")
+tam = 12
+
+[node name="Cambiar" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 676.0
+offset_top = 528.0
+offset_right = 796.0
+offset_bottom = 554.0
+variante = "chico"
+relleno = Color(0.0784314, 0.0980392, 0.133333, 1)
+borde = Color(0.356863, 0.321569, 0.384314, 1)
+relleno_activo = Color(0.133333, 0.172549, 0.223529, 1)
+
+[node name="Engranaje" parent="." instance=ExtResource("5_boton")]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 572.0
+offset_right = 68.0
+offset_bottom = 624.0
+variante = "icono"
+icono = ExtResource("10_engranaje")
+
+[node name="AvisoActualizacion" parent="." instance=ExtResource("6_aviso")]
+layout_mode = 0
+offset_left = 149.0
+offset_top = 88.0
+offset_right = 811.0
+offset_bottom = 142.0

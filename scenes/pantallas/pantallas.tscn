@@ -1,0 +1,22 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/pantallas/gestor_pantallas.gd" id="1_gestor"]
+[ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/splash.tscn" id="3_splash"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/titulo.tscn" id="4_titulo"]
+[ext_resource type="PackedScene" path="res://scenes/pantallas/pausa.tscn" id="5_pausa"]
+
+[node name="Pantallas" type="CanvasLayer"]
+layer = 2
+script = ExtResource("1_gestor")
+
+[node name="Maquina" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Splash" parent="Maquina" instance=ExtResource("3_splash")]
+
+[node name="Titulo" parent="Maquina" instance=ExtResource("4_titulo")]
+visible = false
+
+[node name="Pausa" parent="Maquina" instance=ExtResource("5_pausa")]
+visible = false

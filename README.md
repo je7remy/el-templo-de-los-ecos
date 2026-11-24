@@ -187,7 +187,7 @@ Desde v0.5.9, las copias instaladas (Android, Windows y Linux) consultan al abri
 
 Si algo falla, el aviso ofrece **DESCARGAR** para bajarla a mano. Sin internet no se muestra nada. Se apaga en Configuración > Sonido > «Buscar actualizaciones al abrir». La partida vive aparte y no se toca. La versión del juego está en `project.godot` (`application/config/version`) y el CI comprueba que coincida con `export_presets.cfg`. El código está en `scripts/actualizador.gd` y sus pruebas en `tests/update_test.gd`.
 
-La arquitectura del código y el plan para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+La arquitectura del código, las buenas prácticas que sigue y el plan por fases para separarlo en escenas están en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
 Para los controles móviles y sus limitaciones, consulta la [guía Android y Vigilia](docs/MOVIL_Y_VIGILIA.md).
 
@@ -292,9 +292,11 @@ godot --headless --path . --script res://tests/defense_test.gd
 godot --headless --path . --script res://tests/mobile_input_test.gd
 godot --headless --path . --script res://tests/balance_test.gd
 godot --headless --path . --script res://tests/brand_test.gd
+godot --headless --path . --script res://tests/update_test.gd
+godot --headless --path . --script res://tests/pantallas_test.gd
 ```
 
-`comprobar_archivos.py` comprueba los archivos esenciales, que cada PNG conserve su `.import`, que no haya `.gd.uid` huérfanos y que el proyecto declare Godot 4.3 y filtrado nearest-neighbor. `visual_asset_test.gd` verifica además que las cinco salas conserven su arquitectura, objetos, marcadores y colisiones.
+`pantallas_test.gd` comprueba la arquitectura por escenas: los autoloads, la máquina de estados y que el inicio, el menú y la pausa respondan a clics y teclas de verdad. `comprobar_archivos.py` comprueba los archivos esenciales, que cada PNG conserve su `.import`, que no haya `.gd.uid` huérfanos y que el proyecto declare Godot 4.3 y filtrado nearest-neighbor. `visual_asset_test.gd` verifica además que las cinco salas conserven su arquitectura, objetos, marcadores y colisiones.
 
 **Publicación:** cuando un cambio llega a `main` con una versión nueva en `export_presets.cfg` (y sus notas en `docs/releases/vX.md`), el CI compila Android, Windows y Linux, publica la versión con esos archivos y la marca como **la última** (*Latest*). También sube copias con nombre fijo (`ElTemploDeLosEcos-Windows-Setup.exe`, etc.) para que los enlaces `releases/latest/download/…` sirvan siempre. Una versión ya publicada no se recompila.
 
@@ -308,12 +310,19 @@ assets/                 Arte: escenario (Knowledge Temple), entidades, tiles, ob
   visual/iconos/        Iconos de mochila, habilidades, HUD y botones de Vigilia
   visual/retratos/      Retrato de Mark (normal y herido)
   visual/decorados/     Restos, sangre, velas, estandartes y cadenas de las salas
-  fonts/                Pixelify Sans (licencia OFL)
+  fonts/                Jersey 15 y Jacquard 24 (licencia OFL)
 audio/                  Música y efectos originales (OGG)
 rooms/                  Escenas editables de las cinco salas y su TileSet
 shaders/                Luz y tinte de cada sala
 scenes/                 Escena principal y Vigilia del Claustro
+  pantallas/            Inicio, menú principal y pausa (una escena cada una) y su gestor
+  ui/                   Piezas de interfaz: botón, avisos, aviso de actualización
+  autoload/             Cambio de escena con pantalla de carga
 scripts/                Lógica de juego en GDScript
+  autoload/             Eventos (bus de señales) y Progreso (guardado)
+  comun/                Máquina de estados genérica
+  pantallas/            Scripts de las pantallas
+  ui/                   Estilo común y piezas de interfaz
 tests/                  Pruebas para Godot sin interfaz
 herramientas/           Validación, apertura en Fedora y generadores de salas, protagonista, entidades, iconos y audio
 docs/                   Diseño, licencias, guías, notas de versión y galería del README
@@ -344,4 +353,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.9-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.10-alpha** (se publica al fusionar esta versión en `main`).

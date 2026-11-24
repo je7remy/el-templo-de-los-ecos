@@ -1,30 +1,77 @@
 # Arquitectura y plan de reestructuración
 
-## Cómo está hecho hoy
+El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-| Pieza | Dónde | Estado |
+## Cómo está organizado hoy (v0.5.10)
+
+```text
+Autoloads (project.godot → Globales)
+├── Eventos           scripts/autoload/eventos.gd     bus de señales global
+├── Progreso          scripts/autoload/progreso.gd    único que lee/escribe la partida
+├── Escenas           scenes/autoload/escenas.tscn    cambio de escena con pantalla de carga real
+└── ConfirmarSalida   scenes/confirmar_salida.tscn    «¿Salir del juego?»
+
+scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña, mundo, HUD y menús aún no migrados)
+├── Pantallas    scenes/pantallas/pantallas.tscn   CanvasLayer 2 · gestor de pantallas
+│   └── Maquina  scripts/comun/maquina_estados.gd  una pantalla activa a la vez
+│       ├── Splash   scenes/pantallas/splash.tscn
+│       ├── Titulo   scenes/pantallas/titulo.tscn  (incluye ui/aviso_actualizacion.tscn)
+│       └── Pausa    scenes/pantallas/pausa.tscn
+└── CapaAvisos   scenes/ui/avisos.tscn             CanvasLayer 3 · mensajes y rótulos de nivel/botín
+
+scenes/defense.tscn  (Vigilia del Claustro · defense.gd)
+rooms/sala_N.tscn    salas editables (TileMapLayer, objetos, marcadores, colisiones)
+```
+
+Piezas de interfaz reutilizables (`scenes/ui/` y `scripts/ui/`):
+
+| Pieza | Para qué |
+| --- | --- |
+| `estilo.gd` | Colores, tipografías y el dibujo común (panel, texto con borde, rótulo gótico, botones). `main.gd` y las escenas dibujan con lo mismo, así todo se ve igual. |
+| `boton_templo.tscn` | Botón de verdad (`TextureButton` sin texturas): ratón, toque, foco de teclado y mando, señal `pressed`. Variantes `menu`, `grande`, `chico` e `icono`. |
+| `texto_templo.gd`, `panel_templo.gd`, `adorno_templo.gd` | Texto pixel o gótico, panel ornamentado y filete dorado como nodos colocables en el editor. |
+| `avisos.tscn` | Mensaje breve, «Nivel N» y objeto conseguido, siempre por encima de cualquier pantalla. |
+| `pantalla_carga.gd` | Barra con el progreso real de `ResourceLoader.load_threaded_request`. |
+
+### Cómo hablan las piezas
+
+- **La campaña no dibuja las pantallas migradas.** Cuando cambia `game_mode`, su *setter* llama a `_sync_screens()`, que pide al gestor la pantalla que toca y le pasa los datos (`_screen_data()`): nombre, textos traducidos, si se juega con mando…
+- **Las pantallas no conocen a la campaña.** Lo que elige el jugador sale por la señal `accion(nombre)`; el gestor la reenvía y `main.gd` decide (`_on_screen_action()`).
+- **La entrada va por la interfaz de Godot.** En las pantallas migradas, `main.gd` solo atiende lo global (F11). Botones, foco, teclado y mando los resuelve Godot. Si una tecla de la campaña abre una pantalla (ESC → pausa), se marca como atendida para que no la cierre en el mismo instante.
+- **El progreso pasa siempre por `Progreso`.** Antes la campaña y el botín de la Vigilia escribían el mismo archivo cada uno por su lado.
+- **Cambiar de escena pasa por `Escenas.ir_a(ruta)`**: fundido, carga en segundo plano con barra y fundido de vuelta.
+- **Mensajes desde cualquier sitio:** `Eventos.aviso_pedido.emit(texto, segundos)`.
+
+## Reglas para el código nuevo
+
+Son las buenas prácticas de la documentación oficial de Godot y de los temas que trata el canal de Leedeo (autoloads y señales, máquinas de estados, pantallas de carga). Ver «Fuentes».
+
+1. **Una escena por cosa.** Si algo tiene aspecto, entrada o estado propio (una pantalla, un enemigo, un objeto), es una escena `.tscn` con su script. Se instancia; no se dibuja a mano dentro de otro script.
+2. **Escenas sin dependencias.** Una escena debe funcionar sola: recibe datos (`entrar(datos)`, propiedades `@export`) y avisa con señales. Nunca busca a su padre ni a sus hermanos por ruta.
+3. **«Las señales suben, las llamadas bajan».** El padre llama a métodos de sus hijos; los hijos emiten señales. Para hablar entre escenas lejanas, `Eventos`.
+4. **Autoloads solo para lo global**: el bus de eventos, el guardado, el cambio de escena y los ajustes. La lógica de un piso o de un enemigo no va en un autoload.
+5. **Máquinas de estados en vez de `if modo == …` encadenados.** `maquina_estados.gd` sirve para las pantallas y servirá para el jugador y las entidades: cada estado es un nodo con `entrar`, `salir` y `actualizar`.
+6. **Datos fuera del código.** Pisos, precios y botín en `Resource` (`.tres`) editables en el inspector (ya empezado con `scripts/datos/pisos.gd`).
+7. **Interfaz con nodos de interfaz** (`Control`, `Container`, botones): ganan foco de teclado y mando, escalado y accesibilidad sin código propio. El aspecto se mantiene con `estilo.gd`.
+8. **Pantallas de carga reales** con `ResourceLoader.load_threaded_request` en vez de cambiar de escena en seco.
+9. **Cada paso se entrega con las pruebas en verde.** Las pruebas tocan los botones de verdad (`root.push_input`), no funciones internas.
+
+Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existentes, y el arte nuevo en scripts generadores aparte.
+
+## Plan por fases
+
+| Fase | Qué | Estado |
 | --- | --- | --- |
-| Salas (suelo, muros, objetos, marcadores, colisiones) | `rooms/sala_N.tscn` | Escenas editables en Godot (buena práctica) |
-| Datos de los pisos, conversaciones y verdades | `scripts/datos/pisos.gd` | Separado del código (Tanda C) |
-| Ajustes del jugador | `scripts/ajustes.gd` | Script propio |
-| Confirmación al salir | `scenes/confirmar_salida.tscn` + autoload `ConfirmarSalida` | Escena de interfaz real (Tanda A) |
-| Botín de la Vigilia | `scripts/botin.gd` | Script propio (Tanda B) |
-| Vigilia | `scenes/defense.tscn` + `scripts/defense.gd` | Escena propia, dibujo inmediato |
-| Campaña: jugador, entidades, HUD, menús, tienda, diálogos | `scripts/main.gd` | **Un solo script grande** que dibuja con `_draw()` |
+| 1 | Autoloads `Eventos`, `Progreso` y `Escenas` (pantalla de carga), máquina de estados, piezas de interfaz, capa de avisos. Inicio, menú principal y pausa como escenas. | **Hecha (v0.5.10)** |
+| 2 | El resto de pantallas como escenas: configuración (con las páginas legales), acuerdo, intro, creación del personaje, menú de pisos, perfil/inventario, habilidades, mapa, tienda, altar, diálogos, elección, resumen del piso, muerte y victoria. El HUD (barra superior e inferior, minimapa) como escena `Control`. | Pendiente |
+| 3 | Jugador y entidades como escenas: `CharacterBody2D` + `AnimatedSprite2D` + áreas de colisión y señales (`herido`, `muerto`), con su máquina de estados. `main.gd` solo las instancia en la sala. | Pendiente |
+| 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
+| 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
 
-Dibujar a mano en `_draw()` es barato: hay pocos objetos y el juego va fluido. El problema no es el rendimiento, es el **mantenimiento**:
-- `main.gd` concentra casi todo;
-- las entidades y los menús no se pueden editar en el editor de Godot;
-- dos cambios distintos tocan siempre el mismo archivo.
+Al terminar la fase 2, `main.gd` debería quedar como el controlador de la partida y del mundo, sin código de menús. Al terminar la 3, sin código de enemigos.
 
-## Hacia dónde ir (por pasos, sin romper nada)
+## Fuentes
 
-Cada paso se entrega con las pruebas en verde.
-
-1. **Datos fuera del código** (hecho): pisos, conversaciones y verdades en `scripts/datos/pisos.gd`. Siguiente: precios, botín y textos en recursos (`Resource`, `.tres`) editables en el inspector.
-2. **Progreso como autoload**: un nodo `Progreso` que cargue y guarde el personaje (nivel, ecos, bolsa, objetos, marca). Hoy lo hacen `main.gd` y `botin.gd` cada uno por su lado.
-3. **Entidades como escenas**: cada enemigo en su `.tscn` con su script (`ghoul.tscn`, `ariete.tscn`, `coloso.tscn`…), con `Sprite2D`/`AnimatedSprite2D`, área de colisión y señales (`herido`, `muerto`). `main.gd` solo las instancia en la sala.
-4. **Interfaz como escenas `Control`**: HUD, perfil, tienda, pausa y diálogos con `Container`, `Button` y un `Theme` común. Ganan foco de mando y teclado, escalado y accesibilidad sin código propio.
-5. **Máquina de estados de pantallas**: cambiar el `game_mode` de texto por escenas o nodos por pantalla (`TituloScreen`, `PisosScreen`…).
-
-Orden recomendado: 2 → 3 (empezando por los enemigos nuevos) → 4 → 5. Así cada piso nuevo ya nace como escena.
+- Documentación de Godot (español), sección «Buenas prácticas»: [organización de la escena](https://docs.godotengine.org/es/4.x/tutorials/best_practices/scene_organization.html), [cuándo usar escenas y cuándo scripts](https://docs.godotengine.org/es/4.x/tutorials/best_practices/scenes_versus_scripts.html), [autoloads frente a nodos corrientes](https://docs.godotengine.org/es/4.x/tutorials/best_practices/autoloads_versus_internal_nodes.html), [recomendaciones de lógica](https://docs.godotengine.org/es/4.x/tutorials/best_practices/logic_preferences.html).
+- Documentación de Godot: [Singletons (Autoload)](https://docs.godotengine.org/es/4.x/tutorials/scripting/singletons_autoload.html).
+- Canal [Leedeo Studio](https://www.youtube.com/@Leedeo) (Javo, traductor oficial de Godot al español), serie «Introducción a Godot 4»: autoloads y singletons, señales, máquina de estados y pantalla de carga real. Los temas se tomaron de los títulos de la serie; los videos no se transcribieron aquí.
