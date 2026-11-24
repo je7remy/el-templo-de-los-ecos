@@ -32,6 +32,7 @@ const MODOS := {
     "create": &"Creacion",
     "abilities": &"Habilidades",
     "map": &"Mapa",
+    "inventory": &"Perfil",
 }
 
 @onready var maquina: Node = $Maquina

@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v0.5.14-alpha — 2026-11-24 · Arquitectura por escenas, fase 2d
+
+Sin cambios en las reglas del juego.
+
+- **El perfil es una escena propia** (`scenes/pantallas/perfil.tscn`): ficha del personaje, las pestañas MOCHILA Y HABILIDADES, OBJETOS y EQUIPO, los Ecos y la descripción de lo señalado. Se ve y responde como antes al ratón, al toque, al teclado y al mando (I/Tab, O, ENTER, flechas, LB, RB, A, B e Y).
+- La campaña conserva la lógica (usar objetos, poner y quitar equipo) y le pasa los datos; el perfil los recibe cada cuadro.
+- El equipo sobre el retrato (casco, peto, amuleto y máscara) pasa a `scripts/ui/equipo_retrato.gd`, compartido por el panel del jugador y el perfil.
+- `main.gd` baja a unas 10 750 líneas. `pantallas_test.gd` añade el perfil con entrada real. Las capturas de las tres pestañas salen idénticas a las de la versión anterior.
+- Versión Android 0.5.14-alpha (código 21).
+
 ## v0.5.13-alpha — 2026-11-24 · Arquitectura por escenas, fase 2c
 
 - **Intro, creación del personaje, habilidades y mapa son escenas propias** (`scenes/pantallas/intro.tscn`, `creacion.tscn`, `habilidades.tscn`, `mapa.tscn`). Se ven y responden como antes al ratón, al toque, al teclado y al mando: el teclado en pantalla del nombre, el género, nombre al azar, las páginas de habilidades y las pestañas del mapa.

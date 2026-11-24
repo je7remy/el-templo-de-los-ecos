@@ -353,6 +353,69 @@ func _run() -> void:
         _fail("Tocar fuera no cierra el mapa.")
         return
     print("OK: intro, creación del personaje, habilidades y mapa como escenas.")
+
+    # --- Fase 2d: perfil ------------------------------------------------------------
+    # Se abre con su tecla desde el juego; las flechas mueven la selección.
+    var perfil: Control = maquina.get_node("Perfil")
+    game.set("game_mode", "play")
+    game.set("has_wood", true)
+    game.set("matches", 3)
+    _tecla(int(game.call("_key", "perfil")))
+    if game.get("game_mode") != "inventory" or not perfil.visible:
+        _fail("La tecla del perfil no abre el perfil como escena.")
+        return
+    var sel_antes: int = int(game.get("inventory_sel"))
+    _tecla(KEY_RIGHT)
+    if int(game.get("inventory_sel")) != sel_antes + 1 or int(perfil.call("seleccion")) != sel_antes + 1:
+        _fail("Las flechas no mueven la selección del perfil.")
+        return
+    # OBJETOS con un clic en su pestaña; tocar el pan ya señalado lo usa.
+    game.set("bag", {"pan": 2})
+    _clic(perfil.call("rect_pestana", 1).get_center())
+    if int(game.get("profile_tab")) != 1 or int(game.get("inventory_sel")) != 0:
+        _fail("La pestaña OBJETOS no responde al clic.")
+        return
+    _clic(perfil.call("rect_objeto", 0).get_center())
+    if int((game.get("bag") as Dictionary).get("pan", 0)) != 1:
+        _fail("Tocar el pan señalado no lo usa.")
+        return
+    # EQUIPO con la O; tocar el peto puesto lo quita.
+    game.call("_equip_gear", "peto")
+    _tecla(KEY_O)
+    if int(game.get("profile_tab")) != 2:
+        _fail("La O no cambia a la pestaña EQUIPO.")
+        return
+    _clic(perfil.call("rect_hueco", 2).get_center())
+    if str((game.get("gear") as Dictionary).get("peto", "")) != "":
+        _fail("Tocar el peto en EQUIPO no lo quita.")
+        return
+    # El botón HABILIDADES abre las habilidades; al cerrarlas se vuelve al juego.
+    _clic((perfil.get("BOTON_HABILIDADES") as Rect2).get_center())
+    if game.get("game_mode") != "abilities":
+        _fail("El botón HABILIDADES del perfil no las abre.")
+        return
+    _tecla(KEY_ESCAPE)
+    # Con el mando: LB abre el perfil y B lo cierra; tocar fuera también cierra.
+    var lb := InputEventJoypadButton.new()
+    lb.button_index = JOY_BUTTON_LEFT_SHOULDER
+    lb.pressed = true
+    root.push_input(lb)
+    if game.get("game_mode") != "inventory":
+        _fail("LB no abre el perfil.")
+        return
+    var bb := InputEventJoypadButton.new()
+    bb.button_index = JOY_BUTTON_B
+    bb.pressed = true
+    root.push_input(bb)
+    if game.get("game_mode") != "play" or perfil.visible:
+        _fail("B no cierra el perfil.")
+        return
+    game.call("_open_inventory")
+    _clic(Vector2(20, 20))
+    if game.get("game_mode") != "play":
+        _fail("Tocar fuera no cierra el perfil.")
+        return
+    print("OK: perfil (mochila, objetos, equipo y Ecos) como escena.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

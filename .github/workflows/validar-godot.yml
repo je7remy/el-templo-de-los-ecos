@@ -73,6 +73,7 @@ jobs:
           grep -Fq 'OK: pausa con teclado y avisos de nivel y botín encima de las pantallas.' "$RUNNER_TEMP/pantallas.log"
           grep -Fq 'OK: diálogo, elección, muerte, altar y tienda como escenas.' "$RUNNER_TEMP/pantallas.log"
           grep -Fq 'OK: intro, creación del personaje, habilidades y mapa como escenas.' "$RUNNER_TEMP/pantallas.log"
+          grep -Fq 'OK: perfil (mochila, objetos, equipo y Ecos) como escena.' "$RUNNER_TEMP/pantallas.log"
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/pantallas.log"; then exit 1; fi
 
       - name: Verificar el actualizador
