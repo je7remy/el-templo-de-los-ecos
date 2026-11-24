@@ -283,6 +283,76 @@ func _run() -> void:
         _fail("ESC no cierra la tienda.")
         return
     print("OK: diálogo, elección, muerte, altar y tienda como escenas.")
+
+    # --- Fase 2c: intro, creación, habilidades y mapa ------------------------------
+    # Intro: el texto se escribe solo; un clic lo completa y el siguiente pasa.
+    game.call("_start_intro", "title")
+    if not (maquina.get_node("Intro") as Control).visible:
+        _fail("La intro no se muestra como escena.")
+        return
+    for i in range(30):
+        await process_frame
+    if int(game.get("intro_slide")) != 0 or float(game.get("intro_t")) <= 0.0:
+        _fail("El texto de la intro no se escribe solo.")
+        return
+    _clic(Vector2(480, 300))
+    _clic(Vector2(480, 300))
+    if int(game.get("intro_slide")) != 1:
+        _fail("Dos clics no pasan a la siguiente diapositiva de la intro.")
+        return
+    _tecla(KEY_ESCAPE)
+    if game.get("game_mode") != "title":
+        _fail("ESC no salta la intro.")
+        return
+    # Creación con el teclado físico: letras, borrar, ENTER, flechas y ENTER.
+    game.call("_start_creation", "title")
+    game.set("create_buf", "")
+    for k in [KEY_L, KEY_U, KEY_Z, KEY_X]:
+        var e := InputEventKey.new()
+        e.keycode = k
+        e.unicode = k
+        e.pressed = true
+        root.push_input(e)
+    _tecla(KEY_BACKSPACE)
+    if str(game.get("create_buf")) != "LUZ":
+        _fail("El teclado físico no escribe el nombre (%s)." % game.get("create_buf"))
+        return
+    _tecla(KEY_ENTER)
+    var genero: int = int(game.get("create_gender"))
+    _tecla(KEY_RIGHT)
+    if int(game.get("create_step")) != 1 or int(game.get("create_gender")) == genero:
+        _fail("ENTER no pasa al género o las flechas no lo cambian.")
+        return
+    _tecla(KEY_ENTER)
+    if str(game.get("player_name")) != "LUZ" or game.get("game_mode") != "title":
+        _fail("ENTER no guarda el personaje.")
+        return
+    # Habilidades: las flechas pasan de página; ESC cierra.
+    game.call("_new_run")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("ecos", (game.get("ECOS") as Dictionary).keys())
+    game.call("_open_abilities")
+    _tecla(KEY_RIGHT)
+    if int(game.get("abil_page")) != 1 or not (maquina.get_node("Habilidades") as Control).visible:
+        _fail("Las flechas no pasan de página en Habilidades.")
+        return
+    _tecla(KEY_ESCAPE)
+    if game.get("game_mode") != "play":
+        _fail("ESC no cierra Habilidades.")
+        return
+    game.set("ecos", [])
+    # Mapa: un clic en la pestaña DESCENSO y fuera lo cierra.
+    game.call("_open_map")
+    _clic(Vector2(560, 109))
+    if int(game.get("map_tab")) != 1:
+        _fail("La pestaña DESCENSO del mapa no responde al clic.")
+        return
+    _clic(Vector2(20, 20))
+    if game.get("game_mode") != "play":
+        _fail("Tocar fuera no cierra el mapa.")
+        return
+    print("OK: intro, creación del personaje, habilidades y mapa como escenas.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

@@ -41,17 +41,17 @@ func _run() -> void:
     if game.get("game_mode") != "create":
         _fail("Explorar sin personaje no abre la creación.")
         return
+    var creacion: Node = game.get_node("Pantallas/Maquina/Creacion")
     for letter in ["A", "N", "A"]:
-        for key in game.call("_create_name_keys"):
+        for key in creacion.call("teclas"):
             if str(key[1]) == letter:
-                game.call("_mobile_touch", 1, (key[0] as Rect2).get_center(), true)
-                game.call("_mobile_touch", 1, (key[0] as Rect2).get_center(), false)
-    game.call("_mobile_tap", Vector2(660, 432)) # SIGUIENTE
+                _tocar((key[0] as Rect2).get_center())
+    _tocar(Vector2(660, 432)) # SIGUIENTE
     if int(game.get("create_step")) != 1 or str(game.get("create_buf")) != "ANA":
         _fail("El teclado en pantalla no escribe el nombre.")
         return
-    game.call("_mobile_tap", Vector2(620, 300)) # tarjeta FEMENINO
-    game.call("_mobile_tap", Vector2(645, 476)) # COMENZAR
+    _tocar(Vector2(620, 300)) # tarjeta FEMENINO
+    _tocar(Vector2(645, 476)) # COMENZAR
     if game.get("player_name") != "ANA" or game.get("player_gender") != "femenino":
         _fail("No se guarda el personaje creado.")
         return
@@ -103,12 +103,8 @@ func _run() -> void:
     game.set("touch_enabled", true)
     game.call("_start_creation", "title")
     game.set("create_buf", "")
-    var keys: Array = game.call("_create_name_keys")
-    var key_a: Rect2 = keys[0][0]
-    t.position = key_a.get_center()
-    m.position = t.position
-    game._input(t)
-    game._input(m)
+    var keys: Array = game.get_node("Pantallas/Maquina/Creacion").call("teclas")
+    _tocar((keys[0][0] as Rect2).get_center()) # toque + clic emulado, como en un móvil
     if (game.get("create_buf") as String).length() != 1:
         _fail("El teclado en pantalla escribe la letra dos veces.")
         return

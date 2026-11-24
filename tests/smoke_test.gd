@@ -1114,11 +1114,11 @@ func _run_checks() -> void:
     if pages * per_e < (game.get("ECOS") as Dictionary).size() or pages < 2:
         _fail("Las páginas de habilidades no cubren todos los Ecos.")
         return
-    game.call("_mobile_tap", (game.get("ABIL_NEXT_BTN") as Rect2).get_center())
+    _clic((game.get_node("Pantallas/Maquina/Habilidades").get("BOTON_SIGUIENTE") as Rect2).get_center())
     if int(game.get("abil_page")) != 1 or str(game.get("game_mode")) != "abilities":
         _fail("La flecha no pasa de página en Habilidades.")
         return
-    game.call("_mobile_tap", Vector2(480, 300))
+    _clic(Vector2(480, 300))
     if str(game.get("game_mode")) == "abilities":
         _fail("Tocar fuera no cierra Habilidades.")
         return
@@ -1201,11 +1201,11 @@ func _run_checks() -> void:
     if str(game.get("game_mode")) != "map":
         _fail("Tocar el minimapa no abre el mapa grande.")
         return
-    game.call("_map_key", KEY_TAB)
+    _key(KEY_TAB) # el mapa es una escena: la tecla le llega por la interfaz
     if int(game.get("map_tab")) != 1:
         _fail("El mapa no cambia a la pestaña del descenso.")
         return
-    game.call("_map_key", KEY_M)
+    _key(KEY_M)
     if str(game.get("game_mode")) != "play":
         _fail("El mapa no se cierra.")
         return

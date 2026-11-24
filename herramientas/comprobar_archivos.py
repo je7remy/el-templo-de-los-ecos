@@ -19,7 +19,9 @@ required += ["scripts/autoload/eventos.gd", "scripts/autoload/progreso.gd",
              "scenes/pantallas/dialogo.tscn", "scenes/pantallas/eleccion.tscn",
              "scenes/pantallas/entrada_piso.tscn", "scenes/pantallas/resumen_piso.tscn",
              "scenes/pantallas/final.tscn", "scenes/pantallas/altar.tscn",
-             "scenes/pantallas/tienda.tscn",
+             "scenes/pantallas/tienda.tscn", "scenes/pantallas/intro.tscn",
+             "scenes/pantallas/creacion.tscn", "scenes/pantallas/habilidades.tscn",
+             "scenes/pantallas/mapa.tscn",
              "scenes/ui/avisos.tscn", "scenes/ui/boton_templo.tscn",
              "tests/pantallas_test.gd"]
 required += [f"assets/knowledge/rooms/room_{i}.png" for i in range(5)]
