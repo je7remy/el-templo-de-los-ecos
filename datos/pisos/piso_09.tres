@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+
+[resource]
+script = ExtResource("1_piso")
+numero = "IX"
+titulo = "EL COLOSO DEL PÓRTICO"
+estado = "EL SUELO TIEMBLA A INTERVALOS"
+desgaste = 2.0
+eco = "fuerza"
+verdad = "Tras el vitral roto, un ala inmensa: el dueño de todo esto es un ángel caído."
+inspiracion = "Inspiración: las criaturas de nivel muy alto de los pisos profundos (el gigante de roca)."

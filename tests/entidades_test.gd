@@ -583,6 +583,19 @@ func _run() -> void:
         _fail("El botín de la Vigilia no sale de datos/botin.")
         return
     print("OK: tienda, bolsa y botín de la Vigilia en archivos de datos (.tres).")
+
+    # --- Fase 4c: datos generales de cada piso en archivos de datos ----------------
+    var pisos: Array = game.get("FLOORS")
+    if pisos.size() != 10 or str(pisos[0]["number"]) != "I" or str(pisos[9]["title"]) != "LA COSECHA":
+        _fail("Los pisos no salen de datos/pisos.")
+        return
+    if float(pisos[4].get("fuel", 0.0)) != 25.0 or pisos[0].has("fuel") or not bool(pisos[7].get("mirror", false)) or not bool(pisos[9].get("final", false)):
+        _fail("Los campos opcionales de los pisos no se respetan.")
+        return
+    if (pisos[0]["rooms"] as Array).size() != 5 or (game.get("FLOOR_TRUTHS") as Array).size() != 10:
+        _fail("Las salas o las verdades de los pisos se perdieron.")
+        return
+    print("OK: datos generales de los diez pisos en archivos de datos (.tres).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

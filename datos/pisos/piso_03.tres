@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+
+[resource]
+script = ExtResource("1_piso")
+numero = "III"
+titulo = "LA CACERÍA"
+estado = "ALGO AQUÍ TIENE HAMBRE"
+desgaste = 1.5
+eco = "reflejos"
+verdad = "La caza también es una ofrenda. Algo se alimenta de cada muerte."
+inspiracion = "Inspiración: la misión «matar al rápido», en grupo y con bajas."

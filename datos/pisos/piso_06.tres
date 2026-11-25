@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+
+[resource]
+script = ExtResource("1_piso")
+numero = "VI"
+titulo = "LA OFRENDA"
+estado = "TODO CONTIENE EL ALIENTO"
+desgaste = 1.2
+eco = "huesos"
+verdad = "El miedo y la desesperanza alimentan algo. Por eso te dejan descansar: para que vuelvas a esperar."
+inspiracion = "Inspiración: el vendedor ambulante y el protagonista que se vuelve líder.
+Piso de respiro: sin entidades. La regla es del Mercader."

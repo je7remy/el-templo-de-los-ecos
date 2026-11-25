@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+
+[resource]
+script = ExtResource("1_piso")
+numero = "II"
+titulo = "LOS PEREGRINOS"
+estado = "PRIMERAS GRIETAS"
+desgaste = 1.0
+eco = "nuca"
+verdad = "Las almas se pueden robar. Este lugar te enfrenta con los demás."
+inspiracion = "Inspiración: la traición durante la recolección de almas."
