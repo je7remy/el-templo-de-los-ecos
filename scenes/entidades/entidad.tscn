@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/entidades/entidad.gd" id="1_entidad"]
 [ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
@@ -7,6 +7,12 @@
 [ext_resource type="Script" path="res://scripts/entidades/entidad/ghoul/caza.gd" id="5_g_caza"]
 [ext_resource type="Script" path="res://scripts/entidades/entidad/testigo/caza.gd" id="6_t_caza"]
 [ext_resource type="Script" path="res://scripts/entidades/entidad/hechicero/conjura.gd" id="7_h_conjura"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/segador/acecho.gd" id="8_s_acecho"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/segador/tensa.gd" id="9_s_tensa"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/segador/engancha.gd" id="10_s_engancha"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/tejedora/anda.gd" id="11_t_anda"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/tejedora/alza.gd" id="12_t_alza"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/tejedora/zarpa.gd" id="13_t_zarpa"]
 
 [node name="Entidad" type="Node2D"]
 script = ExtResource("1_entidad")
@@ -46,3 +52,27 @@ script = ExtResource("7_h_conjura")
 
 [node name="Aturdida" type="Node" parent="Hechicero"]
 script = ExtResource("3_quieta")
+
+[node name="Segador" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Acecho" type="Node" parent="Segador"]
+script = ExtResource("8_s_acecho")
+
+[node name="Tensa" type="Node" parent="Segador"]
+script = ExtResource("9_s_tensa")
+
+[node name="Engancha" type="Node" parent="Segador"]
+script = ExtResource("10_s_engancha")
+
+[node name="Tejedora" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Anda" type="Node" parent="Tejedora"]
+script = ExtResource("11_t_anda")
+
+[node name="Alza" type="Node" parent="Tejedora"]
+script = ExtResource("12_t_alza")
+
+[node name="Zarpa" type="Node" parent="Tejedora"]
+script = ExtResource("13_t_zarpa")

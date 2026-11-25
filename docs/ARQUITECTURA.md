@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.18)
+## Cómo está organizado hoy (v0.5.19)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -17,8 +17,10 @@ scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña y mundo)
 │   └── Salud    Vivo, Herido, Muerto              señales herido y muerto
 ├── Entidad      scenes/entidades/entidad.tscn     la entidad de la sala: posición, vida, alerta
 │   ├── Ghoul      Reposo, Caza, Aturdida          (scripts/entidades/entidad/)
-│   ├── Testigo    Vigila, Caza, Aturdida          señales herida, desterrada, conjuro, regla
-│   └── Hechicero  Reposo, Conjura, Aturdida
+│   ├── Testigo    Vigila, Caza, Aturdida          señales herida, desterrada, conjuro, regla,
+│   ├── Hechicero  Reposo, Conjura, Aturdida       hilos_tensos, hilos_disparados, hilos_cortados,
+│   ├── Segador    Acecho, Tensa, Engancha         zarpa_alzada y zarpazo
+│   └── Tejedora   Anda, Alza, Zarpa
 ├── Hud          scenes/ui/hud.tscn                CanvasLayer 1 · piezas en scripts/ui/hud/
 │   └── Piezas   FranjaSuperior, PanelJugador, CartelPiso, Minimapa, FranjaInferior, Mision,
 │                PanelArma, AvisoMision, ContadorAlmas, Fundido, Tutorial, ControlesTactiles
@@ -93,7 +95,7 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 3a | Jugador como escena (`scenes/entidades/jugador.tscn`) con su máquina de estados Quieto, Camina y Esquiva: posición, dirección, inercia, esquive, colisiones con la sala y señales `paso` y `choque`. `main.gd` le pasa los controles y escucha las señales. | **Hecha (v0.5.16)** |
 | 3b | Vida, vigor, miedo y daño del jugador en su escena: segunda máquina «Salud» (Vivo, Herido, Muerto), `herir()` para todos los golpes y señales `herido` y `muerto`. La regeneración, los Ecos y el equipo, que dependen de la partida, siguen en `main.gd`. | **Hecha (v0.5.17)** |
 | 3c | La entidad de la sala como escena (`scenes/entidades/entidad.tscn`) con una máquina de estados por tipo: Ghoul (Reposo, Caza, Aturdida), Testigo (Vigila, Caza, Aturdida) y Hechicero (Reposo, Conjura, Aturdida). Señales `herida`, `desterrada`, `conjuro` y `regla`. Las bolas de fuego, los golpes al jugador y el destierro los decide la campaña. | **Hecha (v0.5.18)** |
-| 3c-2 | Segador y Tejedora con su máquina en la misma escena. | Pendiente |
+| 3c-2 | Segador (Acecho, Tensa, Engancha) y Tejedora (Anda, Alza, Zarpa) con su máquina en la misma escena. Los aliados que mueren en la línea, el fuego de las enredaderas y las quemaduras de la Tejedora siguen en la campaña. | **Hecha (v0.5.19)** |
 | 3c-3 | Las demás criaturas y jefes: Peregrino, mastines, alimañas, carneros, Coloso, Mirada y Hermano Mayor. | Pendiente |
 | 3d | El mundo como nodos con orden por profundidad (`y_sort_enabled`): cada escena (jugador, entidades, objetos) se dibuja sola con `AnimatedSprite2D`, y `main.gd` solo las instancia en la sala. | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |

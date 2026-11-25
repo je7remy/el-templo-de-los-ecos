@@ -2,7 +2,8 @@ extends SceneTree
 ## Arquitectura por escenas (fase 3): el jugador y las entidades como escenas
 ## con su máquina de estados. Fase 3a: el jugador (Quieto, Camina, Esquiva).
 ## Fase 3b: su salud (Vivo, Herido, Muerto) con las señales herido y muerto.
-## Fase 3c (1): la entidad de la sala; Ghoul, Testigo y Hechicero con su máquina.
+## Fase 3c: la entidad de la sala; Ghoul, Testigo, Hechicero, Segador y
+## Tejedora con su máquina de estados.
 
 
 func _initialize() -> void:
@@ -228,6 +229,81 @@ func _run() -> void:
         _fail("El Hechicero no lanza su conjuro (señal «conjuro» y bola de fuego).")
         return
     print("OK: entidad de la sala como escena; Ghoul, Testigo y Hechicero con su máquina de estados.")
+
+    # --- Fase 3c-2: Segador y Tejedora --------------------------------------------
+    for par in [["Segador", ["Acecho", "Tensa", "Engancha"]], ["Tejedora", ["Anda", "Alza", "Zarpa"]]]:
+        var mq: Node = entidad.get_node_or_null(String(par[0]))
+        if mq == null:
+            _fail("La entidad no tiene la máquina del %s." % par[0])
+            return
+        for e in par[1]:
+            if not bool(mq.call("tiene", StringName(e))):
+                _fail("La máquina %s no tiene el estado %s." % [par[0], e])
+                return
+    # Segador (Piso III, sala 2): Acecho → Tensa → Engancha (vulnerable) → Acecho.
+    _sala(game, 2, 1)
+    var vistos: Array = []
+    entidad.get_node("Segador").estado_cambiado.connect(func(_a, b): vistos.append(String(b)))
+    game.set("enemy_pos", Vector2(600, 360))
+    game.set("player_pos", Vector2(300, 360))
+    game.set("seg_cd", 0.0)
+    game.call("_update_play", dt)
+    if game.get("seg_state") != "tensa":
+        _fail("El Segador no tensa sus hilos (%s)." % game.get("seg_state"))
+        return
+    if bool(game.call("_enemy_vulnerable")):
+        _fail("El Segador no debe ser vulnerable mientras tensa.")
+        return
+    for i in range(60):
+        game.call("_update_play", dt)
+        game.set("hp", 100.0)
+        if game.get("seg_state") == "engancha":
+            break
+    if game.get("seg_state") != "engancha" or not bool(game.call("_enemy_vulnerable")):
+        _fail("Al disparar, el Segador no queda Enganchado y vulnerable.")
+        return
+    for i in range(120):
+        game.call("_update_play", dt)
+        game.set("hp", 100.0)
+        if game.get("seg_state") == "acecho":
+            break
+    if vistos.slice(-3) != ["Tensa", "Engancha", "Acecho"]:
+        _fail("Orden de estados del Segador inesperado: %s." % [vistos])
+        return
+    # Aturdirlo mientras tensa le corta los hilos.
+    var cortes := [0]
+    entidad.hilos_cortados.connect(func(): cortes[0] += 1)
+    game.set("seg_state", "tensa")
+    game.set("seg_t", 0.5)
+    game.set("enemy_stun", 0.5)
+    game.call("_update_play", dt)
+    if game.get("seg_state") != "acecho" or cortes[0] != 1:
+        _fail("Aturdido mientras tensa, el Segador no pierde sus hilos.")
+        return
+    # Tejedora (Piso IV, sala 2): Anda → Alza → Zarpa (te alcanza) → Anda.
+    _sala(game, 3, 1)
+    game.set("player_pos", entidad.position + Vector2(-40, 0))
+    var vida_t: float = float(game.get("hp"))
+    var golpeada := [false]
+    entidad.zarpazo.connect(func(alcanza): golpeada[0] = alcanza)
+    game.call("_update_play", dt)
+    if game.get("teje_state") != "alza":
+        _fail("A tu alcance la Tejedora no alza la zarpa (%s)." % game.get("teje_state"))
+        return
+    for i in range(60):
+        game.set("player_pos", entidad.position + Vector2(-40, 0))
+        game.call("_update_play", dt)
+        if game.get("teje_state") == "zarpa":
+            break
+    if game.get("teje_state") != "zarpa" or not golpeada[0] or float(game.get("hp")) >= vida_t:
+        _fail("El zarpazo de la Tejedora no alcanza a quien está a su lado.")
+        return
+    game.set("enemy_stun", 0.5)
+    game.call("_update_play", dt)
+    if game.get("teje_state") != "anda":
+        _fail("Aturdida, la Tejedora debe volver a Anda.")
+        return
+    print("OK: Segador y Tejedora con su máquina de estados en la escena de la entidad.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
