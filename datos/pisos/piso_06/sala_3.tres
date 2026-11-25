@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_sn411"]
+
+[resource]
+script = ExtResource("1_sn411")
+escena = 3
+nombre = "VI-3 · REFECTORIO VACÍO"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "Mesas largas y platos limpios. Aquí comía alguien. O algo."
+objetos = [["pan", "Pan", Vector2(250, 470)]]
+mision = {}
+extras = {
+"chest": [Vector2(170, 250), "«Aquí no hay nada que comer. Lo único que no me quitaron.» —Sor Inés"],
+"inscription": [Vector2(700, 470), "Aquí no se servía pan. Se servía miedo. Y lo que come arriba engorda con cada desesperanza."]
+}

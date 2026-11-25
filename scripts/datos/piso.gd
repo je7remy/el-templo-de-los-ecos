@@ -1,6 +1,5 @@
 extends Resource
-## Datos generales de un piso: datos/pisos/piso_NN.tres. Sus salas están en
-## scripts/datos/pisos.gd (SALAS, en el mismo orden que la lista de Catalogo).
+## Un piso: datos/pisos/piso_NN.tres, con sus salas en datos/pisos/piso_NN/.
 
 ## Número romano que se muestra («I», «II»…).
 @export var numero: String = ""
@@ -25,10 +24,12 @@ extends Resource
 @export_multiline var verdad: String = ""
 ## Nota de diseño (no se usa en el juego).
 @export_multiline var inspiracion: String = ""
+## Salas en orden (scripts/datos/sala.gd): la primera es la entrada.
+@export var salas: Array[Resource] = []
 
 
 ## Formato que usa la campaña (las claves opcionales solo si están activas).
-func como_dict(salas: Array) -> Dictionary:
+func como_dict() -> Dictionary:
     var d := {"number": numero, "title": titulo, "state": estado, "wear": desgaste, "eco": eco}
     if combustible > 0.0:
         d["fuel"] = combustible
@@ -40,5 +41,5 @@ func como_dict(salas: Array) -> Dictionary:
         d["inverted"] = true
     if final:
         d["final"] = true
-    d["rooms"] = salas
+    d["rooms"] = salas.map(func(s): return s.como_dict())
     return d

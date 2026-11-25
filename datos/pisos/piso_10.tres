@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_10/sala_1.tres" id="1_w23sm"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_10/sala_2.tres" id="2_p5v4q"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_10/sala_3.tres" id="3_3kc82"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_10/sala_4.tres" id="4_0gndg"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,8 +13,12 @@ titulo = "LA COSECHA"
 estado = "TODOS ESPERAN QUE LA PUERTA SE ABRA"
 desgaste = 2.2
 eco = ""
+combustible = 0.0
 seguidores = true
+espejo = false
+invertido = false
 final = true
 verdad = "Doscientas marcas de alas en la Puerta. Este lugar es solo uno de muchos dominios."
 inspiracion = "Inspiración: la traición tras completar la misión y la meta de «seguir bajando».
 Final del primer arco: el ritual de la Cosecha y el Hermano Mayor."
+salas = Array[Resource]([ExtResource("1_w23sm"), ExtResource("2_p5v4q"), ExtResource("3_3kc82"), ExtResource("4_0gndg")])

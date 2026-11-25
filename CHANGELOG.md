@@ -1,5 +1,16 @@
 # Historial de versiones
 
+## v0.5.31-alpha — 2026-11-25 · Datos editables, fase 4c-2
+
+Sin cambios en las reglas del juego.
+
+- **Las 41 salas son archivos de datos**: `datos/pisos/piso_NN/sala_N.tres`, que se editan desde el inspector de Godot. Cada sala guarda su escena, nombre, entidad, rasgos, susurro, objetos del suelo y misión; lo demás (cofre con su nota, trampas, inscripción, muros, mastines, péndulos, braseros…) va en «extras» con la misma clave de siempre.
+- Cada piso (`piso_NN.tres`) lista sus salas en orden: para añadir, quitar o reordenar salas se hace desde el propio piso.
+- `scripts/datos/pisos.gd` queda solo con las conversaciones de las salas.
+- La campaña recibe copias: cambiar una sala durante la partida no toca el archivo.
+- Los valores son los mismos de antes: las salas salen idénticas.
+- Versión Android 0.5.31-alpha (código 38).
+
 ## v0.5.30-alpha — 2026-11-25 · Datos editables, fase 4c-1
 
 Sin cambios en las reglas del juego.

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_6hj2b"]
+
+[resource]
+script = ExtResource("1_6hj2b")
+escena = 4
+nombre = "VIII-4 · PÓRTICO QUE NO ES EL MISMO"
+enemigo = "ghoul"
+rasgos = Array[String]([])
+susurro = "La inscripción del pórtico ha cambiado. Esta vez dice la verdad."
+objetos = []
+mision = {}
+extras = {
+"inscription": [Vector2(480, 300), "Esto nunca fue un santuario. Es una fábrica: el miedo entra, las almas salen. Y tú eres parte del turno."],
+"traps": [Vector2(290, 350), Vector2(670, 350), Vector2(350, 500), Vector2(610, 500)]
+}

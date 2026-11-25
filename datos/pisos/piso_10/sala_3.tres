@@ -1,0 +1,23 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_setun"]
+
+[resource]
+script = ExtResource("1_setun")
+escena = 1
+nombre = "X-3 · CORO DE LA COSECHA"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "El tercer brasero, entre bloques de piedra que no te quitan el ojo de encima."
+objetos = [["fosforos", "Fosforos", Vector2(250, 470)]]
+mision = {
+"goal": "braseros",
+"required": true,
+"reward": 12,
+"text": "Enciende el tercer brasero"
+}
+extras = {
+"braziers": [Vector2(480, 200)],
+"chest": [Vector2(170, 250), "«No le des el fuego a nadie que no quiera llevarlo él mismo.» —Elba"],
+"rams": [Vector2(200, 430), Vector2(760, 430)]
+}

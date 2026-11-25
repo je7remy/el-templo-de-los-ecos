@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
+[ext_resource type="Resource" path="res://datos/pisos/piso_07/sala_1.tres" id="1_hripj"]
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_07/sala_2.tres" id="2_pje0c"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_07/sala_3.tres" id="3_c2i35"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_07/sala_4.tres" id="4_st48f"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,6 +13,11 @@ titulo = "LA QUE NO APARTA LA VISTA"
 estado = "ALGO TE MIRA SIN PARPADEAR"
 desgaste = 1.9
 eco = "serena"
+combustible = 0.0
 seguidores = true
+espejo = false
+invertido = false
+final = false
 verdad = "Ella no caza: vigila. Quieren que veas morir a los demás; el miedo ajeno también alimenta."
 inspiracion = "Inspiración: la sala de la mirada; mueren quienes gritan o se adelantan."
+salas = Array[Resource]([ExtResource("1_hripj"), ExtResource("2_pje0c"), ExtResource("3_c2i35"), ExtResource("4_st48f")])

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_vjmnf"]
+
+[resource]
+script = ExtResource("1_vjmnf")
+escena = 3
+nombre = "I-4 · ARCHIVO DE LOS AUSENTES"
+enemigo = "hechicero"
+rasgos = Array[String](["archivo"])
+susurro = "Algunas cartas parecen escritas por personas que regresaron."
+objetos = [["fosforos", "Fosforos", Vector2(230, 460)]]
+mision = {
+"goal": "desterrar",
+"required": true,
+"reward": 10,
+"text": "Destierra al Hechicero del archivo"
+}
+extras = {
+"chest": [Vector2(790, 470), "«No sé leer lo que hay en estas estanterías. Esto sí lo entiendo: es tuyo.» —Ivo"]
+}

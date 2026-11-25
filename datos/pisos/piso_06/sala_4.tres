@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_5po8c"]
+
+[resource]
+script = ExtResource("1_5po8c")
+escena = 4
+nombre = "VI-4 · ESCALERA DEL SÉPTIMO"
+enemigo = ""
+rasgos = Array[String](["despedida"])
+susurro = "Peldaños que bajan hacia un silencio que mira."
+objetos = []
+mision = {}
+extras = {}

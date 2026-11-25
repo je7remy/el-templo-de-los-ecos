@@ -1,0 +1,18 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_d1b2j"]
+
+[resource]
+script = ExtResource("1_d1b2j")
+escena = 0
+nombre = "X-1 · ATRIO DE LOS SUPERVIVIENTES"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "Alguien espera junto a la puerta. Lleva una diadema de latón y sonríe como si te conociera."
+objetos = [["fosforos", "Fosforos", Vector2(660, 470)]]
+mision = {}
+extras = {
+"chest": [Vector2(170, 470), "«Lo dejo para ti. Tú también lo dejarás para alguien.»"],
+"elder": Vector2(760, 300),
+"inscription": [Vector2(480, 470), "LA COSECHA: tres braseros encendidos abren la Puerta. Lo que entra en ella, no vuelve."]
+}

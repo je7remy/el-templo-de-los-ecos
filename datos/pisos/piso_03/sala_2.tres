@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_18mla"]
+
+[resource]
+script = ExtResource("1_18mla")
+escena = 2
+nombre = "III-2 · NAVE DE LOS HILOS"
+enemigo = "segador"
+rasgos = Array[String](["caza", "huida"])
+susurro = "Algo cruza la nave más rápido que tu luz."
+objetos = []
+mision = {
+"goal": "ahuyentar",
+"required": true,
+"reward": 6,
+"text": "Hiere al Segador hasta que huya"
+}
+extras = {}

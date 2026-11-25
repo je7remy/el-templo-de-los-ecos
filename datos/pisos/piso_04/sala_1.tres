@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_e2o0i"]
+
+[resource]
+script = ExtResource("1_e2o0i")
+escena = 0
+nombre = "IV-1 · ATRIO DE LAS RAÍCES"
+enemigo = ""
+rasgos = Array[String](["raices_puerta"])
+susurro = "Raíces por todas partes. Unas, secas como yesca. Las de la puerta, húmedas y vivas."
+objetos = [["fosforos", "Fosforos", Vector2(250, 470)]]
+mision = {}
+extras = {
+"vines": [[Vector2(200, 470), Vector2(800, 470)], [Vector2(800, 470), Vector2(830, 410)]]
+}

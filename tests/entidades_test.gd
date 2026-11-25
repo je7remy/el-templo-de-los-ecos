@@ -596,9 +596,30 @@ func _run() -> void:
         _fail("Las salas o las verdades de los pisos se perdieron.")
         return
     print("OK: datos generales de los diez pisos en archivos de datos (.tres).")
+
+    # --- Fase 4c-2: salas de cada piso en archivos de datos -------------------------
+    var sala_cofre: Dictionary = pisos[0]["rooms"][1]
+    if str(sala_cofre["enemy"]) != "ghoul" or not sala_cofre.has("chest") or not (sala_cofre["chest"][0] is Vector2):
+        _fail("Las salas no salen de datos/pisos/piso_NN/.")
+        return
+    var total := 0
+    for p in pisos:
+        total += (p["rooms"] as Array).size()
+    if total != 41 or not (pisos[4]["rooms"][1]["walls"][0] is Rect2) or pisos[0]["rooms"][0].has("mission"):
+        _fail("Faltan salas o sus elementos opcionales no se respetan.")
+        return
+    (pisos[0]["rooms"][1]["traits"] as Array).append("prueba")
+    if "prueba" in (Catalogo_pisos()[0]["rooms"][1]["traits"] as Array):
+        _fail("Cambiar una sala en la partida cambia el archivo de datos.")
+        return
+    print("OK: las 41 salas de los pisos en archivos de datos (.tres).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
+
+
+func Catalogo_pisos() -> Array:
+    return load("res://scripts/datos/catalogo.gd").pisos()
 
 
 func _sala(game: Node, piso: int, sala: int) -> void:

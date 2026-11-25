@@ -1,6 +1,11 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=7 format=3]
 
+[ext_resource type="Resource" path="res://datos/pisos/piso_01/sala_1.tres" id="1_nn3k6"]
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_01/sala_2.tres" id="2_ueea0"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_01/sala_3.tres" id="3_brv24"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_01/sala_4.tres" id="4_odb80"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_01/sala_5.tres" id="5_5vdk4"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,4 +14,11 @@ titulo = "EL DESPERTAR"
 estado = "LA PIEDRA AÚN ESTÁ ENTERA"
 desgaste = 0.0
 eco = "respiracion"
+combustible = 0.0
+seguidores = false
+espejo = false
+invertido = false
+final = false
 verdad = "Estás atrapado. Y no eres el primero en despertar aquí."
+inspiracion = ""
+salas = Array[Resource]([ExtResource("1_nn3k6"), ExtResource("2_ueea0"), ExtResource("3_brv24"), ExtResource("4_odb80"), ExtResource("5_5vdk4")])

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_a24c5"]
+
+[resource]
+script = ExtResource("1_a24c5")
+escena = 2
+nombre = "V-4 · CANALES DE ALMAS"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "Surcos en el suelo. Algo azul corre por ellos, hacia abajo."
+objetos = []
+mision = {
+"goal": "mascara",
+"required": true,
+"reward": 8,
+"text": "Toma la Máscara de Porcelana"
+}
+extras = {
+"channels": [[Vector2(140, 520), Vector2(840, 520)], [Vector2(480, 330), Vector2(480, 520)], [Vector2(140, 200), Vector2(140, 520)]],
+"chest": [Vector2(170, 470), "«Me pesaba demasiado para seguir bajando.» —Nel"],
+"hounds": [Vector2(800, 470)],
+"mask": Vector2(480, 300),
+"walls": [Rect2(300, 440, 16, 112), Rect2(644, 440, 16, 112)]
+}

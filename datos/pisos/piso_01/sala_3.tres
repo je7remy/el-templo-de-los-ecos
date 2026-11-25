@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_2qqew"]
+
+[resource]
+script = ExtResource("1_2qqew")
+escena = 2
+nombre = "I-3 · SALA DEL TESTIGO"
+enemigo = "testigo"
+rasgos = Array[String](["sello"])
+susurro = "No todos los ojos necesitan luz para verte."
+objetos = [["fosforos", "Fosforos", Vector2(250, 470)]]
+mision = {
+"goal": "desterrar",
+"required": false,
+"reward": 12,
+"text": "Destierra al Testigo"
+}
+extras = {}

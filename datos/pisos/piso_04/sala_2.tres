@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_lisb8"]
+
+[resource]
+script = ExtResource("1_lisb8")
+escena = 1
+nombre = "IV-2 · CLAUSTRO ENRAIZADO"
+enemigo = "tejedora"
+rasgos = Array[String]([])
+susurro = "Algo cruje entre las columnas, como un árbol que camina."
+objetos = []
+mision = {
+"goal": "desterrar",
+"required": true,
+"reward": 12,
+"text": "Destierra a la Tejedora de Raíz"
+}
+extras = {
+"vines": [[Vector2(140, 410), Vector2(840, 410)], [Vector2(140, 530), Vector2(840, 530)], [Vector2(300, 410), Vector2(300, 530)], [Vector2(660, 410), Vector2(660, 530)]]
+}

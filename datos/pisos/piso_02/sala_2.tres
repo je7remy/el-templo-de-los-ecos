@@ -1,0 +1,18 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_40pyg"]
+
+[resource]
+script = ExtResource("1_40pyg")
+escena = 2
+nombre = "II-2 · NAVE DEL AGUA"
+enemigo = ""
+rasgos = Array[String](["almas"])
+susurro = "Agua negra entre las losas. Corre en una sola dirección."
+objetos = [["fosforos", "Fosforos", Vector2(250, 470)]]
+mision = {}
+extras = {
+"chest": [Vector2(790, 470), "«Para quien venga detrás. No se lo enseñes a nadie que camine a tu espalda.» —T."],
+"inscription": [Vector2(330, 182), "El agua baja. Las almas también. Todo baja hacia algo que tiene hambre."],
+"traps": [Vector2(320, 380), Vector2(640, 380), Vector2(380, 470), Vector2(580, 470)]
+}

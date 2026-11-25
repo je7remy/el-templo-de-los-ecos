@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_3mn0k"]
+
+[resource]
+script = ExtResource("1_3mn0k")
+escena = 2
+nombre = "VIII-2 · SALA DEL TESTIGO"
+enemigo = "testigo"
+rasgos = Array[String](["almas"])
+susurro = "El ojo del muro te sigue. Esta vez parece esperar a que te detengas."
+objetos = []
+mision = {
+"goal": "desterrar",
+"required": false,
+"reward": 14,
+"text": "Destierra al Testigo invertido"
+}
+extras = {}

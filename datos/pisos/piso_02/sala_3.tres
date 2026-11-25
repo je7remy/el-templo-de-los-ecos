@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_pvmg6"]
+
+[resource]
+script = ExtResource("1_pvmg6")
+escena = 4
+nombre = "II-3 · CRIPTA DEL REPARTO"
+enemigo = ""
+rasgos = Array[String](["almas", "cosecha"])
+susurro = "Aquí se reparte lo reunido. Siempre sobra alguien."
+objetos = []
+mision = {}
+extras = {}

@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
+[ext_resource type="Resource" path="res://datos/pisos/piso_05/sala_1.tres" id="1_jcpqv"]
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_05/sala_2.tres" id="2_xmiqu"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_05/sala_3.tres" id="3_awifh"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_05/sala_4.tres" id="4_eex6h"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -10,5 +14,10 @@ estado = "SE OYEN UÑAS DE BRONCE"
 desgaste = 1.6
 eco = "paso"
 combustible = 25.0
+seguidores = false
+espejo = false
+invertido = false
+final = false
 verdad = "Las almas no se pierden: corren por canales hacia abajo. Alguien las recoge."
 inspiracion = "Inspiración: el laberinto de los leones enmascarados, demasiado fuertes para ese piso."
+salas = Array[Resource]([ExtResource("1_jcpqv"), ExtResource("2_xmiqu"), ExtResource("3_awifh"), ExtResource("4_eex6h")])

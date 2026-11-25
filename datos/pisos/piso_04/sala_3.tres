@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_v1iqj"]
+
+[resource]
+script = ExtResource("1_v1iqj")
+escena = 2
+nombre = "IV-3 · JARDÍN DE CENIZA"
+enemigo = "tejedora"
+rasgos = Array[String]([])
+susurro = "Aquí ya ardió algo antes. Las raíces volvieron a crecer."
+objetos = [["fosforos", "Fosforos", Vector2(250, 470)]]
+mision = {
+"goal": "desterrar",
+"required": true,
+"reward": 14,
+"text": "Destierra a la segunda Tejedora"
+}
+extras = {
+"vines": [[Vector2(120, 380), Vector2(840, 380)], [Vector2(140, 172), Vector2(840, 172)], [Vector2(260, 172), Vector2(260, 380)], [Vector2(700, 172), Vector2(700, 380)]]
+}
