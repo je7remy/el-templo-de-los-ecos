@@ -8,18 +8,10 @@ extends RefCounted
 ##       var texto := Botin.aplicar(clave)
 
 
-## clave: [nombre, descripción, nivel de botín (1-4), icono]
-const OBJETOS := {
-    "pan": ["PAN DE CENIZA", "A la bolsa: +50 de vida y vigor lleno.", 1, "pan"],
-    "fosforos_caja": ["CAJA DE FÓSFOROS", "A la bolsa: +3 fósforos al usarla.", 1, "fosforos"],
-    "vial": ["VIAL DE SANGRE", "A la bolsa: +80 de vida, aunque pase del máximo.", 2, "vial"],
-    "incienso": ["INCIENSO", "A la bolsa: el miedo baja a cero.", 2, "incienso"],
-    "bolsa_almas": ["BOLSA DE ALMAS", "A la bolsa: +25 almas al abrirla.", 3, "bolsa_almas"],
-    "brazalete_up": ["BRONCE TEMPLADO", "Brazalete de bronce +1 nivel (o lo consigues).", 3, "brazalete"],
-    "amuleto_up": ["HUESO PULIDO", "Amuleto de hueso +1 nivel (o lo consigues).", 3, "amuleto"],
-    "resonancia_up": ["ECO PROFUNDO", "Resonancia +1 nivel (o la despiertas).", 4, "resonancia"],
-    "reliquia": ["RELIQUIA DE ECOS", "A la bolsa: +60 de experiencia al usarla.", 4, "reliquia"],
-}
+## clave: [nombre, descripción, nivel de botín (1-4), icono]. Los objetos son
+## archivos de datos en datos/botin/*.tres (scripts/datos/catalogo.gd).
+const Catalogo := preload("res://scripts/datos/catalogo.gd")
+static var OBJETOS: Dictionary = Catalogo.botin()
 const NIVEL_OBJETO_MAX := 5
 const NIVEL_HABILIDAD_MAX := 5
 

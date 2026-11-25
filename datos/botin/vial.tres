@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/objeto_botin.gd" id="1_botin"]
+
+[resource]
+script = ExtResource("1_botin")
+id = "vial"
+nombre = "VIAL DE SANGRE"
+descripcion = "A la bolsa: +80 de vida, aunque pase del máximo."
+nivel = 2
+icono = "vial"

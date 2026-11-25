@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/objeto_botin.gd" id="1_botin"]
+
+[resource]
+script = ExtResource("1_botin")
+id = "brazalete_up"
+nombre = "BRONCE TEMPLADO"
+descripcion = "Brazalete de bronce +1 nivel (o lo consigues)."
+nivel = 3
+icono = "brazalete"

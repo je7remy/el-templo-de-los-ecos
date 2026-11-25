@@ -7639,14 +7639,7 @@ const GUIDE_SOULS := 3 # almas que da cada peregrino que llega contigo a la esca
 ## guarda en la bolsa (se usa desde el perfil); el brazalete y el amuleto se
 ## equipan y, si ya los llevas, comprarlos otra vez los mejora de nivel. La
 ## Resonancia también se mejora aquí si ya la tienes.
-const SHOP := [
-    ["pan", "PAN DE CENIZA", 6, "A la bolsa. Úsalo desde el perfil: +50 de vida, aunque pase del máximo."],
-    ["fosforos", "FÓSFOROS ×3", 5, "Tres fósforos más para la antorcha."],
-    ["brazalete", "BRAZALETE DE BRONCE", 12, "+10 % al daño del golpe por nivel. Se queda contigo."],
-    ["amuleto", "AMULETO DE HUESO", 12, "+10 % a la recarga del vigor por nivel. Se queda contigo."],
-    ["resonancia", "MEJORAR RESONANCIA", 10, "+1 nivel: la onda hace más daño."],
-    ["vigilia", "LLAVE DE LA VIGILIA", 500, "Abre la Vigilia del Claustro en el menú. Su botín llega a tu bolsa."],
-]
+var SHOP: Array = Catalogo.tienda() # datos/tienda/*.tres
 var guiding: bool = false
 var guided: Array = [] # peregrinos que bajaron contigo (para el Piso VII)
 var trinkets: Array = [] # objetos del Mercader que se quedan contigo
@@ -8461,14 +8454,7 @@ const RESONANCE_UPGRADE_STEP := 8
 const OVERHEAL_MAX := 50.0 # solo para dibujar: con +50 la franja dorada se ve llena
 ## Consumibles de la bolsa: [nombre, descripción, icono]. Los de la Vigilia
 ## (scripts/botin.gd) llegan aquí.
-const BAG_ITEMS := {
-    "pan": ["PAN DE CENIZA", "+50 de vida (pasa del máximo), vigor lleno y +10 de vida máx. perdida.", "pan"],
-    "fosforos_caja": ["CAJA DE FÓSFOROS", "+3 fósforos para la antorcha.", "fosforos"],
-    "vial": ["VIAL DE SANGRE", "+80 de vida, aunque pase del máximo.", "vial"],
-    "incienso": ["INCIENSO", "El miedo baja a cero.", "incienso"],
-    "bolsa_almas": ["BOLSA DE ALMAS", "+25 almas.", "bolsa_almas"],
-    "reliquia": ["RELIQUIA DE ECOS", "+60 de experiencia.", "reliquia"],
-}
+var BAG_ITEMS: Dictionary = Catalogo.bolsa() # datos/bolsa/*.tres
 var bag: Dictionary = {} # clave -> cantidad
 var trinket_levels: Dictionary = {} # clave -> nivel
 var profile_tab: int = 0 # 0 mochila, 1 objetos, 2 equipo

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/objeto_botin.gd" id="1_botin"]
+
+[resource]
+script = ExtResource("1_botin")
+id = "incienso"
+nombre = "INCIENSO"
+descripcion = "A la bolsa: el miedo baja a cero."
+nivel = 2
+icono = "incienso"

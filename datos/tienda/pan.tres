@@ -1,0 +1,10 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/articulo_tienda.gd" id="1_tienda"]
+
+[resource]
+script = ExtResource("1_tienda")
+id = "pan"
+nombre = "PAN DE CENIZA"
+precio = 6
+descripcion = "A la bolsa. Úsalo desde el perfil: +50 de vida, aunque pase del máximo."

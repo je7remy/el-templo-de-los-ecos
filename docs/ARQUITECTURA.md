@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.28)
+## Cómo está organizado hoy (v0.5.29)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -116,7 +116,7 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 3d-4 | Personajes secundarios (aliados, traidores, rescate, Mercader y muñeco) en `scripts/mundo/personajes.gd`; almas y sello en `objetos.gd`. **Con esto, todo lo que se mueve, pelea o se recoge se dibuja desde su propio script.** | **Hecha (v0.5.26)** |
 | 3d-5 (opcional) | Decorado a ras de suelo (puertas, trampas, enredaderas, cadáveres, desgaste, luz y niebla). Es escenografía que casi no se toca: queda en `main.gd` mientras no haga falta. | Opcional |
 | 4a | Armas (y el golpe base de la antorcha) y piezas de equipo en `datos/armas/*.tres` y `datos/equipo/*.tres`, con sus scripts de recurso (`scripts/datos/arma.gd`, `pieza_equipo.gd`) y el catálogo que los lista en orden (`scripts/datos/catalogo.gd`). Se editan desde el inspector de Godot. | **Hecha (v0.5.28)** |
-| 4b | Precios de la tienda y botín en `.tres`. | Pendiente |
+| 4b | Puesto del Mercader (`datos/tienda`), consumibles de la bolsa (`datos/bolsa`) y botín de la Vigilia (`datos/botin`) en `.tres`, con sus scripts de recurso en `scripts/datos/`. | **Hecha (v0.5.29)** |
 | 4c | Pisos y salas en `.tres`. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
 
