@@ -1,5 +1,13 @@
 # Historial de versiones
 
+## v0.5.27-alpha — 2026-11-25 · Cámara cercana en el móvil
+
+- **En el móvil la cámara se acerca al jugador y lo sigue** en horizontal y en vertical, en vez de mostrar la sala entera en pequeño. Antes el zoom solo llenaba el ancho (hasta un 30 %) y se veía toda la sala; ahora, por defecto, el mundo se ve casi el doble de grande (zoom 1,9).
+- Nueva opción en **Configuración > Sonido > Cámara en el móvil**: CERCA (por defecto, 1,9), MEDIA (1,6) o SALA (toda la sala, como antes). Se aplica al momento.
+- En PC no cambia nada: se sigue viendo la sala entera. Si en PC pones los controles táctiles en «Siempre», también se usa la cámara del móvil.
+- El HUD, los menús y los botones táctiles no cambian de tamaño.
+- Versión Android 0.5.27-alpha (código 34).
+
 ## v0.5.26-alpha — 2026-11-25 · Arquitectura por escenas, fase 3d-4
 
 Sin cambios en las reglas del juego ni en cómo se ve.

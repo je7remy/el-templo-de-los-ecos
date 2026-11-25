@@ -61,9 +61,10 @@ func widgets() -> Array:
     match pestana:
         0:
             var filas := [["slider", "volumen_general", "vol_general"], ["slider", "volumen_musica", "vol_musica"], ["slider", "volumen_efectos", "vol_efectos"],
-                ["toggle", "silencio", "silencio"], ["toggle", "pantalla_completa", "pantalla_completa"], ["toggle", "buscar_actualizaciones", "buscar_actualizaciones"]]
+                ["toggle", "silencio", "silencio"], ["toggle", "pantalla_completa", "pantalla_completa"], ["toggle", "buscar_actualizaciones", "buscar_actualizaciones"],
+                ["choice", "zoom_movil", "zoom_movil"]]
             for i in range(filas.size()):
-                lista.append({"kind": filas[i][0], "id": filas[i][1], "label": _t(filas[i][2]), "rect": Rect2(140, 168.0 + float(i) * 58.0, 680, 50)})
+                lista.append({"kind": filas[i][0], "id": filas[i][1], "label": _t(filas[i][2]), "rect": Rect2(140, 166.0 + float(i) * 51.0, 680, 45)})
         1:
             for i in range(Ajustes.ORDEN.size()):
                 var accion_id: String = Ajustes.ORDEN[i]
@@ -92,6 +93,11 @@ func enfocables() -> Array:
 
 func _pista_deslizador(r: Rect2) -> Rect2:
     return Rect2(r.position.x + 300.0, r.position.y + 15.0, r.size.x - 320.0, 24.0)
+
+
+## Ajustes de varias opciones: clave → valores posibles (el texto de cada
+## valor está en scripts/datos/textos.gd).
+const OPCIONES := {"tactil": ["auto", "siempre", "nunca"], "zoom_movil": ["cerca", "medio", "lejos"]}
 
 
 func _rect_opcion(r: Rect2, i: int) -> Rect2:
@@ -141,10 +147,10 @@ func _draw() -> void:
             "choice":
                 Estilo.panel(self, r, Color("#1a1f2a") if hot else Color("#11151c"), Estilo.ORO if hot else Estilo.BORDE)
                 Estilo.texto(self, w["label"], Vector2(r.position.x + 12.0, r.position.y + 26.0), 14, Estilo.CREMA)
-                var opciones := ["auto", "siempre", "nunca"]
-                for i in range(3):
+                var opciones: Array = OPCIONES[w["id"]]
+                for i in range(opciones.size()):
                     var o := _rect_opcion(r, i)
-                    var sel: bool = str(Ajustes.obtener("tactil")) == opciones[i]
+                    var sel: bool = str(Ajustes.obtener(w["id"])) == opciones[i]
                     Estilo.panel(self, o, Color("#1d4a4f") if sel else Color("#141922"), Estilo.ALMA if sel else Estilo.BORDE)
                     Estilo.texto(self, _t(opciones[i]), Vector2(o.position.x, o.position.y + 21.0), 13, Estilo.CREMA, o.size.x)
             "lang":
@@ -208,16 +214,16 @@ func activar(w: Dictionary, en: Vector2 = Vector2(-1, -1)) -> void:
         "key":
             reasignando = w["id"]
         "choice":
-            var opciones := ["auto", "siempre", "nunca"]
-            var idx: int = opciones.find(str(Ajustes.obtener("tactil")))
+            var opciones: Array = OPCIONES[w["id"]]
+            var idx: int = opciones.find(str(Ajustes.obtener(w["id"])))
             if en.x >= 0.0:
-                for i in range(3):
+                for i in range(opciones.size()):
                     if _rect_opcion(w["rect"], i).has_point(en):
                         idx = i
             else:
-                idx = (idx + 1) % 3
-            Ajustes.poner("tactil", opciones[idx])
-            elegir(&"tactil")
+                idx = (idx + 1) % opciones.size()
+            Ajustes.poner(w["id"], opciones[idx])
+            elegir(StringName(w["id"]))
         "lang":
             Ajustes.poner("idioma", w["id"])
             _sonido("interfaz", -10.0)
