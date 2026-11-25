@@ -3,7 +3,8 @@ extends SceneTree
 ## con su máquina de estados. Fase 3a: el jugador (Quieto, Camina, Esquiva).
 ## Fase 3b: su salud (Vivo, Herido, Muerto) con las señales herido y muerto.
 ## Fase 3c: la entidad de la sala; Ghoul, Testigo, Hechicero, Segador y
-## Tejedora con su máquina de estados.
+## Tejedora con su máquina de estados. Fase 3c-3: alimañas, mastines y arietes
+## (una máquina de estados compartida por cada manada).
 
 
 func _initialize() -> void:
@@ -304,6 +305,86 @@ func _run() -> void:
         _fail("Aturdida, la Tejedora debe volver a Anda.")
         return
     print("OK: Segador y Tejedora con su máquina de estados en la escena de la entidad.")
+
+    # --- Fase 3c-3: manadas (alimañas, mastines, arietes) ---------------------------
+    var manadas := {"Alimanas": ["Patrulla", "Persigue", "Muerta"], "Mastines": ["Vaga", "Ronda", "Carga", "Huye"],
+        "Arietes": ["Quieto", "Apunta", "Embiste", "Aturdido"]}
+    for nombre in manadas:
+        var mn: Node = game.get_node_or_null("Criaturas/" + nombre)
+        if mn == null:
+            _fail("Falta la manada %s en scenes/entidades/criaturas.tscn." % nombre)
+            return
+        for e in manadas[nombre]:
+            if not bool(mn.call("tiene", StringName(e))):
+                _fail("La manada %s no tiene el estado %s." % [nombre, e])
+                return
+    _sala(game, 0, 0)
+    var yo := Vector2(200, 360)
+    game.set("player_pos", yo)
+    # Alimaña: patrulla lejos; huele la sangre de cerca y se lanza; esquivando
+    # se aplasta (Muerta) y suelta un alma.
+    var rata := {"pos": yo + Vector2(300, 0), "a": yo + Vector2(250, 0), "b": yo + Vector2(350, 0), "to_b": true, "alive": true,
+        "dead_t": 0.0, "respawn": false, "flip": false, "bite_cd": 0.0, "kind": "rata"}
+    game.set("critters", [rata])
+    game.call("_update_critters", dt)
+    if str(rata.get("estado", "")) != "Patrulla":
+        _fail("Lejos, la alimaña no patrulla (%s)." % rata.get("estado", ""))
+        return
+    rata["pos"] = yo + Vector2(60, 0)
+    var antes_r: Vector2 = rata["pos"]
+    game.call("_update_critters", dt)
+    if str(rata["estado"]) != "Persigue" or Vector2(rata["pos"]).distance_to(yo) >= antes_r.distance_to(yo):
+        _fail("De cerca, la alimaña no se lanza hacia ti.")
+        return
+    var almas0: int = int(game.get("souls"))
+    rata["pos"] = yo + Vector2(10, 0)
+    game.set("dash_left", 0.1)
+    game.call("_update_critters", dt)
+    game.set("dash_left", 0.0)
+    game.call("_update_critters", dt)
+    if bool(rata["alive"]) or str(rata["estado"]) != "Muerta" or int(game.get("souls")) != almas0 + 1:
+        _fail("Esquivando, la alimaña no se aplasta (Muerta y un alma).")
+        return
+    # Mastín: con la antorcha ronda y guarda distancia; a oscuras carga y
+    # muerde, y después huye un instante.
+    var perro := {"pos": yo + Vector2(150, 0), "prev": yo + Vector2(150, 0), "home": yo + Vector2(150, 0), "wander": yo + Vector2(150, 0),
+        "wander_t": 1.0, "flee": 0.0, "bite_cd": 0.0, "bite_t": 0.0, "facing": 0, "moving": false, "growl_t": 2.0, "detour": Vector2.ZERO, "detour_t": 0.0}
+    game.set("hounds", [perro])
+    game.set("torch_on", true)
+    game.call("_update_hounds", dt)
+    if str(perro.get("estado", "")) != "Ronda":
+        _fail("Con la antorcha encendida el mastín no ronda (%s)." % perro.get("estado", ""))
+        return
+    game.set("torch_on", false)
+    perro["pos"] = yo + Vector2(20, 0)
+    game.set("damage_cd", 0.0)
+    var vida_m: float = float(game.get("hp"))
+    game.call("_update_hounds", dt)
+    if str(perro["estado"]) != "Carga" or float(game.get("hp")) >= vida_m:
+        _fail("A oscuras el mastín no carga y muerde.")
+        return
+    game.call("_update_hounds", dt)
+    if str(perro["estado"]) != "Huye":
+        _fail("Tras morder el mastín no se aparta (Huye).")
+        return
+    # Ariete: alineado contigo apunta, embiste, choca contra el muro y queda
+    # aturdido; luego vuelve a rondar.
+    game.set("player_pos", Vector2(150, 360))
+    var ariete := {"pos": Vector2(260, 360), "prev": Vector2(260, 360), "home": Vector2(260, 360), "state": "idle", "t": 1.0,
+        "dir": Vector2.ZERO, "hp": 70.0, "max": 70.0, "facing": 3, "cd": 0.0, "id": 0, "wander": Vector2(260, 360)}
+    game.set("rams", [ariete])
+    var visto: Array = []
+    for i in range(400):
+        game.set("damage_cd", 1.0) # que no empuje al jugador
+        game.call("_update_rams", dt)
+        if visto.is_empty() or visto[-1] != str(ariete["state"]):
+            visto.append(str(ariete["state"]))
+        if visto.size() >= 4:
+            break
+    if visto != ["aim", "charge", "stun", "idle"]:
+        _fail("Orden de estados del ariete inesperado: %s." % [visto])
+        return
+    print("OK: alimañas, mastines y arietes con su máquina de estados (manadas).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

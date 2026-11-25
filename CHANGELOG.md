@@ -1,5 +1,18 @@
 # Historial de versiones
 
+## v0.5.20-alpha — 2026-11-24 · Arquitectura por escenas, fase 3c-3
+
+Sin cambios en las reglas del juego.
+
+- **Alimañas, mastines y arietes tienen su máquina de estados**, en la nueva escena `scenes/entidades/criaturas.tscn`. Como pueden ser muchas en una sala, cada tipo es una **manada**: una sola máquina compartida, cada criatura guarda en sus datos en qué estado está y los estados son nodos (`scripts/entidades/manadas/`).
+  - Alimañas: Patrulla, Persigue (huele la sangre) y Muerta (el nido la repone).
+  - Mastines: Vaga, Ronda (con la antorcha guardan distancia y gruñen), Carga (a oscuras) y Huye.
+  - Arietes: Quieto, Apunta, Embiste y Aturdido.
+- Avisan con señales (`mordisco`, `aplastada`, `grunido`, `apunta`, `embiste`, `choca`, `alcanza`); el daño, las almas, los sonidos y el empujón los decide la campaña.
+- El comportamiento es idéntico al de antes: una simulación con semilla fija de las 39 salas con alimañas, mastines o arietes (15 segundos cada una, andando, esquivando, golpeando y encendiendo y apagando la antorcha) da exactamente las mismas posiciones, estados, vida y almas.
+- `entidades_test.gd` prueba los estados de las tres manadas.
+- Versión Android 0.5.20-alpha (código 27).
+
 ## v0.5.19-alpha — 2026-11-24 · Arquitectura por escenas, fase 3c-2
 
 Sin cambios en las reglas del juego.
