@@ -36,6 +36,8 @@ const Estilo := preload("res://scripts/ui/estilo.gd")
 const EquipoRetrato := preload("res://scripts/ui/equipo_retrato.gd")
 const Jugador := preload("res://scripts/entidades/jugador.gd")
 const Entidad := preload("res://scripts/entidades/entidad.gd")
+const Coloso := preload("res://scripts/entidades/jefes/coloso.gd")
+const Hermano := preload("res://scripts/entidades/jefes/hermano.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -259,6 +261,8 @@ var game_mode: String = "title":
 @onready var alimanas: Node = $Criaturas/Alimanas
 @onready var mastines: Node = $Criaturas/Mastines
 @onready var arietes: Node = $Criaturas/Arietes
+@onready var coloso: Node2D = $Jefes/Coloso
+@onready var hermano: Node2D = $Jefes/HermanoMayor
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
@@ -558,6 +562,14 @@ func _ready() -> void:
     arietes.embiste.connect(func(_r: Dictionary) -> void: _sfx("k_golpe", -8.0, 0.6))
     arietes.choca.connect(_on_ram_crash)
     arietes.alcanza.connect(_on_ram_hit)
+    for jefe in [coloso, hermano]:
+        jefe.preparar(jugador, _is_blocked)
+        jefe.hiere.connect(_hurt)
+    coloso.alza.connect(func() -> void: _sfx("k_piedra", -10.0, 0.5))
+    coloso.pisoton.connect(_on_colossus_stomp)
+    hermano.regla.connect(_on_elder_rule)
+    hermano.hilos_activos.connect(func() -> void: _sfx("k_metal", -6.0, 1.4))
+    hermano.rugido.connect(_on_elder_roar)
     _load_progress()
     _load_art()
     _load_room_scene() # sala 1 como fondo del menú
@@ -9164,20 +9176,40 @@ const COLOSSUS_TEX := preload("res://assets/visual/enemies/coloso.png")
 const RAM_HP := 70.0
 const RAM_WINDUP := 0.6 # (vista, alineación y velocidad: scripts/entidades/manadas/arietes.gd)
 const RAM_DAMAGE := 28.0
-const COLOSSUS_SPEED := 40.0
-const COLOSSUS_STOMP_RADIUS := 130.0
-const COLOSSUS_WINDUP := 0.85
+const COLOSSUS_STOMP_RADIUS := Coloso.RADIO # (velocidad y aviso: scripts/entidades/jefes/coloso.gd)
+const COLOSSUS_WINDUP := Coloso.ALZA
 const COLOSSUS_DAMAGE := 32.0
 const COLOSSUS_HITS := 3
 const PILLAR_REACH := 160.0 # distancia del Coloso a la columna para que le caiga encima
 var rams: Array = [] # {pos, prev, home, state, t, dir, hp, facing, cd}
 var pillars: Array = [] # {pos, fallen, fall_dir, fall_t}
 var colossus_active: bool = false
-var colossus_pos: Vector2 = Vector2.ZERO
-var colossus_hits: int = 0
-var colossus_state: String = "walk" # walk | raise | stomp | stun
-var colossus_t: float = 0.0
-var colossus_cd: float = 2.0
+## El Coloso es una escena (scenes/entidades/jefes.tscn); atajos a sus datos:
+var colossus_pos: Vector2:
+    get:
+        return coloso.position
+    set(v):
+        coloso.position = v
+var colossus_hits: int:
+    get:
+        return coloso.golpes
+    set(v):
+        coloso.golpes = v
+var colossus_state: String:
+    get:
+        return coloso.estado()
+    set(v):
+        coloso.poner(v) # walk | raise | stomp | stun
+var colossus_t: float:
+    get:
+        return coloso.t
+    set(v):
+        coloso.t = v
+var colossus_cd: float:
+    get:
+        return coloso.cd
+    set(v):
+        coloso.cd = v
 
 
 func _load_colossus_room() -> void:
@@ -9307,36 +9339,18 @@ func _update_colossus(dt: float) -> void:
             p["fall_t"] = minf(1.0, float(p["fall_t"]) + dt * 3.0)
     if not colossus_active:
         return
-    colossus_cd = maxf(0.0, colossus_cd - dt)
-    colossus_t = maxf(0.0, colossus_t - dt)
     fear = minf(100.0, fear + dt * 1.5)
-    var d: float = colossus_pos.distance_to(player_pos)
-    match colossus_state:
-        "walk":
-            var target: Vector2 = colossus_pos.move_toward(player_pos, COLOSSUS_SPEED * (1.0 + 0.25 * float(colossus_hits)) * dt)
-            colossus_pos = Vector2(clampf(target.x, 110.0, 850.0), clampf(target.y, 220.0, 540.0))
-            if d < COLOSSUS_STOMP_RADIUS and colossus_cd <= 0.0:
-                colossus_state = "raise"
-                colossus_t = COLOSSUS_WINDUP - 0.12 * float(colossus_hits) # cada vez pisa antes
-                _sfx("k_piedra", -10.0, 0.5)
-        "raise":
-            if colossus_t <= 0.0:
-                colossus_state = "stomp"
-                colossus_t = 0.35
-                shake = maxf(shake, 0.6)
-                _sfx("k_golpe", -2.0, 0.4)
-                _emit(colossus_pos, 30, Color(0.55, 0.5, 0.45), 60.0, 200.0, 0.8, 3.0, 60.0, Vector2.UP, 3.0)
-                if d < COLOSSUS_STOMP_RADIUS and dash_left <= 0.0 and damage_cd <= 0.0:
-                    _hurt(COLOSSUS_DAMAGE, 18.0, 1.0)
-        "stomp":
-            if colossus_t <= 0.0:
-                colossus_state = "walk"
-                colossus_cd = maxf(1.0, 2.2 - 0.4 * float(colossus_hits))
-        "stun":
-            if colossus_t <= 0.0:
-                colossus_state = "walk"
-                colossus_cd = 1.5
+    # Andar, alzar el pie, pisar y quedar aturdido: su máquina de estados.
+    coloso.actualizar(dt)
 
+
+## El Coloso pisa: sacude y, dentro del círculo, te alcanza.
+func _on_colossus_stomp(reach: bool) -> void:
+    shake = maxf(shake, 0.6)
+    _sfx("k_golpe", -2.0, 0.4)
+    _emit(colossus_pos, 30, Color(0.55, 0.5, 0.45), 60.0, 200.0, 0.8, 3.0, 60.0, Vector2.UP, 3.0)
+    if reach:
+        _hurt(COLOSSUS_DAMAGE, 18.0, 1.0)
 
 func _draw_ram(i: int) -> void:
     var r: Dictionary = rams[i]
@@ -9441,29 +9455,57 @@ func _draw_colossus_hud() -> void:
 ## maldición se ponen de su lado y te tiran piedras; sin marca, se apartan.
 ## Valores PROVISIONALES.
 const ELDER_HP := 620.0
-const ELDER_SPEED := 62.0
-const ELDER_THREAD_DAMAGE := 18.0
-const ELDER_ROAR_RADIUS := 230.0
+const ELDER_ROAR_RADIUS := Hermano.RADIO_RUGIDO # (velocidad, reglas y daños: scripts/entidades/jefes/hermano.gd)
 const ELDER_ROAR_DAMAGE := 26.0
-const ELDER_GAZE_TICK := 7.0
-const ELDER_SWIPE_DAMAGE := 16.0
 const BRAZIER_REACH := 64.0
-const ELDER_RULES := ["hilos", "rugido", "mirada"]
 var braziers: Array = [] # {pos, lit}
 var braziers_lit: Dictionary = {} # "piso:sala:i" -> true
 var elder_active: bool = false # jefe en X-4
 var elder_npc: bool = false # figura tranquila en X-1
-var elder_pos: Vector2 = Vector2.ZERO
+## El Hermano Mayor es una escena (scenes/entidades/jefes.tscn); atajos:
+var elder_pos: Vector2:
+    get:
+        return hermano.position
+    set(v):
+        hermano.position = v
 var elder_hp: float = ELDER_HP
 var elder_max: float = ELDER_HP
-var elder_state: String = "talk" # talk | walk | threads_aim | threads | roar | tired | gaze | swipe
-var elder_t: float = 0.0
-var elder_cd: float = 0.0
-var elder_rule: int = 0
+var elder_state: String:
+    get:
+        return hermano.estado()
+    set(v):
+        hermano.poner(v) # talk | walk | threads_aim | threads | roar | tired | gaze | swipe
+var elder_t: float:
+    get:
+        return hermano.t
+    set(v):
+        hermano.t = v
+var elder_cd: float:
+    get:
+        return hermano.cd
+    set(v):
+        hermano.cd = v
+var elder_rule: int:
+    get:
+        return hermano.siguiente
+    set(v):
+        hermano.siguiente = v
 var elder_hit_t: float = 0.0
-var elder_tick: float = 0.0
-var elder_facing: int = 3
-var elder_threads: Array = [] # [desde, hasta]
+var elder_tick: float:
+    get:
+        return hermano.tick
+    set(v):
+        hermano.tick = v
+var elder_facing: int:
+    get:
+        return hermano.orientacion
+    set(v):
+        hermano.orientacion = v
+var elder_threads: Array:
+    get:
+        return hermano.hilos
+    set(v):
+        hermano.hilos = v # [desde, hasta]
 var elder_side: String = "" # aliados: "contigo", "contra", "apartados"
 var elder_traitors: Array = [] # {pos, cd}
 var elder_stones: Array = [] # {pos, t}
@@ -9621,11 +9663,7 @@ func _update_harvest(dt: float) -> void:
     # La mirada robada a la Vigía: castiga darle la espalda (alejarte) o correr (esquivar).
     var fled: bool = (moved > 0.6 and step_v.dot(player_pos - elder_pos) > 0.0) or dash_left > 0.0
     elder_last_player = player_pos
-    elder_t = maxf(0.0, elder_t - dt)
-    elder_cd = maxf(0.0, elder_cd - dt)
-    var look: Vector2 = player_pos - elder_pos
-    if look.length() > 1.0:
-        elder_facing = (2 if look.x > 0.0 else 3) if absf(look.x) > absf(look.y) else (0 if look.y > 0.0 else 1)
+    hermano.preparar_cuadro(dt)
     if elder_state == "talk":
         if elder_t <= 0.0:
             _elder_betray()
@@ -9649,84 +9687,30 @@ func _update_harvest(dt: float) -> void:
         if float(t["cd"]) <= 0.0:
             t["cd"] = 5.0
             elder_stones.append({"pos": player_pos, "t": 1.0})
-    match elder_state:
-        "walk":
-            if look.length() > 70.0:
-                var nxt: Vector2 = elder_pos + look.normalized() * ELDER_SPEED * (1.3 if enraged else 1.0) * dt
-                if not _is_blocked(nxt):
-                    elder_pos = Vector2(clampf(nxt.x, 110.0, 850.0), clampf(nxt.y, 200.0, 540.0))
-            elif elder_cd <= 0.6:
-                elder_state = "swipe"
-                elder_t = 0.55
-            if elder_cd <= 0.0:
-                _elder_next_rule(enraged)
-        "swipe":
-            if elder_t <= 0.0:
-                if look.length() < 80.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                    _hurt(ELDER_SWIPE_DAMAGE, 0.0, 0.8)
-                elder_state = "walk"
-                elder_cd = maxf(elder_cd, 1.0)
-        "threads_aim":
-            if elder_t <= 0.0:
-                elder_state = "threads"
-                elder_t = 2.6
-                _sfx("k_metal", -6.0, 1.4)
-        "threads":
-            if dash_left <= 0.0 and damage_cd <= 0.0:
-                for th in elder_threads:
-                    if _dist_to_segment(player_pos, th[0], th[1]) < 12.0:
-                        _hurt(ELDER_THREAD_DAMAGE, 8.0, 0.9)
-                        break
-            if elder_t <= 0.0:
-                elder_threads.clear()
-                elder_state = "walk"
-                elder_cd = 1.8 if enraged else 2.4
-        "roar":
-            if elder_t <= 0.0:
-                shake = maxf(shake, 0.6)
-                _sfx("grunido", -2.0, 0.6)
-                _emit(elder_pos + Vector2(0, -30), 40, Color(0.85, 0.3, 0.3), 80.0, 240.0, 0.7, 3.0, 0.0, Vector2.UP, PI)
-                if look.length() < ELDER_ROAR_RADIUS and dash_left <= 0.0:
-                    _hurt(ELDER_ROAR_DAMAGE, 15.0, 0.8)
-                elder_state = "tired"
-                elder_t = 2.5
-        "tired":
-            if elder_t <= 0.0:
-                elder_state = "walk"
-                elder_cd = 1.6 if enraged else 2.2
-        "gaze":
-            elder_tick = maxf(0.0, elder_tick - dt)
-            if fled and elder_tick <= 0.0:
-                elder_tick = 0.5
-                _hurt(ELDER_GAZE_TICK, 6.0)
-            if elder_t <= 0.0:
-                elder_state = "walk"
-                elder_cd = 1.8 if enraged else 2.4
+    # Andar, zarpazo, hilos, rugido y mirada: su máquina de estados.
+    hermano.actualizar(dt, {"enfurecido": enraged, "huye": fled})
 
 
+## Elige la siguiente regla robada (la prepara su escena).
 func _elder_next_rule(enraged: bool) -> void:
-    var rule: String = ELDER_RULES[elder_rule % ELDER_RULES.size()]
-    elder_rule += 1
+    hermano.siguiente_regla(enraged)
+
+
+func _on_elder_rule(rule: String) -> void:
     match rule:
         "hilos":
-            elder_state = "threads_aim"
-            elder_t = 0.9
-            elder_threads.clear()
-            var p: Vector2 = player_pos
-            elder_threads.append([Vector2(90, p.y), Vector2(870, p.y)])
-            elder_threads.append([Vector2(p.x, 190), Vector2(p.x, 560)])
-            if enraged:
-                elder_threads.append([elder_pos, elder_pos + (p - elder_pos).normalized() * 900.0])
             _sfx("k_metal", -10.0, 1.8)
-        "rugido":
-            elder_state = "roar"
-            elder_t = 1.1 if not enraged else 0.85
         "mirada":
-            elder_state = "gaze"
-            elder_t = 3.5
-            elder_tick = 0.4
             _sfx("k_campana", -10.0, 0.5)
 
+
+## El Hermano Mayor ruge: sacude y alcanza a quien esté cerca sin esquivar.
+func _on_elder_roar(reach: bool) -> void:
+    shake = maxf(shake, 0.6)
+    _sfx("grunido", -2.0, 0.6)
+    _emit(elder_pos + Vector2(0, -30), 40, Color(0.85, 0.3, 0.3), 80.0, 240.0, 0.7, 3.0, 0.0, Vector2.UP, PI)
+    if reach:
+        _hurt(ELDER_ROAR_DAMAGE, 15.0, 0.8)
 
 func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
     return p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))

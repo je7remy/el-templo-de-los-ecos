@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.20)
+## Cómo está organizado hoy (v0.5.21)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -25,6 +25,9 @@ scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña y mundo)
 │   ├── Alimanas   Patrulla, Persigue, Muerta      (scripts/entidades/manadas/)
 │   ├── Mastines   Vaga, Ronda, Carga, Huye        cada criatura guarda su estado en sus datos
 │   └── Arietes    Quieto, Apunta, Embiste, Aturdido
+├── Jefes        scenes/entidades/jefes.tscn       (scripts/entidades/jefes/)
+│   ├── Coloso       Camina, Alza, Pisa, Aturdido
+│   └── HermanoMayor Habla, Camina, Zarpazo, ApuntaHilos, Hilos, Ruge, Cansado, Mira
 ├── Hud          scenes/ui/hud.tscn                CanvasLayer 1 · piezas en scripts/ui/hud/
 │   └── Piezas   FranjaSuperior, PanelJugador, CartelPiso, Minimapa, FranjaInferior, Mision,
 │                PanelArma, AvisoMision, ContadorAlmas, Fundido, Tutorial, ControlesTactiles
@@ -101,7 +104,8 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 3c | La entidad de la sala como escena (`scenes/entidades/entidad.tscn`) con una máquina de estados por tipo: Ghoul (Reposo, Caza, Aturdida), Testigo (Vigila, Caza, Aturdida) y Hechicero (Reposo, Conjura, Aturdida). Señales `herida`, `desterrada`, `conjuro` y `regla`. Las bolas de fuego, los golpes al jugador y el destierro los decide la campaña. | **Hecha (v0.5.18)** |
 | 3c-2 | Segador (Acecho, Tensa, Engancha) y Tejedora (Anda, Alza, Zarpa) con su máquina en la misma escena. Los aliados que mueren en la línea, el fuego de las enredaderas y las quemaduras de la Tejedora siguen en la campaña. | **Hecha (v0.5.19)** |
 | 3c-3 | Alimañas, mastines y arietes como **manadas** (`scenes/entidades/criaturas.tscn`): una máquina de estados compartida por tipo; cada criatura es un diccionario de datos que guarda su estado, y los estados son nodos. Señales `mordisco`, `aplastada`, `grunido`, `apunta`, `embiste`, `choca` y `alcanza`. | **Hecha (v0.5.20)** |
-| 3c-4 | El Peregrino y los jefes: Coloso, Mirada y Hermano Mayor. | Pendiente |
+| 3c-4 | Jefes en `scenes/entidades/jefes.tscn`: Coloso (Camina, Alza, Pisa, Aturdido) y Hermano Mayor (Habla, Camina, Zarpazo, ApuntaHilos, Hilos, Ruge, Cansado, Mira). Señales `hiere`, `alza`, `pisoton`, `regla`, `hilos_activos` y `rugido`. Las columnas, los aliados, las piedras de los traidores y las derrotas siguen en la campaña. | **Hecha (v0.5.21)** |
+| 3c-5 | La Vigía (la Mirada) y el Peregrino, que dependen mucho de los aliados y la historia. | Pendiente |
 | 3d | El mundo como nodos con orden por profundidad (`y_sort_enabled`): cada escena (jugador, entidades, objetos) se dibuja sola con `AnimatedSprite2D`, y `main.gd` solo las instancia en la sala. | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |

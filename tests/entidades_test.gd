@@ -4,7 +4,8 @@ extends SceneTree
 ## Fase 3b: su salud (Vivo, Herido, Muerto) con las señales herido y muerto.
 ## Fase 3c: la entidad de la sala; Ghoul, Testigo, Hechicero, Segador y
 ## Tejedora con su máquina de estados. Fase 3c-3: alimañas, mastines y arietes
-## (una máquina de estados compartida por cada manada).
+## (una máquina de estados compartida por cada manada). Fase 3c-4: el Coloso y el
+## Hermano Mayor (scenes/entidades/jefes.tscn).
 
 
 func _initialize() -> void:
@@ -385,6 +386,63 @@ func _run() -> void:
         _fail("Orden de estados del ariete inesperado: %s." % [visto])
         return
     print("OK: alimañas, mastines y arietes con su máquina de estados (manadas).")
+
+    # --- Fase 3c-4: jefes ---------------------------------------------------------
+    var coloso: Node2D = game.get_node_or_null("Jefes/Coloso")
+    var hermano: Node2D = game.get_node_or_null("Jefes/HermanoMayor")
+    if coloso == null or hermano == null:
+        _fail("Faltan el Coloso o el Hermano Mayor en scenes/entidades/jefes.tscn.")
+        return
+    # Coloso (Piso IX, sala 3): se acerca, alza el pie, pisa y vuelve a andar;
+    # si le cae una columna queda aturdido.
+    _sala(game, 8, 2)
+    if not bool(game.get("colossus_active")) or (game.get("colossus_pos") as Vector2) != coloso.position:
+        _fail("colossus_pos de la campaña no es la posición del Coloso.")
+        return
+    game.set("player_pos", coloso.position + Vector2(-60, 0))
+    game.set("colossus_cd", 0.0)
+    var pasos_c: Array = []
+    for i in range(240):
+        game.set("player_pos", coloso.position + Vector2(-60, 0))
+        game.set("damage_cd", 0.0)
+        game.set("hp", 100.0)
+        game.call("_update_play", dt)
+        var e: String = str(game.get("colossus_state"))
+        if pasos_c.is_empty() or pasos_c[-1] != e:
+            pasos_c.append(e)
+        if pasos_c.size() >= 3:
+            break
+    if pasos_c != ["raise", "stomp", "walk"]:
+        _fail("Orden de estados del Coloso inesperado: %s." % [pasos_c])
+        return
+    var pilar: Dictionary = (game.get("pillars") as Array)[0]
+    game.call("_pillar_fall", pilar)
+    if game.get("colossus_state") != "stun" or int(coloso.get("golpes")) != 1:
+        _fail("Al caerle una columna, el Coloso no queda aturdido.")
+        return
+    # Hermano Mayor (Piso X, sala 4): habla, traiciona y lucha por reglas
+    # (hilos, rugido, mirada).
+    _sala(game, 9, 3)
+    if not bool(game.get("elder_active")) or game.get("elder_state") != "talk":
+        _fail("El Hermano Mayor no empieza hablando.")
+        return
+    var reglas: Array = []
+    hermano.regla.connect(func(r): reglas.append(r))
+    var vistos_h: Dictionary = {}
+    for i in range(1500):
+        game.set("hp", 100.0)
+        game.call("_update_play", dt)
+        vistos_h[str(game.get("elder_state"))] = true
+        if reglas.size() >= 3 and vistos_h.has("tired") and vistos_h.has("threads"):
+            break
+    if reglas.slice(0, 3) != ["hilos", "rugido", "mirada"]:
+        _fail("El Hermano Mayor no usa sus reglas en orden: %s." % [reglas])
+        return
+    for e in ["walk", "threads_aim", "threads", "roar", "tired", "gaze"]:
+        if not vistos_h.has(e):
+            _fail("El Hermano Mayor no pasa por el estado %s." % e)
+            return
+    print("OK: Coloso y Hermano Mayor con su máquina de estados (jefes).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

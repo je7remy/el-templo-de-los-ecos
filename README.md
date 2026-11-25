@@ -297,7 +297,7 @@ godot --headless --path . --script res://tests/pantallas_test.gd
 godot --headless --path . --script res://tests/entidades_test.gd
 ```
 
-`pantallas_test.gd` comprueba la arquitectura por escenas: los autoloads, la máquina de estados, que todas las pantallas respondan a clics y teclas de verdad y el HUD. `entidades_test.gd` comprueba el jugador, la entidad de la sala y las manadas de criaturas con sus máquinas de estados. `comprobar_archivos.py` comprueba los archivos esenciales, que cada PNG conserve su `.import`, que no haya `.gd.uid` huérfanos y que el proyecto declare Godot 4.3 y filtrado nearest-neighbor. `visual_asset_test.gd` verifica además que las cinco salas conserven su arquitectura, objetos, marcadores y colisiones.
+`pantallas_test.gd` comprueba la arquitectura por escenas: los autoloads, la máquina de estados, que todas las pantallas respondan a clics y teclas de verdad y el HUD. `entidades_test.gd` comprueba el jugador, la entidad de la sala y las manadas de criaturas y los jefes con sus máquinas de estados. `comprobar_archivos.py` comprueba los archivos esenciales, que cada PNG conserve su `.import`, que no haya `.gd.uid` huérfanos y que el proyecto declare Godot 4.3 y filtrado nearest-neighbor. `visual_asset_test.gd` verifica además que las cinco salas conserven su arquitectura, objetos, marcadores y colisiones.
 
 **Publicación:** cuando un cambio llega a `main` con una versión nueva en `export_presets.cfg` (y sus notas en `docs/releases/vX.md`), el CI compila Android, Windows y Linux, publica la versión con esos archivos y la marca como **la última** (*Latest*). También sube copias con nombre fijo (`ElTemploDeLosEcos-Windows-Setup.exe`, etc.) para que los enlaces `releases/latest/download/…` sirvan siempre. Una versión ya publicada no se recompila.
 
@@ -355,4 +355,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.20-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.21-alpha** (se publica al fusionar esta versión en `main`).
