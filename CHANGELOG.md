@@ -1,5 +1,17 @@
 # Historial de versiones
 
+## v0.5.22-alpha — 2026-11-25 · Arquitectura por escenas, fase 3c-5
+
+Sin cambios en las reglas del juego.
+
+- **La Vigía y el Peregrino tienen su máquina de estados**, y con ellos ya la tienen todas las entidades del juego:
+  - Vigía (`scenes/entidades/jefes.tscn`): Mira (orbita, cuenta tu mirada, amagos y ruidos a tu espalda), Aviso, Golpe, Caza (va a por el peregrino que huye) y Vencida.
+  - Peregrino (`scenes/entidades/peregrino.tscn`): Ausente, Espera, Sigue (te acompaña y compite por las almas), Desenvaina, Hostil (te persigue y tira el tajo con aviso), Amigo y Muerto.
+- Avisan con señales (`provocada`, `amago`, `ruido_hecho`, `mirando`, `ataca`, `alcanza`, `presa_alcanzada`, `toma_alma`, `prepara_tajo`, `tajo`). El pánico de los aliados, la traición, lo que dice el Peregrino y su muerte siguen en la campaña.
+- El comportamiento es idéntico al de antes: una simulación con semilla fija de los pisos del Peregrino (traidor y sincero, sala por sala hasta la cripta) y de la sala de la Vigía da exactamente las mismas posiciones, estados, tiempos, vida y almas.
+- `entidades_test.gd` prueba la provocación y la victoria sobre la Vigía, y el Peregrino siguiéndote, desenvainando, atacando y muriendo.
+- Versión Android 0.5.22-alpha (código 29).
+
 ## v0.5.21-alpha — 2026-11-24 · Arquitectura por escenas, fase 3c-4
 
 Sin cambios en las reglas del juego.

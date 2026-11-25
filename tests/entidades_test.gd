@@ -5,7 +5,8 @@ extends SceneTree
 ## Fase 3c: la entidad de la sala; Ghoul, Testigo, Hechicero, Segador y
 ## Tejedora con su máquina de estados. Fase 3c-3: alimañas, mastines y arietes
 ## (una máquina de estados compartida por cada manada). Fase 3c-4: el Coloso y el
-## Hermano Mayor (scenes/entidades/jefes.tscn).
+## Hermano Mayor (scenes/entidades/jefes.tscn). Fase 3c-5: la Vigía y el
+## Peregrino.
 
 
 func _initialize() -> void:
@@ -443,6 +444,81 @@ func _run() -> void:
             _fail("El Hermano Mayor no pasa por el estado %s." % e)
             return
     print("OK: Coloso y Hermano Mayor con su máquina de estados (jefes).")
+
+    # --- Fase 3c-5: la Vigía y el Peregrino -----------------------------------------
+    var vigia: Node2D = game.get_node_or_null("Jefes/Vigia")
+    var peregrino: Node2D = game.get_node_or_null("Peregrino")
+    if vigia == null or peregrino == null:
+        _fail("Faltan la Vigía (jefes.tscn) o el Peregrino (peregrino.tscn).")
+        return
+    # Vigía (Piso VII, sala 2): darle la espalda la provoca: Aviso → Golpe →
+    # Mira; sostenerle la mirada lo bastante la vence.
+    _sala(game, 6, 1)
+    if not bool(game.get("gaze_active")) or game.get("gaze_state") != "mira" or (game.get("gaze_pos") as Vector2) != vigia.position:
+        _fail("La Vigía no empieza mirando o gaze_pos no es su posición.")
+        return
+    var vistos_v: Array = []
+    for i in range(240):
+        game.set("player_dir", (game.get("player_pos") as Vector2 - vigia.position).normalized()) # de espaldas
+        game.set("hp", 100.0)
+        game.call("_update_play", dt)
+        var ev: String = str(game.get("gaze_state"))
+        if vistos_v.is_empty() or vistos_v[-1] != ev:
+            vistos_v.append(ev)
+        if vistos_v.size() >= 4:
+            break
+    if vistos_v != ["mira", "aviso", "golpe", "mira"]:
+        _fail("Darle la espalda a la Vigía no sigue Aviso → Golpe → Mira: %s." % [vistos_v])
+        return
+    game.set("gaze_state_t", 0.0)
+    game.set("gaze_t", float(game.get("gaze_need")))
+    game.set("player_dir", (vigia.position - (game.get("player_pos") as Vector2)).normalized())
+    game.call("_update_play", dt)
+    if game.get("gaze_state") != "vencida":
+        _fail("Sosteniéndole la mirada, la Vigía no queda vencida.")
+        return
+    # Peregrino (Piso II): te sigue; si es traidor, desenvaina, ataca con aviso
+    # y, sin vida, muere.
+    game.call("_new_run")
+    game.call("_dialog_skip")
+    game.set("current_floor", 1)
+    game.set("current_room", 0)
+    game.call("_pilgrim_reset")
+    game.set("pilgrim_traitor", true)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.call("_update_play", dt)
+    if game.get("pilgrim_state") != "follow" or String(peregrino.get_node("Maquina").call("nombre_actual")) != "Sigue":
+        _fail("El Peregrino no te sigue al aparecer (%s)." % game.get("pilgrim_state"))
+        return
+    if (game.get("pilgrim_pos") as Vector2) != peregrino.position:
+        _fail("pilgrim_pos de la campaña no es la posición del Peregrino.")
+        return
+    game.set("pilgrim_state", "tell")
+    game.set("pilgrim_timer", 0.05)
+    var tajos: Array = []
+    peregrino.tajo.connect(func(a): tajos.append(a))
+    for i in range(10):
+        game.call("_update_play", dt)
+    if game.get("pilgrim_state") != "hostile":
+        _fail("Tras desenvainar, el Peregrino no pasa a Hostil.")
+        return
+    for i in range(240):
+        game.set("pilgrim_pos", (game.get("player_pos") as Vector2) + Vector2(20, 0))
+        game.set("damage_cd", 0.0)
+        game.set("hp", 100.0)
+        game.call("_update_play", dt)
+        if not tajos.is_empty():
+            break
+    if tajos != [true]:
+        _fail("El Peregrino hostil no tira el tajo con aviso (%s)." % [tajos])
+        return
+    game.call("_damage_pilgrim", 999.0)
+    if game.get("pilgrim_state") != "dead":
+        _fail("Sin vida el Peregrino no muere.")
+        return
+    print("OK: la Vigía y el Peregrino con su máquina de estados.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
