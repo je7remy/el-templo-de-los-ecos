@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+
+[resource]
+script = ExtResource("1_piso")
+numero = "VIII"
+titulo = "LAS SALAS QUE CAMBIAN"
+estado = "ESTO YA LO HAS VISTO. ¿O NO?"
+desgaste = 0.4
+eco = "memoria"
+espejo = true
+invertido = true
+verdad = "El edificio es un sistema de producción: el miedo entra, las almas salen."
+inspiracion = "Inspiración: L.A.G. cambia y la memoria del protagonista falla.
+Las salas del Piso I, alteradas: estatuas del revés, el Testigo con
+la regla invertida, el sello en otra sala y pistas falsas «tuyas»."

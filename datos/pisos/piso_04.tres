@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+
+[resource]
+script = ExtResource("1_piso")
+numero = "IV"
+titulo = "EL CLAUSTRO ENRAIZADO"
+estado = "LA PIEDRA SE AGRIETA"
+desgaste = 1.8
+eco = "piel"
+verdad = "Otros también vuelven. Sus nombres están en el muro, y entre ellos, el tuyo."
+inspiracion = "Inspiración: las arañas de árbol, vencidas con fuego."

@@ -5,7 +5,10 @@ extends RefCounted
 ## formato de diccionario que usa la campaña.
 ##
 ## Para añadir un arma, una pieza, un artículo o un objeto: crea su .tres
-## (duplica uno) y añádelo a su lista de abajo.
+## (duplica uno) y añádelo a su lista de abajo. Para un piso, además, añade
+## sus salas a SALAS en scripts/datos/pisos.gd, en la misma posición.
+
+const Pisos := preload("res://scripts/datos/pisos.gd")
 
 const ARMAS := [
     preload("res://datos/armas/daga.tres"),
@@ -49,6 +52,19 @@ const BOTIN := [
     preload("res://datos/botin/reliquia.tres"),
 ]
 
+const PISOS := [
+    preload("res://datos/pisos/piso_01.tres"),
+    preload("res://datos/pisos/piso_02.tres"),
+    preload("res://datos/pisos/piso_03.tres"),
+    preload("res://datos/pisos/piso_04.tres"),
+    preload("res://datos/pisos/piso_05.tres"),
+    preload("res://datos/pisos/piso_06.tres"),
+    preload("res://datos/pisos/piso_07.tres"),
+    preload("res://datos/pisos/piso_08.tres"),
+    preload("res://datos/pisos/piso_09.tres"),
+    preload("res://datos/pisos/piso_10.tres"),
+]
+
 
 static func armas() -> Dictionary:
     var d := {}
@@ -87,3 +103,16 @@ static func botin() -> Dictionary:
     for o in BOTIN:
         d[o.id] = o.como_array()
     return d
+
+
+## Los pisos de la campaña, en orden: cada uno con sus salas (Pisos.SALAS).
+static func pisos() -> Array:
+    var lista := []
+    for i in range(PISOS.size()):
+        lista.append(PISOS[i].como_dict(Pisos.SALAS[i]))
+    return lista
+
+
+## Verdad que revela cada piso, en orden.
+static func verdades() -> Array:
+    return PISOS.map(func(p): return p.verdad)

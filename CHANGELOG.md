@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.30-alpha — 2026-11-25 · Datos editables, fase 4c-1
+
+Sin cambios en las reglas del juego.
+
+- **Los diez pisos son archivos de datos** (`datos/pisos/piso_01.tres` … `piso_10.tres`) que se editan desde el inspector de Godot: número, título, estado del templo, desgaste de la piedra, Eco que dan, combustible de la antorcha, si los compañeros te siguen, espejo y regla invertida (Piso VIII), si es el final y la **verdad** que revelan. Cada uno guarda también su nota de inspiración del diseño.
+- Las salas de cada piso siguen en `scripts/datos/pisos.gd` (`SALAS`, en el mismo orden); pasarán a archivos de datos en la siguiente parte.
+- Los valores son los mismos de antes: los pisos, sus salas y sus verdades salen idénticos.
+- Versión Android 0.5.30-alpha (código 37).
+
 ## v0.5.29-alpha — 2026-11-25 · Datos editables, fase 4b
 
 Sin cambios en las reglas del juego.

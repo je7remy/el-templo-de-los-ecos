@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+
+[resource]
+script = ExtResource("1_piso")
+numero = "V"
+titulo = "EL LABERINTO DE LOS MASTINES"
+estado = "SE OYEN UÑAS DE BRONCE"
+desgaste = 1.6
+eco = "paso"
+combustible = 25.0
+verdad = "Las almas no se pierden: corren por canales hacia abajo. Alguien las recoge."
+inspiracion = "Inspiración: el laberinto de los leones enmascarados, demasiado fuertes para ese piso."

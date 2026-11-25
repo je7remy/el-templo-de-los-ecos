@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+
+[resource]
+script = ExtResource("1_piso")
+numero = "X"
+titulo = "LA COSECHA"
+estado = "TODOS ESPERAN QUE LA PUERTA SE ABRA"
+desgaste = 2.2
+eco = ""
+seguidores = true
+final = true
+verdad = "Doscientas marcas de alas en la Puerta. Este lugar es solo uno de muchos dominios."
+inspiracion = "Inspiración: la traición tras completar la misión y la meta de «seguir bajando».
+Final del primer arco: el ritual de la Cosecha y el Hermano Mayor."

@@ -26,7 +26,7 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ##   hounds (opcional): dónde aparecen los Mastines de Relicario.
 ##   rescue / mask / channels (opcionales): peregrino atrapado, Máscara de
 ##           Porcelana y canales de almas del Piso V.
-##   Piso con "fuel": la antorcha se consume en esos segundos por fósforo.
+##   Piso con "combustible" (datos/pisos/*.tres): la antorcha se consume en esos segundos por fósforo.
 ##   vines (opcional): tramos de enredadera seca que arden y propagan el fuego.
 ##           Rasgo "raices_puerta": raíces vivas tapan la puerta; solo arden
 ##           si les llega el fuego de las secas.
@@ -43,7 +43,7 @@ const Lienzo := preload("res://scripts/comun/lienzo.gd")
 const Objetos := preload("res://scripts/mundo/objetos.gd")
 const Personajes := preload("res://scripts/mundo/personajes.gd")
 const Catalogo := preload("res://scripts/datos/catalogo.gd")
-const FLOORS = Pisos.FLOORS
+var FLOORS: Array = Catalogo.pisos()
 
 const RELICS := [
     Vector2(280, 245), Vector2(500, 465), Vector2(725, 230)
@@ -1529,8 +1529,8 @@ func _map_screen_data(d: Dictionary) -> void:
         floors_rows.append(f)
     d["pisos"] = floors_rows
     # Lo descubierto en el último piso superado, como recuerdo del descenso.
-    if last_cleared >= 0 and last_cleared < Pisos.FLOOR_TRUTHS.size():
-        d["verdad"] = str(Pisos.FLOOR_TRUTHS[last_cleared])
+    if last_cleared >= 0 and last_cleared < FLOOR_TRUTHS.size():
+        d["verdad"] = str(FLOOR_TRUTHS[last_cleared])
 
 
 ## Ofertas del altar: Resonancia (o su mejora) y Llama Interior.
@@ -6924,7 +6924,7 @@ const CRITTER_SPOTS := {
     "2:0": {"paths": [[Vector2(120, 425), Vector2(840, 425)], [Vector2(120, 530), Vector2(840, 530)]], "nest": false},
 }
 ## Verdad que revela cada piso (del diseño de los diez pisos).
-const FLOOR_TRUTHS = Pisos.FLOOR_TRUTHS
+var FLOOR_TRUTHS: Array = Catalogo.verdades()
 var critters: Array = [] # {pos, a, b, to_b, alive, dead_t, respawn, flip, bite_cd}
 var life_corpse: Dictionary = {}
 var door_state: String = "unknown" # unknown | locked | open

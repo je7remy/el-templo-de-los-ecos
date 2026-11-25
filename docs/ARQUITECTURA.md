@@ -86,7 +86,7 @@ Son las buenas prácticas de la documentación oficial de Godot y de los temas q
 3. **«Las señales suben, las llamadas bajan».** El padre llama a métodos de sus hijos; los hijos emiten señales. Para hablar entre escenas lejanas, `Eventos`.
 4. **Autoloads solo para lo global**: el bus de eventos, el guardado, el cambio de escena y los ajustes. La lógica de un piso o de un enemigo no va en un autoload.
 5. **Máquinas de estados en vez de `if modo == …` encadenados.** `maquina_estados.gd` sirve para las pantallas y servirá para el jugador y las entidades: cada estado es un nodo con `entrar`, `salir` y `actualizar`.
-6. **Datos fuera del código.** Pisos, precios y botín en `Resource` (`.tres`) editables en el inspector (ya empezado con `scripts/datos/pisos.gd`).
+6. **Datos fuera del código.** Pisos, precios y botín en `Resource` (`.tres`) editables en el inspector (armas, equipo, tienda, bolsa, botín y pisos ya en `datos/`).
 7. **Interfaz con nodos de interfaz** (`Control`, `Container`, botones): ganan foco de teclado y mando, escalado y accesibilidad sin código propio. El aspecto se mantiene con `estilo.gd`.
 8. **Pantallas de carga reales** con `ResourceLoader.load_threaded_request` en vez de cambiar de escena en seco.
 9. **Cada paso se entrega con las pruebas en verde.** Las pruebas tocan los botones de verdad (`root.push_input`), no funciones internas.
@@ -117,7 +117,8 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 3d-5 (opcional) | Decorado a ras de suelo (puertas, trampas, enredaderas, cadáveres, desgaste, luz y niebla). Es escenografía que casi no se toca: queda en `main.gd` mientras no haga falta. | Opcional |
 | 4a | Armas (y el golpe base de la antorcha) y piezas de equipo en `datos/armas/*.tres` y `datos/equipo/*.tres`, con sus scripts de recurso (`scripts/datos/arma.gd`, `pieza_equipo.gd`) y el catálogo que los lista en orden (`scripts/datos/catalogo.gd`). Se editan desde el inspector de Godot. | **Hecha (v0.5.28)** |
 | 4b | Puesto del Mercader (`datos/tienda`), consumibles de la bolsa (`datos/bolsa`) y botín de la Vigilia (`datos/botin`) en `.tres`, con sus scripts de recurso en `scripts/datos/`. | **Hecha (v0.5.29)** |
-| 4c | Pisos y salas en `.tres`. | Pendiente |
+| 4c-1 | Datos generales de cada piso (número, título, estado, desgaste, Eco, combustible de la antorcha, seguidores, espejo, regla invertida, final y la verdad que revela) en `datos/pisos/piso_NN.tres`, con su script de recurso `scripts/datos/piso.gd`. Las salas siguen en `scripts/datos/pisos.gd` (`SALAS`, mismo orden). | **Hecha (v0.5.30)** |
+| 4c-2 | Salas de cada piso en `.tres`. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
 
 La fase 2 está terminada: `main.gd` ya no dibuja menús ni el HUD. Al terminar la 3, no tendrá código del jugador ni de enemigos.
