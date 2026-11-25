@@ -1,0 +1,50 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/vigilia/pantallas_vigilia.gd" id="1_gestor"]
+[ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
+[ext_resource type="Script" path="res://scripts/vigilia/pantallas/portada.gd" id="3_portada"]
+[ext_resource type="Script" path="res://scripts/vigilia/pantallas/fase_superada.gd" id="4_fase_superada"]
+[ext_resource type="Script" path="res://scripts/vigilia/pantallas/puerta_cedida.gd" id="5_puerta_cedida"]
+[ext_resource type="Script" path="res://scripts/vigilia/pantallas/pausa.gd" id="6_pausa"]
+
+[node name="PantallasVigilia" type="CanvasLayer"]
+script = ExtResource("1_gestor")
+
+[node name="Maquina" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Portada" type="Control" parent="Maquina"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("3_portada")
+
+[node name="FaseSuperada" type="Control" parent="Maquina"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("4_fase_superada")
+
+[node name="PuertaCedida" type="Control" parent="Maquina"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("5_puerta_cedida")
+
+[node name="Pausa" type="Control" parent="Maquina"]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("6_pausa")

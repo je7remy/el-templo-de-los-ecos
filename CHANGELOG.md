@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.32-alpha — 2026-11-25 · Vigilia por escenas, fase 5a
+
+Sin cambios en las reglas ni en el aspecto del juego.
+
+- **Las pantallas de la Vigilia son escenas propias** (`scenes/vigilia/pantallas.tscn`): la portada, «Fase superada» con su botín, «La puerta ha cedido» y la pausa. Antes se dibujaban dentro de `scripts/defense.gd`.
+- Las piezas de interfaz de la Vigilia (cajas, ventanas, fichas, botones redondos, avisos y textos) están en `scripts/ui/estilo_vigilia.gd` y usan las tipografías y colores comunes de `estilo.gd`.
+- Se ven idénticas a antes (comparadas píxel a píxel). Los toques, las teclas y el mando funcionan igual.
+- Versión Android 0.5.32-alpha (código 39).
+
 ## v0.5.31-alpha — 2026-11-25 · Datos editables, fase 4c-2
 
 Sin cambios en las reglas del juego.

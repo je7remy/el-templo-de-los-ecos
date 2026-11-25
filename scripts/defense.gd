@@ -16,6 +16,9 @@ const DEFENSE_SAVE := "user://vigilia_claustro_records.json"
 const DEFENSE_SAVE_TEST := "user://prueba_vigilia.json" # pruebas automáticas
 const Botin := preload("res://scripts/botin.gd")
 const Ajustes := preload("res://scripts/ajustes.gd")
+const EV := preload("res://scripts/ui/estilo_vigilia.gd")
+const Portada := preload("res://scripts/vigilia/pantallas/portada.gd")
+const PANTALLAS := preload("res://scenes/vigilia/pantallas.tscn")
 ## Texto: Jersey 15 reescalada (herramientas/generar_fuente.py), legible y con cifras claras.
 const PIXEL_FONT := preload("res://assets/fonts/Jersey15-Templo.ttf")
 const TITLE_FONT := preload("res://assets/fonts/Jacquard24-Regular.ttf")
@@ -127,6 +130,8 @@ var best_stage: int = 0
 var session_score: int = 0
 var rewards: Array = []
 var rng := RandomNumberGenerator.new()
+## Portada, fase superada, puerta cedida y pausa (scenes/vigilia/pantallas.tscn).
+var pantallas: CanvasLayer
 ## Menú contextual al tocar una baldosa, una estructura, el lecho o la puerta.
 var popup: Dictionary = {} # {title, anchor, options: [{id, label, sub, icon, enabled}], tile}
 var popup_sel: int = 0
@@ -146,8 +151,8 @@ var tut_sold: int = 0
 var tut_repaired: int = 0
 const TUT_CARD := Rect2(726, 72, 226, 156)
 const TUT_SKIP := Rect2(822, 192, 122, 28)
-const START_BTN := Rect2(260, 380, 260, 48)
-const TUT_BTN := Rect2(540, 380, 160, 48)
+const START_BTN := Portada.BOTON_EMPEZAR
+const TUT_BTN := Portada.BOTON_TUTORIAL
 ## [título, texto]. Cada paso espera a que hagas lo que pide (ver _tut_done).
 const TUT_STEPS := [
     ["BIENVENIDA", "Defiende tu celda: las entidades llegan por el pasillo y golpean la puerta. Toca aquí para seguir."],
@@ -179,6 +184,8 @@ func _ready() -> void:
             (f as FontFile).hinting = TextServer.HINTING_NONE
             (f as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
     rng.randomize()
+    pantallas = PANTALLAS.instantiate()
+    add_child(pantallas)
     _setup_fullscreen()
     _load_records()
     music = AudioStreamPlayer.new()
@@ -206,6 +213,7 @@ func _ready() -> void:
         tension.play()
         for key in ["alma", "dano", "sello", "puerta", "linterna", "muerte", "interfaz", "toque", "golpe"]:
             sfx_streams[key] = load("res://audio/sfx_%s.ogg" % key)
+    _sync_pantallas()
     queue_redraw()
 
 
@@ -903,6 +911,7 @@ func _process(delta: float) -> void:
             target = clampf((900.0 - _front_x()) / 165.0, 0.0, 1.0) * 0.6 + (1.0 - clampf(gate_hp / gate_max, 0.0, 1.0)) * 0.5
         tension_level = move_toward(tension_level, clampf(target, 0.0, 1.0), delta * 0.5)
         tension.volume_db = linear_to_db(maxf(tension_level, 0.001)) - 8.0
+    _sync_pantallas()
     queue_redraw()
 
 
@@ -1052,6 +1061,7 @@ func _input(event: InputEvent) -> void:
         cursor_visible = false
     elif event is InputEventKey and event.pressed and not event.echo:
         _key(event.keycode)
+    _sync_pantallas()
     queue_redraw()
 
 
@@ -1250,17 +1260,8 @@ func _draw() -> void:
         _draw_tutorial()
     if not popup.is_empty() and phase == "play":
         _draw_popup()
-    match phase:
-        "selection":
-            _draw_selection()
-        "won":
-            _draw_reward()
-        "lost":
-            _draw_lost()
-    if paused and phase == "play":
-        _modal(Rect2(240, 200, 480, 150))
-        _title("En pausa", Vector2(240, 262), 40, CREAM, 480.0)
-        _center_text("Toca PAUSA o pulsa P para seguir", 312, 15, GOLD_HI)
+    # Portada, fase superada, puerta cedida y pausa: escenas de
+    # scenes/vigilia/pantallas.tscn (ver _sync_pantallas).
 
 
 func _draw_room() -> void:
@@ -1533,119 +1534,59 @@ func _draw_tutorial() -> void:
         _text_center("SALTAR", Rect2(TUT_SKIP.position.x, TUT_SKIP.position.y + 6.0, TUT_SKIP.size.x, 14), 11, Color("#9a957f"))
 
 
-func _draw_selection() -> void:
-    draw_rect(Rect2(0, 64, W, 440), Color(0, 0, 0, 0.6))
-    var panel := Rect2(130, 100, 700, 395)
-    _modal(panel)
-    _title("Vigilia del Claustro", Vector2(130, 158), 44, CREAM, panel.size.x)
-    _center_text("Defiende tu celda. Fases sin fin, cada una más dura.", 190, 15, SOUL)
-    var steps := [["descansar", "1 · DUERME", "toca el lecho: ganas ecos"], ["centinela", "2 · CONSTRUYE", "toca cualquier baldosa"], ["potenciar", "3 · MEJORA", "toca lo construido"], ["bolsa_almas", "4 · GANA", "botín para la campaña"]]
-    for i in range(steps.size()):
-        var cx: float = panel.position.x + 100.0 + float(i) * 166.0
-        draw_texture_rect(ICONS[steps[i][0]], Rect2(cx - 28.0, 214, 56, 56), false)
-        _text_center(steps[i][1], Rect2(cx - 80.0, 278, 160, 18), 15, CREAM)
-        _text_center(steps[i][2], Rect2(cx - 80.0, 298, 160, 16), 11, SOUL)
-    _center_text("Centinelas disparan · generadores dan energía · campanas frenan a las entidades.", 344, 13, GOLD_HI)
-    var pulse: float = 0.6 + 0.4 * sin(tick * 3.0)
-    _panel_box(START_BTN, Color("#2a1d36"), Color(GOLD_HI.r, GOLD_HI.g, GOLD_HI.b, 0.6 + 0.4 * pulse))
-    var resume: bool = _has_saved_run()
-    _text_center(("CONTINUAR · FASE %d" % int(saved_run.get("stage", 1))) if resume else ("EMPEZAR" if tutorial_done else "EMPEZAR CON TUTORIAL"), Rect2(START_BTN.position.x, START_BTN.position.y + 8.0, START_BTN.size.x, 18), 16, CREAM)
-    _text_center("ENTER / A", Rect2(START_BTN.position.x, START_BTN.position.y + 30.0, START_BTN.size.x, 12), 10, SOUL)
-    _panel_box(TUT_BTN, Color("#141018"), GOLD)
-    if resume:
-        _text_center("EMPEZAR DE CERO", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 8.0, TUT_BTN.size.x, 18), 12, CREAM)
-        _text_center("N · se pierde la guardada", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 30.0, TUT_BTN.size.x, 12), 10, Color("#9a957f"))
-    else:
-        _text_center("REPETIR TUTORIAL" if tutorial_done else "SALTAR TUTORIAL", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 8.0, TUT_BTN.size.x, 18), 12, CREAM)
-        _text_center("T / Y" if tutorial_done else "toca aquí", Rect2(TUT_BTN.position.x, TUT_BTN.position.y + 30.0, TUT_BTN.size.x, 12), 10, Color("#9a957f"))
-    _center_text("MEJOR FASE: %d   ·   MEJOR PUNTUACIÓN: %d" % [best_stage, high_score], 456, 13, CREAM)
-
-
-func _draw_reward() -> void:
-    draw_rect(Rect2(0, 64, W, 440), Color(0, 0, 0, 0.6))
-    var panel := Rect2(160, 96, 640, 400)
-    _modal(panel)
-    _title("Fase %d superada" % stage, Vector2(160, 152), 44, CREAM, panel.size.x)
-    _center_text("Botín para la campaña (ya está en tu bolsa):", 186, 14, SOUL)
-    var n: int = rewards.size()
-    for i in range(n):
-        var key: String = rewards[i]
-        var info_o: Array = Botin.OBJETOS.get(key, [key, "", 1, "alma"])
-        var card := Rect2(480.0 - float(n) * 140.0 + float(i) * 280.0 + 10.0, 206, 260, 170)
-        var tier: int = int(info_o[2])
-        var tier_col: Color = [Color("#9a957f"), SOUL, Color("#a988d0"), GOLD_HI][clampi(tier - 1, 0, 3)]
-        _panel_box(card, Color("#141018"), tier_col)
-        var glow: float = 0.5 + 0.5 * sin(tick * 3.0 + float(i))
-        draw_circle(card.position + Vector2(card.size.x * 0.5, 50), 34.0, Color(tier_col.r, tier_col.g, tier_col.b, 0.08 + 0.06 * glow))
-        if ICONS.has(info_o[3]):
-            draw_texture_rect(ICONS[info_o[3]], Rect2(card.position + Vector2(card.size.x * 0.5 - 28.0, 22), Vector2(56, 56)), false)
-        _text_center(str(info_o[0]), Rect2(card.position.x, card.position.y + 88.0, card.size.x, 18), 15, CREAM)
-        draw_multiline_string(font, card.position + Vector2(14, 128), str(info_o[1]), HORIZONTAL_ALIGNMENT_CENTER, card.size.x - 28.0, 12, 2, SOUL)
-        _text_center(["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][clampi(tier - 1, 0, 3)], Rect2(card.position.x, card.end.y - 22.0, card.size.x, 14), 11, tier_col)
-    var pulse: float = 0.6 + 0.4 * sin(tick * 3.0)
-    _center_text("TOCA O PULSA ENTER: FASE %d%s" % [stage + 1, " (JEFE)" if (stage + 1) % 5 == 0 else ""], 418, 18, Color(GOLD_HI.r, GOLD_HI.g, GOLD_HI.b, pulse))
-    _center_text("ESC o SALIR: volver con lo ganado", 452, 12, CREAM)
-
-
-func _draw_lost() -> void:
-    draw_rect(Rect2(0, 64, W, 440), Color(0.1, 0, 0, 0.55))
-    var panel := Rect2(160, 130, 640, 320)
-    _modal(panel)
-    _title("La puerta ha cedido", Vector2(160, 190), 44, Color("#ff8a8a"), panel.size.x)
-    _center_text("Llegaste a la fase %d   ·   Entidades: %d   ·   Puntos: %d" % [stage, slain, session_score], 246, 15, CREAM)
-    _center_text("El botín de las fases superadas ya está en tu bolsa.", 280, 13, SOUL)
-    _center_text("TOCA PARA EMPEZAR DE NUEVO   ·   ESC PARA VOLVER", 398, 15, GOLD_HI)
+## Qué pantalla se ve encima de la celda y con qué datos (ninguna durante la
+## partida). Se llama en cada cuadro y tras cada entrada.
+func _sync_pantallas() -> void:
+    if pantallas == null:
+        return
+    match phase:
+        "selection":
+            pantallas.mostrar(&"Portada", {"t": tick, "guardada": _has_saved_run(), "fase_guardada": int(saved_run.get("stage", 1)),
+                "tutorial_hecho": tutorial_done, "mejor_fase": best_stage, "mejor_puntuacion": high_score})
+        "won":
+            pantallas.mostrar(&"FaseSuperada", {"t": tick, "fase": stage,
+                "botin": rewards.map(func(k): return Botin.OBJETOS.get(k, [k, "", 1, "alma"]))})
+        "lost":
+            pantallas.mostrar(&"PuertaCedida", {"fase": stage, "entidades": slain, "puntos": session_score})
+        _:
+            pantallas.mostrar(&"Pausa" if paused else &"")
 
 
 # ------------------------------------------------------------ PIEZAS DE INTERFAZ
 func _panel_box(r: Rect2, fill: Color, edge: Color) -> void:
-    draw_rect(Rect2(r.position + Vector2(2, 3), r.size), Color(0, 0, 0, 0.4))
-    draw_rect(r, fill)
-    draw_rect(Rect2(r.position, Vector2(r.size.x, 2)), Color(1, 1, 1, 0.05))
-    draw_rect(r, edge, false, 2.0)
+    EV.caja(self, r, fill, edge)
 
 
 func _modal(r: Rect2) -> void:
-    _panel_box(r, Color(0.04, 0.035, 0.05, 0.97), GOLD)
-    draw_rect(r.grow(-6.0), Color("#3a3440"), false, 1.0)
+    EV.modal(self, r)
 
 
 func _chip(r: Rect2, icon: String, value: String, sub: String, color: Color) -> void:
-    _panel_box(r, Color("#141018"), EDGE)
-    draw_texture_rect(ICONS[icon], Rect2(r.position + Vector2(6, 6), Vector2(28, 28)), false)
-    draw_string(font, r.position + Vector2(40, 22), value, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, color)
-    draw_string(font, r.position + Vector2(40, 35), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#9a957f"))
+    EV.ficha(self, r, ICONS[icon], value, sub, color)
 
 
 func _round_button(r: Rect2, icon: String, hot: bool) -> void:
-    _panel_box(r, Color("#241c2c") if hot else Color("#141018"), GOLD_HI if hot else GOLD)
-    draw_texture_rect(ICONS[icon], Rect2(r.get_center() - Vector2(16, 16), Vector2(32, 32)), false)
+    EV.boton_redondo(self, r, ICONS[icon], hot)
 
 
 func _pill(text_value: String, center: Vector2, size: int, color: Color) -> void:
-    var width: float = font.get_string_size(text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-    var box := Rect2(center.x - width * 0.5 - 8, center.y - size + 1, width + 16, size + 7)
-    draw_rect(box, Color(0.03, 0.025, 0.04, 0.85))
-    draw_rect(box, Color(color.r, color.g, color.b, 0.4), false, 1.0)
-    draw_string(font, Vector2(center.x - width * 0.5, center.y + 2), text_value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+    EV.pastilla(self, text_value, center, size, color)
 
 
 func _title(text_value: String, at: Vector2, size: int, color: Color, width: float) -> void:
-    var f: Font = title_font if title_font != null else font
-    draw_string(f, at, text_value, HORIZONTAL_ALIGNMENT_CENTER if width > 0.0 else HORIZONTAL_ALIGNMENT_LEFT, width, size, color)
+    EV.rotulo(self, text_value, at, size, color, width)
 
 
 func _label(text_value: String, at: Vector2, size: int = 16, color: Color = CREAM) -> void:
-    draw_string(font, at, text_value, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, color)
+    EV.etiqueta(self, text_value, at, size, color)
 
 
 func _center_text(text_value: String, y: float, size: int = 16, color: Color = CREAM) -> void:
-    draw_string(font, Vector2(40, y), text_value, HORIZONTAL_ALIGNMENT_CENTER, 880.0, size, color)
+    EV.centrado(self, text_value, y, size, color)
 
 
 func _text_center(text_value: String, rect: Rect2, size: int, color: Color) -> void:
-    draw_string(font, Vector2(rect.position.x, rect.position.y + size), text_value, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, size, color)
-
+    EV.en_caja(self, text_value, rect, size, color)
 
 
 # ------------------------------------------------------------ PANTALLA COMPLETA REAL
@@ -1686,6 +1627,8 @@ func _fit_screen() -> void:
     if DisplayServer.get_name() == "headless":
         screen_pad = Vector2.ZERO # sin pantalla (pruebas automáticas): disposición base
     position = screen_pad
+    if pantallas != null:
+        pantallas.ajustar_margen(screen_pad)
     if backdrop_rect != null:
         backdrop_rect.position = Vector2.ZERO
         backdrop_rect.size = view
