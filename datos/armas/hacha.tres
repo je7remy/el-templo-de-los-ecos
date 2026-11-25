@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/arma.gd" id="1_arma"]
+
+[resource]
+script = ExtResource("1_arma")
+id = "hacha"
+nombre = "HACHA DE VERDUGO"
+dano = 1.8
+alcance = 70.0
+ritmo = 0.95
+vigor = 18.0
+arco = -0.2
+aturdir = 0.4
+descripcion = "Lenta y pesada: barre casi todo a tu alrededor."

@@ -42,6 +42,7 @@ const Vigia := preload("res://scripts/entidades/jefes/vigia.gd")
 const Lienzo := preload("res://scripts/comun/lienzo.gd")
 const Objetos := preload("res://scripts/mundo/objetos.gd")
 const Personajes := preload("res://scripts/mundo/personajes.gd")
+const Catalogo := preload("res://scripts/datos/catalogo.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -4440,25 +4441,12 @@ func _draw_glow() -> void:
 ## arma se golpea siempre, y la antorcha sigue prendiendo raíces si está
 ## encendida. Equipo: yelmo (menos daño), peto (más vida) y botas (más rápido).
 ## Lo encontrado se guarda entre partidas; se cambia en Perfil > EQUIPO.
-const WEAPONS := {
-    "daga": {"name": "DAGA DE HUESO", "dmg": 0.8, "range": 52.0, "cd": 0.32, "cost": 6.0, "arc": 0.2, "stun": 0.2,
-        "desc": "Rápida y ligera: golpes cortos y seguidos, gasta poco vigor."},
-    "espada": {"name": "ESPADA OXIDADA", "dmg": 1.25, "range": 66.0, "cd": 0.5, "cost": 10.0, "arc": 0.25, "stun": 0.3,
-        "desc": "Equilibrada: más daño que la antorcha al mismo ritmo."},
-    "lanza": {"name": "LANZA DEL PEREGRINO", "dmg": 1.1, "range": 94.0, "cd": 0.62, "cost": 11.0, "arc": 0.55, "stun": 0.3,
-        "desc": "Llega muy lejos, pero solo hiere lo que tienes justo delante."},
-    "hacha": {"name": "HACHA DE VERDUGO", "dmg": 1.8, "range": 70.0, "cd": 0.95, "cost": 18.0, "arc": -0.2, "stun": 0.4,
-        "desc": "Lenta y pesada: barre casi todo a tu alrededor."},
-    "maza": {"name": "MAZA DE CAMPANA", "dmg": 1.35, "range": 60.0, "cd": 0.75, "cost": 14.0, "arc": 0.15, "stun": 0.9,
-        "desc": "Aturde: la entidad queda quieta casi un segundo."},
-}
+## Armas, antorcha y equipo: archivos de datos en datos/armas y datos/equipo
+## (se editan desde el inspector de Godot; scripts/datos/catalogo.gd).
+var WEAPONS: Dictionary = Catalogo.armas()
 ## Golpe base (antorcha), para comparar.
-const TORCH_WEAPON := {"dmg": 1.0, "range": 64.0, "cd": 0.6, "cost": 10.0, "arc": 0.25, "stun": 0.3}
-const GEAR := {
-    "yelmo": {"slot": "casco", "name": "YELMO ABOLLADO", "desc": "Recibes un 12 % menos de daño."},
-    "peto": {"slot": "peto", "name": "PETO DE GUARDIA", "desc": "+20 de vida máxima."},
-    "botas": {"slot": "botas", "name": "BOTAS DE PEREGRINO", "desc": "Caminas un 8 % más rápido y el esquive se recarga un 10 % antes."},
-}
+var TORCH_WEAPON: Dictionary = Catalogo.antorcha()
+var GEAR: Dictionary = Catalogo.equipo()
 const YELMO_REDUCTION := 0.12
 const PETO_HP := 20.0
 ## Dónde aparece cada pieza (piso:sala). Se coloca sola en un hueco libre.

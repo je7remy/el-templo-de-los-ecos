@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/arma.gd" id="1_arma"]
+
+[resource]
+script = ExtResource("1_arma")
+id = ""
+nombre = ""
+dano = 1.0
+alcance = 64.0
+ritmo = 0.6
+vigor = 10.0
+arco = 0.25
+aturdir = 0.3
+descripcion = "Golpe base con la antorcha, para comparar."

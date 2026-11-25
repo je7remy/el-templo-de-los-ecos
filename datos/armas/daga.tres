@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/arma.gd" id="1_arma"]
+
+[resource]
+script = ExtResource("1_arma")
+id = "daga"
+nombre = "DAGA DE HUESO"
+dano = 0.8
+alcance = 52.0
+ritmo = 0.32
+vigor = 6.0
+arco = 0.2
+aturdir = 0.2
+descripcion = "Rápida y ligera: golpes cortos y seguidos, gasta poco vigor."
