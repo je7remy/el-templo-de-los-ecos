@@ -1,5 +1,17 @@
 # Historial de versiones
 
+## v0.5.28-alpha — 2026-11-25 · Datos editables, fase 4a
+
+Sin cambios en las reglas del juego.
+
+- **Las armas y el equipo son archivos de datos** que se editan desde el inspector de Godot, sin tocar código:
+  - `datos/armas/`: daga, espada, lanza, hacha, maza y el golpe base de la antorcha (daño, alcance, ritmo, vigor, apertura del golpe, aturdimiento y descripción).
+  - `datos/equipo/`: yelmo, peto y botas (hueco, nombre y descripción).
+- `scripts/datos/catalogo.gd` los lista en orden (el de los menús y el de cambiar de arma). Para añadir uno: duplica un `.tres` y añádelo a la lista.
+- Los valores son los mismos de antes: comparé los datos que lee la campaña antes y después y salen idénticos, en el mismo orden.
+- `entidades_test.gd` comprueba que las armas y el equipo salen de esos archivos.
+- Versión Android 0.5.28-alpha (código 35).
+
 ## v0.5.27-alpha — 2026-11-25 · Cámara cercana en el móvil
 
 - **En el móvil la cámara se acerca al jugador y lo sigue** en horizontal y en vertical, en vez de mostrar la sala entera en pequeño. Antes el zoom solo llenaba el ancho (hasta un 30 %) y se veía toda la sala; ahora, por defecto, el mundo se ve casi el doble de grande (zoom 1,9).

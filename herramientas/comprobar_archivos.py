@@ -23,7 +23,8 @@ required += ["scripts/autoload/eventos.gd", "scripts/autoload/progreso.gd",
              "scenes/pantallas/creacion.tscn", "scenes/pantallas/habilidades.tscn",
              "scenes/pantallas/mapa.tscn", "scenes/pantallas/perfil.tscn",
              "scripts/ui/equipo_retrato.gd", "scenes/ui/hud.tscn",
-             "scenes/entidades/jugador.tscn", "scenes/entidades/entidad.tscn", "scenes/entidades/criaturas.tscn", "scenes/entidades/jefes.tscn", "scenes/entidades/peregrino.tscn", "scripts/comun/lienzo.gd", "scripts/mundo/objetos.gd", "scripts/mundo/personajes.gd", "tests/entidades_test.gd",
+             "scenes/entidades/jugador.tscn", "scenes/entidades/entidad.tscn", "scenes/entidades/criaturas.tscn", "scenes/entidades/jefes.tscn", "scenes/entidades/peregrino.tscn", "scripts/comun/lienzo.gd", "scripts/mundo/objetos.gd", "scripts/mundo/personajes.gd", "scripts/datos/catalogo.gd",
+             "datos/armas/espada.tres", "datos/equipo/yelmo.tres", "tests/entidades_test.gd",
              "scenes/ui/avisos.tscn", "scenes/ui/boton_templo.tscn",
              "tests/pantallas_test.gd"]
 required += [f"assets/knowledge/rooms/room_{i}.png" for i in range(5)]

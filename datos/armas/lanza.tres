@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/arma.gd" id="1_arma"]
+
+[resource]
+script = ExtResource("1_arma")
+id = "lanza"
+nombre = "LANZA DEL PEREGRINO"
+dano = 1.1
+alcance = 94.0
+ritmo = 0.62
+vigor = 11.0
+arco = 0.55
+aturdir = 0.3
+descripcion = "Llega muy lejos, pero solo hiere lo que tienes justo delante."

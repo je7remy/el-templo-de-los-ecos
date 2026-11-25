@@ -89,6 +89,7 @@ jobs:
           grep -Fq 'OK: Coloso y Hermano Mayor con su máquina de estados (jefes).' "$RUNNER_TEMP/entidades.log"
           grep -Fq 'OK: la Vigía y el Peregrino con su máquina de estados.' "$RUNNER_TEMP/entidades.log"
           grep -Fq 'OK: cada entidad dibuja su parte en el orden por profundidad del mundo.' "$RUNNER_TEMP/entidades.log"
+          grep -Fq 'OK: armas y equipo en archivos de datos (.tres) editables desde el inspector.' "$RUNNER_TEMP/entidades.log"
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/entidades.log"; then exit 1; fi
 
       - name: Verificar el actualizador

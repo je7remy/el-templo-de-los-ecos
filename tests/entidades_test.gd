@@ -543,6 +543,28 @@ func _run() -> void:
             _fail("Los personajes secundarios no saben dibujar «%s» (scripts/mundo/personajes.gd)." % m)
             return
     print("OK: cada entidad dibuja su parte en el orden por profundidad del mundo.")
+
+    # --- Fase 4a: armas y equipo en archivos de datos (.tres) ------------------------
+    var armas: Dictionary = game.get("WEAPONS")
+    if armas.keys() != ["daga", "espada", "lanza", "hacha", "maza"]:
+        _fail("Las armas no salen de datos/armas en su orden: %s." % [armas.keys()])
+        return
+    for k in armas:
+        for campo in ["name", "dmg", "range", "cd", "cost", "arc", "stun", "desc"]:
+            if not (armas[k] as Dictionary).has(campo):
+                _fail("Al arma %s le falta «%s»." % [k, campo])
+                return
+    if float((game.get("TORCH_WEAPON") as Dictionary).get("dmg", 0.0)) != 1.0:
+        _fail("La antorcha (datos/armas/antorcha.tres) no es el golpe base.")
+        return
+    if (game.get("GEAR") as Dictionary).keys() != ["yelmo", "peto", "botas"] or str(game.get("GEAR")["yelmo"]["slot"]) != "casco":
+        _fail("El equipo no sale de datos/equipo.")
+        return
+    var espada: Resource = load("res://datos/armas/espada.tres")
+    if espada == null or float(espada.get("dano")) != float(armas["espada"]["dmg"]):
+        _fail("datos/armas/espada.tres no se lee o no coincide con la campaña.")
+        return
+    print("OK: armas y equipo en archivos de datos (.tres) editables desde el inspector.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

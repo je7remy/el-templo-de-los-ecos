@@ -1,0 +1,10 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/pieza_equipo.gd" id="1_pieza"]
+
+[resource]
+script = ExtResource("1_pieza")
+id = "botas"
+hueco = "botas"
+nombre = "BOTAS DE PEREGRINO"
+descripcion = "Caminas un 8 % más rápido y el esquive se recarga un 10 % antes."
