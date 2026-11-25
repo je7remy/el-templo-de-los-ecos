@@ -29,7 +29,7 @@ No se cambia `func _update_enemy`, `func _update_play`, `func _lose_run`, `func 
 
 ## 6. Pendientes reales
 - Revisar en juego la alineación de pies, la caminata diagonal, las poses de daño y la legibilidad del HUD en pantallas distintas.
-- Los cinco fondos siguen siendo composiciones, no TileMapLayer editables.
+- ~~Los cinco fondos siguen siendo composiciones~~: ya son escenas con `TileMapLayer` editables (`rooms/sala_N.tscn`, ver `docs/EDITAR_SALAS.md`).
 - Los enemigos GothicVania se dibujaron originalmente de perfil; sustituirlos por arte top-down exigiría recursos adicionales con permisos claros.
 - Evaluar manualmente FPS, audio y comportamiento táctil en Android. Las pruebas sintéticas no equivalen a una partida física.
 

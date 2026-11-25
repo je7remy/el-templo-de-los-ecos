@@ -613,9 +613,34 @@ func _run() -> void:
         _fail("Cambiar una sala en la partida cambia el archivo de datos.")
         return
     print("OK: las 41 salas de los pisos en archivos de datos (.tres).")
+
+    # --- Fase 3d-5: decorado y trampas se dibujan desde sus propios scripts ---------
+    var decorado: Node = game.get_node_or_null("Decorado")
+    var peligros: Node = game.get_node_or_null("Peligros")
+    if decorado == null or not decorado.has_method("penumbra") or not decorado.has_method("salida") or peligros == null or not peligros.has_method("pinchos"):
+        _fail("El decorado o las trampas no tienen su nodo de dibujo.")
+        return
+    _sala(game, 3, 1)
+    var restos: Array = game.call("_decor_layout")
+    if restos.is_empty() or restos != decorado.call("restos", game.call("_room_key"), float(game.call("_floor").get("wear", 0.0)), _despejar(game), Callable(game, "_is_blocked")):
+        _fail("Los restos de la sala no salen igual de scripts/mundo/decorado.gd.")
+        return
+    if game.call("_side_door_gap", 1, 485.0) != Rect2(960.0 - 46.0 - 19.0, 449.0, 19.0, 72.0):
+        _fail("Los huecos de las puertas laterales cambiaron.")
+        return
+    print("OK: decorado a ras de suelo y trampas dibujados desde scripts/mundo/ (Decorado y Peligros).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
+
+
+## Lo que no deben tapar los restos (igual que _decor_layout en main.gd).
+func _despejar(game: Node) -> Array:
+    var l: Array = (game.get("relics") as Array).duplicate()
+    l.append_array([game.get("door_pos"), Vector2(115, 359), game.get("seal_pos"), game.get("altar_pos"), game.get("archive_pos"), game.get("book_pos")])
+    for item in game.get("room_items"):
+        l.append(item["pos"])
+    return l
 
 
 func Catalogo_pisos() -> Array:

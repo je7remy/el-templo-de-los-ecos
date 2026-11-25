@@ -41,6 +41,7 @@ const Hermano := preload("res://scripts/entidades/jefes/hermano.gd")
 const Vigia := preload("res://scripts/entidades/jefes/vigia.gd")
 const Lienzo := preload("res://scripts/comun/lienzo.gd")
 const Objetos := preload("res://scripts/mundo/objetos.gd")
+const Decorado := preload("res://scripts/mundo/decorado.gd")
 const Personajes := preload("res://scripts/mundo/personajes.gd")
 const Catalogo := preload("res://scripts/datos/catalogo.gd")
 var FLOORS: Array = Catalogo.pisos()
@@ -135,7 +136,6 @@ const BAR_HP := Color("#b3263a")
 const BAR_VIGOR := Color("#5c9474")
 const BAR_FEAR := Color("#6b3fa0")
 const TITLE_FONT := preload("res://assets/fonts/Jacquard24-Regular.ttf")
-const FOG_TEX := preload("res://assets/visual/fx/niebla.png")
 ## Ecos: [nombre, descripción]. Se ganan al superar cada piso (clave "eco" del piso).
 const ECOS := {
     "respiracion": ["RESPIRACIÓN CONTENIDA", "El miedo sube un 25 % más despacio."],
@@ -270,6 +270,8 @@ var game_mode: String = "title":
 @onready var hermano: Node2D = $Jefes/HermanoMayor
 @onready var vigia: Node2D = $Jefes/Vigia
 @onready var objetos: Node = $Objetos
+@onready var decorado: Node = $Decorado
+@onready var peligros: Node = $Peligros
 @onready var personajes: Node = $Personajes
 @onready var peregrino: Node2D = $Peregrino
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
@@ -3024,39 +3026,16 @@ func _draw_room() -> void:
 ## Profundidad cenital: la luz cae desde arriba. El muro del fondo muestra
 ## su cara (más oscura abajo) y proyecta sombra sobre el suelo; los muros
 ## laterales y el frontal se ven por su remate, con un borde iluminado.
-const WALL_BACK := Rect2(40, 122, 880, 36) # cara visible del muro del fondo
-const WALL_LEFT_X := 67.0
-const WALL_RIGHT_X := 893.0
-const WALL_FRONT_Y := 552.0
 func _draw_room_depth() -> void:
-    var shade := Color(0.01, 0.015, 0.03)
-    var floor_l: float = WALL_LEFT_X
-    var floor_r: float = WALL_RIGHT_X
-    # Cara del muro del fondo: luz arriba, sombra al pie.
-    _vgradient(Rect2(floor_l - 19.0, WALL_BACK.position.y, floor_r - floor_l + 38.0, WALL_BACK.size.y), Color(1.0, 0.95, 0.82, 0.07), Color(shade, 0.34))
-    draw_rect(Rect2(floor_l - 19.0, WALL_BACK.position.y, floor_r - floor_l + 38.0, 2.0), Color(0.85, 0.86, 0.74, 0.22))
-    # Sombra que el muro del fondo proyecta sobre el suelo.
-    _vgradient(Rect2(floor_l, WALL_BACK.end.y, floor_r - floor_l, 30.0), Color(shade, 0.42), Color(shade, 0.0))
-    # Muros laterales: remate iluminado y oclusión en la base.
-    for side in [-1.0, 1.0]:
-        var edge: float = floor_l if side < 0.0 else floor_r
-        var x0: float = edge if side < 0.0 else edge - 16.0
-        _hgradient(Rect2(x0, WALL_BACK.end.y, 16.0, WALL_FRONT_Y - WALL_BACK.end.y), Color(shade, 0.26 if side < 0.0 else 0.0), Color(shade, 0.0 if side < 0.0 else 0.26))
-        draw_rect(Rect2(edge - (2.0 if side < 0.0 else 0.0), WALL_BACK.position.y, 2.0, WALL_FRONT_Y - WALL_BACK.position.y + 23.0), Color(0.80, 0.82, 0.70, 0.16))
-    # Muro frontal: se ve desde arriba, así que solo su remate recibe luz.
-    _vgradient(Rect2(floor_l, WALL_FRONT_Y - 12.0, floor_r - floor_l, 12.0), Color(shade, 0.0), Color(shade, 0.18))
-    draw_rect(Rect2(floor_l - 19.0, WALL_FRONT_Y, floor_r - floor_l + 38.0, 2.0), Color(0.82, 0.84, 0.72, 0.24))
-    draw_rect(Rect2(floor_l - 19.0, WALL_FRONT_Y + 2.0, floor_r - floor_l + 38.0, 21.0), Color(shade, 0.22))
+    decorado.muros(self) # scripts/mundo/decorado.gd
 
 
 func _vgradient(rect: Rect2, top: Color, bottom: Color) -> void:
-    draw_polygon(PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]),
-        PackedColorArray([top, top, bottom, bottom]))
+    Decorado.degradado_v(self, rect, top, bottom)
 
 
 func _hgradient(rect: Rect2, left: Color, right: Color) -> void:
-    draw_polygon(PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]),
-        PackedColorArray([left, right, right, left]))
+    Decorado.degradado_h(self, rect, left, right)
 
 
 ## [LUZ] Penumbra con luces dinámicas. Rejilla de vértices con oscuridad
@@ -3109,44 +3088,7 @@ func _lights() -> Array:
 
 
 func _draw_lighting() -> void:
-    if torch_on:
-        # Tono cálido de la linterna alrededor del personaje.
-        for r in range(4, 0, -1):
-            draw_circle(player_pos + Vector2(0, -20), float(r) * 34.0, Color(1.0, 0.78, 0.45, 0.018))
-    var lights: Array = _lights()
-    # Penumbra más clara y de color (sombras violáceas, no negras): se sigue
-    # necesitando la antorcha, pero la sala se lee mejor.
-    var base_dark: float = 0.40 if torch_on else 0.60
-    var fear_edge: float = fear / 100.0 * 0.28
-    var cell: float = LIGHT_CELL_MOBILE if touch_enabled else LIGHT_CELL
-    var cols: int = int(ceil(ARENA.size.x / cell)) + 1
-    var rows: int = int(ceil(ARENA.size.y / cell)) + 1
-    var center: Vector2 = ARENA.get_center()
-    var alpha: PackedFloat32Array = PackedFloat32Array()
-    alpha.resize(cols * rows)
-    for r in range(rows):
-        for c in range(cols):
-            var p := ARENA.position + Vector2(c, r) * cell
-            var lit: float = 0.0
-            for light in lights:
-                var d: float = p.distance_to(light[0])
-                if d < light[1]:
-                    lit = maxf(lit, pow(1.0 - d / light[1], 1.4) * light[2])
-            var edge: float = clampf((p - center).length() / (ARENA.size.x * 0.55) - 0.35, 0.0, 1.0)
-            alpha[r * cols + c] = clampf(base_dark * (1.0 - lit) + fear_edge * edge, 0.0, 0.85)
-    var tint := Color(0.035, 0.02, 0.07)
-    for r in range(rows - 1):
-        for c in range(cols - 1):
-            var a0: float = alpha[r * cols + c]
-            var a1: float = alpha[r * cols + c + 1]
-            var a2: float = alpha[(r + 1) * cols + c + 1]
-            var a3: float = alpha[(r + 1) * cols + c]
-            if a0 + a1 + a2 + a3 < 0.01:
-                continue
-            var p := ARENA.position + Vector2(c, r) * cell
-            draw_polygon(
-                PackedVector2Array([p, p + Vector2(cell, 0), p + Vector2(cell, cell), p + Vector2(0, cell)]),
-                PackedColorArray([Color(tint, a0), Color(tint, a1), Color(tint, a2), Color(tint, a3)]))
+    decorado.penumbra(self, ARENA, _lights(), torch_on, player_pos, fear, LIGHT_CELL_MOBILE if touch_enabled else LIGHT_CELL)
 
 
 ## Destello al recoger un alma: anillo que se expande y "+7" que asciende.
@@ -3167,15 +3109,7 @@ func _draw_pickup_fx() -> void:
 ## Sombras de contacto de los objetos de la sala (antes horneadas en el PNG)
 ## y halo vivo de los braseros.
 func _draw_prop_shadows() -> void:
-    for prop in room_props:
-        var rect: Rect2 = prop["rect"]
-        if prop["shadow"]:
-            _draw_soft_shadow(Vector2(rect.get_center().x, float(prop["base"]) - 3.0), rect.size.x * 0.6, 1.1)
-        if prop["light"]:
-            var flicker: float = 0.5 + 0.5 * sin(elapsed * 7.0 + rect.position.x) * sin(elapsed * 2.3)
-            var c := Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.35)
-            for r in range(4, 0, -1):
-                draw_circle(c, 10.0 + float(r) * 7.0, Color(1.0, 0.78, 0.40, 0.03 + 0.012 * flicker))
+    decorado.sombras_objetos(self, room_props, elapsed)
 
 
 ## [VISUAL UPGRADE] Ordenación por profundidad: objetos de la sala, personajes,
@@ -3313,14 +3247,7 @@ func _label_center(msg: String, at: Vector2, color: Color) -> void:
 
 ## [VISUAL UPGRADE] Puntos luminosos ligeros: no modifican colisiones ni reglas.
 func _draw_visual_atmosphere() -> void:
-    # Polvo y ceniza suspendidos (más brasas carmesí cuanto más gastado el piso).
-    var wear: float = float(_floor().get("wear", 0.0))
-    for m in motes:
-        var p: Vector2 = m["p"]
-        var tw: float = 0.5 + 0.5 * sin(elapsed * float(m["f"]) + float(m["ph"]))
-        var ember: bool = float(m["ph"]) < wear * 0.9
-        var col: Color = Color(0.95, 0.35, 0.22, 0.10 + 0.22 * tw) if ember else Color(0.86, 0.8, 0.66, 0.06 + 0.12 * tw)
-        draw_rect(Rect2(p.round(), Vector2(float(m["s"]), float(m["s"]))), col)
+    decorado.motas(self, motes, float(_floor().get("wear", 0.0)), elapsed)
 
 
 func _draw_ellipse(center: Vector2, radius_x: float, radius_y: float, color: Color) -> void:
@@ -3375,28 +3302,8 @@ func _draw_seal(at: Vector2) -> void:
 ## cuando está sellada; vano abierto con luz que entra cuando está lista.
 func _draw_door() -> void:
     var ready: bool = _room_ready()
-    var tone: Color = Color("#82bdaf") if ready else Color("#b04d5e")
-    var gap := Rect2(door_pos.x + 28.0, door_pos.y - 36.0, 19.0, 72.0)
-    var pulse: float = 0.5 + 0.5 * sin(elapsed * 2.2)
-    # Luz en el umbral.
-    _draw_ellipse(Vector2(gap.position.x - 30.0, door_pos.y), 34.0, 40.0, Color(tone.r, tone.g, tone.b, 0.05 + 0.03 * pulse))
-    if ready:
-        draw_rect(gap, Color("#05080a"))
-        draw_polygon(PackedVector2Array([gap.position, gap.position + Vector2(0, gap.size.y), Vector2(gap.position.x - 60.0, gap.end.y + 18.0), Vector2(gap.position.x - 60.0, gap.position.y - 18.0)]),
-            PackedColorArray([Color(tone.r, tone.g, tone.b, 0.22), Color(tone.r, tone.g, tone.b, 0.22), Color(tone.r, tone.g, tone.b, 0.0), Color(tone.r, tone.g, tone.b, 0.0)]))
-        draw_rect(Rect2(gap.position.x + 4.0, gap.position.y + 4.0, 3.0, gap.size.y - 8.0), Color(tone.r, tone.g, tone.b, 0.35 + 0.2 * pulse))
-    else:
-        draw_rect(gap, Color("#2b3027"))
-        draw_rect(Rect2(gap.position, Vector2(3.0, gap.size.y)), Color("#3d4436"))
-        for i in range(4):
-            var y: float = gap.position.y + 11.0 + float(i) * 16.0
-            draw_line(Vector2(gap.position.x + 5.0, y), Vector2(gap.position.x + 14.0, y + 5.0), Color(tone.r, tone.g, tone.b, 0.55 + 0.35 * pulse), 2.0)
-    # Jambas de piedra.
-    for y in [gap.position.y - 9.0, gap.end.y]:
-        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#454c3c"))
-        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 2.0), Color("#68715a"))
-        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#15170f"), false, 1.0)
-    _label_center("SALIDA" if ready else "SELLADA", Vector2(door_pos.x - 4.0, gap.position.y - 16.0), tone)
+    var gap: Rect2 = decorado.salida(self, door_pos, ready, elapsed)
+    _label_center("SALIDA" if ready else "SELLADA", Vector2(door_pos.x - 4.0, gap.position.y - 16.0), Color("#82bdaf") if ready else Color("#b04d5e"))
 
 
 ## Altar a proporción real (78x112 escalado de forma uniforme).
@@ -3615,10 +3522,7 @@ func _draw_float_fx() -> void:
 
 ## Cadáver del antiguo dueño del alma: tendido en el suelo, bajo la luz de la sala.
 func _draw_corpse(at: Vector2, seed_index: int) -> void:
-    var tex: Texture2D = CORPSES[seed_index % CORPSES.size()]
-    var size := Vector2(tex.get_width(), tex.get_height())
-    var dest := Rect2(roundf(at.x - size.x * 0.5), roundf(at.y + 4.0 - size.y * 0.5), size.x, size.y)
-    _draw_texture_flipped(tex, dest, seed_index % 2 == 1) # variedad: espejo
+    decorado.cadaver(self, CORPSES[seed_index % CORPSES.size()], at, seed_index % 2 == 1) # variedad: espejo
 
 
 ## Dibuja una textura en su rectángulo, volteada en horizontal si se pide.
@@ -3630,12 +3534,7 @@ func _draw_outlined(tex: Texture2D, dest: Rect2, region: Rect2, tint: Color) -> 
 
 
 func _draw_texture_flipped(tex: Texture2D, dest: Rect2, flip: bool) -> void:
-    if not flip:
-        draw_texture_rect(tex, dest, false)
-        return
-    _xf(Vector2(dest.position.x + dest.size.x, dest.position.y), 0.0, Vector2(-1.0, 1.0))
-    draw_texture_rect(tex, Rect2(Vector2.ZERO, dest.size), false)
-    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
+    Decorado.textura_espejo(self, tex, dest, flip)
 
 
 ## Objeto recogible en el suelo: icono que flota sobre su sombra.
@@ -4167,57 +4066,14 @@ func _draw_nuca() -> void:
 
 ## Desgaste progresivo del templo (GDD §5): grietas y cascotes según el piso.
 func _draw_wear() -> void:
-    var wear: float = float(_floor().get("wear", 0.0))
-    if wear <= 0.0:
-        return
-    var rng := RandomNumberGenerator.new()
-    rng.seed = hash(_room_key())
-    var dark := Color(0.03, 0.04, 0.04, 0.55)
-    var lit := Color(0.55, 0.60, 0.50, 0.18)
-    for n in range(int(7.0 * wear)):
-        var p := Vector2(rng.randf_range(90.0, 870.0), rng.randf_range(180.0, 540.0))
-        var ang: float = rng.randf_range(0.0, TAU)
-        var pts := PackedVector2Array([p])
-        for k in range(rng.randi_range(3, 6)):
-            ang += rng.randf_range(-0.7, 0.7)
-            p += Vector2.from_angle(ang) * rng.randf_range(8.0, 18.0)
-            pts.append(p)
-            if rng.randf() < 0.35: # ramificación
-                draw_line(p, p + Vector2.from_angle(ang + 1.2) * 9.0, dark, 1.0)
-        draw_polyline(pts, dark, 1.5)
-        var edge := PackedVector2Array()
-        for q in pts:
-            edge.append(q + Vector2(1.0, -1.0)) # filo iluminado desde arriba
-        draw_polyline(edge, lit, 1.0)
-    # Grietas en la cara del muro del fondo.
-    for n in range(int(4.0 * wear)):
-        var x: float = rng.randf_range(100.0, 860.0)
-        draw_polyline(PackedVector2Array([Vector2(x, 124.0), Vector2(x + rng.randf_range(-6, 6), 136.0), Vector2(x + rng.randf_range(-8, 8), 150.0)]), dark, 1.5)
-    # Cascotes caídos.
-    for n in range(int(10.0 * wear)):
-        var q := Vector2(rng.randf_range(80.0, 880.0), rng.randf_range(165.0, 545.0))
-        draw_rect(Rect2(q, Vector2(rng.randi_range(2, 4), rng.randi_range(2, 3))), Color(0.42, 0.45, 0.38, 0.6))
+    decorado.desgaste(self, float(_floor().get("wear", 0.0)), hash(_room_key()))
 
 
 # ============================================================ DECORADOS
 ## Detalle de mazmorra (herramientas/generar_decorados.py): sin colisión,
 ## en espejo respecto al eje x = 480 y siempre igual en la misma sala.
-const DECOR := {
-    "craneo": preload("res://assets/visual/decorados/craneo.png"),
-    "huesos": preload("res://assets/visual/decorados/huesos.png"),
-    "costillar": preload("res://assets/visual/decorados/costillar.png"),
-    "vasija_rota": preload("res://assets/visual/decorados/vasija_rota.png"),
-    "velas": preload("res://assets/visual/decorados/velas.png"),
-    "charco_grande": preload("res://assets/visual/decorados/charco_grande.png"),
-    "charco_pequeno": preload("res://assets/visual/decorados/charco_pequeno.png"),
-    "reguero": preload("res://assets/visual/decorados/reguero.png"),
-    "estandarte": preload("res://assets/visual/decorados/estandarte.png"),
-    "cadena": preload("res://assets/visual/decorados/cadena.png"),
-    "telarana": preload("res://assets/visual/decorados/telarana.png"),
-    "manos": preload("res://assets/visual/decorados/manos.png"),
-    "goteo": preload("res://assets/visual/decorados/goteo.png"),
-}
-const DECOR_FLOOR := ["craneo", "huesos", "costillar", "vasija_rota", "velas", "charco_pequeno", "charco_grande", "reguero"]
+## Texturas de los restos: scripts/mundo/decorado.gd.
+const DECOR := Decorado.RESTOS
 var decor_cache_key: String = ""
 var decor_cache: Array = [] # [clave, posición (arriba-izquierda), espejo]
 
@@ -4225,68 +4081,18 @@ var decor_cache: Array = [] # [clave, posición (arriba-izquierda), espejo]
 func _decor_layout() -> Array:
     if decor_cache_key == _room_key():
         return decor_cache
-    decor_cache_key = _room_key()
-    decor_cache = []
-    var rng := RandomNumberGenerator.new()
-    rng.seed = hash("decor:" + _room_key())
-    var wear: float = float(_floor().get("wear", 0.0))
     # Puntos que no se deben tapar: almas, objetos, puerta, entrada y objetos de juego.
     var keep_clear: Array = relics.duplicate()
     keep_clear.append_array([door_pos, Vector2(115, 359), seal_pos, altar_pos, archive_pos, book_pos])
     for item in room_items:
         keep_clear.append(item["pos"])
-    # Muro del fondo: estandartes y cadenas en parejas; sangre según el piso.
-    var wall_slots := [150.0, 262.0, 372.0]
-    for x in wall_slots:
-        var roll: float = rng.randf()
-        var key: String = "estandarte" if roll < 0.4 else ("cadena" if roll < 0.7 else ("manos" if roll < 0.7 + 0.15 * (1.0 + wear) else "goteo"))
-        var tex: Texture2D = DECOR[key]
-        var y: float = 121.0 if key in ["estandarte", "cadena"] else 126.0
-        decor_cache.append([key, Vector2(x - tex.get_width() * 0.5, y), false])
-        decor_cache.append([key, Vector2(960.0 - x - tex.get_width() * 0.5, y), true])
-    # Telarañas en las esquinas del fondo.
-    decor_cache.append(["telarana", Vector2(68, 158), false])
-    decor_cache.append(["telarana", Vector2(893 - 26, 158), true])
-    # Suelo: restos en la mitad izquierda y su reflejo.
-    var count: int = 6 + int(3.0 * wear)
-    var tries: int = 0
-    var placed: int = 0
-    while placed < count and tries < 80:
-        tries += 1
-        var key2: String = DECOR_FLOOR[rng.randi() % DECOR_FLOOR.size()]
-        if key2 in ["charco_grande", "reguero"] and rng.randf() > 0.5 + 0.4 * wear:
-            continue
-        var tex2: Texture2D = DECOR[key2]
-        var size := Vector2(tex2.get_width(), tex2.get_height())
-        var center := Vector2(rng.randf_range(90.0, 450.0), rng.randf_range(185.0, 535.0))
-        var ok: bool = true
-        for q in keep_clear:
-            if Vector2(q).distance_to(center) < 48.0 or Vector2(960.0 - q.x, q.y).distance_to(center) < 48.0:
-                ok = false
-                break
-        if ok and (_is_blocked(center) or _is_blocked(Vector2(960.0 - center.x, center.y))):
-            ok = false
-        for d in decor_cache:
-            if Vector2(d[1]).distance_to(center - size * 0.5) < 40.0:
-                ok = false
-        if not ok:
-            continue
-        var top_left := (center - size * 0.5).round()
-        decor_cache.append([key2, top_left, false])
-        decor_cache.append([key2, Vector2(960.0 - top_left.x - size.x, top_left.y), true])
-        placed += 1
+    decor_cache = decorado.restos(_room_key(), float(_floor().get("wear", 0.0)), keep_clear, _is_blocked)
+    decor_cache_key = _room_key()
     return decor_cache
 
 
 func _draw_decor() -> void:
-    for d in _decor_layout():
-        var tex: Texture2D = DECOR[d[0]]
-        _draw_texture_flipped(tex, Rect2(d[1], Vector2(tex.get_width(), tex.get_height())), d[2])
-    # Las velas encendidas titilan un poco por encima del suelo.
-    for d in decor_cache:
-        if d[0] == "velas":
-            var c: Vector2 = Vector2(d[1]) + Vector2(11, 6)
-            draw_circle(c, 14.0, Color(1.0, 0.7, 0.3, 0.05 + 0.03 * sin(elapsed * 9.0 + c.x)))
+    decorado.dibujar_restos(self, _decor_layout(), elapsed)
 
 
 # ============================================================ LUZ ADITIVA
@@ -5643,47 +5449,18 @@ var side_door_open := {-1: 0.0, 1: 0.0}
 
 
 func _side_door_gap(side: int, y: float) -> Rect2:
-    var x: float = 46.0 if side < 0 else W - 46.0 - 19.0
-    return Rect2(x, y - 36.0, 19.0, 72.0)
+    return Decorado.hueco_lateral(side, y)
 
 
 func _draw_side_doors() -> void:
     if in_tutorial:
         return
-    # Entrada: la puerta por la que llegaste, cerrada a tu espalda.
-    var entry: Rect2 = _side_door_gap(-1, 359.0)
-    draw_rect(entry, Color("#2a2119"))
-    for k in range(3):
-        draw_rect(Rect2(entry.position.x + 2.0 + float(k) * 6.0, entry.position.y + 2.0, 4.0, entry.size.y - 4.0), Color("#3b2e22"))
-    draw_rect(Rect2(entry.position.x + 3.0, entry.get_center().y - 2.0, entry.size.x - 6.0, 4.0), Color("#5c5446"))
-    _side_door_jambs(entry)
-    # Pasos laterales: rastrillo de hierro que sube cuando alguien lo cruza.
-    for side in [-1, 1]:
-        var gap: Rect2 = _side_door_gap(side, SIDE_DOOR_Y)
-        var open_k: float = float(side_door_open[side])
-        draw_rect(gap, Color("#07090b"))
-        if open_k > 0.0:
-            var tone := Color(0.89, 0.74, 0.48)
-            var dir: float = 1.0 if side < 0 else -1.0
-            var mouth: float = gap.end.x if side < 0 else gap.position.x
-            draw_polygon(PackedVector2Array([Vector2(mouth, gap.position.y), Vector2(mouth, gap.end.y), Vector2(mouth + dir * 70.0, gap.end.y + 16.0), Vector2(mouth + dir * 70.0, gap.position.y - 16.0)]),
-                PackedColorArray([Color(tone, 0.18 * open_k), Color(tone, 0.18 * open_k), Color(tone, 0.0), Color(tone, 0.0)]))
-        var lift: float = gap.size.y * open_k
-        for k in range(4):
-            var bx: float = gap.position.x + 2.0 + float(k) * 5.0
-            draw_rect(Rect2(bx, gap.position.y, 2.0, gap.size.y - lift), Color("#4a4f55"))
-        for k in range(3):
-            var by: float = gap.position.y + 12.0 + float(k) * 20.0
-            if by < gap.end.y - lift:
-                draw_rect(Rect2(gap.position.x, by, gap.size.x, 2.0), Color("#5d636a"))
-        _side_door_jambs(gap)
+    # Entrada cerrada a tu espalda y pasos laterales con rastrillo (decorado.gd).
+    decorado.puertas_laterales(self, 359.0, SIDE_DOOR_Y, side_door_open)
 
 
 func _side_door_jambs(gap: Rect2) -> void:
-    for y in [gap.position.y - 9.0, gap.end.y]:
-        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#454c3c"))
-        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 2.0), Color("#68715a"))
-        draw_rect(Rect2(gap.position.x - 6.0, y, 31.0, 9.0), Color("#15170f"), false, 1.0)
+    Decorado.jambas(self, gap)
 
 
 ## El grupo se despide y sale por el paso lateral más cercano: no te siguen más.
@@ -6128,35 +5905,8 @@ func _update_traps(_dt: float) -> void:
 
 
 func _draw_traps() -> void:
-    for trap in traps:
-        var r: Rect2 = _trap_rect(trap)
-        var t: float = _trap_t(trap)
-        # Placa de hierro con agujeros.
-        draw_rect(r.grow(2.0), Color(0.04, 0.04, 0.05, 0.55))
-        draw_rect(r, Color("#2c2f33"))
-        draw_rect(Rect2(r.position, Vector2(r.size.x, 2)), Color("#4a4e54"))
-        for gx in range(3):
-            for gy in range(3):
-                var hole := r.position + Vector2(6.0 + gx * 9.0, 6.0 + gy * 9.0)
-                draw_rect(Rect2(hole, Vector2(4, 3)), Color("#0c0d0f"))
-        var rise: float = 0.0
-        if t >= TRAP_UP:
-            rise = 1.0 if t < TRAP_CYCLE - 0.25 else (TRAP_CYCLE - t) / 0.25
-        elif t >= TRAP_WARN:
-            rise = 0.25 + 0.08 * sin(elapsed * 40.0) # asoman y tiemblan: aviso
-        if rise <= 0.0:
-            continue
-        var steel := Color("#c3c9c4")
-        for gx in range(3):
-            for gy in range(3):
-                var base := r.position + Vector2(8.0 + gx * 9.0, 9.0 + gy * 9.0)
-                var tip := base + Vector2(0, -11.0 * rise)
-                draw_colored_polygon(PackedVector2Array([base + Vector2(-3, 0), base + Vector2(3, 0), tip]), steel)
-                draw_line(base + Vector2(0, -1), tip, Color("#f0f2ee"), 1.0)
-                if bool(trap["bloody"]) and rise > 0.6 and (gx + gy) % 2 == 0:
-                    draw_circle(tip + Vector2(0, 2), 1.5, Color("#9c1c25"))
-        if t >= TRAP_WARN and t < TRAP_UP:
-            draw_rect(r.grow(3.0), Color(1.0, 0.35, 0.3, 0.25 + 0.2 * sin(elapsed * 20.0)), false, 1.0)
+    # Se dibujan en scripts/mundo/peligros.gd.
+    peligros.pinchos(self, traps.map(func(trap): return [_trap_rect(trap), _trap_t(trap), bool(trap["bloody"])]), [TRAP_CYCLE, TRAP_WARN, TRAP_UP], elapsed)
 
 
 # --- Llamaradas y péndulos ------------------------------------------------------
@@ -6267,77 +6017,14 @@ func _update_hazards(_dt: float) -> void:
 
 
 func _draw_hazards_floor() -> void:
-    for v in flame_vents:
-        var p: Vector2 = v["pos"]
-        var t: float = _flame_t(v)
-        var g := Rect2(p - Vector2(15, 11), Vector2(30, 22))
-        draw_rect(g.grow(3.0), Color(0.03, 0.025, 0.03, 0.6))
-        draw_rect(g, Color("#2a2522"))
-        draw_rect(Rect2(g.position, Vector2(g.size.x, 2)), Color("#544a40"))
-        var heat: float = 0.0
-        if t >= FLAME_ON:
-            heat = 1.0
-        elif t >= FLAME_WARN:
-            heat = (t - FLAME_WARN) / (FLAME_ON - FLAME_WARN)
-        for k in range(4):
-            var slot := Rect2(g.position + Vector2(4.0 + k * 6.5, 5), Vector2(3.5, 12))
-            draw_rect(slot, Color(0.06, 0.04, 0.03).lerp(Color(1.0, 0.45, 0.12), heat * (0.7 + 0.3 * sin(elapsed * 18.0 + k))))
-        # Hollín alrededor.
-        _draw_ellipse(p + Vector2(0, 2), 24.0, 8.0, Color(0.0, 0.0, 0.0, 0.18))
-        if t >= FLAME_WARN and t < FLAME_ON:
-            draw_rect(g.grow(4.0), Color(1.0, 0.5, 0.2, 0.25 + 0.2 * sin(elapsed * 20.0)), false, 1.0)
-    for pd in pendulums:
-        # Surco en el suelo: dice por dónde pasará la cuchilla.
-        var c: Vector2 = pd["center"]
-        var a: float = float(pd["amp"])
-        draw_line(c + Vector2(-a - 10.0, 4), c + Vector2(a + 10.0, 4), Color(0.0, 0.0, 0.0, 0.35), 6.0)
-        draw_line(c + Vector2(-a - 10.0, 3), c + Vector2(a + 10.0, 3), Color(0.55, 0.5, 0.42, 0.18), 1.0)
-        var b: Vector2 = _pendulum_blade(pd)
-        _draw_ellipse(b + Vector2(0, 6), 18.0, 5.0, Color(0, 0, 0, 0.35))
+    peligros.suelo(self, flame_vents.map(func(v): return [v["pos"], _flame_t(v)]), [FLAME_WARN, FLAME_ON],
+        pendulums.map(func(pd): return [pd["center"], float(pd["amp"]), _pendulum_blade(pd)]), elapsed)
 
 
 ## Lo que se alza: la columna de fuego y la cuchilla con su cadena.
 func _draw_hazards_air() -> void:
-    for v in flame_vents:
-        var t: float = _flame_t(v)
-        if t < FLAME_ON:
-            continue
-        var p: Vector2 = v["pos"]
-        var k: float = clampf((t - FLAME_ON) / 0.2, 0.0, 1.0) * clampf((FLAME_CYCLE - t) / 0.25, 0.0, 1.0)
-        for i in range(7):
-            var h: float = (78.0 + 12.0 * sin(elapsed * 14.0 + float(i))) * k
-            var wv: float = (18.0 - float(i) * 2.0) * k
-            var y0: float = p.y - h * (float(i) / 6.0)
-            var col := Color(1.0, 0.35 + 0.1 * float(i), 0.1 + 0.08 * float(i), 0.55 - float(i) * 0.06)
-            draw_polygon(PackedVector2Array([p + Vector2(-wv, 2), p + Vector2(wv, 2), Vector2(p.x + wv * 0.3 + sin(elapsed * 11.0 + i) * 3.0, y0 - 14.0)]),
-                PackedColorArray([col, col, Color(col.r, col.g, col.b, 0.0)]))
-    for pd in pendulums:
-        var pivot: Vector2 = _pendulum_pivot(pd)
-        var b: Vector2 = _pendulum_blade(pd)
-        var lift: Vector2 = b + Vector2(0, -16) # la hoja vuela a la altura del pecho
-        # Cadena por eslabones.
-        var n: int = 14
-        for i in range(n):
-            var q: Vector2 = pivot.lerp(lift, float(i) / float(n))
-            draw_rect(Rect2(q - Vector2(2, 3), Vector2(4, 6)), Color("#14110f"))
-            draw_rect(Rect2(q - Vector2(1, 2), Vector2(2, 4)), Color("#8a857a") if i % 2 == 0 else Color("#5c5850"))
-        var ang: float = (lift - pivot).angle() - PI * 0.5
-        _xf(lift, ang, Vector2.ONE)
-        # Media luna de acero con filo brillante y contorno oscuro.
-        var blade := PackedVector2Array([Vector2(-30, -2), Vector2(30, -2), Vector2(24, 10), Vector2(10, 17), Vector2(0, 19), Vector2(-10, 17), Vector2(-24, 10)])
-        var outline := blade.duplicate()
-        outline.append(blade[0])
-        draw_colored_polygon(blade, Color("#6f767c"))
-        draw_colored_polygon(PackedVector2Array([Vector2(-26, 0), Vector2(26, 0), Vector2(18, 6), Vector2(-18, 6)]), Color("#4d5358"))
-        draw_polyline(outline, Color("#101214"), 2.0)
-        draw_polyline(PackedVector2Array([Vector2(-24, 10), Vector2(-10, 17), Vector2(0, 19), Vector2(10, 17), Vector2(24, 10)]), Color("#eef3f5"), 2.0)
-        draw_rect(Rect2(-6, -8, 12, 8), Color("#3b2f28"))
-        draw_rect(Rect2(-6, -8, 12, 8), Color("#101214"), false, 1.0)
-        _xf(Vector2.ZERO, 0.0, Vector2.ONE)
-        # Estela al barrer.
-        var vel: float = cos(room_elapsed * TAU / PENDULUM_PERIOD + float(pd["phase"]))
-        for k in range(1, 4):
-            draw_circle(lift + Vector2(-vel * float(k) * 9.0, 8), 10.0 - float(k) * 2.0, Color(0.85, 0.9, 0.95, 0.06 * absf(vel)))
+    peligros.aire(self, flame_vents.map(func(v): return [v["pos"], _flame_t(v)]), [FLAME_CYCLE, FLAME_ON],
+        pendulums.map(func(pd): return [_pendulum_pivot(pd), _pendulum_blade(pd), cos(room_elapsed * TAU / PENDULUM_PERIOD + float(pd["phase"]))]), elapsed)
 
 
 # --- Inscripciones -------------------------------------------------------------
@@ -6349,15 +6036,7 @@ func _draw_inscription_plaque() -> void:
     var ins: Array = _inscription()
     if ins.is_empty():
         return
-    var at: Vector2 = ins[0]
-    var plaque := Rect2(at - Vector2(26, 10), Vector2(52, 20))
-    draw_rect(plaque.grow(2.0), Color(0, 0, 0, 0.5))
-    draw_rect(plaque, Color("#5a5446"))
-    draw_rect(Rect2(plaque.position, Vector2(plaque.size.x, 2)), Color("#8a8370"))
-    for i in range(5):
-        draw_rect(Rect2(plaque.position + Vector2(6.0 + i * 9.0, 8.0 + float(i % 2) * 3.0), Vector2(6, 2)), Color("#2a261f"))
-    if player_pos.distance_to(at) < 90.0:
-        draw_rect(plaque.grow(3.0), Color(0.78, 0.67, 0.43, 0.35 + 0.2 * sin(elapsed * 4.0)), false, 1.0)
+    decorado.placa(self, ins[0], player_pos.distance_to(ins[0]) < 90.0, elapsed)
 
 
 func _draw_inscription_text() -> void:
@@ -6713,44 +6392,12 @@ func _draw_fx() -> void:
 
 ## Haces de luz desde los ventanales altos (más tenues en pisos gastados).
 func _draw_light_rays() -> void:
-    var wear: float = float(_floor().get("wear", 0.0))
-    var base: float = 0.09 * (1.0 - wear * 0.3)
-    for i in range(3):
-        var x: float = 250.0 + float(i) * 230.0
-        var breath: float = 0.75 + 0.25 * sin(elapsed * 0.35 + float(i) * 1.7)
-        var a: float = base * breath
-        var top_l := Vector2(x, ARENA.position.y + 4.0)
-        var top_r := Vector2(x + 34.0, ARENA.position.y + 4.0)
-        var bot_r := Vector2(x + 210.0, ARENA.end.y - 30.0)
-        var bot_l := Vector2(x + 70.0, ARENA.end.y - 30.0)
-        draw_polygon(PackedVector2Array([top_l, top_r, bot_r, bot_l]),
-            PackedColorArray([Color(1.0, 0.9, 0.7, a), Color(1.0, 0.9, 0.7, a), Color(1.0, 0.9, 0.7, 0.0), Color(1.0, 0.9, 0.7, 0.0)]))
-        # Polvo que brilla al cruzar el haz.
-        for d in range(7):
-            var t: float = fmod(elapsed * 0.05 + float(d) * 0.143 + float(i) * 0.31, 1.0)
-            var across: float = 0.5 + 0.4 * sin(elapsed * 0.6 + float(d) * 2.1)
-            var pos: Vector2 = top_l.lerp(bot_l, t).lerp(top_r.lerp(bot_r, t), across)
-            draw_rect(Rect2(pos.round(), Vector2(1, 1)), Color(1.0, 0.92, 0.75, 0.55 * (1.0 - t) * breath))
+    decorado.rayos(self, ARENA, float(_floor().get("wear", 0.0)), elapsed)
 
 
 ## Niebla baja que se desliza (dos capas a distinta velocidad), recortada a la sala.
 func _draw_fog() -> void:
-    var tint := Color(0.62, 0.55, 0.75)
-    for layer in range(2):
-        var speed: float = 9.0 if layer == 0 else -5.5
-        var y: float = ARENA.end.y - 150.0 - float(layer) * 70.0
-        var alpha: float = 0.2 if layer == 0 else 0.13
-        var off: float = fmod(elapsed * speed, 256.0)
-        if off > 0.0:
-            off -= 256.0
-        var x: float = ARENA.position.x + off
-        while x < ARENA.end.x:
-            var x0: float = maxf(x, ARENA.position.x)
-            var x1: float = minf(x + 256.0, ARENA.end.x)
-            if x1 > x0:
-                var src := Rect2(x0 - x, 0, x1 - x0, 128)
-                draw_texture_rect_region(FOG_TEX, Rect2(x0, y, x1 - x0, 150), src, Color(tint.r, tint.g, tint.b, alpha))
-            x += 256.0
+    decorado.niebla(self, ARENA, elapsed)
 
 
 # --- Menú de pisos -------------------------------------------------------------
@@ -7030,16 +6677,7 @@ func _draw_critter(i: int) -> void:
 func _draw_life_corpse() -> void:
     if life_corpse.is_empty() or str(life_corpse["key"]) != _room_key():
         return
-    var at: Vector2 = life_corpse["pos"]
-    # Charco de sangre y tu propio cuerpo tendido (tu hoja de sprites, girada).
-    _draw_ellipse(at + Vector2(4, 2), 30.0, 10.0, Color(0.32, 0.02, 0.05, 0.85))
-    _draw_ellipse(at + Vector2(-6, 4), 18.0, 6.0, Color(0.45, 0.03, 0.07, 0.8))
-    _xf(at + Vector2(-4, -2), PI * 0.5, Vector2.ONE)
-    draw_texture_rect_region(_hero_sheet(), Rect2(-28, -20, 40, 56), Rect2(0, 0, 40, 56), Color(0.55, 0.5, 0.55, 1.0))
-    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
-    if not bool(life_corpse["claimed"]):
-        var pulse: float = 0.5 + 0.5 * sin(elapsed * 3.0)
-        draw_circle(at + Vector2(0, -6), 5.0 + pulse * 2.0, Color(0.56, 0.86, 0.95, 0.25 + 0.25 * pulse))
+    decorado.cuerpo_propio(self, life_corpse["pos"], _hero_sheet(), bool(life_corpse["claimed"]), elapsed)
 
 
 func _update_life_corpse() -> void:
@@ -7340,62 +6978,26 @@ func _update_fire(dt: float) -> void:
 
 
 func _draw_vines() -> void:
+    # Cada celda con los centros de sus vecinas intactas (para enlazar los tallos).
+    var celdas: Array = []
     for cell in vines:
-        var v: Dictionary = vines[cell]
-        var c: Vector2 = _cell_center(cell)
-        var seed_v: int = int(v["seed"])
-        match str(v["state"]):
-            "intacta":
-                # Tallos que se enlazan con las celdas vecinas, con espinas y hojas secas.
-                var base: Color = Color("#3d5a2a") if bool(v["verde"]) else Color("#6b5236")
-                var light: Color = Color("#5f8040") if bool(v["verde"]) else Color("#a88452")
-                var thick: float = 4.0 if bool(v["verde"]) else 3.0
-                var linked: bool = false
-                for off in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(-1, 1)]:
-                    var nb: Vector2i = cell + off
-                    if vines.has(nb) and str(vines[nb]["state"]) == "intacta":
-                        linked = true
-                        var nc: Vector2 = _cell_center(nb)
-                        var n: Vector2 = (nc - c).orthogonal().normalized()
-                        for k in range(2):
-                            var bend: float = (float((seed_v >> (k * 3)) % 9) - 4.0) * 1.4 + float(k) * 3.0 - 1.5
-                            var m1: Vector2 = c.lerp(nc, 0.33) + n * bend
-                            var m2: Vector2 = c.lerp(nc, 0.66) - n * bend
-                            draw_polyline(PackedVector2Array([c + n * float(k * 3 - 1), m1, m2, nc + n * float(k * 3 - 1)]), base if k == 0 else light, thick if k == 0 else 1.0)
-                if not linked:
-                    draw_circle(c, 5.0, base)
-                for k in range(3):
-                    var t_pos: Vector2 = c + Vector2(float((seed_v >> k) % 24) - 12.0, float((seed_v >> (k + 3)) % 14) - 7.0)
-                    if k == 0:
-                        draw_line(t_pos, t_pos + Vector2(2, -3), light, 1.0) # espina
-                    else:
-                        draw_rect(Rect2(t_pos.round(), Vector2(3, 2)), Color("#7da04f") if bool(v["verde"]) else Color("#9a7434"))
-            "fuego":
-                draw_rect(Rect2(c - Vector2(15, 15), Vector2(30, 30)), Color(0.35, 0.08, 0.02, 0.6))
-            "ceniza":
-                var glow: float = clampf(1.0 - float(v["t"]) / 4.0, 0.0, 1.0)
-                draw_rect(Rect2(c - Vector2(14, 12), Vector2(28, 24)), Color(0.08, 0.07, 0.07, 0.75))
-                for k in range(3):
-                    var e: Vector2 = c + Vector2(float((seed_v >> k) % 22) - 11.0, float((seed_v >> (k + 2)) % 18) - 9.0)
-                    draw_rect(Rect2(e.round(), Vector2(2, 1)), Color(1.0, 0.45, 0.15, 0.2 + 0.7 * glow * (0.5 + 0.5 * sin(elapsed * 5.0 + float(k)))))
+        var vecinas: Array = []
+        if str(vines[cell]["state"]) == "intacta":
+            for off in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(-1, 1)]:
+                var nb: Vector2i = cell + off
+                if vines.has(nb) and str(vines[nb]["state"]) == "intacta":
+                    vecinas.append(_cell_center(nb))
+        celdas.append([_cell_center(cell), vines[cell], vecinas])
+    peligros.enredaderas(self, celdas, elapsed)
 
 
 ## Llamas: sobre la penumbra, con parpadeo; menguan al final de la quema.
 func _draw_flames() -> void:
+    var ardiendo: Array = []
     for cell in vines:
-        var v: Dictionary = vines[cell]
-        if str(v["state"]) != "fuego":
-            continue
-        var c: Vector2 = _cell_center(cell) + Vector2(0, 8)
-        var life: float = float(v["t"]) / FIRE_BURN
-        var size: float = clampf(life * 6.0, 0.0, 1.0) * clampf((1.0 - life) * 3.0, 0.25, 1.0)
-        for k in range(3):
-            var x: float = c.x - 9.0 + float(k) * 9.0
-            var flick: float = 0.75 + 0.25 * sin(elapsed * 17.0 + float(k) * 2.1 + float(v["seed"]))
-            var h: float = (16.0 + 8.0 * float((int(v["seed"]) >> k) % 3)) * flick * size
-            draw_colored_polygon(PackedVector2Array([Vector2(x - 6, c.y), Vector2(x + 6, c.y), Vector2(x, c.y - h)]), Color(1.0, 0.42, 0.12, 0.85))
-            draw_colored_polygon(PackedVector2Array([Vector2(x - 3, c.y), Vector2(x + 3, c.y), Vector2(x, c.y - h * 0.6)]), Color(1.0, 0.85, 0.4, 0.9))
-        draw_circle(c + Vector2(0, -8), 18.0 * size, Color(1.0, 0.5, 0.15, 0.10))
+        if str(vines[cell]["state"]) == "fuego":
+            ardiendo.append([_cell_center(cell), vines[cell]])
+    peligros.llamas(self, ardiendo, FIRE_BURN, elapsed)
 
 
 # --- Tejedora de Raíz -----------------------------------------------------------
@@ -7604,9 +7206,7 @@ func _draw_mask_item() -> void:
 
 ## Canales del suelo: surcos oscuros por donde corren motas de alma.
 func _draw_channels_ground() -> void:
-    for ch in _room().get("channels", []):
-        draw_line(ch[0], ch[1], Color(0.04, 0.05, 0.07, 0.85), 6.0)
-        draw_line(ch[0], ch[1], Color(0.25, 0.5, 0.6, 0.25), 2.0)
+    peligros.canales(self, _room().get("channels", []))
 
 
 func _draw_labyrinth_glow() -> void:
@@ -8423,12 +8023,9 @@ func _draw_death_marks() -> void:
     var marks: Array = _room_death_marks()
     for i in range(marks.size()):
         var at: Vector2 = marks[i]
-        var pulse: float = 0.5 + 0.5 * sin(elapsed * 2.0 + float(i))
-        _draw_ellipse(at + Vector2(0, 2), 20.0, 7.0, Color(0.56, 0.86, 0.95, 0.10 + 0.08 * pulse))
-        if art.has("visual_hero"):
-            draw_texture_rect_region(_hero_sheet(), Rect2(at.x - 20.0, at.y + 4.0 - 54.0, 40.0, 56.0), Rect2(0, 0, 40, 56),
-                Color(0.7, 0.95, 1.0, 0.38 + 0.15 * pulse))
+        decorado.marca_muerte(self, at, i, _hero_sheet() if art.has("visual_hero") else null, elapsed)
         if player_pos.distance_to(at) < 150.0:
+            var pulse: float = 0.5 + 0.5 * sin(elapsed * 2.0 + float(i))
             _label_center("AQUÍ MORISTE", at + Vector2(0, -62), Color(0.62, 0.86, 0.95, 0.6 + 0.4 * pulse))
 
 
