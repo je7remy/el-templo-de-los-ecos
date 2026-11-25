@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/paso_tutorial_vigilia.gd" id="1_7i3d5"]
+
+[resource]
+script = ExtResource("1_7i3d5")
+titulo = "5 · MEJORA"
+texto = "Toca tu centinela y elige MEJORAR: dispara más fuerte."

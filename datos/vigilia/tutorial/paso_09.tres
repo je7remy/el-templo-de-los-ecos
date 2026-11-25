@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/paso_tutorial_vigilia.gd" id="1_4jmmt"]
+
+[resource]
+script = ExtResource("1_4jmmt")
+titulo = "8 · FRENA"
+texto = "Construye una CAMPANA: su tañido frena a las entidades del pasillo."

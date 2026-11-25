@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/estructura_vigilia.gd" id="1_jgaqm"]
+
+[resource]
+script = ExtResource("1_jgaqm")
+id = "centinela"
+nombre = "CENTINELA"
+icono = "centinela"
+descripcion = "Dispara a la entidad más cercana a la puerta."
+coste = 20.0
+factor = 1.3
+coste_mejora = 15.0

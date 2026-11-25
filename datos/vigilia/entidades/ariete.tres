@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/visual/enemies/ariete.png" id="1_3jo4n"]
+[ext_resource type="Script" path="res://scripts/datos/entidad_vigilia.gd" id="2_oh5mo"]
+
+[resource]
+script = ExtResource("2_oh5mo")
+id = "ariete"
+nombre = "El Ariete"
+hoja = ExtResource("1_3jo4n")
+vida = 1.0
+flota = false

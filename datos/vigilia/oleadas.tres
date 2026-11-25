@@ -1,0 +1,9 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/oleadas_vigilia.gd" id="1_ago43"]
+
+[resource]
+script = ExtResource("1_ago43")
+primera_fase = Array[String](["ghoul", "wizard", "angel"])
+fases = Array[String](["ghoul", "wizard", "angel", "mastin", "segador", "ariete", "ghoul", "tejedora", "mastin", "ariete"])
+jefes = Array[String](["tejedora", "segador", "ariete", "angel"])

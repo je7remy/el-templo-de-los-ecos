@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/paso_tutorial_vigilia.gd" id="1_dnfl6"]
+
+[resource]
+script = ExtResource("1_dnfl6")
+titulo = "¡LISTO!"
+texto = "Fases de 90 s, cada una más dura; jefe cada 5. Cada fase da botín para la campaña. Toca aquí para empezar."

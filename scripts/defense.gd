@@ -49,23 +49,16 @@ const BED_MAX := 20
 const DOOR_MAX := 20
 const STRUCT_MAX := 15
 const POWER_MAX := 15
+## Datos de la Vigilia (datos/vigilia/, ver scripts/datos/catalogo_vigilia.gd).
+const CatalogoVigilia := preload("res://scripts/datos/catalogo_vigilia.gd")
 ## Estructuras: [nombre, icono, descripción, coste base, factor por cada una más, coste de mejora base].
-const STRUCTS := {
-    "centinela": ["CENTINELA", "centinela", "Dispara a la entidad más cercana a la puerta.", 20.0, 1.3, 15.0],
-    "generador": ["GENERADOR", "generador", "Energía mientras duermes (para potenciar y escudo).", 30.0, 1.35, 20.0],
-    "campana": ["CAMPANA", "campana", "Su tañido frena a las entidades del pasillo.", 40.0, 1.5, 25.0],
-}
-const MONSTER_SHEETS := {
-    "ghoul": preload("res://assets/visual/enemies/ghoul.png"),
-    "wizard": preload("res://assets/visual/enemies/hechicero.png"),
-    "angel": preload("res://assets/visual/enemies/testigo.png"),
-    "mastin": preload("res://assets/visual/enemies/mastin.png"),
-    "segador": preload("res://assets/visual/enemies/segador.png"),
-    "tejedora": preload("res://assets/visual/enemies/tejedora.png"),
-    "ariete": preload("res://assets/visual/enemies/ariete.png"),
-}
-const STAGE_KINDS := ["ghoul", "wizard", "angel", "mastin", "segador", "ariete", "ghoul", "tejedora", "mastin", "ariete"]
-const BOSS_KINDS := ["tejedora", "segador", "ariete", "angel"]
+var STRUCTS: Dictionary = CatalogoVigilia.estructuras()
+## Entidades por clave: nombre, hoja de animación, vida y si flota.
+var ENTIDADES: Dictionary = CatalogoVigilia.entidades()
+var MONSTER_SHEETS: Dictionary = CatalogoVigilia.hojas()
+var FIRST_KINDS: Array = CatalogoVigilia.primera_fase()
+var STAGE_KINDS: Array = CatalogoVigilia.fases()
+var BOSS_KINDS: Array = CatalogoVigilia.jefes()
 const ICONS := {
     "descansar": preload("res://assets/visual/iconos/descansar.png"),
     "levantar": preload("res://assets/visual/iconos/levantar.png"),
@@ -166,24 +159,8 @@ const TUT_CARD := TutorialHud.TARJETA
 const TUT_SKIP := TutorialHud.SALTAR
 const START_BTN := Portada.BOTON_EMPEZAR
 const TUT_BTN := Portada.BOTON_TUTORIAL
-## [título, texto]. Cada paso espera a que hagas lo que pide (ver _tut_done).
-const TUT_STEPS := [
-    ["BIENVENIDA", "Defiende tu celda: las entidades llegan por el pasillo y golpean la puerta. Toca aquí para seguir."],
-    ["1 · DUERME", "Toca el LECHO y elige DORMIR. Mientras duermes ganas ecos, la moneda de la Vigilia."],
-    ["2 · AHORRA", "Los ecos suben solos mientras duermes (arriba). Espera a tener 20."],
-    ["3 · CONSTRUYE", "Toca la baldosa marcada, junto a la puerta, y construye un CENTINELA."],
-    ["4 · DEFIENDE", "¡Llega una entidad! Tu centinela dispara solo a la más cercana a la puerta."],
-    ["5 · MEJORA", "Toca tu centinela y elige MEJORAR: dispara más fuerte."],
-    ["6 · ENERGÍA", "Toca una baldosa libre y construye un GENERADOR: da energía mientras duermes."],
-    ["7 · POTENCIA", "Con energía, toca POTENCIAR (abajo): todos los centinelas suben de poder."],
-    ["8 · FRENA", "Construye una CAMPANA: su tañido frena a las entidades del pasillo."],
-    ["9 · REFUERZA", "Toca la PUERTA y elige REFORZAR: más vida máxima."],
-    ["10 · REPARA", "La puerta está dañada. Toca REPARAR PUERTA (abajo) o tócala a ella."],
-    ["11 · ESCUDO", "Toca ESCUDO (abajo): 8 s sin daño en la puerta. Guárdalo para los jefes."],
-    ["12 · LECHO", "Toca el LECHO y elige MEJORAR: ganarás más ecos por segundo."],
-    ["13 · VENDE", "¿Algo mal puesto? Tócalo y elige VENDER: recuperas la mitad."],
-    ["¡LISTO!", "Fases de 90 s, cada una más dura; jefe cada 5. Cada fase da botín para la campaña. Toca aquí para empezar."],
-]
+## [título, texto] (datos/vigilia/tutorial/). Cada paso espera a que hagas lo que pide (ver _tut_done).
+var TUT_STEPS: Array = CatalogoVigilia.tutorial()
 
 
 func _ready() -> void:
@@ -322,10 +299,10 @@ func _spawn_hunter() -> void:
     if boss:
         kind = BOSS_KINDS[(stage / 5 - 1) % BOSS_KINDS.size()]
     elif stage == 1:
-        kind = ["ghoul", "wizard", "angel"][(waves - 1) % 3]
+        kind = FIRST_KINDS[(waves - 1) % FIRST_KINDS.size()]
     else:
         kind = STAGE_KINDS[(stage + waves + hunters.size()) % STAGE_KINDS.size()]
-    var hp: float = (52.0 + float(waves) * 32.0) * 1.6 * (1.25 if kind == "angel" else 1.0) * _stage_mult() * (5.0 if boss else 1.0)
+    var hp: float = (52.0 + float(waves) * 32.0) * 1.6 * float(ENTIDADES[kind].vida) * _stage_mult() * (5.0 if boss else 1.0)
     hunters.append({"x": SPAWN_X + float(hunters.size()) * 40.0, "hp": hp, "max": hp, "kind": kind, "cooldown": 1.0,
         "boss": boss, "hit": 0.0, "lane": rng.randf_range(-40.0, 40.0)})
     if boss:
@@ -334,8 +311,7 @@ func _spawn_hunter() -> void:
 
 
 func _kind_name(kind: String) -> String:
-    return {"ghoul": "El Ghoul", "wizard": "El Hechicero", "angel": "El Testigo", "mastin": "El Mastín",
-        "segador": "El Segador", "tejedora": "La Tejedora", "ariete": "El Ariete"}.get(kind, kind)
+    return str(ENTIDADES[kind].nombre) if ENTIDADES.has(kind) else kind
 
 
 func _load_records() -> void:
@@ -1296,7 +1272,7 @@ func _draw_hunters() -> void:
         var sheet: Texture2D = MONSTER_SHEETS[h["kind"]]
         var at_door: bool = x <= DOOR_X + 160.0 and float(h["cooldown"]) < 0.3
         var frame: int = 2 + int(tick * 8.0) % 4
-        if h["kind"] == "angel":
+        if bool(ENTIDADES[h["kind"]].flota):
             frame = int(tick * 6.0) % 4
         elif at_door:
             frame = 6 + int(tick * 6.0) % 2

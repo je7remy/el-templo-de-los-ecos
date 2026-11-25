@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/estructura_vigilia.gd" id="1_l8t6u"]
+
+[resource]
+script = ExtResource("1_l8t6u")
+id = "campana"
+nombre = "CAMPANA"
+icono = "campana"
+descripcion = "Su tañido frena a las entidades del pasillo."
+coste = 40.0
+factor = 1.5
+coste_mejora = 25.0

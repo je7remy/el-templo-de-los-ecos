@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/paso_tutorial_vigilia.gd" id="1_yt43p"]
+
+[resource]
+script = ExtResource("1_yt43p")
+titulo = "13 · VENDE"
+texto = "¿Algo mal puesto? Tócalo y elige VENDER: recuperas la mitad."
