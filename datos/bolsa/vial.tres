@@ -1,0 +1,10 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/objeto_bolsa.gd" id="1_bolsa"]
+
+[resource]
+script = ExtResource("1_bolsa")
+id = "vial"
+nombre = "VIAL DE SANGRE"
+descripcion = "+80 de vida, aunque pase del máximo."
+icono = "vial"

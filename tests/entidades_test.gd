@@ -565,6 +565,24 @@ func _run() -> void:
         _fail("datos/armas/espada.tres no se lee o no coincide con la campaña.")
         return
     print("OK: armas y equipo en archivos de datos (.tres) editables desde el inspector.")
+
+    # --- Fase 4b: tienda, bolsa y botín de la Vigilia en archivos de datos -----------
+    var tienda: Array = game.get("SHOP")
+    if tienda.map(func(a): return a[0]) != ["pan", "fosforos", "brazalete", "amuleto", "resonancia", "vigilia"]:
+        _fail("El puesto del Mercader no sale de datos/tienda en su orden.")
+        return
+    if typeof(tienda[0][2]) != TYPE_INT or int(tienda[5][2]) != int(load("res://datos/tienda/vigilia.tres").get("precio")):
+        _fail("Los precios de la tienda no salen de datos/tienda.")
+        return
+    var bolsa: Dictionary = game.get("BAG_ITEMS")
+    if not bolsa.has("pan") or (bolsa["pan"] as Array).size() != 3:
+        _fail("La bolsa no sale de datos/bolsa.")
+        return
+    var objetos_botin: Dictionary = load("res://scripts/botin.gd").OBJETOS
+    if objetos_botin.size() != 9 or int(objetos_botin["reliquia"][2]) != 4:
+        _fail("El botín de la Vigilia no sale de datos/botin.")
+        return
+    print("OK: tienda, bolsa y botín de la Vigilia en archivos de datos (.tres).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

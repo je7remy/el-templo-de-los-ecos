@@ -1,5 +1,17 @@
 # Historial de versiones
 
+## v0.5.29-alpha — 2026-11-25 · Datos editables, fase 4b
+
+Sin cambios en las reglas del juego.
+
+- **La tienda, la bolsa y el botín de la Vigilia son archivos de datos** que se editan desde el inspector de Godot:
+  - `datos/tienda/`: los seis artículos del Mercader (nombre, **precio** y descripción), en el orden del puesto.
+  - `datos/bolsa/`: los consumibles que se usan desde el perfil (nombre, descripción e icono).
+  - `datos/botin/`: los objetos que da la Vigilia (nombre, descripción, nivel de botín 1-4 e icono).
+- Se listan en `scripts/datos/catalogo.gd`; para añadir uno, duplica un `.tres` y añádelo a su lista.
+- Los valores son los mismos de antes: los datos que leen la campaña y la Vigilia salen idénticos, en el mismo orden.
+- Versión Android 0.5.29-alpha (código 36).
+
 ## v0.5.28-alpha — 2026-11-25 · Datos editables, fase 4a
 
 Sin cambios en las reglas del juego.

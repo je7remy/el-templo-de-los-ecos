@@ -1,0 +1,10 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/articulo_tienda.gd" id="1_tienda"]
+
+[resource]
+script = ExtResource("1_tienda")
+id = "vigilia"
+nombre = "LLAVE DE LA VIGILIA"
+precio = 500
+descripcion = "Abre la Vigilia del Claustro en el menú. Su botín llega a tu bolsa."

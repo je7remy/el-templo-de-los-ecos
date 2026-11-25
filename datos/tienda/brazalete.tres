@@ -1,0 +1,10 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/articulo_tienda.gd" id="1_tienda"]
+
+[resource]
+script = ExtResource("1_tienda")
+id = "brazalete"
+nombre = "BRAZALETE DE BRONCE"
+precio = 12
+descripcion = "+10 % al daño del golpe por nivel. Se queda contigo."
