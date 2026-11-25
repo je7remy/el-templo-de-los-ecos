@@ -19,9 +19,11 @@ const Ajustes := preload("res://scripts/ajustes.gd")
 const EV := preload("res://scripts/ui/estilo_vigilia.gd")
 const Portada := preload("res://scripts/vigilia/pantallas/portada.gd")
 const PANTALLAS := preload("res://scenes/vigilia/pantallas.tscn")
-## Texto: Jersey 15 reescalada (herramientas/generar_fuente.py), legible y con cifras claras.
-const PIXEL_FONT := preload("res://assets/fonts/Jersey15-Templo.ttf")
-const TITLE_FONT := preload("res://assets/fonts/Jacquard24-Regular.ttf")
+const HUD := preload("res://scenes/vigilia/hud.tscn")
+const BarraSuperior := preload("res://scripts/vigilia/hud/barra_superior.gd")
+const BarraInferior := preload("res://scripts/vigilia/hud/barra_inferior.gd")
+const TutorialHud := preload("res://scripts/vigilia/hud/tutorial.gd")
+const MenuBaldosa := preload("res://scripts/vigilia/hud/menu_baldosa.gd")
 const HERO := preload("res://assets/visual/protagonist_sheet.png")
 const CREAM := Color("#d9d2ba")
 const SOUL := Color("#8fc7d7")
@@ -40,8 +42,8 @@ const BED := Rect2(96, 200, 112, 168)
 const DOOR := Rect2(650, 228, 24, 112)
 const DOOR_X := 700.0 # donde se paran las entidades a golpear
 const SPAWN_X := 990.0
-const EXIT_RECT := Rect2(888, 8, 56, 48)
-const PAUSE_RECT := Rect2(826, 8, 56, 48)
+const EXIT_RECT := BarraSuperior.SALIR
+const PAUSE_RECT := BarraSuperior.PAUSA
 ## Niveles máximos (muchos: la Vigilia no se acaba).
 const BED_MAX := 20
 const DOOR_MAX := 20
@@ -118,8 +120,6 @@ var slain_in_stage: int = 0
 var shots: Array = []
 var info: String = ""
 var info_time: float = 0.0
-var font: Font
-var title_font: Font
 var tick: float = 0.0
 var sparks: float = 0.0
 var shield_left: float = 0.0
@@ -132,6 +132,8 @@ var rewards: Array = []
 var rng := RandomNumberGenerator.new()
 ## Portada, fase superada, puerta cedida y pausa (scenes/vigilia/pantallas.tscn).
 var pantallas: CanvasLayer
+## Barras, aviso, tutorial y menú de la baldosa (scenes/vigilia/hud.tscn).
+var hud: CanvasLayer
 ## Menú contextual al tocar una baldosa, una estructura, el lecho o la puerta.
 var popup: Dictionary = {} # {title, anchor, options: [{id, label, sub, icon, enabled}], tile}
 var popup_sel: int = 0
@@ -149,8 +151,8 @@ var tutorial_done: bool = false
 var tut_flash: float = 0.0 # destello al completar un paso
 var tut_sold: int = 0
 var tut_repaired: int = 0
-const TUT_CARD := Rect2(726, 72, 226, 156)
-const TUT_SKIP := Rect2(822, 192, 122, 28)
+const TUT_CARD := TutorialHud.TARJETA
+const TUT_SKIP := TutorialHud.SALTAR
 const START_BTN := Portada.BOTON_EMPEZAR
 const TUT_BTN := Portada.BOTON_TUTORIAL
 ## [título, texto]. Cada paso espera a que hagas lo que pide (ver _tut_done).
@@ -175,15 +177,11 @@ const TUT_STEPS := [
 
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-    font = PIXEL_FONT
-    _pixel_font_setup(font)
-    title_font = TITLE_FONT
-    for f in [font, title_font]:
-        if f is FontFile:
-            (f as FontFile).antialiasing = TextServer.FONT_ANTIALIASING_NONE
-            (f as FontFile).hinting = TextServer.HINTING_NONE
-            (f as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+    # Tipografías pixel sin suavizado (Jersey 15 y Jacquard 24, de estilo.gd).
+    EV.Estilo.preparar_fuentes()
     rng.randomize()
+    hud = HUD.instantiate()
+    add_child(hud)
     pantallas = PANTALLAS.instantiate()
     add_child(pantallas)
     _setup_fullscreen()
@@ -464,7 +462,7 @@ func _tut_target() -> Rect2:
         1, 12:
             return BED.grow(8.0)
         2:
-            return Rect2(506, 12, 150, 40)
+            return BarraSuperior.FICHA_ECOS
         3:
             return _tile_rect(Vector2i(9, 3))
         5:
@@ -843,19 +841,11 @@ func _open_door_popup(silent: bool = false) -> void:
 
 
 func _popup_rect() -> Rect2:
-    var n: int = (popup["options"] as Array).size()
-    var size := Vector2(float(n) * 96.0 + 12.0, 128.0)
-    var a: Vector2 = popup["anchor"]
-    var pos := Vector2(a.x - size.x * 0.5, a.y - size.y - 34.0)
-    if pos.y < 70.0:
-        pos.y = a.y + 34.0
-    pos.x = clampf(pos.x, 8.0, W - size.x - 8.0)
-    return Rect2(pos, size)
+    return MenuBaldosa.caja((popup["options"] as Array).size(), popup["anchor"])
 
 
 func _popup_option_rect(i: int) -> Rect2:
-    var r := _popup_rect()
-    return Rect2(r.position.x + 6.0 + float(i) * 96.0, r.position.y + 28.0, 90.0, 94.0)
+    return MenuBaldosa.opcion(_popup_rect(), i)
 
 
 func _popup_choose(i: int) -> void:
@@ -1027,7 +1017,7 @@ func _debug_hunter_at_door() -> void:
 
 # ------------------------------------------------------------ ENTRADA
 func _bottom_rect(i: int) -> Rect2:
-    return Rect2(6.0 + float(i) * 238.0, 512.0, 230.0, 120.0)
+    return BarraInferior.boton(i)
 
 
 func _input(event: InputEvent) -> void:
@@ -1252,16 +1242,8 @@ func _draw() -> void:
     _draw_hunters()
     _draw_shots()
     _draw_vignette()
-    _draw_top_bar()
-    _draw_bottom_bar()
-    if info_time > 0.0 and phase == "play" and popup.is_empty():
-        _pill(info, Vector2(ROOM.get_center().x, ROOM.end.y - 18.0), 13, GOLD_HI)
-    if tut_step >= 0 and phase == "play":
-        _draw_tutorial()
-    if not popup.is_empty() and phase == "play":
-        _draw_popup()
-    # Portada, fase superada, puerta cedida y pausa: escenas de
-    # scenes/vigilia/pantallas.tscn (ver _sync_pantallas).
+    # Encima, el HUD (scenes/vigilia/hud.tscn) y las pantallas
+    # (scenes/vigilia/pantallas.tscn): ver _sync_pantallas.
 
 
 func _draw_room() -> void:
@@ -1446,99 +1428,13 @@ func _draw_vignette() -> void:
         draw_rect(Rect2(g - screen_pad.x, g - screen_pad.y, W + screen_pad.x * 2.0 - g * 2.0, H + screen_pad.y * 2.0 - g * 2.0), Color(0, 0, 0, 0.06), false, 8.0)
 
 
-func _draw_top_bar() -> void:
-    draw_rect(Rect2(-screen_pad.x, -screen_pad.y, W + screen_pad.x * 2.0, 64 + screen_pad.y), Color(0.02, 0.018, 0.03, 0.95))
-    draw_rect(Rect2(-screen_pad.x, 62, W + screen_pad.x * 2.0, 2), GOLD)
-    _title("Vigilia", Vector2(16, 44), 36, CREAM, -1.0)
-    var badge := Rect2(150, 12, 110, 40)
-    _panel_box(badge, Color("#4a1a24") if _is_boss_stage() else VIOLET, GOLD_HI)
-    _text_center("FASE %d" % stage, Rect2(badge.position.x, badge.position.y + 4.0, badge.size.x, 20), 18, CREAM)
-    _text_center("JEFE" if _is_boss_stage() else "BOTÍN NIVEL %d" % Botin.nivel(stage), Rect2(badge.position.x, badge.position.y + 23.0, badge.size.x, 12), 9, GOLD_HI)
-    var bar := Rect2(272, 32, 220, 10)
-    draw_rect(bar.grow(2.0), Color(0, 0, 0, 0.8))
-    draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(elapsed / PHASE_LENGTH, 0.0, 1.0), bar.size.y)), SOUL)
-    _label("%d / %d s" % [int(elapsed), int(PHASE_LENGTH)], Vector2(272, 24), 12, CREAM)
-    _chip(Rect2(506, 12, 150, 40), "alma", "%d" % int(income), "+%d/s" % int(income_rate) if sleeping else "¡duerme!", SOUL)
-    _chip(Rect2(664, 12, 150, 40), "generador", "%d" % int(sparks), "energía", GOLD_HI)
-    if phase == "play":
-        _round_button(PAUSE_RECT, "reanudar" if paused else "pausa", PAUSE_RECT.has_point(hover_pos))
-    _round_button(EXIT_RECT, "salir", EXIT_RECT.has_point(hover_pos))
-
-
-## Abajo, solo lo que se usa a menudo; el resto se toca en la celda.
-func _draw_bottom_bar() -> void:
-    draw_rect(Rect2(-screen_pad.x, 504, W + screen_pad.x * 2.0, H - 504 + screen_pad.y), Color(0.02, 0.018, 0.03, 0.95))
-    draw_rect(Rect2(-screen_pad.x, 504, W + screen_pad.x * 2.0, 2), GOLD)
-    var items := [
-        ["levantar" if sleeping else "descansar", "LEVANTARSE" if sleeping else "DORMIR", "ESPACIO / Y", true],
-        ["reparar", "REPARAR PUERTA", "%d ecos" % _repair_cost(), income >= float(_repair_cost()) and gate_hp < gate_max],
-        ["potenciar", "POTENCIAR", "%d energía · poder %d" % [int(_power_cost()), ward_power], sparks >= _power_cost() and wards > 0 and ward_power < POWER_MAX],
-        ["escudo", "ESCUDO", "14 energía", sparks >= 14.0 and shield_left <= 0.0],
-    ]
-    for i in range(items.size()):
-        var r := _bottom_rect(i)
-        var it: Array = items[i]
-        var hot: bool = r.has_point(hover_pos)
-        var can: bool = bool(it[3]) and phase == "play"
-        var glow: bool = i == 0 and not sleeping and phase == "play"
-        _panel_box(r, Color("#2a1d36") if glow else (Color("#241c2c") if hot else Color("#141018")), GOLD_HI if hot or glow else (GOLD if can else EDGE))
-        draw_texture_rect(ICONS[it[0]], Rect2(r.position + Vector2(16, 24), Vector2(64, 64)), false, Color.WHITE if can else Color(0.45, 0.45, 0.5, 0.8))
-        draw_string(font, r.position + Vector2(92, 52), it[1], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 96.0, 15, CREAM)
-        draw_string(font, r.position + Vector2(92, 76), ("TOCA" if DisplayServer.is_touchscreen_available() else it[2]) if i == 0 else it[2], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 96.0, 12, SOUL if can else Color("#6d6772"))
-    if phase == "play" and structs.is_empty() and popup.is_empty() and tut_step < 0:
-        var a: float = 0.6 + 0.4 * sin(tick * 3.0)
-        _pill("Toca cualquier baldosa libre para construir · toca algo construido para mejorarlo", Vector2(ROOM.get_center().x, ROOM.position.y + 16.0), 12, Color(GOLD_HI.r, GOLD_HI.g, GOLD_HI.b, a))
-
-
-func _draw_popup() -> void:
-    var r := _popup_rect()
-    var a: Vector2 = popup["anchor"]
-    var above: bool = r.position.y < a.y
-    var tip_y: float = r.end.y if above else r.position.y
-    draw_colored_polygon(PackedVector2Array([Vector2(a.x - 8, tip_y), Vector2(a.x + 8, tip_y), Vector2(a.x, a.y - 26.0 if above else a.y + 26.0)]), GOLD)
-    _panel_box(r, Color(0.04, 0.035, 0.05, 0.98), GOLD)
-    _text_center(str(popup["title"]), Rect2(r.position.x, r.position.y + 6.0, r.size.x, 14), 12, GOLD_HI)
-    var opts: Array = popup["options"]
-    for i in range(opts.size()):
-        var o: Dictionary = opts[i]
-        var orr := _popup_option_rect(i)
-        var hot: bool = orr.has_point(hover_pos) or (cursor_visible and popup_sel == i)
-        var ok: bool = bool(o["enabled"])
-        _panel_box(orr, Color("#241c2c") if hot else Color("#141018"), GOLD_HI if hot else (SOUL if ok else EDGE))
-        draw_texture_rect(ICONS[o["icon"]], Rect2(orr.position + Vector2(orr.size.x * 0.5 - 20.0, 6), Vector2(40, 40)), false, Color.WHITE if ok else Color(0.45, 0.45, 0.5, 0.8))
-        _text_center(str(o["label"]), Rect2(orr.position.x, orr.position.y + 50.0, orr.size.x, 12), 11, CREAM)
-        _text_center(str(o["sub"]), Rect2(orr.position.x, orr.position.y + 70.0, orr.size.x, 12), 11, SOUL if ok else CRIMSON)
-
-
-func _draw_tutorial() -> void:
-    var target: Rect2 = _tut_target()
-    var a: float = 0.55 + 0.45 * sin(tick * 6.0)
-    if target.size != Vector2.ZERO:
-        draw_rect(target.grow(4.0), Color(1.0, 0.85, 0.4, a), false, 3.0)
-        var tip := Vector2(target.get_center().x, target.position.y - 6.0 - 6.0 * absf(sin(tick * 4.0)))
-        if target.position.y < 110.0:
-            tip = Vector2(target.get_center().x, target.end.y + 6.0 + 6.0 * absf(sin(tick * 4.0)))
-            draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-10, 16), tip + Vector2(10, 16)]), GOLD_HI)
-        else:
-            draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-10, -16), tip + Vector2(10, -16)]), GOLD_HI)
-    var r := TUT_CARD
-    _panel_box(r, Color(0.05, 0.04, 0.07, 0.96), GOLD_HI.lerp(Color.WHITE, tut_flash))
-    var step: Array = TUT_STEPS[tut_step]
-    _label(step[0], r.position + Vector2(12, 22), 15, GOLD_HI)
-    _label("%d/%d" % [tut_step + 1, TUT_STEPS.size()], r.position + Vector2(r.size.x - 44.0, 22), 11, Color("#9a957f"))
-    draw_multiline_string(font, r.position + Vector2(10, 44), step[1], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 18.0, 13, 6, CREAM)
-    if tut_step in [0, TUT_STEPS.size() - 1]:
-        _label("▶ TOCA AQUÍ / ENTER", r.position + Vector2(12, r.size.y - 12.0), 11, Color(SOUL.r, SOUL.g, SOUL.b, a))
-    else:
-        _panel_box(TUT_SKIP, Color("#141018"), EDGE)
-        _text_center("SALTAR", Rect2(TUT_SKIP.position.x, TUT_SKIP.position.y + 6.0, TUT_SKIP.size.x, 14), 11, Color("#9a957f"))
-
-
-## Qué pantalla se ve encima de la celda y con qué datos (ninguna durante la
-## partida). Se llama en cada cuadro y tras cada entrada.
+## Qué se ve encima de la celda y con qué datos: las piezas del HUD y la
+## pantalla (ninguna durante la partida). Se llama en cada cuadro y tras cada
+## entrada.
 func _sync_pantallas() -> void:
     if pantallas == null:
         return
+    hud.actualizar(_datos_hud())
     match phase:
         "selection":
             pantallas.mostrar(&"Portada", {"t": tick, "guardada": _has_saved_run(), "fase_guardada": int(saved_run.get("stage", 1)),
@@ -1552,37 +1448,42 @@ func _sync_pantallas() -> void:
             pantallas.mostrar(&"Pausa" if paused else &"")
 
 
+## Datos de cada pieza del HUD (vacío = no se ve).
+func _datos_hud() -> Dictionary:
+    var jugando: bool = phase == "play"
+    var d := {}
+    d["BarraSuperior"] = {"margen": screen_pad, "fase": stage, "jefe": _is_boss_stage(), "nivel_botin": Botin.nivel(stage),
+        "segundos": elapsed, "duracion": PHASE_LENGTH, "ecos": int(income), "ritmo": int(income_rate), "durmiendo": sleeping,
+        "energia": int(sparks), "en_partida": jugando, "pausada": paused, "raton": hover_pos}
+    var abajo := {"margen": screen_pad, "durmiendo": sleeping, "en_partida": jugando, "raton": hover_pos, "t": tick,
+        "acciones": [
+            ["levantar" if sleeping else "descansar", "LEVANTARSE" if sleeping else "DORMIR", "ESPACIO / Y", true],
+            ["reparar", "REPARAR PUERTA", "%d ecos" % _repair_cost(), income >= float(_repair_cost()) and gate_hp < gate_max],
+            ["potenciar", "POTENCIAR", "%d energía · poder %d" % [int(_power_cost()), ward_power], sparks >= _power_cost() and wards > 0 and ward_power < POWER_MAX],
+            ["escudo", "ESCUDO", "14 energía", sparks >= 14.0 and shield_left <= 0.0],
+        ]}
+    if jugando and structs.is_empty() and popup.is_empty() and tut_step < 0:
+        abajo["pista"] = Vector2(ROOM.get_center().x, ROOM.position.y + 16.0)
+    d["BarraInferior"] = abajo
+    if info_time > 0.0 and jugando and popup.is_empty():
+        d["Aviso"] = {"texto": info, "centro": Vector2(ROOM.get_center().x, ROOM.end.y - 18.0)}
+    if tut_step >= 0 and jugando:
+        var paso: Array = TUT_STEPS[tut_step]
+        d["Tutorial"] = {"objetivo": _tut_target(), "t": tick, "destello": tut_flash, "titulo": paso[0], "texto": paso[1],
+            "paso": tut_step, "total": TUT_STEPS.size(), "de_leer": tut_step in [0, TUT_STEPS.size() - 1]}
+    if not popup.is_empty() and jugando:
+        d["MenuBaldosa"] = {"titulo": popup["title"], "ancla": popup["anchor"], "opciones": popup["options"],
+            "raton": hover_pos, "seleccion": popup_sel, "cursor": cursor_visible}
+    return d
+
+
 # ------------------------------------------------------------ PIEZAS DE INTERFAZ
-func _panel_box(r: Rect2, fill: Color, edge: Color) -> void:
-    EV.caja(self, r, fill, edge)
-
-
-func _modal(r: Rect2) -> void:
-    EV.modal(self, r)
-
-
-func _chip(r: Rect2, icon: String, value: String, sub: String, color: Color) -> void:
-    EV.ficha(self, r, ICONS[icon], value, sub, color)
-
-
-func _round_button(r: Rect2, icon: String, hot: bool) -> void:
-    EV.boton_redondo(self, r, ICONS[icon], hot)
-
-
 func _pill(text_value: String, center: Vector2, size: int, color: Color) -> void:
     EV.pastilla(self, text_value, center, size, color)
 
 
-func _title(text_value: String, at: Vector2, size: int, color: Color, width: float) -> void:
-    EV.rotulo(self, text_value, at, size, color, width)
-
-
 func _label(text_value: String, at: Vector2, size: int = 16, color: Color = CREAM) -> void:
     EV.etiqueta(self, text_value, at, size, color)
-
-
-func _center_text(text_value: String, y: float, size: int = 16, color: Color = CREAM) -> void:
-    EV.centrado(self, text_value, y, size, color)
 
 
 func _text_center(text_value: String, rect: Rect2, size: int, color: Color) -> void:
@@ -1629,15 +1530,8 @@ func _fit_screen() -> void:
     position = screen_pad
     if pantallas != null:
         pantallas.ajustar_margen(screen_pad)
+        hud.ajustar_margen(screen_pad)
     if backdrop_rect != null:
         backdrop_rect.position = Vector2.ZERO
         backdrop_rect.size = view
     queue_redraw()
-
-
-## La tipografía sin suavizado, como el pixel art.
-static func _pixel_font_setup(f: Font) -> void:
-    if f is FontFile:
-        (f as FontFile).antialiasing = TextServer.FONT_ANTIALIASING_NONE
-        (f as FontFile).hinting = TextServer.HINTING_NONE
-        (f as FontFile).subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED

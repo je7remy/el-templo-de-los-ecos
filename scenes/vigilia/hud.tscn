@@ -1,0 +1,56 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/vigilia/hud/hud_vigilia.gd" id="1_hud"]
+[ext_resource type="Script" path="res://scripts/vigilia/hud/barra_superior.gd" id="2_barra_superior"]
+[ext_resource type="Script" path="res://scripts/vigilia/hud/barra_inferior.gd" id="3_barra_inferior"]
+[ext_resource type="Script" path="res://scripts/vigilia/hud/aviso.gd" id="4_aviso"]
+[ext_resource type="Script" path="res://scripts/vigilia/hud/tutorial.gd" id="5_tutorial"]
+[ext_resource type="Script" path="res://scripts/vigilia/hud/menu_baldosa.gd" id="6_menu_baldosa"]
+
+[node name="HudVigilia" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="BarraSuperior" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("2_barra_superior")
+
+[node name="BarraInferior" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("3_barra_inferior")
+
+[node name="Aviso" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("4_aviso")
+
+[node name="Tutorial" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("5_tutorial")
+
+[node name="MenuBaldosa" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 960.0
+offset_bottom = 640.0
+mouse_filter = 2
+script = ExtResource("6_menu_baldosa")
