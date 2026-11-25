@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v0.5.23-alpha — 2026-11-25 · Arquitectura por escenas, fase 3d-1
+
+Sin cambios en las reglas del juego ni en cómo se ve.
+
+- **Cada entidad dibuja su parte desde su propio script** (`dibujar()`): la entidad de la sala, las alimañas, los mastines, los arietes, el Coloso, el Hermano Mayor, la Vigía y el Peregrino. `main.gd` solo decide el orden por profundidad (lo de abajo tapa a lo de arriba) y les pide que se dibujen en su turno, así que se tapan, iluminan y sombrean igual que antes.
+- Ayudas de dibujo comunes en `scripts/comun/lienzo.gd` (sombra suave, elipse, contorno), que usan la campaña y las escenas.
+- Se ve idéntico: capturas de 15 salas y estados (alerta, aturdido, golpe, conjuro cargando, pisotón, rugido, cansancio, Vigía avisando, Peregrino con el cuchillo en alto…) salen iguales a las de la versión anterior; solo cambian motas de polvo del ambiente, que también cambian entre dos capturas de la misma versión.
+- `main.gd` baja a unas 10 270 líneas.
+- Versión Android 0.5.23-alpha (código 30).
+
 ## v0.5.22-alpha — 2026-11-25 · Arquitectura por escenas, fase 3c-5
 
 Sin cambios en las reglas del juego.

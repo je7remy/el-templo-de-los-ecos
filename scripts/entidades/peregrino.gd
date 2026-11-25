@@ -82,3 +82,34 @@ func mirar(v: Vector2) -> void:
         orientacion = 2 if v.x > 0.0 else 3
     else:
         orientacion = 0 if v.y > 0.0 else 1
+
+
+# ------------------------------------------------------------ DIBUJO
+const Lienzo := preload("res://scripts/comun/lienzo.gd")
+
+
+## Dibuja al Peregrino con su hoja; hostil, con el aura roja y el destello
+## del cuchillo en alto antes del tajo.
+func dibujar(c: CanvasItem, hoja: Texture2D, t: float) -> void:
+    var e: String = estado()
+    var cuadro: int = int(t * 2.0) % 2
+    if e == "tell" or (e == "hostile" and temporizador > 0.0):
+        cuadro = 6
+    elif estocada > 0.0:
+        cuadro = 7
+    elif moviendose:
+        cuadro = 2 + int(t * 8.0) % 4
+    var region := Rect2(float(cuadro) * Lienzo.CELDA.x, float(orientacion) * Lienzo.CELDA.y, Lienzo.CELDA.x, Lienzo.CELDA.y)
+    var pies := Vector2(roundf(position.x), roundf(position.y + 4.0))
+    Lienzo.sombra(c, position + Vector2(0.0, 3.0), 13.0)
+    if e in ["tell", "hostile"]:
+        var pulso: float = 0.5 + 0.5 * sin(t * 8.0)
+        Lienzo.elipse(c, position + Vector2(0.0, 3.0), 22.0, 7.5, Color(0.85, 0.22, 0.28, 0.18 + 0.12 * pulso))
+    var tinte := Color.WHITE
+    if golpe_t > 0.0 and int(golpe_t * 30.0) % 2 == 0:
+        tinte = Color(1.0, 0.42, 0.38)
+    elif aturdido > 0.0:
+        tinte = Color(0.75, 0.85, 1.0)
+    c.draw_texture_rect_region(hoja, Rect2(pies.x - Lienzo.CELDA.x * 0.5, pies.y - Lienzo.PIES, Lienzo.CELDA.x, Lienzo.CELDA.y), region, tinte)
+    if e == "hostile" and temporizador > 0.0:
+        c.draw_circle(pies + Vector2(0.0, -58.0), 3.0 + 5.0 * (1.0 - temporizador / 0.42), Color(1.0, 1.0, 1.0, 0.8))
