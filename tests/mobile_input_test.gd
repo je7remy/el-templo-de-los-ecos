@@ -99,6 +99,34 @@ func _run() -> void:
         _fail("Tocar el minimapa abre y cierra el mapa a la vez (toque doble).")
         return
     game.set("game_mode", "play")
+    # Vista de móvil: HUD y botones más grandes, y los toques siguen acertando.
+    Ajustes.poner("tactil", "siempre")
+    game.set("screen_pad", Vector2(206, 0)) # pantalla 19,3:9 como la de un S22 Ultra
+    game.call("_update_hud")
+    if float(game.get("hud_scale")) < 1.19 or float(game.call("_touch_scale")) < 1.19:
+        _fail("En el móvil el HUD o los botones no se ven más grandes.")
+        return
+    if (game.get("hud").call("pieza", &"Minimapa") as Control).scale.x < 1.19:
+        _fail("Las piezas del HUD no crecen en el móvil.")
+        return
+    var minimapa_grande: Vector2 = Vector2(480, 0) + ((game.get("MINIMAP_RECT") as Rect2).get_center() - Vector2(480, 0)) * float(game.get("hud_scale"))
+    game.call("_mobile_tap", minimapa_grande)
+    if str(game.get("game_mode")) != "map":
+        _fail("Con el HUD grande, tocar el minimapa no abre el mapa.")
+        return
+    game.set("game_mode", "play")
+    var luz_antes: bool = game.get("torch_on")
+    game.call("_mobile_tap", game.call("_tb_pos", "antorcha"))
+    if bool(game.get("torch_on")) == luz_antes or String(game.call("_touch_button_at", game.call("_tb_pos", "accion"))) != "accion":
+        _fail("Con los botones grandes, los toques no aciertan.")
+        return
+    Ajustes.poner("tactil", "auto")
+    game.set("screen_pad", Vector2.ZERO)
+    game.call("_update_hud")
+    if float(game.get("hud_scale")) != 1.0:
+        _fail("Fuera del móvil el HUD no vuelve a su tamaño.")
+        return
+    game.set("game_mode", "play")
     # Teclado en pantalla: cada letra una sola vez, y el campo nativo del móvil filtra igual.
     game.set("touch_enabled", true)
     game.call("_start_creation", "title")
