@@ -1,0 +1,48 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/entidades/entidad.gd" id="1_entidad"]
+[ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/quieta.gd" id="3_quieta"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/ghoul/reposo.gd" id="4_g_reposo"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/ghoul/caza.gd" id="5_g_caza"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/testigo/caza.gd" id="6_t_caza"]
+[ext_resource type="Script" path="res://scripts/entidades/entidad/hechicero/conjura.gd" id="7_h_conjura"]
+
+[node name="Entidad" type="Node2D"]
+script = ExtResource("1_entidad")
+
+[node name="Ghoul" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Reposo" type="Node" parent="Ghoul"]
+script = ExtResource("4_g_reposo")
+
+[node name="Caza" type="Node" parent="Ghoul"]
+script = ExtResource("5_g_caza")
+
+[node name="Aturdida" type="Node" parent="Ghoul"]
+script = ExtResource("3_quieta")
+
+[node name="Testigo" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Vigila" type="Node" parent="Testigo"]
+script = ExtResource("3_quieta")
+
+[node name="Caza" type="Node" parent="Testigo"]
+script = ExtResource("6_t_caza")
+
+[node name="Aturdida" type="Node" parent="Testigo"]
+script = ExtResource("3_quieta")
+
+[node name="Hechicero" type="Node" parent="."]
+script = ExtResource("2_maquina")
+
+[node name="Reposo" type="Node" parent="Hechicero"]
+script = ExtResource("3_quieta")
+
+[node name="Conjura" type="Node" parent="Hechicero"]
+script = ExtResource("7_h_conjura")
+
+[node name="Aturdida" type="Node" parent="Hechicero"]
+script = ExtResource("3_quieta")

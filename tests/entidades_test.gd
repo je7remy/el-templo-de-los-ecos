@@ -2,6 +2,7 @@ extends SceneTree
 ## Arquitectura por escenas (fase 3): el jugador y las entidades como escenas
 ## con su máquina de estados. Fase 3a: el jugador (Quieto, Camina, Esquiva).
 ## Fase 3b: su salud (Vivo, Herido, Muerto) con las señales herido y muerto.
+## Fase 3c (1): la entidad de la sala; Ghoul, Testigo y Hechicero con su máquina.
 
 
 func _initialize() -> void:
@@ -146,9 +147,101 @@ func _run() -> void:
         _fail("Al empezar otra partida el jugador no vuelve a Vivo.")
         return
     print("OK: salud del jugador (vivo, herido, muerto) con las señales herido y muerto.")
+
+    # --- Fase 3c: la entidad de la sala ----------------------------------------------
+    var entidad: Node2D = game.get_node_or_null("Entidad")
+    if entidad == null:
+        _fail("Falta la escena de la entidad.")
+        return
+    for par in [["Ghoul", ["Reposo", "Caza", "Aturdida"]], ["Testigo", ["Vigila", "Caza", "Aturdida"]], ["Hechicero", ["Reposo", "Conjura", "Aturdida"]]]:
+        var m: Node = entidad.get_node_or_null(String(par[0]))
+        if m == null:
+            _fail("La entidad no tiene la máquina del %s." % par[0])
+            return
+        for e in par[1]:
+            if not bool(m.call("tiene", StringName(e))):
+                _fail("La máquina del %s no tiene el estado %s." % [par[0], e])
+                return
+    # Ghoul (Piso I, sala 2): con la antorcha encendida cerca, Caza; a oscuras,
+    # Reposo y vuelve a su sitio; aturdido, Aturdida y no se mueve.
+    _sala(game, 0, 1)
+    if game.call("_enemy_kind") != "ghoul" or (game.get("enemy_pos") as Vector2) != entidad.position:
+        _fail("enemy_pos de la campaña no es la posición de la entidad.")
+        return
+    game.set("has_torch", true)
+    game.set("torch_on", true)
+    game.set("player_pos", entidad.position + Vector2(-200, 0))
+    var e0: Vector2 = entidad.position
+    for i in range(10):
+        game.call("_update_play", dt)
+    if String(entidad.call("estado")) != "Caza" or entidad.position.distance_to(e0) < 15.0 or not bool(game.get("enemy_alert")):
+        _fail("El Ghoul no caza la luz (%s)." % entidad.call("estado"))
+        return
+    game.set("torch_on", false)
+    var lejos: float = entidad.position.distance_to(entidad.get("hogar"))
+    for i in range(10):
+        game.call("_update_play", dt)
+    if String(entidad.call("estado")) != "Reposo" or entidad.position.distance_to(entidad.get("hogar")) >= lejos:
+        _fail("A oscuras el Ghoul no vuelve a su sitio.")
+        return
+    game.set("torch_on", true)
+    game.set("enemy_stun", 1.0)
+    var quieto_en: Vector2 = entidad.position
+    game.call("_update_play", dt)
+    if String(entidad.call("estado")) != "Aturdida" or entidad.position != quieto_en:
+        _fail("Aturdido, el Ghoul debe quedarse quieto en Aturdida.")
+        return
+    # Desterrar: sin vida avisa con «desterrada» y la sala queda libre.
+    var desterradas := [0]
+    entidad.desterrada.connect(func(): desterradas[0] += 1)
+    game.set("enemy_hp", 1.0)
+    game.call("_damage_enemy", 5.0)
+    if desterradas[0] != 1 or bool(game.call("_enemy_active")):
+        _fail("Sin vida la entidad no se destierra (señal «desterrada»).")
+        return
+    # Testigo (Piso I, sala 3): con el ojo abierto persigue lo que se mueve.
+    _sala(game, 0, 2)
+    game.set("player_pos", entidad.position + Vector2(-200, 0))
+    game.set("room_elapsed", 0.5) # ojo abierto
+    game.set("mobile_axis", Vector2.UP)
+    for i in range(6):
+        game.call("_update_play", dt)
+    if String(entidad.call("estado")) != "Caza":
+        _fail("El Testigo no persigue al que se mueve con el ojo abierto (%s)." % entidad.call("estado"))
+        return
+    game.set("mobile_axis", Vector2.ZERO)
+    for i in range(30):
+        game.call("_update_play", dt)
+    if String(entidad.call("estado")) != "Vigila":
+        _fail("Quieto ante el Testigo, debe volver a Vigila.")
+        return
+    # Hechicero (Piso I, sala 4): responde a tu luz con un conjuro.
+    _sala(game, 0, 3)
+    game.set("has_torch", true)
+    game.set("torch_on", true)
+    game.set("player_pos", entidad.position + Vector2(-200, 0))
+    game.set("wizard_cast_cd", 0.0)
+    var conjuros := [0]
+    entidad.conjuro.connect(func(_a, _b): conjuros[0] += 1)
+    game.call("_update_play", dt)
+    if String(entidad.call("estado")) != "Conjura" or conjuros[0] != 1 or (game.get("fireballs") as Array).size() != 1:
+        _fail("El Hechicero no lanza su conjuro (señal «conjuro» y bola de fuego).")
+        return
+    print("OK: entidad de la sala como escena; Ghoul, Testigo y Hechicero con su máquina de estados.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
+
+
+func _sala(game: Node, piso: int, sala: int) -> void:
+    game.call("_new_run")
+    game.call("_dialog_skip")
+    game.set("current_floor", piso)
+    game.set("current_room", sala)
+    game.call("_enter_room")
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    game.set("mobile_axis", Vector2.ZERO)
 
 
 func _fail(reason: String) -> void:
