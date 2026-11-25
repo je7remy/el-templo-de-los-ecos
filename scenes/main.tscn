@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/pantallas/pantallas.tscn" id="2_pantallas"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/entidades/jefes.tscn" id="8_jefes"]
 [ext_resource type="PackedScene" path="res://scenes/entidades/peregrino.tscn" id="9_peregrino"]
 [ext_resource type="Script" path="res://scripts/mundo/objetos.gd" id="10_objetos"]
+[ext_resource type="Script" path="res://scripts/mundo/personajes.gd" id="11_personajes"]
 
 [node name="TemploDeLosEcos" type="Node2D"]
 script = ExtResource("1_main")
@@ -26,6 +27,9 @@ script = ExtResource("1_main")
 
 [node name="Objetos" type="Node" parent="."]
 script = ExtResource("10_objetos")
+
+[node name="Personajes" type="Node" parent="."]
+script = ExtResource("11_personajes")
 
 [node name="Hud" parent="." instance=ExtResource("4_hud")]
 

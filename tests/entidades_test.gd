@@ -533,9 +533,14 @@ func _run() -> void:
             _fail("%s no debe dibujarse fuera del orden por profundidad." % ruta)
             return
     var objetos: Node = game.get_node_or_null("Objetos")
-    for m in ["pilar", "brasero", "cofre", "fuente", "altar", "carta", "muro"]:
+    for m in ["pilar", "brasero", "cofre", "fuente", "altar", "carta", "muro", "alma", "sello"]:
         if objetos == null or not objetos.has_method(m):
             _fail("Los objetos de la sala no saben dibujar «%s» (scripts/mundo/objetos.gd)." % m)
+            return
+    var personajes: Node = game.get_node_or_null("Personajes")
+    for m in ["aliado", "traidor", "rescate", "mercader", "muneco"]:
+        if personajes == null or not personajes.has_method(m):
+            _fail("Los personajes secundarios no saben dibujar «%s» (scripts/mundo/personajes.gd)." % m)
             return
     print("OK: cada entidad dibuja su parte en el orden por profundidad del mundo.")
     game.queue_free()

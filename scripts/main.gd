@@ -41,6 +41,7 @@ const Hermano := preload("res://scripts/entidades/jefes/hermano.gd")
 const Vigia := preload("res://scripts/entidades/jefes/vigia.gd")
 const Lienzo := preload("res://scripts/comun/lienzo.gd")
 const Objetos := preload("res://scripts/mundo/objetos.gd")
+const Personajes := preload("res://scripts/mundo/personajes.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -268,6 +269,7 @@ var game_mode: String = "title":
 @onready var hermano: Node2D = $Jefes/HermanoMayor
 @onready var vigia: Node2D = $Jefes/Vigia
 @onready var objetos: Node = $Objetos
+@onready var personajes: Node = $Personajes
 @onready var peregrino: Node2D = $Peregrino
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
@@ -3361,29 +3363,8 @@ func _draw_watcher_eye(at: Vector2) -> void:
 
 ## Círculo rúnico en el suelo con el sello del Testigo.
 func _draw_seal(at: Vector2) -> void:
-    var ring: Color = SOUL if seal_acquired else Color("#be9b68")
-    _draw_ellipse(at + Vector2(0.0, 6.0), 44.0, 20.0, Color(ring.r, ring.g, ring.b, 0.08))
-    _xf(at + Vector2(0.0, 6.0), 0.0, Vector2(1.0, 0.46))
-    draw_arc(Vector2.ZERO, 42.0, 0.0, TAU, 48, Color(ring.r, ring.g, ring.b, 0.75), 2.0)
-    draw_arc(Vector2.ZERO, 33.0, 0.0, TAU, 40, Color(ring.r, ring.g, ring.b, 0.35), 1.0)
-    for i in range(8):
-        var t: float = float(i) / 8.0 * TAU + elapsed * 0.25
-        draw_line(Vector2(cos(t), sin(t)) * 34.0, Vector2(cos(t), sin(t)) * 41.0, Color(ring.r, ring.g, ring.b, 0.8), 2.0)
-    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
-    if seal_acquired:
-        return
-    var lift: float = sin(elapsed * 2.0) * 3.0
-    var c := at + Vector2(0.0, -14.0 + lift)
-    for r in range(3, 0, -1):
-        draw_circle(c, 8.0 + float(r) * 5.0, Color(0.95, 0.78, 0.45, 0.06))
-    var hexagon := PackedVector2Array()
-    for i in range(6):
-        var t: float = float(i) / 6.0 * TAU + PI / 6.0
-        hexagon.append(c + Vector2(cos(t), sin(t)) * 11.0)
-    draw_colored_polygon(hexagon, Color("#c9a35f"))
-    hexagon.append(hexagon[0])
-    draw_polyline(hexagon, Color("#f2dc9f"), 1.5)
-    draw_circle(c, 3.5, Color("#5a3f1d"))
+    # Se dibuja en scripts/mundo/objetos.gd.
+    objetos.sello(self, at, seal_acquired, elapsed)
 
 
 ## [VISUAL UPGRADE] Salida en el muro derecho vista desde arriba: losa con runas
@@ -3428,22 +3409,8 @@ func _draw_letter(at: Vector2) -> void:
 
 ## Fragmento de alma: cristal flotante con halo y sombra fija en el suelo.
 func _draw_relic(at: Vector2, index: int) -> void:
-    var wave: float = sin(elapsed * 2.3 + float(index) * 2.5) * 4.0
-    var p := at + Vector2(0, -8.0 + wave)
-    _draw_soft_shadow(at + Vector2(0.0, 10.0), 9.0 - wave * 0.5, 0.8)
-    for r in range(3, 0, -1):
-        draw_circle(p, 6.0 + float(r) * 5.0, Color(0.43, 0.76, 0.87, 0.05))
-    var top := p + Vector2(0, -14)
-    var bottom := p + Vector2(0, 12)
-    var left := p + Vector2(-7, -1)
-    var right := p + Vector2(7, -1)
-    draw_colored_polygon(PackedVector2Array([top, p + Vector2(0, -1), bottom, left]), Color("#bfe9f2"))
-    draw_colored_polygon(PackedVector2Array([top, right, bottom, p + Vector2(0, -1)]), Color("#5ea7bb"))
-    draw_polyline(PackedVector2Array([top, right, bottom, left, top]), Color("#e8fbff"), 1.0)
-    var sparkle: float = 0.5 + 0.5 * sin(elapsed * 5.0 + float(index))
-    var s := top + Vector2(3, 2)
-    draw_line(s + Vector2(-3, 0), s + Vector2(3, 0), Color(1, 1, 1, sparkle), 1.0)
-    draw_line(s + Vector2(0, -3), s + Vector2(0, 3), Color(1, 1, 1, sparkle), 1.0)
+    # Se dibuja en scripts/mundo/objetos.gd.
+    objetos.alma(self, at, index, elapsed)
 
 
 func _enemy_rect() -> Rect2:
@@ -5020,7 +4987,7 @@ const TUTORIAL_FLOOR := {
          "whisper": "Aprende a moverte antes de que este lugar te enseñe a su manera.", "items": []},
     ],
 }
-const DUMMY_POS := Vector2(480, 300)
+const DUMMY_POS := Personajes.MUNECO
 var in_tutorial: bool = false
 var tutorial_step: int = 0
 var tut_moved: float = 0.0
@@ -5362,17 +5329,8 @@ func _update_tutorial(dt: float) -> void:
 
 ## Muñeco de entrenamiento: poste y saco relleno de paja, con diana pintada.
 func _draw_dummy() -> void:
-    var p := DUMMY_POS + Vector2(sin(elapsed * 50.0) * 3.0 * dummy_shake * 4.0, 0.0)
-    _draw_soft_shadow(DUMMY_POS + Vector2(0, 3), 14.0)
-    draw_rect(Rect2(p.x - 2.0, p.y - 40.0, 4, 42), Color("#5c3a22"))
-    draw_rect(Rect2(p.x - 16.0, p.y - 34.0, 32, 6), Color("#5c3a22"))
-    draw_rect(Rect2(p.x - 11.0, p.y - 50.0, 22, 26), Color("#b89a5e"))
-    draw_rect(Rect2(p.x - 11.0, p.y - 50.0, 22, 4), Color("#d8bd80"))
-    draw_circle(p + Vector2(0, -60), 9.0, Color("#b89a5e"))
-    draw_circle(p + Vector2(0, -37), 6.0, Color("#8a1620"))
-    draw_circle(p + Vector2(0, -37), 3.0, Color("#e2dccb"))
-    for k in range(dummy_hits):
-        draw_rect(Rect2(p.x - 8.0 + float(k) * 6.0, p.y - 46.0, 3, 3), Color("#3a2f2a"))
+    # Se dibuja en scripts/mundo/personajes.gd, en su turno de profundidad.
+    personajes.muneco(self, dummy_hits, dummy_shake, elapsed)
 
 
 # ------------------------------------------------------------ PERSONAJE
@@ -5510,7 +5468,6 @@ const SEG_TENSE := Entidad.SEG_TENSA # (velocidad, distancia y tiempos: scripts/
 const SEG_BAND := 15.0 # medio ancho de la línea (lo que roza, recibe)
 const SEG_DAMAGE := 45.0
 const ALLY_NAMES := ["ODÓN", "BRUNA", "CIRO"]
-const ALLY_TINTS := [Color(0.86, 1.0, 0.9), Color(1.0, 0.88, 0.84), Color(0.86, 0.92, 1.08)]
 const ALLY_SOULS := 6 # premio por cada aliado vivo al terminar el piso
 ## El Segador vive en la escena de la entidad (máquina «Segador»); atajos:
 var seg_state: String:
@@ -5992,15 +5949,8 @@ func _update_allies(dt: float) -> void:
 
 
 func _draw_ally(i: int) -> void:
-    var ally: Dictionary = allies[i]
-    var sheet: Texture2D = art["enemy_peregrino"]
-    var frame: int = 2 + int(elapsed * 8.0 + float(i)) % 4 if bool(ally["moving"]) else int(elapsed * 2.0 + float(i)) % 2
-    var region := Rect2(float(frame) * ENEMY_CELL.x, float(ally["facing"]) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
-    var pos: Vector2 = ally["pos"]
-    var feet := Vector2(roundf(pos.x), roundf(pos.y + 4.0))
-    _draw_soft_shadow(pos + Vector2(0.0, 3.0), 12.0)
-    _draw_ellipse(pos + Vector2(0.0, 3.0), 17.0, 6.0, Color(0.45, 0.85, 0.6, 0.16))
-    _draw_outlined(sheet, Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), region, ALLY_TINTS[i % ALLY_TINTS.size()])
+    # Se dibuja en scripts/mundo/personajes.gd, en su turno de profundidad.
+    personajes.aliado(self, i, allies[i], art["enemy_peregrino"], elapsed)
 
 
 func _draw_ally_labels() -> void:
@@ -7635,19 +7585,8 @@ func _draw_maze_wall(i: int) -> void:
 
 
 func _draw_rescue() -> void:
-    var at: Vector2 = _room()["rescue"]
-    var sheet: Texture2D = art["enemy_peregrino"]
-    var free: bool = rescue_state == "libre"
-    var frame: int = int(elapsed * 2.0) % 2 if free else (6 if int(elapsed * 3.0) % 3 == 0 else 0)
-    _draw_soft_shadow(at + Vector2(0, 3), 12.0)
-    draw_texture_rect_region(sheet, Rect2(at.x - ENEMY_CELL.x * 0.5, at.y + 4.0 - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y),
-        Rect2(float(frame) * ENEMY_CELL.x, 0, ENEMY_CELL.x, ENEMY_CELL.y), Color(0.95, 0.9, 1.0))
-    if not free:
-        # Reja caída que le atrapa el manto.
-        var g := Rect2(at.x - 22.0, at.y - 18.0, 44.0, 20.0)
-        for k in range(6):
-            draw_line(Vector2(g.position.x + float(k) * 8.0 + 2.0, g.position.y), Vector2(g.position.x + float(k) * 8.0 - 4.0, g.end.y), Color("#5b5f63"), 2.0)
-        draw_line(g.position, Vector2(g.end.x, g.position.y + 4.0), Color("#7a7f84"), 2.0)
+    # Se dibuja en scripts/mundo/personajes.gd, en su turno de profundidad.
+    personajes.rescate(self, _room()["rescue"], art["enemy_peregrino"], rescue_state == "libre", elapsed)
 
 
 func _draw_rescue_label() -> void:
@@ -7703,9 +7642,6 @@ func _draw_labyrinth_glow() -> void:
 ## mete la mano bajo su manto; quien lo hace pierde vida máxima en esta vida.
 ## Precios y efectos PROVISIONALES.
 const GUIDE_NAMES := ["IRENE", "TEO", "BAS"]
-const MERCHANT_TEX := preload("res://assets/visual/enemies/mercader.png")
-const MERCHANT_CELL := Vector2(64, 96)
-const MERCHANT_BASE := 92.0
 const HAND_LOSS := 25.0 # vida máxima que cuesta meter la mano bajo el manto
 const GUIDE_SOULS := 3 # almas que da cada peregrino que llega contigo a la escalera
 ## Puesto del Mercader: [clave, nombre, precio base, descripción]. El pan se
@@ -8030,17 +7966,8 @@ const VIGIL_ICON := preload("res://assets/visual/iconos/lecho.png")
 
 # --- Dibujo ----------------------------------------------------------------------
 func _draw_merchant() -> void:
-    var m: Vector2 = _room()["merchant"]
-    # Cuenco de las ofrendas, delante.
-    var bowl: Vector2 = m + Vector2(0, 30)
-    _draw_soft_shadow(bowl + Vector2(0, 4), 14.0)
-    draw_rect(Rect2(bowl.x - 6.0, bowl.y - 6.0, 12, 8), Color("#3a3036"))
-    _draw_ellipse(bowl + Vector2(0, -8), 15.0, 5.0, Color("#6a5440"))
-    _draw_ellipse(bowl + Vector2(0, -9), 12.0, 3.5, Color("#1a1420"))
-    var frame: int = 2 if merchant_open_t > 0.0 else int(elapsed * 1.2) % 2
-    _draw_soft_shadow(m + Vector2(0, 2), 22.0)
-    draw_texture_rect_region(MERCHANT_TEX, Rect2(m.x - MERCHANT_CELL.x * 0.5, m.y + 2.0 - MERCHANT_BASE, MERCHANT_CELL.x, MERCHANT_CELL.y),
-        Rect2(float(frame) * MERCHANT_CELL.x, 0, MERCHANT_CELL.x, MERCHANT_CELL.y))
+    # Se dibuja en scripts/mundo/personajes.gd, en su turno de profundidad.
+    personajes.mercader(self, _room()["merchant"], merchant_open_t > 0.0, elapsed)
 
 
 ## Lo que brilla bajo el manto: un cebo. Se ve también en la penumbra.
@@ -9297,13 +9224,8 @@ func _draw_elder_threads() -> void:
 
 
 func _draw_traitor(i: int) -> void:
-    var t: Dictionary = elder_traitors[i]
-    var sheet: Texture2D = art["enemy_peregrino"]
-    var at: Vector2 = t["pos"]
-    var frame: int = 6 if float(t["cd"]) < 0.6 else int(elapsed * 2.0 + float(i)) % 2
-    _draw_soft_shadow(at + Vector2(0, 3), 12.0)
-    _draw_ellipse(at + Vector2(0, 3), 17.0, 6.0, Color(0.9, 0.2, 0.25, 0.18))
-    draw_texture_rect_region(sheet, Rect2(at.x - ENEMY_CELL.x * 0.5, at.y + 4.0 - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), Rect2(float(frame) * ENEMY_CELL.x, 3.0 * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y), Color(1.0, 0.7, 0.7))
+    # Se dibuja en scripts/mundo/personajes.gd, en su turno de profundidad.
+    personajes.traidor(self, i, elder_traitors[i], art["enemy_peregrino"], elapsed)
 
 
 func _draw_harvest_hud() -> void:

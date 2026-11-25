@@ -156,3 +156,50 @@ func muro(c: CanvasItem, r: Rect2) -> void:
     c.draw_rect(Rect2(top.position, Vector2(top.size.x, 2)), Color("#6d6772"))
     c.draw_rect(Rect2(front.position.x, front.end.y - 3.0, front.size.x, 3), Color("#3f5236", 0.8)) # musgo
     c.draw_rect(Rect2(top.position.x, top.position.y, top.size.x, top.size.y + lift), Color(0, 0, 0, 0.55), false, 1.0)
+
+
+## Alma flotando sobre su cadáver, con su brillo.
+func alma(c: CanvasItem, at: Vector2, index: int, t: float) -> void:
+    var wave: float = sin(t * 2.3 + float(index) * 2.5) * 4.0
+    var p := at + Vector2(0, -8.0 + wave)
+    Lienzo.sombra(c, at + Vector2(0.0, 10.0), 9.0 - wave * 0.5, 0.8)
+    for r in range(3, 0, -1):
+        c.draw_circle(p, 6.0 + float(r) * 5.0, Color(0.43, 0.76, 0.87, 0.05))
+    var top := p + Vector2(0, -14)
+    var bottom := p + Vector2(0, 12)
+    var left := p + Vector2(-7, -1)
+    var right := p + Vector2(7, -1)
+    c.draw_colored_polygon(PackedVector2Array([top, p + Vector2(0, -1), bottom, left]), Color("#bfe9f2"))
+    c.draw_colored_polygon(PackedVector2Array([top, right, bottom, p + Vector2(0, -1)]), Color("#5ea7bb"))
+    c.draw_polyline(PackedVector2Array([top, right, bottom, left, top]), Color("#e8fbff"), 1.0)
+    var sparkle: float = 0.5 + 0.5 * sin(t * 5.0 + float(index))
+    var s := top + Vector2(3, 2)
+    c.draw_line(s + Vector2(-3, 0), s + Vector2(3, 0), Color(1, 1, 1, sparkle), 1.0)
+    c.draw_line(s + Vector2(0, -3), s + Vector2(0, 3), Color(1, 1, 1, sparkle), 1.0)
+
+
+## Sello del piso: círculo en el suelo y, si aún no es tuyo, el sello flotando.
+func sello(c: CanvasItem, at: Vector2, conseguido: bool, t: float) -> void:
+    var ring: Color = Color("#8fc7d7") if conseguido else Color("#be9b68")
+    Lienzo.elipse(c, at + Vector2(0.0, 6.0), 44.0, 20.0, Color(ring.r, ring.g, ring.b, 0.08))
+    Lienzo.xf(c, at + Vector2(0.0, 6.0), 0.0, Vector2(1.0, 0.46))
+    c.draw_arc(Vector2.ZERO, 42.0, 0.0, TAU, 48, Color(ring.r, ring.g, ring.b, 0.75), 2.0)
+    c.draw_arc(Vector2.ZERO, 33.0, 0.0, TAU, 40, Color(ring.r, ring.g, ring.b, 0.35), 1.0)
+    for i in range(8):
+        var a: float = float(i) / 8.0 * TAU + t * 0.25
+        c.draw_line(Vector2(cos(a), sin(a)) * 34.0, Vector2(cos(a), sin(a)) * 41.0, Color(ring.r, ring.g, ring.b, 0.8), 2.0)
+    Lienzo.xf(c, Vector2.ZERO, 0.0, Vector2.ONE)
+    if conseguido:
+        return
+    var lift: float = sin(t * 2.0) * 3.0
+    var centro := at + Vector2(0.0, -14.0 + lift)
+    for r in range(3, 0, -1):
+        c.draw_circle(centro, 8.0 + float(r) * 5.0, Color(0.95, 0.78, 0.45, 0.06))
+    var hexagon := PackedVector2Array()
+    for i in range(6):
+        var a: float = float(i) / 6.0 * TAU + PI / 6.0
+        hexagon.append(centro + Vector2(cos(a), sin(a)) * 11.0)
+    c.draw_colored_polygon(hexagon, Color("#c9a35f"))
+    hexagon.append(hexagon[0])
+    c.draw_polyline(hexagon, Color("#f2dc9f"), 1.5)
+    c.draw_circle(centro, 3.5, Color("#5a3f1d"))
