@@ -254,6 +254,7 @@ var game_mode: String = "title":
 @onready var avisos: Control = $CapaAvisos/Avisos
 @onready var hud: CanvasLayer = $Hud
 @onready var jugador: Node2D = $Jugador
+@onready var entidad: Node2D = $Entidad
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
@@ -314,10 +315,24 @@ var items_taken: Dictionary = {} # "piso:sala:clave" -> true
 var room_items: Array = [] # {kind, pos}
 var inventory_sel: int = 0
 ## Combate.
-var enemy_hp: float = 0.0
-var enemy_max: float = 1.0
+## La entidad de la sala es una escena (scenes/entidades/entidad.tscn); estas
+## variables son atajos a sus datos.
+var enemy_hp: float:
+    get:
+        return entidad.vida
+    set(v):
+        entidad.vida = v
+var enemy_max: float:
+    get:
+        return entidad.vida_max
+    set(v):
+        entidad.vida_max = v
 var banished: Dictionary = {} # "piso:sala" -> true (desterrada en esta partida)
-var enemy_hit_t: float = 0.0
+var enemy_hit_t: float:
+    get:
+        return entidad.golpe_t
+    set(v):
+        entidad.golpe_t = v
 var strike_cd: float = 0.0
 var strike_fx: float = 0.0
 var strike_dir: Vector2 = Vector2.RIGHT
@@ -361,15 +376,47 @@ var damage_cd: float:
         return jugador.invulnerable_t
     set(v):
         jugador.invulnerable_t = v
-var enemy_stun: float = 0.0
-var enemy_pos: Vector2 = Vector2(788, 370)
-var enemy_home: Vector2 = Vector2(788, 370)
-var enemy_alert: bool = false
+var enemy_stun: float:
+    get:
+        return entidad.aturdido
+    set(v):
+        entidad.aturdido = v
+var enemy_pos: Vector2:
+    get:
+        return entidad.position
+    set(v):
+        entidad.position = v
+var enemy_home: Vector2:
+    get:
+        return entidad.hogar
+    set(v):
+        entidad.hogar = v
+var enemy_alert: bool:
+    get:
+        return entidad.alerta
+    set(v):
+        entidad.alerta = v
 ## Solo visual: orientación y movimiento del enemigo para elegir la animación.
-var enemy_facing: int = 0 # 0 abajo, 1 arriba, 2 derecha, 3 izquierda
-var enemy_moving: bool = false
-var enemy_prev_pos: Vector2 = Vector2.ZERO
-var wizard_cast_cd: float = 2.6
+var enemy_facing: int:
+    get:
+        return entidad.orientacion
+    set(v):
+        entidad.orientacion = v
+var enemy_moving: bool:
+    get:
+        return entidad.moviendose
+    set(v):
+        entidad.moviendose = v
+var enemy_prev_pos: Vector2:
+    get:
+        return entidad.pos_anterior
+    set(v):
+        entidad.pos_anterior = v
+var wizard_cast_cd: float:
+    get:
+        return entidad.conjuro_cd
+    set(v):
+        entidad.conjuro_cd = v
 var fireballs: Array[Dictionary] = []
 var collected: Array[bool] = [false, false, false]
 var obstacles: Array[Rect2] = []
@@ -488,6 +535,10 @@ func _ready() -> void:
     jugador.paso.connect(_on_player_step)
     jugador.herido.connect(func(_amount: float) -> void: _on_hurt())
     jugador.muerto.connect(_lose_run)
+    entidad.preparar(_is_blocked)
+    entidad.desterrada.connect(_banish_enemy)
+    entidad.conjuro.connect(_on_wizard_cast)
+    entidad.regla.connect(_on_witness_rule)
     _load_progress()
     _load_art()
     _load_room_scene() # sala 1 como fondo del menú
@@ -761,6 +812,7 @@ func _enter_room() -> void:
         default_enemy = Vector2(772.0, 472.0)
     elif _enemy_kind() == "hechicero":
         default_enemy = Vector2(773.0, 354.0)
+    entidad.tipo = _enemy_kind()
     enemy_pos = _marker("Enemigo", default_enemy)
     wizard_cast_cd = 2.4
     fireballs.clear()
@@ -2106,15 +2158,14 @@ func _damage_enemy(amount: float) -> bool:
         if teje_hint_t <= 0.0:
             teje_hint_t = 6.0
             _say("La corteza apenas se marca.", 3.2)
-    enemy_hp -= amount
-    enemy_hit_t = 0.2
+    entidad.herir(amount)
     _sfx("k_golpe", -11.0)
     _emit(enemy_pos + Vector2(0, -30), 14, Color(1.0, 0.72, 0.35), 60.0, 190.0, 0.5, 2.0, 260.0, (enemy_pos - player_pos).normalized(), 1.2, true)
     _emit(enemy_pos + Vector2(0, -28), 6, Color(0.55, 0.08, 0.12), 30.0, 110.0, 0.7, 3.0, 300.0, Vector2.UP, 1.4)
     float_fx.append({"pos": head, "text": "-%d" % int(amount), "color": Color("#ffd36b"), "t": 0.0})
     _sfx("impacto", -6.0)
     if enemy_hp <= 0.0:
-        _banish_enemy()
+        entidad.desterrar() # avisa con «desterrada» → _banish_enemy
     elif _enemy_kind() == "segador" and _has("huida") and enemy_hp <= enemy_max * 0.5:
         _segador_flee()
     return true
@@ -2703,65 +2754,20 @@ func _on_hurt() -> void:
 
 
 func _update_enemy(dt: float) -> void:
-    # PROVISIONAL: only the Witness rule is part of this vertical slice.
-    # Other behaviors are simple encounter prototypes, not narrative canon.
-    var d: float = enemy_pos.distance_to(player_pos)
-    enemy_alert = false
-    if _enemy_kind() == "ghoul":
-        # Fire-lit hunter: darkness breaks its pursuit in this test encounter.
-        enemy_alert = torch_on and d < 350.0
-        if enemy_alert and enemy_stun <= 0.0:
-            var wanted := enemy_pos.move_toward(player_pos, 132.0 * dt)
-            if not _is_blocked(wanted):
-                enemy_pos = wanted
-        elif not enemy_alert and enemy_stun <= 0.0:
-            enemy_pos = enemy_pos.move_toward(enemy_home, 48.0 * dt)
-    elif _enemy_kind() == "testigo":
-        # Witness: observes motion with its eyes open. Stop moving to survive.
-        # En el Piso VIII la regla se invierte: persigue al que se queda quieto.
-        var inverted: bool = bool(_floor().get("inverted", false))
-        enemy_alert = watcher_open and (player_moving != inverted) and d < 490.0
-        if enemy_alert and enemy_stun <= 0.0:
-            var wanted := enemy_pos.move_toward(player_pos, 169.0 * dt)
-            if not _is_blocked(wanted):
-                enemy_pos = wanted
-            if inverted:
-                if not inverted_seen:
-                    inverted_seen = true
-                    _say("¡Viene cuando te detienes!", 3.5)
-            elif not observed_rule:
-                observed_rule = true
-                remembered_rule = true
-                _save_progress()
-                _say("Te detuviste... y el Testigo también.", 4.0)
-    elif _enemy_kind() == "segador":
-        _update_segador(dt)
-    elif _enemy_kind() == "tejedora":
-        _update_tejedora(dt)
-    elif _enemy_kind() == "hechicero":
-        # Wizard: warded while the player's torch is off. Provisional mechanic.
-        enemy_alert = torch_on and d < 390.0
-        wizard_cast_cd = maxf(0.0, wizard_cast_cd - dt)
-        if enemy_alert and wizard_cast_cd <= 0.0 and enemy_stun <= 0.0:
-            var direction := (player_pos - enemy_pos).normalized()
-            fireballs.append({"pos": enemy_pos + Vector2(0.0, -20.0), "vel": direction * 215.0, "life": 2.2})
-            wizard_cast_cd = 2.9
-            _say("El hechicero responde a tu luz.", 1.6)
-            _sfx("conjuro", -8.0)
-        for i in range(fireballs.size() - 1, -1, -1):
-            var ball: Dictionary = fireballs[i]
-            var p: Vector2 = ball["pos"] + ball["vel"] * dt
-            ball["pos"] = p
-            ball["life"] = float(ball["life"]) - dt
-            if p.distance_to(player_pos) < 23.0:
-                if damage_cd <= 0.0:
-                    _say("El conjuro te alcanza.", 2.6)
-                    _hurt(25.0 * _depth_mult(), 13.0, 1.1)
-                fireballs.remove_at(i)
-            elif float(ball["life"]) <= 0.0 or _is_blocked(p):
-                fireballs.remove_at(i)
-            else:
-                fireballs[i] = ball
+    # Ghoul, Testigo y Hechicero deciden en su escena (scenes/entidades/
+    # entidad.tscn, una máquina de estados por tipo); los demás, aquí.
+    if entidad.tiene_maquina(_enemy_kind()):
+        entidad.tipo = _enemy_kind()
+        entidad.actualizar(dt, {"jugador": player_pos, "se_mueve": player_moving, "antorcha": torch_on,
+            "ojo_abierto": watcher_open, "invertido": bool(_floor().get("inverted", false))})
+    else:
+        enemy_alert = false
+        if _enemy_kind() == "segador":
+            _update_segador(dt)
+        elif _enemy_kind() == "tejedora":
+            _update_tejedora(dt)
+    if _enemy_kind() == "hechicero":
+        _update_fireballs(dt)
     if (_enemy_kind() == "ghoul" or _enemy_kind() == "testigo") and enemy_alert and enemy_stun <= 0.0:
         if enemy_pos.distance_to(player_pos) < 31.0 and damage_cd <= 0.0:
             var away := (player_pos - enemy_pos).normalized()
@@ -2772,6 +2778,43 @@ func _update_enemy(dt: float) -> void:
                 player_pos = escape
             _say("La criatura te ha herido.", 3.0)
             _hurt((33.0 if _enemy_kind() == "ghoul" else 42.0) * _depth_mult(), 21.0, 1.5)
+
+
+## El Testigo te persigue por su regla: la primera vez se recuerda.
+func _on_witness_rule(inverted: bool) -> void:
+    if inverted:
+        if not inverted_seen:
+            inverted_seen = true
+            _say("¡Viene cuando te detienes!", 3.5)
+    elif not observed_rule:
+        observed_rule = true
+        remembered_rule = true
+        _save_progress()
+        _say("Te detuviste... y el Testigo también.", 4.0)
+
+
+## El Hechicero lanza un conjuro: una bola de fuego hacia tu luz.
+func _on_wizard_cast(from: Vector2, direction: Vector2) -> void:
+    fireballs.append({"pos": from, "vel": direction * 215.0, "life": 2.2})
+    _say("El hechicero responde a tu luz.", 1.6)
+    _sfx("conjuro", -8.0)
+
+
+func _update_fireballs(dt: float) -> void:
+    for i in range(fireballs.size() - 1, -1, -1):
+        var ball: Dictionary = fireballs[i]
+        var p: Vector2 = ball["pos"] + ball["vel"] * dt
+        ball["pos"] = p
+        ball["life"] = float(ball["life"]) - dt
+        if p.distance_to(player_pos) < 23.0:
+            if damage_cd <= 0.0:
+                _say("El conjuro te alcanza.", 2.6)
+                _hurt(25.0 * _depth_mult(), 13.0, 1.1)
+            fireballs.remove_at(i)
+        elif float(ball["life"]) <= 0.0 or _is_blocked(p):
+            fireballs.remove_at(i)
+        else:
+            fireballs[i] = ball
 
 
 func _draw() -> void:
@@ -3346,16 +3389,7 @@ func _enemy_rect() -> Rect2:
 
 
 func _track_enemy_visual(dt: float) -> void:
-    var delta_pos: Vector2 = enemy_pos - enemy_prev_pos
-    enemy_moving = dt > 0.0 and delta_pos.length() > 8.0 * dt
-    # Mientras se mueve mira hacia donde va; quieto, mira al jugador.
-    var look: Vector2 = delta_pos if enemy_moving else (player_pos - enemy_pos)
-    if look.length() > 0.5:
-        if absf(look.x) > absf(look.y):
-            enemy_facing = 2 if look.x > 0.0 else 3
-        else:
-            enemy_facing = 0 if look.y > 0.0 else 1
-    enemy_prev_pos = enemy_pos
+    entidad.seguir_mirada(dt, player_pos)
 
 
 func _enemy_frame(kind: String) -> int:

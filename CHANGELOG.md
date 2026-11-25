@@ -1,5 +1,18 @@
 # Historial de versiones
 
+## v0.5.18-alpha — 2026-11-24 · Arquitectura por escenas, fase 3c
+
+Sin cambios en las reglas del juego.
+
+- **La entidad de la sala es una escena propia** (`scenes/entidades/entidad.tscn`): posición, vida, alerta, aturdimiento y hacia dónde mira, con **una máquina de estados por tipo**:
+  - Ghoul: Reposo (vuelve a su sitio), Caza (persigue tu luz) y Aturdida.
+  - Testigo: Vigila, Caza (persigue lo que se mueve con el ojo abierto; en el Piso VIII, lo quieto) y Aturdida.
+  - Hechicero: Reposo, Conjura (lanza su conjuro a tu luz) y Aturdida.
+- Avisa con señales: `herida`, `desterrada` (la campaña la destierra y suelta sus almas), `conjuro` (la campaña crea la bola de fuego) y `regla` (la primera vez que el Testigo te persigue se recuerda su regla).
+- El comportamiento es idéntico al de antes: una simulación de las 10 salas con Ghoul, Testigo o Hechicero (15 segundos cada una, andando, parando, golpeando y aturdiendo) da exactamente las mismas posiciones, vida, alertas, bolas de fuego y daño.
+- `entidades_test.gd` prueba los estados de los tres tipos, el destierro y el conjuro. El Segador, la Tejedora y las demás criaturas son las siguientes partes.
+- Versión Android 0.5.18-alpha (código 25).
+
 ## v0.5.17-alpha — 2026-11-24 · Arquitectura por escenas, fase 3b
 
 Sin cambios en las reglas del juego.
