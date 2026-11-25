@@ -1,0 +1,67 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="1_comun_maquina_estados"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/coloso.gd" id="2_jefes_coloso"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/coloso/camina.gd" id="3_coloso_camina"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/coloso/alza.gd" id="4_coloso_alza"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/coloso/pisa.gd" id="5_coloso_pisa"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/coloso/aturdido.gd" id="6_coloso_aturdido"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano.gd" id="7_jefes_hermano"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/habla.gd" id="8_hermano_habla"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/camina.gd" id="9_hermano_camina"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/zarpazo.gd" id="10_hermano_zarpazo"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/apunta_hilos.gd" id="11_hermano_apunta_hilos"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/hilos.gd" id="12_hermano_hilos"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/ruge.gd" id="13_hermano_ruge"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/cansado.gd" id="14_hermano_cansado"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/mira.gd" id="15_hermano_mira"]
+
+[node name="Jefes" type="Node"]
+
+[node name="Coloso" type="Node2D" parent="."]
+script = ExtResource("2_jefes_coloso")
+
+[node name="Maquina" type="Node" parent="Coloso"]
+script = ExtResource("1_comun_maquina_estados")
+
+[node name="Camina" type="Node" parent="Coloso/Maquina"]
+script = ExtResource("3_coloso_camina")
+
+[node name="Alza" type="Node" parent="Coloso/Maquina"]
+script = ExtResource("4_coloso_alza")
+
+[node name="Pisa" type="Node" parent="Coloso/Maquina"]
+script = ExtResource("5_coloso_pisa")
+
+[node name="Aturdido" type="Node" parent="Coloso/Maquina"]
+script = ExtResource("6_coloso_aturdido")
+
+[node name="HermanoMayor" type="Node2D" parent="."]
+script = ExtResource("7_jefes_hermano")
+
+[node name="Maquina" type="Node" parent="HermanoMayor"]
+script = ExtResource("1_comun_maquina_estados")
+
+[node name="Habla" type="Node" parent="HermanoMayor/Maquina"]
+script = ExtResource("8_hermano_habla")
+
+[node name="Camina" type="Node" parent="HermanoMayor/Maquina"]
+script = ExtResource("9_hermano_camina")
+
+[node name="Zarpazo" type="Node" parent="HermanoMayor/Maquina"]
+script = ExtResource("10_hermano_zarpazo")
+
+[node name="ApuntaHilos" type="Node" parent="HermanoMayor/Maquina"]
+script = ExtResource("11_hermano_apunta_hilos")
+
+[node name="Hilos" type="Node" parent="HermanoMayor/Maquina"]
+script = ExtResource("12_hermano_hilos")
+
+[node name="Ruge" type="Node" parent="HermanoMayor/Maquina"]
+script = ExtResource("13_hermano_ruge")
+
+[node name="Cansado" type="Node" parent="HermanoMayor/Maquina"]
+script = ExtResource("14_hermano_cansado")
+
+[node name="Mira" type="Node" parent="HermanoMayor/Maquina"]
+script = ExtResource("15_hermano_mira")

@@ -1,5 +1,17 @@
 # Historial de versiones
 
+## v0.5.21-alpha — 2026-11-24 · Arquitectura por escenas, fase 3c-4
+
+Sin cambios en las reglas del juego.
+
+- **El Coloso y el Hermano Mayor son escenas con su máquina de estados** (`scenes/entidades/jefes.tscn`, `scripts/entidades/jefes/`):
+  - Coloso: Camina (más rápido con cada columna que le cae), Alza (aviso del pisotón), Pisa y Aturdido.
+  - Hermano Mayor: Habla, Camina, Zarpazo, ApuntaHilos, Hilos, Ruge, Cansado y Mira; usa sus reglas robadas en orden (hilos, rugido, mirada).
+- Avisan con señales (`hiere`, `alza`, `pisoton`, `regla`, `hilos_activos`, `rugido`). Las columnas, los aliados, las piedras de los traidores y las derrotas siguen en la campaña.
+- El comportamiento es idéntico al de antes: una simulación con semilla fija de sus dos salas (25 segundos cada una, andando, esquivando y golpeando) da exactamente las mismas posiciones, estados, tiempos, vida y reglas.
+- `entidades_test.gd` prueba los estados del Coloso (incluida la columna que lo aturde) y el ciclo de reglas del Hermano Mayor.
+- Versión Android 0.5.21-alpha (código 28).
+
 ## v0.5.20-alpha — 2026-11-24 · Arquitectura por escenas, fase 3c-3
 
 Sin cambios en las reglas del juego.

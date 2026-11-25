@@ -152,6 +152,7 @@ jobs:
           grep -Fq 'OK: entidad de la sala como escena; Ghoul, Testigo y Hechicero con su máquina de estados.' "$RUNNER_TEMP/entidades.log"
           grep -Fq 'OK: Segador y Tejedora con su máquina de estados en la escena de la entidad.' "$RUNNER_TEMP/entidades.log"
           grep -Fq 'OK: alimañas, mastines y arietes con su máquina de estados (manadas).' "$RUNNER_TEMP/entidades.log"
+          grep -Fq 'OK: Coloso y Hermano Mayor con su máquina de estados (jefes).' "$RUNNER_TEMP/entidades.log"
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/entidades.log"; then exit 1; fi
           godot --headless --path . --script res://tests/update_test.gd 2>&1 | tee "$RUNNER_TEMP/update.log"
           grep -Fq 'OK: actualizador con versiones, archivo por plataforma, reemplazo del juego y aviso en el menú.' "$RUNNER_TEMP/update.log"
@@ -194,7 +195,7 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" \
             | tee "$RUNNER_TEMP/android-badging.txt"
           grep -Fq "package: name='org.je7remy.temploecos'" "$RUNNER_TEMP/android-badging.txt"
-          grep -Fq "versionName='0.5.20-alpha'" "$RUNNER_TEMP/android-badging.txt"
+          grep -Fq "versionName='0.5.21-alpha'" "$RUNNER_TEMP/android-badging.txt"
           ls -lh "$APK"
 
       - name: Guardar APK como artefacto
