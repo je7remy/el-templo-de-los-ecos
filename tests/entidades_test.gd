@@ -532,6 +532,11 @@ func _run() -> void:
         if n is CanvasItem and n.has_method("_draw"):
             _fail("%s no debe dibujarse fuera del orden por profundidad." % ruta)
             return
+    var objetos: Node = game.get_node_or_null("Objetos")
+    for m in ["pilar", "brasero", "cofre", "fuente", "altar", "carta", "muro"]:
+        if objetos == null or not objetos.has_method(m):
+            _fail("Los objetos de la sala no saben dibujar «%s» (scripts/mundo/objetos.gd)." % m)
+            return
     print("OK: cada entidad dibuja su parte en el orden por profundidad del mundo.")
     game.queue_free()
     await process_frame

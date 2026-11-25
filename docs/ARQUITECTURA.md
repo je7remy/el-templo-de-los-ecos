@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.24)
+## Cómo está organizado hoy (v0.5.25)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -30,6 +30,7 @@ scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña y mundo)
 │   ├── HermanoMayor Habla, Camina, Zarpazo, ApuntaHilos, Hilos, Ruge, Cansado, Mira
 │   └── Vigia        Mira, Aviso, Golpe, Caza, Vencida
 ├── Peregrino    scenes/entidades/peregrino.tscn   Ausente, Espera, Sigue, Desenvaina, Hostil, Amigo, Muerto
+├── Objetos      scripts/mundo/objetos.gd          columnas, braseros, cofre, fuente, altar, carta, muros
 ├── Hud          scenes/ui/hud.tscn                CanvasLayer 1 · piezas en scripts/ui/hud/
 │   └── Piezas   FranjaSuperior, PanelJugador, CartelPiso, Minimapa, FranjaInferior, Mision,
 │                PanelArma, AvisoMision, ContadorAlmas, Fundido, Tutorial, ControlesTactiles
@@ -110,7 +111,8 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 3c-5 | La Vigía (Mira, Aviso, Golpe, Caza, Vencida) en `jefes.tscn` y el Peregrino (Ausente, Espera, Sigue, Desenvaina, Hostil, Amigo, Muerto) en `peregrino.tscn`. Señales `provocada`, `amago`, `ruido_hecho`, `mirando`, `ataca`, `alcanza`, `presa_alcanzada`, `toma_alma`, `prepara_tajo` y `tajo`. El pánico de los aliados, la traición, lo que dice el Peregrino y su muerte siguen en la campaña. Con esto, **todas las entidades tienen su máquina de estados**. | **Hecha (v0.5.22)** |
 | 3d-1 | Cada entidad dibuja su parte con `dibujar(lienzo, …)` en su script (entidad de la sala, alimañas, mastines, arietes, Coloso, Hermano Mayor, Vigía y Peregrino), con ayudas comunes en `scripts/comun/lienzo.gd` (sombra, elipse, contorno). `main.gd` solo decide el orden por profundidad y les pide que se dibujen sobre el lienzo del mundo en su turno; así se tapan igual que antes. | **Hecha (v0.5.23)** |
 | 3d-2 | El jugador dibuja su parte en `scripts/entidades/jugador.gd`: cuerpo en cuatro direcciones, siluetas del esquive, equipo puesto, arma con su tajo, antorcha, polvo del choque y aros de protección y daño. La campaña le pasa su apariencia (`_player_look()`: hoja, arma, antorcha, equipo puesto…). | **Hecha (v0.5.24)** |
-| 3d-3 | Objetos de la sala (almas, cofres, altares, braseros, puertas…) con su dibujo propio. | Pendiente |
+| 3d-3 | Objetos de la sala que van en el orden por profundidad (columnas, braseros, cofre, fuente, altar, carta y muros del laberinto) se dibujan desde `scripts/mundo/objetos.gd` (nodo «Objetos»). | **Hecha (v0.5.25)** |
+| 3d-4 | Personajes secundarios (aliados, Mercader, rescate, traidores, muñeco de entrenamiento) y lo que va a ras de suelo (almas, puertas, trampas, enredaderas, decorado). | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
 
