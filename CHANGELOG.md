@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.24-alpha — 2026-11-25 · Arquitectura por escenas, fase 3d-2
+
+Sin cambios en las reglas del juego ni en cómo se ve.
+
+- **El jugador dibuja su parte desde su escena** (`scripts/entidades/jugador.gd`): el cuerpo en las cuatro direcciones, las siluetas del esquive, el equipo puesto (yelmo, peto, botas, amuleto, brazalete y máscara), el arma con su tajo, la antorcha encendida o apagada, el polvo del choque y los aros de protección y de daño. La campaña solo le pasa su apariencia del cuadro (`_player_look()`).
+- Se ve idéntico: capturas de 22 casos (cuatro direcciones con y sin equipo y con espada a medio tajo, hacha, daga, antorcha apagada, andando, herido, protegido, chocando, esquivando, muerto e interactuando) salen iguales a las de la versión anterior, salvo motas de polvo del ambiente que también cambian entre dos capturas de la misma versión.
+- `main.gd` baja a unas 10 050 líneas.
+- Versión Android 0.5.24-alpha (código 31).
+
 ## v0.5.23-alpha — 2026-11-25 · Arquitectura por escenas, fase 3d-1
 
 Sin cambios en las reglas del juego ni en cómo se ve.

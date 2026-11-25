@@ -3325,10 +3325,6 @@ func _draw_soft_shadow(at: Vector2, radius_x: float, strength: float = 1.0) -> v
 
 
 ## [VISUAL UPGRADE] Sombra leve de contacto, anclada a los pies del protagonista.
-func draw_ellipse_fake_shadow(at: Vector2) -> void:
-    _draw_soft_shadow(at + Vector2(0.0, 1.0), 15.0)
-
-
 ## Ojo del Testigo tallado en el muro del fondo: abierto (rojo) o cerrado.
 func _draw_watcher_eye(at: Vector2) -> void:
     var almond := PackedVector2Array()
@@ -3715,102 +3711,31 @@ func _draw_fireballs() -> void:
 
 
 func _draw_player() -> void:
-    ## [VISUAL UPGRADE] Spritesheet top-down, arte original y cuatro orientaciones.
-    if art.has("visual_hero"):
-        var direction_index: int = 0 # frente/abajo
-        if absf(player_dir.x) > absf(player_dir.y):
-            direction_index = 2 if player_dir.x > 0.0 else 3
-        elif player_dir.y < 0.0:
-            direction_index = 1 # espalda/arriba
-        var frame_index: int = int(elapsed * 2.0) % 2 # Idle A/B
-        if game_mode == "dead":
-            frame_index = 8
-        elif damage_cd > 0.0:
-            frame_index = 7
-        elif visual_interaction_left > 0.0:
-            frame_index = 6
-        elif player_moving:
-            frame_index = 2 + (int(elapsed * 8.0) % 4)
-        var atlas := Rect2(float(frame_index * 40), float(direction_index * 56), 40.0, 56.0)
-        var location := Vector2(roundf(player_pos.x) - 20.0, roundf(player_pos.y) - 50.0)
-        draw_ellipse_fake_shadow(player_pos)
-        for gh in dash_ghosts:
-            var gk: float = 1.0 - float(gh["t"]) / 0.22
-            var gloc := Vector2(roundf(Vector2(gh["pos"]).x) - 20.0, roundf(Vector2(gh["pos"]).y) - 50.0)
-            draw_texture_rect_region(_hero_sheet(), Rect2(gloc, Vector2(40.0, 56.0)), Rect2(float(2 * 40), float(direction_index * 56), 40.0, 56.0), Color(0.55, 0.85, 1.0, 0.35 * gk))
-        var blink: bool = damage_cd > 0.0 and int(elapsed * 14.0) % 2 == 0
-        # La antorcha va en la mano; de espaldas queda detrás del cuerpo.
-        var hand: Vector2 = player_pos + [Vector2(12, -18), Vector2(-12, -20), Vector2(9, -19), Vector2(-9, -19)][direction_index]
-        var in_hand_torch: bool = has_torch and weapon == ""
-        if direction_index == 1 and game_mode != "dead":
-            if weapon != "":
-                _draw_hand_weapon(hand, direction_index)
-            elif in_hand_torch:
-                _draw_hand_torch(hand)
-        _draw_outlined(_hero_sheet(), Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
-        if game_mode != "dead":
-            _draw_worn_gear(location, direction_index, 0.35 if blink else 1.0)
-        if direction_index != 1 and game_mode != "dead":
-            if weapon != "":
-                _draw_hand_weapon(hand, direction_index)
-            elif in_hand_torch:
-                _draw_hand_torch(hand)
-        if bump_left > 0.0:
-            # Polvo del choque a ambos lados de los pies: el objeto es sólido.
-            var t: float = 1.0 - bump_left / 0.35
-            for side in [-1.0, 1.0]:
-                for i in range(3):
-                    var p: Vector2 = bump_at + Vector2(side * (12.0 + t * 10.0 + float(i) * 4.0), -float(i) * 3.0 - t * 4.0)
-                    draw_circle(p, 3.0 - t * 1.6 - float(i) * 0.4, Color(0.84, 0.80, 0.66, 0.65 * (1.0 - t)))
-        if ward_left > 0.0:
-            draw_arc(player_pos, 27.0, 0.0, TAU, 40, SOUL, 2.0)
-        if damage_cd > 0.0:
-            draw_arc(player_pos, 29.0, 0.0, TAU, 40, RED, 2.0)
-        return
-    if art.has("mark"):
-        var t: Texture2D = art["mark"]
-        var frame: int = 0
-        if player_moving:
-            var tick: int = int(elapsed * 9.0)
-            if absf(player_dir.x) > absf(player_dir.y):
-                frame = (10 + tick % 5) if player_dir.x > 0.0 else (19 + tick % 5)
-            else:
-                frame = (6 + tick % 4) if player_dir.y > 0.0 else (16 + tick % 4)
-        draw_texture_rect_region(t, Rect2(player_pos.x - 15, player_pos.y - 54, 30, 57), Rect2(frame * 24, 0, 24, 70))
-        return
-    if art.has("player"):
-        draw_texture_rect(art["player"], Rect2(player_pos.x - 20, player_pos.y - 42, 40, 48), false)
-        return
-    var p := player_pos
-    draw_circle(p + Vector2(0, 18), 14.0, Color(0, 0, 0, 0.4))
-    draw_colored_polygon(PackedVector2Array([
-        p + Vector2(0, -19), p + Vector2(17, -4),
-        p + Vector2(17, 20), p + Vector2(-16, 20), p + Vector2(-17, -3)
-    ]), Color("#b9b8b3"))
-    draw_circle(p + Vector2(0, -11), 11.5, Color("#d0cac0"))
-    draw_line(p + Vector2(-3, -12), p + Vector2(3, -12), Color("#26272d"), 2)
-    draw_line(p + Vector2(2, -1), p + Vector2(16, 8), Color("#a53e56"), 4.0)
-    draw_line(p + Vector2(9, 5), p + Vector2(24, 15), Color("#a53e56"), 3.0)
-    draw_line(p + Vector2(0, 0), p + player_dir * 20.0, Color("#e9ddab"), 2.0)
-    if ward_left > 0:
-        draw_arc(p, 27.0, 0.0, TAU, 48, SOUL, 2.0)
-    if damage_cd > 0:
-        draw_arc(p, 29.0, 0.0, TAU, 28, RED, 2.0)
+    # El jugador se dibuja en su escena (scripts/entidades/jugador.gd), sobre
+    # este lienzo y en su turno del orden por profundidad.
+    jugador.dibujar(self, _player_look())
 
 
-func _draw_hand_torch(hand: Vector2) -> void:
-    var tip := hand + Vector2(0.0, -14.0)
-    draw_line(hand + Vector2(0.0, 4.0), tip, Color("#5c3a22"), 3.0)
-    draw_line(hand + Vector2(-1.0, 3.0), tip + Vector2(-1.0, 1.0), Color("#8a5a35"), 1.0)
-    draw_rect(Rect2(tip.x - 3.0, tip.y - 1.0, 6.0, 4.0), Color("#d9cfb0"))
-    if not torch_on:
-        draw_rect(Rect2(tip.x - 2.0, tip.y - 3.0, 4.0, 2.0), Color("#3a2f2a"))
-        return
-    var f: float = sin(elapsed * 17.0) * 1.2
-    draw_circle(tip + Vector2(0.0, -10.0), 16.0, Color(1.0, 0.7, 0.3, 0.10))
-    draw_colored_polygon(PackedVector2Array([tip + Vector2(-5, -1), tip + Vector2(5, -1), tip + Vector2(2, -9), tip + Vector2(f, -15), tip + Vector2(-3, -8)]), Color("#c2412f"))
-    draw_colored_polygon(PackedVector2Array([tip + Vector2(-3, -1), tip + Vector2(3, -1), tip + Vector2(f * 0.6, -11)]), Color("#f08a3a"))
-    draw_colored_polygon(PackedVector2Array([tip + Vector2(-1.5, -1), tip + Vector2(1.5, -1), tip + Vector2(0, -6)]), Color("#ffd36b"))
+## Cómo se ve el jugador este cuadro (lo que depende de la partida).
+func _player_look() -> Dictionary:
+    var worn: Dictionary = _portrait_gear_worn()
+    worn["botas"] = gear.get("botas", "") != ""
+    worn["brazalete"] = _worn("brazalete")
+    return {
+        "hoja": _hero_sheet() if art.has("visual_hero") else null,
+        "marca": art.get("mark"),
+        "figura": art.get("player"),
+        "t": elapsed,
+        "muerto": game_mode == "dead",
+        "interactua": visual_interaction_left > 0.0,
+        "arma": weapon,
+        "icono_arma": ICONS.get(weapon),
+        "golpe": strike_fx,
+        "antorcha": has_torch,
+        "antorcha_encendida": torch_on,
+        "proteccion": ward_left,
+        "puesto": worn,
+    }
 
 
 func _bar(rect: Rect2, fraction: float, color: Color) -> void:
@@ -4698,151 +4623,7 @@ func _draw_gear_pickup() -> void:
 ## Todo lo equipado se dibuja sobre el personaje (en las cuatro direcciones) y
 ## sobre su retrato: yelmo, máscara de porcelana, amuleto, peto, botas,
 ## brazalete y el arma en la mano. Coordenadas en píxeles de la celda 40×56.
-const GEAR_STEEL := Color("#8d949a")
-const GEAR_STEEL_DARK := Color("#4f565c")
-const GEAR_STEEL_LIGHT := Color("#c9d0d4")
-const GEAR_LEATHER := Color("#6e4630")
-const GEAR_LEATHER_DARK := Color("#45291b")
-const GEAR_GOLD := Color("#e3bd7b")
-const MASK_WHITE := Color("#fbfaf6")
-const MASK_SHADE := Color("#d9d6e0")
-const MASK_RED := Color("#b0242f")
-const GEAR_OUTLINE := Color("#140f12")
-
-
-func _px(loc: Vector2, x: float, y: float, w: float, h: float, col: Color) -> void:
-    draw_rect(Rect2(loc + Vector2(x, y), Vector2(w, h)), col)
-
-
-func _draw_worn_gear(loc: Vector2, dir: int, a: float) -> void:
-    var side: bool = dir >= 2
-    var left: bool = dir == 3
-    var steel := Color(GEAR_STEEL, a)
-    var dark := Color(GEAR_STEEL_DARK, a)
-    var light := Color(GEAR_STEEL_LIGHT, a)
-    var ol := Color(GEAR_OUTLINE, a)
-    # Botas: cubren los pies.
-    if gear.get("botas", "") != "":
-        var lea := Color(GEAR_LEATHER, a)
-        var lead := Color(GEAR_LEATHER_DARK, a)
-        if side:
-            _px(loc, 15, 44, 13, 7, lead)
-            _px(loc, 16, 44, 11, 5, lea)
-        else:
-            _px(loc, 11, 44, 8, 7, lead)
-            _px(loc, 21, 44, 8, 7, lead)
-            _px(loc, 12, 44, 6, 5, lea)
-            _px(loc, 22, 44, 6, 5, lea)
-    # Peto: placa sobre el torso, con hombreras.
-    if gear.get("peto", "") != "":
-        if side:
-            _px(loc, 14, 25, 13, 15, ol)
-            _px(loc, 15, 26, 11, 13, steel)
-            _px(loc, 15, 26, 11, 2, light)
-            _px(loc, 15, 32, 11, 1, dark)
-        else:
-            _px(loc, 10, 24, 21, 16, ol)
-            _px(loc, 11, 25, 19, 14, steel)
-            _px(loc, 11, 25, 19, 2, light)
-            _px(loc, 20, 27, 1, 12, dark)
-            _px(loc, 11, 32, 19, 1, dark)
-            _px(loc, 7, 24, 5, 5, Color(GEAR_LEATHER, a))
-            _px(loc, 29, 24, 5, 5, Color(GEAR_LEATHER, a))
-    # Amuleto de hueso: cadena y colgante sobre el pecho.
-    if _worn("amuleto") and dir != 1:
-        var chain := Color(GEAR_GOLD, a)
-        if side:
-            var cx: float = 23.0 if not left else 17.0
-            _px(loc, cx, 25, 1, 4, chain)
-            _px(loc, cx - 1.0, 29, 3, 3, Color("#d8f0dc", a))
-        else:
-            _px(loc, 15, 24, 2, 1, chain)
-            _px(loc, 16, 25, 2, 1, chain)
-            _px(loc, 17, 26, 2, 1, chain)
-            _px(loc, 23, 24, 2, 1, chain)
-            _px(loc, 22, 25, 2, 1, chain)
-            _px(loc, 21, 26, 2, 1, chain)
-            _px(loc, 19, 27, 3, 4, Color("#d8f0dc", a))
-            _px(loc, 20, 28, 1, 2, Color("#5f8f6a", a))
-    # Brazalete: aro dorado en la muñeca.
-    if _worn("brazalete"):
-        var band := Color(GEAR_GOLD, a)
-        match dir:
-            0: _px(loc, 30, 35, 4, 2, band)
-            1: _px(loc, 6, 35, 4, 2, band)
-            2: _px(loc, 24, 36, 4, 2, band)
-            3: _px(loc, 12, 36, 4, 2, band)
-    # Máscara de porcelana: tapa el rostro (de espaldas, solo la cinta).
-    if _mask_worn():
-        var w := Color(MASK_WHITE, a)
-        var sh := Color(MASK_SHADE, a)
-        var eye := Color(0.05, 0.04, 0.06, a)
-        match dir:
-            0:
-                _px(loc, 12, 7, 17, 17, ol)
-                _px(loc, 13, 8, 15, 15, w)
-                _px(loc, 13, 19, 15, 4, sh)
-                _px(loc, 14, 12, 5, 3, eye) # cuencas vacías
-                _px(loc, 22, 12, 5, 3, eye)
-                _px(loc, 15, 15, 1, 3, Color(MASK_RED, a)) # lágrimas pintadas
-                _px(loc, 25, 15, 1, 3, Color(MASK_RED, a))
-                _px(loc, 18, 19, 5, 1, Color(MASK_RED, a)) # boca
-                _px(loc, 21, 8, 1, 4, ol) # grieta
-            1:
-                _px(loc, 10, 14, 21, 1, Color(0.3, 0.12, 0.1, a))
-            2:
-                _px(loc, 20, 7, 12, 17, ol)
-                _px(loc, 21, 8, 10, 15, w)
-                _px(loc, 21, 19, 10, 4, sh)
-                _px(loc, 25, 12, 4, 3, eye)
-                _px(loc, 27, 15, 1, 3, Color(MASK_RED, a))
-                _px(loc, 26, 19, 4, 1, Color(MASK_RED, a))
-            3:
-                _px(loc, 8, 7, 12, 17, ol)
-                _px(loc, 9, 8, 10, 15, w)
-                _px(loc, 9, 19, 10, 4, sh)
-                _px(loc, 11, 12, 4, 3, eye)
-                _px(loc, 12, 15, 1, 3, Color(MASK_RED, a))
-                _px(loc, 10, 19, 4, 1, Color(MASK_RED, a))
-    # Yelmo: casco de hierro sobre el pelo, con cresta roja.
-    if gear.get("casco", "") != "":
-        var hx: float = 10.0 if not side else (11.0 if not left else 9.0)
-        var hw: float = 21.0 if not side else 20.0
-        # Cúpula redondeada: las filas de arriba son más estrechas.
-        _px(loc, hx + 2.0, -1, hw - 4.0, 2, ol)
-        _px(loc, hx - 1.0, 1, hw + 2.0, 11, ol)
-        _px(loc, hx + 3.0, 0, hw - 6.0, 1, steel)
-        _px(loc, hx + 1.0, 1, hw - 2.0, 1, steel)
-        _px(loc, hx, 2, hw, 9, steel)
-        _px(loc, hx + 3.0, 1, hw - 8.0, 2, light)
-        _px(loc, hx + 1.0, 3, 2, 5, light)
-        _px(loc, hx, 9, hw, 2, dark)
-        for rv in range(3):
-            _px(loc, hx + 3.0 + float(rv) * (hw - 6.0) * 0.5, 10, 1, 1, light) # remaches
-        _px(loc, hx + hw * 0.5 - 1.0, -4, 3, 4, Color(0.75, 0.2, 0.18, a))
-        if dir == 0:
-            _px(loc, 19, 11, 3, 5, dark) # nasal
-        elif side:
-            _px(loc, (27.0 if not left else 12.0), 11, 2, 4, dark)
-
-
-## El arma en la mano, en lugar de la antorcha (sin luz). Al golpear, describe
-## un arco en la dirección del golpe.
-func _draw_hand_weapon(hand: Vector2, dir: int) -> void:
-    var tex: Texture2D = ICONS.get(weapon)
-    if tex == null:
-        return
-    var base_angle: float = [0.35, -0.35, 0.15, -0.15][dir]
-    var flip: bool = dir == 3 or dir == 1
-    var swing: float = 0.0
-    if strike_fx > 0.0:
-        var k: float = 1.0 - strike_fx / 0.25
-        swing = lerpf(-1.3, 1.1, k) * (-1.0 if flip else 1.0)
-    var sz: float = 26.0 if weapon in ["daga"] else (34.0 if weapon in ["lanza", "hacha"] else 30.0)
-    # El icono tiene la empuñadura abajo a la izquierda: se gira desde ahí.
-    _xf(hand, base_angle + swing, Vector2(-1.0 if flip else 1.0, 1.0))
-    draw_texture_rect(tex, Rect2(Vector2(-sz * 0.2, -sz * 0.8), Vector2(sz, sz)), false)
-    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
+## (Colores del equipo puesto: scripts/entidades/jugador.gd.)
 
 
 ## Lo mismo sobre el retrato (64×64 de base, escalado al rectángulo dado).
