@@ -1,5 +1,16 @@
 # Historial de versiones
 
+## v0.5.26-alpha — 2026-11-25 · Arquitectura por escenas, fase 3d-4
+
+Sin cambios en las reglas del juego ni en cómo se ve.
+
+- **Los personajes secundarios se dibujan desde `scripts/mundo/personajes.gd`** (nodo «Personajes»): aliados, traidores del Hermano Mayor, el peregrino enjaulado del rescate, el Mercader y el muñeco de entrenamiento.
+- **Las almas y el sello** se dibujan desde `scripts/mundo/objetos.gd`.
+- Con esto, todo lo que se mueve, pelea o se recoge se dibuja desde su propio script; en `main.gd` queda la escenografía a ras de suelo (puertas, trampas, enredaderas, decorado, luz y niebla).
+- Se ve idéntico: capturas de las 41 salas salen iguales a las de la versión anterior, salvo motas de polvo del ambiente que también cambian entre dos capturas de la misma versión. Los aliados y los traidores no aparecen en esas capturas: su dibujo se pasó tal cual y se revisó en el código.
+- `main.gd` baja a unas 9 860 líneas.
+- Versión Android 0.5.26-alpha (código 33).
+
 ## v0.5.25-alpha — 2026-11-25 · Arquitectura por escenas, fase 3d-3
 
 Sin cambios en las reglas del juego ni en cómo se ve.
