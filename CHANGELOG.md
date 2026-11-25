@@ -1,5 +1,19 @@
 # Historial de versiones
 
+## v0.5.35-alpha — 2026-11-25 · Vigilia por escenas, fase 5d
+
+Sin cambios en las reglas ni en el aspecto del juego.
+
+- **Los datos de la Vigilia son archivos** en `datos/vigilia/`, que se editan desde el inspector de Godot:
+  - `estructuras/`: centinela, generador y campana (nombre, icono, descripción, coste, cuánto sube cada una más y coste de la primera mejora).
+  - `entidades/`: las siete entidades (nombre para los avisos, hoja de animación, vida y si flotan, como el Testigo).
+  - `oleadas.tres`: qué entidades salen en la fase 1, en las siguientes y qué jefe trae cada quinta fase.
+  - `tutorial/`: los 15 pasos del tutorial guiado (título y texto).
+- Se listan en `scripts/datos/catalogo_vigilia.gd`.
+- Los valores son los mismos de antes: una Vigilia simulada hasta la fase 5 (con su jefe) da exactamente el mismo resultado.
+- Con esto termina la fase 5 de la reorganización (docs/ARQUITECTURA.md).
+- Versión Android 0.5.35-alpha (código 42).
+
 ## v0.5.34-alpha — 2026-11-25 · Vigilia por escenas, fase 5c
 
 Sin cambios en las reglas ni en los controles.

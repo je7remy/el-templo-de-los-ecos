@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/paso_tutorial_vigilia.gd" id="1_tnu8p"]
+
+[resource]
+script = ExtResource("1_tnu8p")
+titulo = "4 · DEFIENDE"
+texto = "¡Llega una entidad! Tu centinela dispara solo a la más cercana a la puerta."

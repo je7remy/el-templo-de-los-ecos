@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/paso_tutorial_vigilia.gd" id="1_a7r7r"]
+
+[resource]
+script = ExtResource("1_a7r7r")
+titulo = "3 · CONSTRUYE"
+texto = "Toca la baldosa marcada, junto a la puerta, y construye un CENTINELA."

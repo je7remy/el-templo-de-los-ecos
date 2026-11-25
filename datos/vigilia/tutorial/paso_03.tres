@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/paso_tutorial_vigilia.gd" id="1_28ria"]
+
+[resource]
+script = ExtResource("1_28ria")
+titulo = "2 · AHORRA"
+texto = "Los ecos suben solos mientras duermes (arriba). Espera a tener 20."

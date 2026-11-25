@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/estructura_vigilia.gd" id="1_5hg2n"]
+
+[resource]
+script = ExtResource("1_5hg2n")
+id = "generador"
+nombre = "GENERADOR"
+icono = "generador"
+descripcion = "Energía mientras duermes (para potenciar y escudo)."
+coste = 30.0
+factor = 1.35
+coste_mejora = 20.0

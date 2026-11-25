@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/paso_tutorial_vigilia.gd" id="1_2i1lb"]
+
+[resource]
+script = ExtResource("1_2i1lb")
+titulo = "1 · DUERME"
+texto = "Toca el LECHO y elige DORMIR. Mientras duermes ganas ecos, la moneda de la Vigilia."

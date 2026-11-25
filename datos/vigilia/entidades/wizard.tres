@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/visual/enemies/hechicero.png" id="1_ulwbg"]
+[ext_resource type="Script" path="res://scripts/datos/entidad_vigilia.gd" id="2_oim2c"]
+
+[resource]
+script = ExtResource("2_oim2c")
+id = "wizard"
+nombre = "El Hechicero"
+hoja = ExtResource("1_ulwbg")
+vida = 1.0
+flota = false

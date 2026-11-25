@@ -349,6 +349,22 @@ func _run() -> void:
         _fail("Perder la puerta no pasa al estado Derrota.")
         return
     print("OK: la partida de la Vigilia es una máquina de estados (portada, partida, fase superada, derrota).")
+    # Fase 5d: los datos de la Vigilia salen de datos/vigilia/.
+    var estructuras: Dictionary = mode.get("STRUCTS")
+    if estructuras.keys() != ["centinela", "generador", "campana"] or float(estructuras["centinela"][3]) != 20.0 or float(estructuras["campana"][4]) != 1.5:
+        _fail("Las estructuras de la Vigilia no salen de datos/vigilia/estructuras.")
+        return
+    if (mode.get("STAGE_KINDS") as Array).size() != 10 or (mode.get("BOSS_KINDS") as Array)[0] != "tejedora" or (mode.get("FIRST_KINDS") as Array) != ["ghoul", "wizard", "angel"]:
+        _fail("Las entidades de cada fase no salen de datos/vigilia/oleadas.tres.")
+        return
+    if str(mode.call("_kind_name", "angel")) != "El Testigo" or not (mode.get("MONSTER_SHEETS")["ariete"] is Texture2D):
+        _fail("Las entidades de la Vigilia no salen de datos/vigilia/entidades.")
+        return
+    var pasos: Array = mode.get("TUT_STEPS")
+    if pasos.size() != 15 or str(pasos[3][0]) != "3 · CONSTRUYE":
+        _fail("El tutorial de la Vigilia no sale de datos/vigilia/tutorial.")
+        return
+    print("OK: estructuras, entidades, oleadas y tutorial de la Vigilia en archivos de datos (.tres).")
     mode.free()
     mode = null
     packed = null

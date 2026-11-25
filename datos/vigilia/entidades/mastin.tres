@@ -1,0 +1,12 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/visual/enemies/mastin.png" id="1_bn4xg"]
+[ext_resource type="Script" path="res://scripts/datos/entidad_vigilia.gd" id="2_5hu4f"]
+
+[resource]
+script = ExtResource("2_5hu4f")
+id = "mastin"
+nombre = "El Mastín"
+hoja = ExtResource("1_bn4xg")
+vida = 1.0
+flota = false

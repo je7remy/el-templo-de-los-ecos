@@ -10,7 +10,7 @@ const Vigilia := preload("res://scripts/defense.gd")
 func tecla(v: Node, k: Key) -> void:
     var paso: int = int(v.get("tut_step"))
     var menu: Dictionary = v.get("popup")
-    if paso >= 0 and k == KEY_ENTER and paso in [0, Vigilia.TUT_STEPS.size() - 1] and menu.is_empty():
+    if paso >= 0 and k == KEY_ENTER and paso in [0, (v.get("TUT_STEPS") as Array).size() - 1] and menu.is_empty():
         v.call("_tut_tap", Vigilia.TUT_CARD.get_center())
         return
     if paso >= 0 and k == KEY_BACKSPACE:
