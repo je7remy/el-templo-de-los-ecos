@@ -321,6 +321,34 @@ func _run() -> void:
         _fail("Las barras de la Vigilia no se ven en la portada.")
         return
     print("OK: HUD de la Vigilia (barras, aviso, tutorial y menú de la baldosa) como escena.")
+    # Fase 5c: la partida de la Vigilia es una máquina de estados.
+    var fases: Node = mode.get_node_or_null("Fases")
+    if fases == null or not fases.has_method("cambiar_a"):
+        _fail("La Vigilia no tiene su máquina de estados «Fases».")
+        return
+    var nombres := {"selection": &"Portada", "play": &"Partida", "won": &"FaseSuperada", "lost": &"Derrota"}
+    for clave in nombres:
+        mode.set("phase", clave)
+        if fases.call("nombre_actual") != nombres[clave] or mode.get("phase") != clave:
+            _fail("«phase» y la máquina de estados de la Vigilia no coinciden (%s)." % clave)
+            return
+    mode.set("phase", "selection")
+    mode.set("tutorial_done", true)
+    mode.set("saved_run", {})
+    var enter := InputEventKey.new()
+    enter.pressed = true
+    enter.keycode = KEY_ENTER
+    mode.call("_input", enter)
+    if fases.call("nombre_actual") != &"Partida":
+        _fail("ENTER en la portada no empieza la partida (estado Partida).")
+        return
+    mode.call("_start", 0)
+    mode.set("gate_hp", 0.0)
+    mode.call("_process", 0.1)
+    if fases.call("nombre_actual") != &"Derrota":
+        _fail("Perder la puerta no pasa al estado Derrota.")
+        return
+    print("OK: la partida de la Vigilia es una máquina de estados (portada, partida, fase superada, derrota).")
     mode.free()
     mode = null
     packed = null

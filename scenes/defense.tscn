@@ -1,6 +1,27 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/defense.gd" id="1_defense"]
+[ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina"]
+[ext_resource type="Script" path="res://scripts/vigilia/fases/portada.gd" id="3_portada"]
+[ext_resource type="Script" path="res://scripts/vigilia/fases/partida.gd" id="4_partida"]
+[ext_resource type="Script" path="res://scripts/vigilia/fases/fase_superada.gd" id="5_superada"]
+[ext_resource type="Script" path="res://scripts/vigilia/fases/derrota.gd" id="6_derrota"]
 
 [node name="VigiliaDelClaustro" type="Node2D"]
 script = ExtResource("1_defense")
+
+[node name="Fases" type="Node" parent="."]
+script = ExtResource("2_maquina")
+estado_inicial = &"Portada"
+
+[node name="Portada" type="Node" parent="Fases"]
+script = ExtResource("3_portada")
+
+[node name="Partida" type="Node" parent="Fases"]
+script = ExtResource("4_partida")
+
+[node name="FaseSuperada" type="Node" parent="Fases"]
+script = ExtResource("5_superada")
+
+[node name="Derrota" type="Node" parent="Fases"]
+script = ExtResource("6_derrota")

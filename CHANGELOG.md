@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.34-alpha — 2026-11-25 · Vigilia por escenas, fase 5c
+
+Sin cambios en las reglas ni en los controles.
+
+- **La partida de la Vigilia es una máquina de estados** (`scripts/vigilia/fases/`): portada, partida, fase superada y derrota. Cada estado decide qué hacen las teclas, el mando y los toques, y qué pantalla se ve; antes todo se repartía en `match phase` por `scripts/defense.gd`.
+- Lo común (ESC, el botón de salir, el cursor con el stick) y las reglas de la Vigilia siguen en `defense.gd`.
+- Comprobado con una partida simulada a base de toques, teclas y botones del mando: el resultado es idéntico paso a paso. Se ve igual (capturas idénticas).
+- Versión Android 0.5.34-alpha (código 41).
+
 ## v0.5.33-alpha — 2026-11-25 · Vigilia por escenas, fase 5b
 
 Sin cambios en las reglas ni en el aspecto del juego.

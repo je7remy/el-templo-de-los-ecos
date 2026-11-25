@@ -93,7 +93,18 @@ const ICONS := {
     "reliquia": preload("res://assets/visual/iconos/reliquia.png"),
 }
 
-var phase: String = "selection" # selection (portada), play, won (fase superada), lost
+## Estado de la partida: máquina «Fases» (scripts/vigilia/fases/). «phase»
+## conserva los nombres de siempre (selection, play, won, lost) para el
+## guardado y las pruebas.
+const FASES := {"selection": &"Portada", "play": &"Partida", "won": &"FaseSuperada", "lost": &"Derrota"}
+@onready var fases: Node = $Fases
+var phase: String:
+    get:
+        if fases == null:
+            return "selection"
+        return str(FASES.find_key(fases.nombre_actual()))
+    set(v):
+        fases.cambiar_a(FASES[v])
 var chamber: int = 0 # compatibilidad: hay un solo modo
 var stage: int = 1
 var hover_pos: Vector2 = Vector2(-100, -100)
@@ -886,15 +897,12 @@ func _popup_choose(i: int) -> void:
 
 func _process(delta: float) -> void:
     tick += delta
-    if phase == "play":
-        _refresh_popup()
     info_time = maxf(0.0, info_time - delta)
     gate_flash = maxf(0.0, gate_flash - delta * 3.0)
     for s in shots:
         s["t"] = float(s["t"]) - delta
     shots = shots.filter(func(s): return float(s["t"]) > 0.0)
-    if phase == "play" and not paused:
-        _advance(delta)
+    fases.estado.call("avanzar", self, delta) # en partida: menú al día y la fase avanza
     if tension != null and tension.stream != null:
         var target: float = 0.0
         if phase == "play" and not hunters.is_empty():
@@ -1062,51 +1070,7 @@ func _key(k: Key) -> void:
         else:
             _leave()
         return
-    match phase:
-        "selection":
-            if k in [KEY_ENTER, KEY_SPACE]:
-                _choose_start()
-            elif k == KEY_N and _has_saved_run():
-                _new_vigil()
-            elif k == KEY_T:
-                _start_tutorial()
-            return
-        "won":
-            if k in [KEY_ENTER, KEY_SPACE]:
-                _next_stage()
-            return
-        "lost":
-            if k == KEY_ENTER:
-                _start(chamber)
-            return
-    if tut_step >= 0 and k == KEY_ENTER and tut_step in [0, TUT_STEPS.size() - 1] and popup.is_empty():
-        _tut_tap(TUT_CARD.get_center())
-        return
-    if tut_step >= 0 and k == KEY_BACKSPACE:
-        _end_tutorial()
-        return
-    if k == KEY_P:
-        _action(8)
-    elif k in [KEY_LEFT, KEY_A]:
-        _move_cursor(Vector2i(-1, 0))
-    elif k in [KEY_RIGHT, KEY_D]:
-        _move_cursor(Vector2i(1, 0))
-    elif k in [KEY_UP, KEY_W]:
-        _move_cursor(Vector2i(0, -1))
-    elif k in [KEY_DOWN, KEY_S]:
-        _move_cursor(Vector2i(0, 1))
-    elif k in [KEY_ENTER, KEY_E]:
-        if popup.is_empty():
-            _open_popup_for(cursor)
-        else:
-            _popup_choose(popup_sel)
-    elif k == KEY_SPACE:
-        _action(0)
-    elif k >= KEY_1 and k <= KEY_8:
-        if not popup.is_empty() and int(k) - int(KEY_1) < (popup["options"] as Array).size():
-            _popup_choose(int(k) - int(KEY_1))
-        else:
-            _action(int(k) - int(KEY_1))
+    fases.estado.call("tecla", self, k)
 
 
 ## Teclado y mando: un recuadro recorre las baldosas (más allá de la última
@@ -1133,22 +1097,8 @@ func _pad_button(b: int) -> void:
             _key(KEY_DOWN)
         JOY_BUTTON_A:
             _key(KEY_ENTER)
-        JOY_BUTTON_Y:
-            if phase == "play":
-                _action(0)
-            elif phase == "selection":
-                _start_tutorial()
-        JOY_BUTTON_X:
-            if phase == "play":
-                _action(7)
-        JOY_BUTTON_RIGHT_SHOULDER:
-            if phase == "play":
-                _action(6)
-        JOY_BUTTON_START:
-            if phase == "play":
-                _action(8)
-            else:
-                _key(KEY_ENTER)
+        JOY_BUTTON_Y, JOY_BUTTON_X, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_START:
+            fases.estado.call("boton", self, b)
         JOY_BUTTON_B, JOY_BUTTON_BACK:
             _key(KEY_ESCAPE)
 
@@ -1159,55 +1109,7 @@ func _tap(at: Vector2) -> void:
     if EXIT_RECT.has_point(at):
         _leave()
         return
-    if phase == "selection":
-        if TUT_BTN.grow(6.0).has_point(at) and _has_saved_run():
-            _new_vigil()
-        elif TUT_BTN.grow(6.0).has_point(at):
-            if tutorial_done:
-                _start_tutorial()
-            else:
-                tutorial_done = true # «saltar tutorial»
-                _save_records()
-                _start()
-        elif at.y > 270.0 and at.y < 515.0:
-            _choose_start()
-        return
-    if phase == "won":
-        if at.y > 300.0:
-            _next_stage()
-        return
-    if phase == "lost":
-        if at.y > 350.0:
-            _start(chamber)
-        return
-    if phase != "play":
-        return
-    if PAUSE_RECT.has_point(at):
-        _action(8)
-        return
-    if paused:
-        return
-    if tut_step >= 0 and _tut_tap(at):
-        return
-    if not popup.is_empty():
-        for i in range((popup["options"] as Array).size()):
-            if _popup_option_rect(i).has_point(at):
-                popup_sel = i
-                _popup_choose(i)
-                return
-        if _popup_rect().has_point(at):
-            return
-        popup = {}
-    if at.y >= 512.0:
-        var i: int = clampi(int((at.x - 6.0) / 238.0), 0, 3)
-        _action([0, 4, 6, 7][i])
-        return
-    if DOOR.grow(18.0).has_point(at):
-        _open_door_popup()
-        return
-    var t: Vector2i = _tile_at(at)
-    if t.x >= 0:
-        _open_popup_for(t)
+    fases.estado.call("tocar", self, at)
 
 
 ## Empezar: la primera vez, con el tutorial guiado.
@@ -1435,17 +1337,8 @@ func _sync_pantallas() -> void:
     if pantallas == null:
         return
     hud.actualizar(_datos_hud())
-    match phase:
-        "selection":
-            pantallas.mostrar(&"Portada", {"t": tick, "guardada": _has_saved_run(), "fase_guardada": int(saved_run.get("stage", 1)),
-                "tutorial_hecho": tutorial_done, "mejor_fase": best_stage, "mejor_puntuacion": high_score})
-        "won":
-            pantallas.mostrar(&"FaseSuperada", {"t": tick, "fase": stage,
-                "botin": rewards.map(func(k): return Botin.OBJETOS.get(k, [k, "", 1, "alma"]))})
-        "lost":
-            pantallas.mostrar(&"PuertaCedida", {"fase": stage, "entidades": slain, "puntos": session_score})
-        _:
-            pantallas.mostrar(&"Pausa" if paused else &"")
+    var p: Array = fases.estado.call("pantalla", self)
+    pantallas.mostrar(p[0], p[1])
 
 
 ## Datos de cada pieza del HUD (vacío = no se ve).
