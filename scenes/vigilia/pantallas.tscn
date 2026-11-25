@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/vigilia/pantallas/pausa.gd" id="6_pausa"]
 
 [node name="PantallasVigilia" type="CanvasLayer"]
+layer = 2
 script = ExtResource("1_gestor")
 
 [node name="Maquina" type="Node" parent="."]

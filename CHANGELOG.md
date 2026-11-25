@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v0.5.33-alpha — 2026-11-25 · Vigilia por escenas, fase 5b
+
+Sin cambios en las reglas ni en el aspecto del juego.
+
+- **El HUD de la Vigilia es una escena propia** (`scenes/vigilia/hud.tscn`), con una pieza por parte: barra de arriba (fase, tiempo, ecos, energía, pausa y salir), barra de abajo (dormir, reparar, potenciar y escudo), el aviso al pie de la celda, el tutorial guiado (recuadro, flecha y tarjeta) y el menú de cada baldosa.
+- Las pantallas (portada, fase superada, derrota y pausa) van por encima del HUD, como antes.
+- `scripts/defense.gd` solo dibuja la celda y lo que pasa en ella; usa las tipografías de `estilo.gd`.
+- Se ve idéntico a antes (comparado píxel a píxel, también en pantalla ancha). Los toques, las teclas y el mando funcionan igual.
+- Versión Android 0.5.33-alpha (código 40).
+
 ## v0.5.32-alpha — 2026-11-25 · Vigilia por escenas, fase 5a
 
 Sin cambios en las reglas ni en el aspecto del juego.

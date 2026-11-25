@@ -292,6 +292,35 @@ func _run() -> void:
         _fail("La pantalla de fase superada no recibe el botín.")
         return
     print("OK: las pantallas de la Vigilia son escenas (portada, fase superada, puerta cedida y pausa).")
+    # Fase 5b: barras, aviso, tutorial y menú de la baldosa son escenas del HUD.
+    var hud: Node = mode.get("hud")
+    if hud == null or hud.call("pieza", &"BarraSuperior") == null:
+        _fail("La Vigilia no tiene su HUD como escena.")
+        return
+    mode.call("_start", 0)
+    mode.set("info_time", 0.0)
+    mode.call("_open_popup_for", Vector2i(6, 3))
+    mode.call("_sync_pantallas")
+    var menu: Control = hud.call("pieza", &"MenuBaldosa")
+    if not menu.visible or str(menu.get("datos")["titulo"]) != "CONSTRUIR" or (hud.call("pieza", &"Aviso") as Control).visible:
+        _fail("El menú de la baldosa o el aviso del HUD no responden a la partida.")
+        return
+    if not mode.call("_popup_rect").is_equal_approx(menu.call("caja", 3, mode.get("popup")["anchor"])):
+        _fail("El menú del HUD y los toques de la Vigilia no coinciden.")
+        return
+    mode.set("popup", {})
+    mode.call("_start_tutorial")
+    mode.call("_sync_pantallas")
+    if not (hud.call("pieza", &"Tutorial") as Control).visible or menu.visible:
+        _fail("La tarjeta del tutorial no se ve en el HUD.")
+        return
+    mode.set("tut_step", -1)
+    mode.set("phase", "selection")
+    mode.call("_sync_pantallas")
+    if not (hud.call("pieza", &"BarraSuperior") as Control).visible or (hud.call("pieza", &"Tutorial") as Control).visible:
+        _fail("Las barras de la Vigilia no se ven en la portada.")
+        return
+    print("OK: HUD de la Vigilia (barras, aviso, tutorial y menú de la baldosa) como escena.")
     mode.free()
     mode = null
     packed = null
