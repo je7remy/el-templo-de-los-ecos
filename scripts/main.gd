@@ -1625,6 +1625,9 @@ func _on_screen_action(screen: StringName, choice: StringName, value: Variant = 
                     _start_updater()
                 &"tactil":
                     _apply_touch_setting()
+                    _fit_screen()
+                &"zoom_movil":
+                    _fit_screen() # acerca o aleja la cámara al momento
         &"Splash":
             if choice == &"ajustes":
                 _open_settings("splash")
@@ -9644,6 +9647,10 @@ func _full_rect() -> Rect2:
 ## sigue al jugador en vertical. El marcador queda fijo en los bordes. En 3:2
 ## (y en las pruebas sin pantalla) no cambia nada: zoom 1, sin cámara.
 const CAM_MAX_ZOOM := 1.3
+## En el móvil la pantalla es pequeña: la cámara se acerca al jugador y lo
+## sigue en las dos direcciones (Configuración > Cámara en el móvil). «lejos»
+## muestra toda la sala, como en PC.
+const MOBILE_ZOOM := {"cerca": 1.9, "medio": 1.6}
 const CAM_WINDOW_TOP := 112.0 # entre la barra superior…
 const CAM_WINDOW_BOTTOM := 578.0 # …y la inferior
 var cam_zoom: float = 1.0
@@ -9700,6 +9707,11 @@ func _update_camera(dt: float, snap: bool = false) -> void:
         (post_rect.material as ShaderMaterial).set_shader_parameter("arena", Vector4(a.x, a.y, b.x, b.y))
 
 
+## ¿Se juega en un móvil (o con los controles táctiles forzados)?
+func _mobile_view() -> bool:
+    return OS.has_feature("mobile") or str(Ajustes.obtener("tactil", "auto")) == "siempre"
+
+
 func _fit_screen() -> void:
     var view: Vector2 = get_viewport_rect().size
     screen_pad = ((view - Vector2(W, H)) * 0.5).floor().max(Vector2.ZERO)
@@ -9714,6 +9726,8 @@ func _fit_screen() -> void:
     if mobile_finger < 0:
         joy_center = _joy_home()
     cam_zoom = clampf((W + screen_pad.x * 2.0) / float(W), 1.0, CAM_MAX_ZOOM)
+    if _mobile_view() and screen_pad != Vector2.ZERO:
+        cam_zoom = maxf(cam_zoom, float(MOBILE_ZOOM.get(str(Ajustes.obtener("zoom_movil", "cerca")), 0.0)))
     if post_rect != null and post_rect.material is ShaderMaterial:
         var pm := post_rect.material as ShaderMaterial
         pm.set_shader_parameter("canvas_size", view)
