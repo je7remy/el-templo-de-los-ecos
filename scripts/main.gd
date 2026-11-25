@@ -256,6 +256,9 @@ var game_mode: String = "title":
 @onready var hud: CanvasLayer = $Hud
 @onready var jugador: Node2D = $Jugador
 @onready var entidad: Node2D = $Entidad
+@onready var alimanas: Node = $Criaturas/Alimanas
+@onready var mastines: Node = $Criaturas/Mastines
+@onready var arietes: Node = $Criaturas/Arietes
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
@@ -545,6 +548,16 @@ func _ready() -> void:
     entidad.hilos_cortados.connect(func() -> void: _say("La onda corta sus hilos antes de que dispare.", 2.0))
     entidad.zarpa_alzada.connect(func() -> void: _sfx("raices", -7.0))
     entidad.zarpazo.connect(_on_tejedora_swipe)
+    for manada in [alimanas, mastines, arietes]:
+        manada.preparar(jugador, _is_blocked)
+    alimanas.aplastada.connect(_critter_die)
+    alimanas.mordisco.connect(func(_cr: Dictionary, info: Dictionary) -> void: _hurt(float(info["bite"]), float(info["fear"]), 0.6))
+    mastines.grunido.connect(func(_h: Dictionary) -> void: _sfx("grunido", -10.0, randf_range(0.9, 1.1)))
+    mastines.mordisco.connect(_on_hound_bite)
+    arietes.apunta.connect(func(_r: Dictionary) -> void: _sfx("k_piedra", -8.0, 0.7))
+    arietes.embiste.connect(func(_r: Dictionary) -> void: _sfx("k_golpe", -8.0, 0.6))
+    arietes.choca.connect(_on_ram_crash)
+    arietes.alcanza.connect(_on_ram_hit)
     _load_progress()
     _load_art()
     _load_room_scene() # sala 1 como fondo del menú
@@ -7283,10 +7296,6 @@ const CRITTER_SPOTS := {
     "1:3": {"paths": [[Vector2(120, 455), Vector2(840, 455)], [Vector2(270, 190), Vector2(690, 190)]], "nest": true},
     "2:0": {"paths": [[Vector2(120, 425), Vector2(840, 425)], [Vector2(120, 530), Vector2(840, 530)]], "nest": false},
 }
-const CRITTER_SPEED := 62.0
-const CRITTER_CHASE := 92.0
-const CRITTER_BITE := 6.0
-const CRITTER_RESPAWN := 9.0
 ## Verdad que revela cada piso (del diseño de los diez pisos).
 const FLOOR_TRUTHS = Pisos.FLOOR_TRUTHS
 var critters: Array = [] # {pos, a, b, to_b, alive, dead_t, respawn, flip, bite_cd}
@@ -7356,42 +7365,10 @@ func _critter_spots_auto() -> Dictionary:
     return {"paths": paths, "kinds": kinds, "nest": current_floor >= 4}
 
 
+## Alimañas: su máquina de estados compartida (Patrulla, Persigue, Muerta) está
+## en scenes/entidades/criaturas.tscn; aquí solo se le pasa la lista.
 func _update_critters(dt: float) -> void:
-    for cr in critters:
-        if not bool(cr["alive"]):
-            cr["dead_t"] = float(cr["dead_t"]) + dt
-            if bool(cr["respawn"]) and float(cr["dead_t"]) > CRITTER_RESPAWN and player_pos.distance_to(cr["a"]) > 160.0:
-                cr["alive"] = true # el nido repone la alimaña
-                cr["dead_t"] = 0.0
-                cr["pos"] = cr["a"]
-                cr["to_b"] = true
-            continue
-        cr["bite_cd"] = maxf(0.0, float(cr["bite_cd"]) - dt)
-        var info: Dictionary = CRITTER_KINDS.get(str(cr.get("kind", "rata")), CRITTER_KINDS["rata"])
-        var pos: Vector2 = cr["pos"]
-        var d: float = pos.distance_to(player_pos)
-        var target: Vector2
-        var speed: float = float(info["speed"])
-        var smell: float = float(info["smell"])
-        if d < smell:
-            target = player_pos # huele la sangre y se lanza
-            speed = float(info["chase"])
-        else:
-            target = cr["b"] if bool(cr["to_b"]) else cr["a"]
-            if pos.distance_to(target) < 6.0:
-                cr["to_b"] = not bool(cr["to_b"]) # al llegar, da media vuelta
-        var nxt: Vector2 = pos.move_toward(target, speed * dt)
-        if bool(info["fly"]) or not _is_blocked(nxt) or d >= smell:
-            if absf(nxt.x - pos.x) > 0.01:
-                cr["flip"] = nxt.x < pos.x
-            cr["pos"] = nxt
-        # Contacto: esquivando la aplastas; si no, muerde.
-        if d < 20.0:
-            if dash_left > 0.0:
-                _critter_die(cr)
-            elif float(cr["bite_cd"]) <= 0.0 and damage_cd <= 0.0:
-                cr["bite_cd"] = 1.0
-                _hurt(float(info["bite"]), float(info["fear"]), 0.6)
+    alimanas.actualizar(critters, dt, CRITTER_KINDS)
 
 
 func _critter_die(cr: Dictionary) -> void:
@@ -7865,10 +7842,7 @@ func _draw_tejedora_fire() -> void:
 ## encendida no se acercan a menos de dos casillas; a oscuras, cargan y
 ## muerden. En este piso la antorcha se consume (25 s por fósforo). Un golpe
 ## de antorcha o la Resonancia los espanta. Valores PROVISIONALES.
-const HOUND_SPEED := 70.0
-const HOUND_CHARGE := 165.0
-const HOUND_KEEP := 100.0 # distancia que guardan ante el fuego (≈ dos casillas)
-const HOUND_SIGHT := 290.0
+## (Velocidad, carga, distancia y vista: scripts/entidades/manadas/mastines.gd.)
 const HOUND_BITE := 20.0
 const HOUND_TEX := preload("res://assets/visual/enemies/mastin.png")
 var hounds: Array = [] # {pos, prev, home, wander, wander_t, flee, bite_cd, bite_t, facing, moving, growl_t, detour, detour_t}
@@ -7918,73 +7892,20 @@ func _update_labyrinth(dt: float) -> void:
         _say("La antorcha se ha consumido. Vuelve a encenderla (gasta un fósforo).", 3.0)
 
 
-func _hound_move(h: Dictionary, dir: Vector2, speed: float, dt: float) -> void:
-    if dir.length() < 0.01:
-        return
-    if float(h["detour_t"]) > 0.0:
-        h["detour_t"] = float(h["detour_t"]) - dt
-        dir = h["detour"]
-    var pos: Vector2 = h["pos"]
-    var nxt: Vector2 = pos + dir.normalized() * speed * dt
-    if not _is_blocked(nxt):
-        h["pos"] = nxt
-        return
-    var perp := Vector2(-dir.y, dir.x).normalized()
-    for cand in [perp, -perp, -dir.normalized()]:
-        var try_pos: Vector2 = pos + (cand as Vector2) * speed * dt
-        if not _is_blocked(try_pos):
-            h["pos"] = try_pos
-            h["detour"] = cand
-            h["detour_t"] = 0.6
-            return
+## (Los mastines se mueven y rodean en scripts/entidades/manadas/mastines.gd.)
 
 
+## Mastines: su máquina de estados compartida (Vaga, Ronda, Carga, Huye) está
+## en scenes/entidades/criaturas.tscn.
 func _update_hounds(dt: float) -> void:
-    for h in hounds:
-        var pos: Vector2 = h["pos"]
-        var d: float = pos.distance_to(player_pos)
-        var away: Vector2 = (pos - player_pos).normalized() if d > 0.1 else Vector2.RIGHT
-        h["bite_cd"] = maxf(0.0, float(h["bite_cd"]) - dt)
-        h["bite_t"] = maxf(0.0, float(h["bite_t"]) - dt)
-        if float(h["flee"]) > 0.0:
-            h["flee"] = float(h["flee"]) - dt
-            _hound_move(h, away, 150.0, dt)
-        elif d < HOUND_SIGHT:
-            if torch_on:
-                # Temen al fuego: guardan distancia y rondan gruñendo.
-                if d < HOUND_KEEP:
-                    _hound_move(h, away, 120.0, dt)
-                else:
-                    _hound_move(h, Vector2(-away.y, away.x), 45.0, dt)
-                h["growl_t"] = float(h["growl_t"]) - dt
-                if float(h["growl_t"]) <= 0.0 and d < 180.0:
-                    h["growl_t"] = randf_range(2.5, 4.5)
-                    _sfx("grunido", -10.0, randf_range(0.9, 1.1))
-            else:
-                _hound_move(h, -away, HOUND_CHARGE, dt)
-                if d < 26.0 and float(h["bite_cd"]) <= 0.0:
-                    h["bite_cd"] = 1.2
-                    h["bite_t"] = 0.25
-                    h["flee"] = 0.5 # muerde y se aparta un instante
-                    if dash_left <= 0.0 and damage_cd <= 0.0:
-                        _hurt(HOUND_BITE * _depth_mult(), 14.0, 0.8)
-                        _sfx("grunido", -4.0, 1.3)
-        else:
-            h["wander_t"] = float(h["wander_t"]) - dt
-            if float(h["wander_t"]) <= 0.0:
-                h["wander_t"] = randf_range(1.5, 3.0)
-                h["wander"] = Vector2(h["home"]) + Vector2(randf_range(-70, 70), randf_range(-50, 50))
-            if pos.distance_to(h["wander"]) > 6.0:
-                _hound_move(h, Vector2(h["wander"]) - pos, HOUND_SPEED, dt)
-        var moved: Vector2 = Vector2(h["pos"]) - Vector2(h["prev"])
-        h["moving"] = moved.length() > 5.0 * dt
-        var look: Vector2 = moved if bool(h["moving"]) else (player_pos - Vector2(h["pos"]))
-        if look.length() > 0.5:
-            if absf(look.x) > absf(look.y):
-                h["facing"] = 2 if look.x > 0.0 else 3
-            else:
-                h["facing"] = 0 if look.y > 0.0 else 1
-        h["prev"] = h["pos"]
+    mastines.actualizar(hounds, dt, torch_on)
+
+
+## Un mastín muerde: si no esquivas, te alcanza.
+func _on_hound_bite(_h: Dictionary) -> void:
+    if dash_left <= 0.0 and damage_cd <= 0.0:
+        _hurt(HOUND_BITE * _depth_mult(), 14.0, 0.8)
+        _sfx("grunido", -4.0, 1.3)
 
 
 func _strike_hounds_and_rescue() -> void:
@@ -9241,12 +9162,8 @@ func _depth_mult() -> float:
 const RAM_TEX := preload("res://assets/visual/enemies/ariete.png")
 const COLOSSUS_TEX := preload("res://assets/visual/enemies/coloso.png")
 const RAM_HP := 70.0
-const RAM_SIGHT := 330.0
-const RAM_ALIGN := 24.0
-const RAM_WINDUP := 0.6
-const RAM_SPEED := 430.0
+const RAM_WINDUP := 0.6 # (vista, alineación y velocidad: scripts/entidades/manadas/arietes.gd)
 const RAM_DAMAGE := 28.0
-const RAM_STUN := 2.0
 const COLOSSUS_SPEED := 40.0
 const COLOSSUS_STOMP_RADIUS := 130.0
 const COLOSSUS_WINDUP := 0.85
@@ -9287,62 +9204,27 @@ func _load_colossus_room() -> void:
         colossus_cd = 2.5
 
 
+## Arietes: su máquina de estados compartida (Quieto, Apunta, Embiste,
+## Aturdido) está en scenes/entidades/criaturas.tscn.
 func _update_rams(dt: float) -> void:
-    for r in rams:
-        var pos: Vector2 = r["pos"]
-        r["cd"] = maxf(0.0, float(r["cd"]) - dt)
-        match str(r["state"]):
-            "idle":
-                var d: Vector2 = player_pos - pos
-                var aligned_x: bool = absf(d.y) < RAM_ALIGN and absf(d.x) < RAM_SIGHT
-                var aligned_y: bool = absf(d.x) < RAM_ALIGN and absf(d.y) < RAM_SIGHT
-                if float(r["cd"]) <= 0.0 and (aligned_x or aligned_y):
-                    r["state"] = "aim"
-                    r["t"] = RAM_WINDUP
-                    r["dir"] = Vector2(signf(d.x), 0) if aligned_x else Vector2(0, signf(d.y))
-                    _sfx("k_piedra", -8.0, 0.7)
-                else:
-                    r["t"] = float(r["t"]) - dt
-                    if float(r["t"]) <= 0.0:
-                        r["t"] = randf_range(1.2, 2.4)
-                        r["wander"] = Vector2(r["home"]) + Vector2(randf_range(-60, 60), randf_range(-40, 40))
-                    var nxt: Vector2 = pos.move_toward(r["wander"], 30.0 * dt)
-                    if not _is_blocked(nxt):
-                        r["pos"] = nxt
-            "aim":
-                r["t"] = float(r["t"]) - dt
-                if float(r["t"]) <= 0.0:
-                    r["state"] = "charge"
-                    r["t"] = 1.6
-                    _sfx("k_golpe", -8.0, 0.6)
-            "charge":
-                r["t"] = float(r["t"]) - dt
-                var step: Vector2 = Vector2(r["dir"]) * RAM_SPEED * dt
-                var nxt2: Vector2 = pos + step
-                if _is_blocked(nxt2) or float(r["t"]) <= 0.0:
-                    r["state"] = "stun"
-                    r["t"] = RAM_STUN
-                    shake = maxf(shake, 0.3)
-                    _sfx("k_piedra", -4.0, 0.5)
-                    _emit(pos + Vector2(r["dir"]) * 20.0 + Vector2(0, -14), 16, Color(0.6, 0.58, 0.52), 30.0, 110.0, 0.7, 2.0, 120.0, -Vector2(r["dir"]), 1.2)
-                else:
-                    r["pos"] = nxt2
-                    if nxt2.distance_to(player_pos) < 30.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                        _hurt(RAM_DAMAGE, 12.0, 1.0)
-                        var push: Vector2 = player_pos + Vector2(r["dir"]) * 34.0
-                        if not _is_blocked(push):
-                            player_pos = push
-            "stun":
-                r["t"] = float(r["t"]) - dt
-                if float(r["t"]) <= 0.0:
-                    r["state"] = "idle"
-                    r["cd"] = 1.2
-        var moved: Vector2 = Vector2(r["pos"]) - Vector2(r["prev"])
-        var look: Vector2 = Vector2(r["dir"]) if str(r["state"]) in ["aim", "charge"] else (moved if moved.length() > 0.1 else player_pos - Vector2(r["pos"]))
-        if look.length() > 0.1:
-            r["facing"] = (2 if look.x > 0.0 else 3) if absf(look.x) > absf(look.y) else (0 if look.y > 0.0 else 1)
-        r["moving"] = moved.length() > 4.0 * dt
-        r["prev"] = r["pos"]
+    arietes.actualizar(rams, dt)
+
+
+## Un ariete choca contra un muro o columna: queda aturdido.
+func _on_ram_crash(r: Dictionary, at: Vector2) -> void:
+    shake = maxf(shake, 0.3)
+    _sfx("k_piedra", -4.0, 0.5)
+    _emit(at + Vector2(r["dir"]) * 20.0 + Vector2(0, -14), 16, Color(0.6, 0.58, 0.52), 30.0, 110.0, 0.7, 2.0, 120.0, -Vector2(r["dir"]), 1.2)
+
+
+## Un ariete te alcanza en plena carrera: te hiere y te empuja.
+func _on_ram_hit(r: Dictionary) -> void:
+    if dash_left > 0.0 or damage_cd > 0.0:
+        return
+    _hurt(RAM_DAMAGE, 12.0, 1.0)
+    var push: Vector2 = player_pos + Vector2(r["dir"]) * 34.0
+    if not _is_blocked(push):
+        player_pos = push
 
 
 func _strike_rams_and_pillars() -> void:

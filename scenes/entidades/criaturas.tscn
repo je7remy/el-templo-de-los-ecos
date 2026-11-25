@@ -1,0 +1,60 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/entidades/manadas/alimanas.gd" id="1_alimanas"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/alimanas/patrulla.gd" id="2_patrulla"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/alimanas/persigue.gd" id="3_persigue"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/alimanas/muerta.gd" id="4_muerta"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/mastines.gd" id="5_mastines"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/mastines/vaga.gd" id="6_vaga"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/mastines/ronda.gd" id="7_ronda"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/mastines/carga.gd" id="8_carga"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/mastines/huye.gd" id="9_huye"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/arietes.gd" id="10_arietes"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/arietes/quieto.gd" id="11_quieto"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/arietes/apunta.gd" id="12_apunta"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/arietes/embiste.gd" id="13_embiste"]
+[ext_resource type="Script" path="res://scripts/entidades/manadas/arietes/aturdido.gd" id="14_aturdido"]
+
+[node name="Criaturas" type="Node"]
+
+[node name="Alimanas" type="Node" parent="."]
+script = ExtResource("1_alimanas")
+
+[node name="Patrulla" type="Node" parent="Alimanas"]
+script = ExtResource("2_patrulla")
+
+[node name="Persigue" type="Node" parent="Alimanas"]
+script = ExtResource("3_persigue")
+
+[node name="Muerta" type="Node" parent="Alimanas"]
+script = ExtResource("4_muerta")
+
+[node name="Mastines" type="Node" parent="."]
+script = ExtResource("5_mastines")
+
+[node name="Vaga" type="Node" parent="Mastines"]
+script = ExtResource("6_vaga")
+
+[node name="Ronda" type="Node" parent="Mastines"]
+script = ExtResource("7_ronda")
+
+[node name="Carga" type="Node" parent="Mastines"]
+script = ExtResource("8_carga")
+
+[node name="Huye" type="Node" parent="Mastines"]
+script = ExtResource("9_huye")
+
+[node name="Arietes" type="Node" parent="."]
+script = ExtResource("10_arietes")
+
+[node name="Quieto" type="Node" parent="Arietes"]
+script = ExtResource("11_quieto")
+
+[node name="Apunta" type="Node" parent="Arietes"]
+script = ExtResource("12_apunta")
+
+[node name="Embiste" type="Node" parent="Arietes"]
+script = ExtResource("13_embiste")
+
+[node name="Aturdido" type="Node" parent="Arietes"]
+script = ExtResource("14_aturdido")
