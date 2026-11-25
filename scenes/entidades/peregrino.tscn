@@ -1,0 +1,35 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/entidades/peregrino.gd" id="1_peregrino"]
+[ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="2_maquina_estados"]
+[ext_resource type="Script" path="res://scripts/entidades/peregrino/quieto.gd" id="3_quieto"]
+[ext_resource type="Script" path="res://scripts/entidades/peregrino/sigue.gd" id="4_sigue"]
+[ext_resource type="Script" path="res://scripts/entidades/peregrino/desenvaina.gd" id="5_desenvaina"]
+[ext_resource type="Script" path="res://scripts/entidades/peregrino/hostil.gd" id="6_hostil"]
+
+[node name="Peregrino" type="Node2D"]
+script = ExtResource("1_peregrino")
+
+[node name="Maquina" type="Node" parent="."]
+script = ExtResource("2_maquina_estados")
+
+[node name="Ausente" type="Node" parent="Maquina"]
+script = ExtResource("3_quieto")
+
+[node name="Espera" type="Node" parent="Maquina"]
+script = ExtResource("3_quieto")
+
+[node name="Sigue" type="Node" parent="Maquina"]
+script = ExtResource("4_sigue")
+
+[node name="Desenvaina" type="Node" parent="Maquina"]
+script = ExtResource("5_desenvaina")
+
+[node name="Hostil" type="Node" parent="Maquina"]
+script = ExtResource("6_hostil")
+
+[node name="Amigo" type="Node" parent="Maquina"]
+script = ExtResource("4_sigue")
+
+[node name="Muerto" type="Node" parent="Maquina"]
+script = ExtResource("3_quieto")

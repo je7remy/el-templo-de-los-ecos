@@ -38,6 +38,7 @@ const Jugador := preload("res://scripts/entidades/jugador.gd")
 const Entidad := preload("res://scripts/entidades/entidad.gd")
 const Coloso := preload("res://scripts/entidades/jefes/coloso.gd")
 const Hermano := preload("res://scripts/entidades/jefes/hermano.gd")
+const Vigia := preload("res://scripts/entidades/jefes/vigia.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -263,6 +264,8 @@ var game_mode: String = "title":
 @onready var arietes: Node = $Criaturas/Arietes
 @onready var coloso: Node2D = $Jefes/Coloso
 @onready var hermano: Node2D = $Jefes/HermanoMayor
+@onready var vigia: Node2D = $Jefes/Vigia
+@onready var peregrino: Node2D = $Peregrino
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
@@ -353,19 +356,64 @@ var door_msg_cd: float = 0.0
 ## vidas es un traidor; a veces es sincero. Nadie lo sabe hasta la Cosecha.
 const PILGRIM_MAX_HP := 70.0
 const PILGRIM_TRAITOR_CHANCE := 0.7
-var pilgrim_state: String = "none" # none, waiting, follow, tell, hostile, friend, dead
-var pilgrim_traitor: bool = true
-var pilgrim_pos: Vector2 = Vector2.ZERO
-var pilgrim_prev: Vector2 = Vector2.ZERO
-var pilgrim_facing: int = 0
-var pilgrim_moving: bool = false
+## El Peregrino es una escena (scenes/entidades/peregrino.tscn); atajos:
+var pilgrim_state: String: # none, waiting, follow, tell, hostile, friend, dead
+    get:
+        return peregrino.estado()
+    set(v):
+        peregrino.poner(v)
+var pilgrim_traitor: bool:
+    get:
+        return peregrino.traidor
+    set(v):
+        peregrino.traidor = v
+var pilgrim_pos: Vector2:
+    get:
+        return peregrino.position
+    set(v):
+        peregrino.position = v
+var pilgrim_prev: Vector2:
+    get:
+        return peregrino.anterior
+    set(v):
+        peregrino.anterior = v
+var pilgrim_facing: int:
+    get:
+        return peregrino.orientacion
+    set(v):
+        peregrino.orientacion = v
+var pilgrim_moving: bool:
+    get:
+        return peregrino.moviendose
+    set(v):
+        peregrino.moviendose = v
 var pilgrim_hp: float = PILGRIM_MAX_HP
 var pilgrim_souls: int = 0
-var pilgrim_timer: float = 0.0 # aviso antes de traicionar / carga del tajo
-var pilgrim_cd: float = 0.0
-var pilgrim_lunge: float = 0.0
-var pilgrim_hit_t: float = 0.0
-var pilgrim_stun: float = 0.0
+var pilgrim_timer: float: # aviso antes de traicionar / carga del tajo
+    get:
+        return peregrino.temporizador
+    set(v):
+        peregrino.temporizador = v
+var pilgrim_cd: float:
+    get:
+        return peregrino.cd
+    set(v):
+        peregrino.cd = v
+var pilgrim_lunge: float:
+    get:
+        return peregrino.estocada
+    set(v):
+        peregrino.estocada = v
+var pilgrim_hit_t: float:
+    get:
+        return peregrino.golpe_t
+    set(v):
+        peregrino.golpe_t = v
+var pilgrim_stun: float:
+    get:
+        return peregrino.aturdido
+    set(v):
+        peregrino.aturdido = v
 var pilgrim_wronged: bool = false # lo atacaste siendo sincero
 var pilgrim_line: String = ""
 var pilgrim_line_t: float = 0.0
@@ -570,6 +618,18 @@ func _ready() -> void:
     hermano.regla.connect(_on_elder_rule)
     hermano.hilos_activos.connect(func() -> void: _sfx("k_metal", -6.0, 1.4))
     hermano.rugido.connect(_on_elder_roar)
+    for jefe in [vigia, peregrino]:
+        jefe.preparar(jugador, _is_blocked)
+    vigia.provocada.connect(_gaze_provoke)
+    vigia.amago.connect(func() -> void: _sfx("latigo", -12.0, 0.7))
+    vigia.ruido_hecho.connect(_on_gaze_noise)
+    vigia.mirando.connect(_on_gaze_watch)
+    vigia.ataca.connect(func() -> void: _sfx("latigo", -4.0, 0.9))
+    vigia.alcanza.connect(_on_gaze_hit)
+    vigia.presa_alcanzada.connect(_on_gaze_prey_caught)
+    peregrino.toma_alma.connect(_pilgrim_take_relic)
+    peregrino.prepara_tajo.connect(func() -> void: _sfx("cuchillo", -12.0, 1.3))
+    peregrino.tajo.connect(_on_pilgrim_slash)
     _load_progress()
     _load_art()
     _load_room_scene() # sala 1 como fondo del menú
@@ -4120,103 +4180,22 @@ func _update_pilgrim(dt: float) -> void:
     nuca_cd = maxf(0.0, nuca_cd - dt)
     if not _pilgrim_present():
         return
-    pilgrim_hit_t = maxf(0.0, pilgrim_hit_t - dt)
-    pilgrim_cd = maxf(0.0, pilgrim_cd - dt)
-    pilgrim_lunge = maxf(0.0, pilgrim_lunge - dt)
-    pilgrim_stun = maxf(0.0, pilgrim_stun - dt)
-    var dirn: Vector2 = player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT
-    match pilgrim_state:
-        "follow", "friend":
-            # El traidor se queda a tu espalda; el sincero camina a tu lado.
-            var target: Vector2 = player_pos - dirn * 46.0
-            if not pilgrim_traitor or pilgrim_state == "friend":
-                target = player_pos + dirn * 18.0 + Vector2(-dirn.y, dirn.x) * 40.0
-            # Compite por las almas. El sincero solo toma las que le quedan más
-            # cerca a él; el traidor, codicioso, va a por la que más le ventaja
-            # te saca (la que tú no estás a punto de coger).
-            if pilgrim_state == "follow":
-                var best: int = -1
-                var best_gain: float = -INF
-                for i in range(relics.size()):
-                    if collected[i]:
-                        continue
-                    var mine: float = pilgrim_pos.distance_to(relics[i])
-                    var yours: float = player_pos.distance_to(relics[i])
-                    var wants: bool = mine < 150.0 and mine < yours
-                    if pilgrim_traitor:
-                        wants = mine < 340.0 and yours > 110.0
-                    if wants and yours - mine > best_gain:
-                        best_gain = yours - mine
-                        best = i
-                if best >= 0:
-                    target = relics[best]
-                    if pilgrim_pos.distance_to(relics[best]) < 22.0:
-                        _pilgrim_take_relic(best)
-            _pilgrim_move_to(target, 140.0, dt)
-            if _has("cosecha") and pilgrim_state == "follow" and not collected.has(false):
-                _pilgrim_harvest()
-        "tell":
-            pilgrim_timer -= dt
-            _pilgrim_face(player_pos - pilgrim_pos)
-            pilgrim_moving = false
-            if pilgrim_timer <= 0.0:
-                pilgrim_state = "hostile"
-        "hostile":
-            if pilgrim_stun > 0.0:
-                pilgrim_moving = false
-            elif pilgrim_timer > 0.0:
-                # Carga del tajo: se detiene y alza el cuchillo (aviso justo).
-                pilgrim_timer -= dt
-                pilgrim_moving = false
-                _pilgrim_face(player_pos - pilgrim_pos)
-                if pilgrim_timer <= 0.0:
-                    pilgrim_lunge = 0.22
-                    pilgrim_cd = 1.2
-                    if pilgrim_pos.distance_to(player_pos) < 46.0 and damage_cd <= 0.0:
-                        _hurt(26.0, 14.0, 1.2)
-                        _say("El cuchillo del Peregrino te alcanza.", 2.2)
-            else:
-                _pilgrim_move_to(player_pos, 172.0, dt)
-                if pilgrim_pos.distance_to(player_pos) < 38.0 and pilgrim_cd <= 0.0:
-                    pilgrim_timer = 0.42
-                    _sfx("cuchillo", -12.0, 1.3)
+    var was_follow: bool = pilgrim_state in ["follow", "friend"]
+    # Seguirte, competir por las almas, desenvainar y atacar: su máquina.
+    peregrino.actualizar(dt, {"almas": relics, "recogidas": collected})
+    if was_follow and _has("cosecha") and pilgrim_state == "follow" and not collected.has(false):
+        _pilgrim_harvest()
     # Nuca fría: sientes a quien te quiere mal cuando está a tu espalda.
     if ecos.has("nuca") and _pilgrim_behind() and nuca_cd <= 0.0:
         nuca_cd = 4.0
         _sfx("aviso", -14.0, 0.8)
 
 
-func _pilgrim_move_to(target: Vector2, speed: float, dt: float) -> void:
-    var delta_v := target - pilgrim_pos
-    if delta_v.length() < 12.0:
-        pilgrim_moving = false
-        return
-    var step := delta_v.normalized() * speed * dt
-    var moved := false
-    var nx := Vector2(pilgrim_pos.x + step.x, pilgrim_pos.y)
-    if not _is_blocked(nx):
-        pilgrim_pos.x = nx.x
-        moved = true
-    var ny := Vector2(pilgrim_pos.x, pilgrim_pos.y + step.y)
-    if not _is_blocked(ny):
-        pilgrim_pos.y = ny.y
-        moved = true
-    # Atascado lejos de ti: retoma el camino detrás de tus pasos.
-    if not moved and pilgrim_pos.distance_to(player_pos) > 160.0:
-        var behind := player_pos - player_dir.normalized() * 40.0
-        if not _is_blocked(behind):
-            pilgrim_pos = behind
-    pilgrim_moving = moved
-    _pilgrim_face(step)
-
-
-func _pilgrim_face(v: Vector2) -> void:
-    if v.length() < 0.1:
-        return
-    if absf(v.x) > absf(v.y):
-        pilgrim_facing = 2 if v.x > 0.0 else 3
-    else:
-        pilgrim_facing = 0 if v.y > 0.0 else 1
+## El tajo del Peregrino: si estás a su alcance, te hiere.
+func _on_pilgrim_slash(reach: bool) -> void:
+    if reach:
+        _hurt(26.0, 14.0, 1.2)
+        _say("El cuchillo del Peregrino te alcanza.", 2.2)
 
 
 func _pilgrim_take_relic(i: int) -> void:
@@ -8529,29 +8508,81 @@ func _update_level_fx(dt: float) -> void:
 const VIGIA_TEX := preload("res://assets/visual/enemies/vigia.png")
 const VIGIA_CELL := Vector2(64, 96)
 const VIGIA_BASE := 92.0
-const GAZE_CENTER := Vector2(480, 350)
-const GAZE_RADIUS := Vector2(250, 130)
-const GAZE_GRACE := 0.7 # segundos de espalda que tolera
+const GAZE_CENTER := Vigia.CENTRO # (órbita y gracia: scripts/entidades/jefes/vigia.gd)
+const GAZE_RADIUS := Vigia.RADIO
 const GAZE_FACING := -0.2 # producto escalar mínimo para «mirarla»
 const GAZE_WINDUP := 0.55
 const GAZE_DAMAGE := 30.0
 const GAZE_PENALTY := 6.0 # segundos de mirada que pierdes si la provocas
 const GAZE_PANIC := 4.0 # tiempo para calmar a un peregrino
 var gaze_active: bool = false
-var gaze_pos: Vector2 = Vector2.ZERO
-var gaze_angle: float = 0.0
-var gaze_t: float = 0.0
-var gaze_need: float = 0.0
-var gaze_state: String = "mira" # mira | aviso | golpe | caza | vencida
-var gaze_state_t: float = 0.0
-var gaze_away_t: float = 0.0
-var gaze_target: Vector2 = Vector2.ZERO
-var gaze_feint_t: float = 0.0
-var gaze_feint: float = 0.0
-var gaze_noise_t: float = 0.0
-var gaze_noise: Dictionary = {}
+## La Vigía es una escena (scenes/entidades/jefes.tscn); atajos a sus datos:
+var gaze_pos: Vector2:
+    get:
+        return vigia.position
+    set(v):
+        vigia.position = v
+var gaze_angle: float:
+    get:
+        return vigia.angulo
+    set(v):
+        vigia.angulo = v
+var gaze_t: float:
+    get:
+        return vigia.mirada_t
+    set(v):
+        vigia.mirada_t = v
+var gaze_need: float:
+    get:
+        return vigia.necesita
+    set(v):
+        vigia.necesita = v
+var gaze_state: String: # mira | aviso | golpe | caza | vencida
+    get:
+        return vigia.estado()
+    set(v):
+        vigia.poner(v)
+var gaze_state_t: float:
+    get:
+        return vigia.estado_t
+    set(v):
+        vigia.estado_t = v
+var gaze_away_t: float:
+    get:
+        return vigia.espalda_t
+    set(v):
+        vigia.espalda_t = v
+var gaze_target: Vector2:
+    get:
+        return vigia.objetivo
+    set(v):
+        vigia.objetivo = v
+var gaze_feint_t: float:
+    get:
+        return vigia.amago_t
+    set(v):
+        vigia.amago_t = v
+var gaze_feint: float:
+    get:
+        return vigia.amago_k
+    set(v):
+        vigia.amago_k = v
+var gaze_noise_t: float:
+    get:
+        return vigia.ruido_t
+    set(v):
+        vigia.ruido_t = v
+var gaze_noise: Dictionary:
+    get:
+        return vigia.ruido
+    set(v):
+        vigia.ruido = v
 var gaze_panic_done: bool = false
-var gaze_prey: Dictionary = {}
+var gaze_prey: Dictionary:
+    get:
+        return vigia.presa
+    set(v):
+        vigia.presa = v
 
 
 func _load_gaze() -> void:
@@ -8575,7 +8606,7 @@ func _load_gaze() -> void:
 
 
 func _gaze_orbit() -> Vector2:
-    return GAZE_CENTER + Vector2(cos(gaze_angle) * GAZE_RADIUS.x, sin(gaze_angle) * GAZE_RADIUS.y)
+    return vigia.orbita()
 
 
 ## ¿La está mirando? Basta con no darle la espalda.
@@ -8593,74 +8624,40 @@ func _update_gaze(dt: float) -> void:
     if gaze_state == "vencida":
         return
     fear = minf(100.0, fear + dt * 2.5)
-    var facing: bool = _gaze_facing()
-    match gaze_state:
-        "mira":
-            gaze_angle += dt * 0.22
-            var orbit: Vector2 = _gaze_orbit()
-            gaze_feint = maxf(0.0, gaze_feint - dt)
-            var lunge: Vector2 = (player_pos - orbit).normalized() * 70.0 * sin(PI * gaze_feint / 0.5) if gaze_feint > 0.0 else Vector2.ZERO
-            gaze_pos = gaze_pos.move_toward(orbit + lunge, 260.0 * dt)
-            gaze_away_t = gaze_away_t + dt if not facing else maxf(0.0, gaze_away_t - dt * 2.0)
-            if gaze_state_t <= 0.0 and (gaze_away_t > GAZE_GRACE or dash_left > 0.0):
-                _gaze_provoke("¡Le diste la espalda!" if dash_left <= 0.0 else "¡Corriste!")
-                return
-            if facing:
-                gaze_t += dt
-            # Amagos: se lanza sin aviso rojo y vuelve. Esquivar la provoca.
-            gaze_feint_t -= dt
-            if gaze_feint_t <= 0.0:
-                gaze_feint_t = randf_range(6.0, 9.0)
-                gaze_feint = 0.5
-                _sfx("latigo", -12.0, 0.7)
-            # Ruidos a tu espalda para que te des la vuelta.
-            gaze_noise_t -= dt
-            if gaze_noise_t <= 0.0:
-                gaze_noise_t = randf_range(8.0, 12.0)
-                var behind: Vector2 = player_pos - (gaze_pos - player_pos).normalized() * 110.0
-                gaze_noise = {"pos": behind, "t": 1.6}
-                _sfx("k_piedra", -6.0, 0.6)
-                _emit(behind, 10, Color(0.55, 0.5, 0.45, 0.6), 10.0, 50.0, 0.7, 2.0, 60.0, Vector2.UP, 1.4)
-            # Pánico de un peregrino a mitad de la prueba.
-            if not gaze_panic_done and gaze_t > gaze_need * 0.4 and guiding:
-                gaze_panic_done = true
-                _gaze_panic()
-            _update_panic(dt)
-            if gaze_t >= gaze_need:
-                _gaze_defeat()
-        "aviso":
-            if gaze_state_t <= 0.0:
-                gaze_state = "golpe"
-                gaze_state_t = 0.8
-                gaze_target = player_pos
-                _sfx("latigo", -4.0, 0.9)
-        "golpe":
-            gaze_pos = gaze_pos.move_toward(gaze_target, 560.0 * dt)
-            if gaze_pos.distance_to(player_pos) < 34.0 and damage_cd <= 0.0 and dash_left <= 0.0:
-                shake = maxf(shake, 0.5)
-                _hurt(GAZE_DAMAGE * _depth_mult(), 20.0, 1.0)
-                _sfx("dano", -4.0, 0.8)
-                gaze_state_t = 0.0
-            if gaze_state_t <= 0.0 or gaze_pos.distance_to(gaze_target) < 4.0:
-                gaze_state = "mira"
-                gaze_away_t = 0.0
-                gaze_state_t = 0.8 # respiro: el esquive con el que la evitaste no cuenta
-        "caza":
-            if gaze_prey.is_empty() or not bool(gaze_prey["alive"]):
-                gaze_state = "mira"
-                return
-            gaze_pos = gaze_pos.move_toward(gaze_prey["pos"], 520.0 * dt)
-            if gaze_pos.distance_to(gaze_prey["pos"]) < 30.0:
-                gaze_prey["flee"] = false
-                _ally_die(gaze_prey)
-                _karma(-1, "No llegaste a calmarlo")
-                _emit(Vector2(gaze_prey["pos"]) + Vector2(0, -20), 30, Color(0.6, 0.05, 0.1), 40.0, 160.0, 0.9, 3.0, 300.0, Vector2.UP, 1.6)
-                gaze_prey = {}
-                gaze_state = "mira"
-    if not gaze_noise.is_empty():
-        gaze_noise["t"] = float(gaze_noise["t"]) - dt
-        if float(gaze_noise["t"]) <= 0.0:
-            gaze_noise = {}
+    # Mirar, avisar, golpear y cazar: su máquina de estados.
+    vigia.actualizar(dt, {"la_miras": _gaze_facing()})
+
+
+## Ruido a tu espalda: suena y levanta polvo donde está.
+func _on_gaze_noise(at: Vector2) -> void:
+    _sfx("k_piedra", -6.0, 0.6)
+    _emit(at, 10, Color(0.55, 0.5, 0.45, 0.6), 10.0, 50.0, 0.7, 2.0, 60.0, Vector2.UP, 1.4)
+
+
+## Cada cuadro de mirada: pánico de un peregrino a mitad de la prueba y victoria.
+func _on_gaze_watch(dt: float) -> void:
+    if not gaze_panic_done and gaze_t > gaze_need * 0.4 and guiding:
+        gaze_panic_done = true
+        _gaze_panic()
+    _update_panic(dt)
+    if gaze_t >= gaze_need:
+        _gaze_defeat()
+
+
+func _on_gaze_hit() -> void:
+    shake = maxf(shake, 0.5)
+    _hurt(GAZE_DAMAGE * _depth_mult(), 20.0, 1.0)
+    _sfx("dano", -4.0, 0.8)
+
+
+## Alcanza al peregrino que huía de pánico.
+func _on_gaze_prey_caught() -> void:
+    gaze_prey["flee"] = false
+    _ally_die(gaze_prey)
+    _karma(-1, "No llegaste a calmarlo")
+    _emit(Vector2(gaze_prey["pos"]) + Vector2(0, -20), 30, Color(0.6, 0.05, 0.1), 40.0, 160.0, 0.9, 3.0, 300.0, Vector2.UP, 1.6)
+    gaze_prey = {}
+    gaze_state = "mira"
 
 
 func _gaze_provoke(reason: String) -> void:

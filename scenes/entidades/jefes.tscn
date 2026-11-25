@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/comun/maquina_estados.gd" id="1_comun_maquina_estados"]
 [ext_resource type="Script" path="res://scripts/entidades/jefes/coloso.gd" id="2_jefes_coloso"]
@@ -15,6 +15,12 @@
 [ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/ruge.gd" id="13_hermano_ruge"]
 [ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/cansado.gd" id="14_hermano_cansado"]
 [ext_resource type="Script" path="res://scripts/entidades/jefes/hermano/mira.gd" id="15_hermano_mira"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/vigia.gd" id="90_vigia"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/vigia/mira.gd" id="91_vigia_mira"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/vigia/aviso.gd" id="92_vigia_aviso"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/vigia/golpe.gd" id="93_vigia_golpe"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/vigia/caza.gd" id="94_vigia_caza"]
+[ext_resource type="Script" path="res://scripts/entidades/jefes/vigia/vencida.gd" id="95_vigia_vencida"]
 
 [node name="Jefes" type="Node"]
 
@@ -65,3 +71,24 @@ script = ExtResource("14_hermano_cansado")
 
 [node name="Mira" type="Node" parent="HermanoMayor/Maquina"]
 script = ExtResource("15_hermano_mira")
+
+[node name="Vigia" type="Node2D" parent="."]
+script = ExtResource("90_vigia")
+
+[node name="Maquina" type="Node" parent="Vigia"]
+script = ExtResource("1_comun_maquina_estados")
+
+[node name="Mira" type="Node" parent="Vigia/Maquina"]
+script = ExtResource("91_vigia_mira")
+
+[node name="Aviso" type="Node" parent="Vigia/Maquina"]
+script = ExtResource("92_vigia_aviso")
+
+[node name="Golpe" type="Node" parent="Vigia/Maquina"]
+script = ExtResource("93_vigia_golpe")
+
+[node name="Caza" type="Node" parent="Vigia/Maquina"]
+script = ExtResource("94_vigia_caza")
+
+[node name="Vencida" type="Node" parent="Vigia/Maquina"]
+script = ExtResource("95_vigia_vencida")
