@@ -16,6 +16,6 @@
 - Wizard (sala IV) lanza proyectiles hacia el jugador si la linterna está encendida y detecta al personaje.
 - Cantidad de fragmentos, precios, duración de enfriamientos, niveles, salud, nombres, pistas y resultados de superar el piso son valores de prueba.
 - El sprite provisional del protagonista se mantiene para permitir probar el circuito de principio a fin.
-- No se ha creado un mapa de tiles independiente en Godot: los cinco fondos están compuestos a partir de sprites genuinos Knowledge Temple. Se podrán pasar posteriormente a TileMapLayer para editar niveles visualmente.
+- Las salas ya son escenas editables (`rooms/sala_N.tscn`): la arquitectura es un `TileMapLayer` de 32 × 32 (`rooms/templo_tileset.tres`) y los objetos son `Sprite2D` con su colisión (ver `docs/EDITAR_SALAS.md`). Antes eran cinco fondos compuestos.
 
 El juego sigue siendo una **vertical slice**. No se ha añadido lore definitivo que contradiga los tres documentos.

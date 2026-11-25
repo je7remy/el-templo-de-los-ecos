@@ -1,5 +1,16 @@
 # Historial de versiones
 
+## v0.5.36-alpha — 2026-11-25 · Mundo por escenas, fase 3d-5
+
+Sin cambios en las reglas ni en el aspecto del juego.
+
+- **El decorado de las salas se dibuja desde su propio script** (`scripts/mundo/decorado.gd`, nodo «Decorado»): relieve de los muros, grietas del desgaste, restos del suelo y del muro, sombras y halo de los objetos de la sala, motas de polvo, la entrada, los pasos laterales y la salida, la placa de la inscripción, los cadáveres, tu propio cuerpo y las marcas de «aquí moriste», la penumbra con sus luces, los rayos de luz y la niebla.
+- **Las trampas, también** (`scripts/mundo/peligros.gd`, nodo «Peligros»): pinchos, rejillas de fuego y su llamarada, péndulos, enredaderas (intactas, ardiendo y en ceniza), sus llamas y los canales de almas.
+- `scripts/main.gd` sigue decidiendo qué hay en la sala, cuándo hiere cada trampa y en qué orden se dibuja todo.
+- Se ve idéntico a antes: 56 capturas comparadas píxel a píxel (las 41 salas y casos con pinchos, fuego, péndulos, enredaderas ardiendo, cadáveres, puertas abiertas y sin antorcha).
+- Documentación al día: las salas ya son escenas con `TileMapLayer` (lo indicaban como pendiente `docs/DECISIONES.md` e `docs/INFORME_VISUAL.md`).
+- Versión Android 0.5.36-alpha (código 43).
+
 ## v0.5.35-alpha — 2026-11-25 · Vigilia por escenas, fase 5d
 
 Sin cambios en las reglas ni en el aspecto del juego.

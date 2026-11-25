@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.29)
+## Cómo está organizado hoy (v0.5.36)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -32,6 +32,8 @@ scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña y mundo)
 ├── Peregrino    scenes/entidades/peregrino.tscn   Ausente, Espera, Sigue, Desenvaina, Hostil, Amigo, Muerto
 ├── Objetos      scripts/mundo/objetos.gd          columnas, braseros, cofre, fuente, altar, carta, muros, almas, sello
 ├── Personajes   scripts/mundo/personajes.gd       aliados, traidores, rescate, Mercader, muñeco
+├── Decorado     scripts/mundo/decorado.gd         muros, desgaste, restos, puertas, placa, cadáveres, penumbra, rayos y niebla
+├── Peligros     scripts/mundo/peligros.gd         pinchos, rejillas de fuego, péndulos, enredaderas, llamas y canales
 ├── Hud          scenes/ui/hud.tscn                CanvasLayer 1 · piezas en scripts/ui/hud/
 │   └── Piezas   FranjaSuperior, PanelJugador, CartelPiso, Minimapa, FranjaInferior, Mision,
 │                PanelArma, AvisoMision, ContadorAlmas, Fundido, Tutorial, ControlesTactiles
@@ -49,7 +51,10 @@ scenes/main.tscn  (TemploDeLosEcos · main.gd: campaña y mundo)
 │       └── Perfil   scenes/pantallas/perfil.tscn  (mochila, objetos, equipo y Ecos)
 └── CapaAvisos   scenes/ui/avisos.tscn             CanvasLayer 3 · mensajes y rótulos de nivel/botín
 
-scenes/defense.tscn  (Vigilia del Claustro · defense.gd)
+scenes/defense.tscn  (Vigilia del Claustro · defense.gd: reglas y dibujo de la celda)
+├── Fases        Portada, Partida, FaseSuperada, Derrota   (scripts/vigilia/fases/)
+├── HudVigilia   scenes/vigilia/hud.tscn        CanvasLayer 1 · barras, aviso, tutorial, menú de baldosa
+└── PantallasVigilia scenes/vigilia/pantallas.tscn  CanvasLayer 2 · portada, fase superada, derrota, pausa
 rooms/sala_N.tscn    salas editables (TileMapLayer, objetos, marcadores, colisiones)
 ```
 
@@ -114,7 +119,7 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 3d-2 | El jugador dibuja su parte en `scripts/entidades/jugador.gd`: cuerpo en cuatro direcciones, siluetas del esquive, equipo puesto, arma con su tajo, antorcha, polvo del choque y aros de protección y daño. La campaña le pasa su apariencia (`_player_look()`: hoja, arma, antorcha, equipo puesto…). | **Hecha (v0.5.24)** |
 | 3d-3 | Objetos de la sala que van en el orden por profundidad (columnas, braseros, cofre, fuente, altar, carta y muros del laberinto) se dibujan desde `scripts/mundo/objetos.gd` (nodo «Objetos»). | **Hecha (v0.5.25)** |
 | 3d-4 | Personajes secundarios (aliados, traidores, rescate, Mercader y muñeco) en `scripts/mundo/personajes.gd`; almas y sello en `objetos.gd`. **Con esto, todo lo que se mueve, pelea o se recoge se dibuja desde su propio script.** | **Hecha (v0.5.26)** |
-| 3d-5 (opcional) | Decorado a ras de suelo (puertas, trampas, enredaderas, cadáveres, desgaste, luz y niebla). Es escenografía que casi no se toca: queda en `main.gd` mientras no haga falta. | Opcional |
+| 3d-5 | Decorado a ras de suelo en `scripts/mundo/decorado.gd` (nodo «Decorado»: relieve de los muros, desgaste, restos, sombras de los objetos, motas, puertas, placa de la inscripción, cadáveres, tu cuerpo y las marcas de muerte, penumbra con sus luces, rayos y niebla) y trampas en `scripts/mundo/peligros.gd` (nodo «Peligros»: pinchos, rejillas de fuego, péndulos, enredaderas, llamas y canales). `main.gd` decide qué hay, cuándo hiere y el orden; los rótulos («SALIDA», «AQUÍ MORISTE») siguen en él. | **Hecha (v0.5.36)** |
 | 4a | Armas (y el golpe base de la antorcha) y piezas de equipo en `datos/armas/*.tres` y `datos/equipo/*.tres`, con sus scripts de recurso (`scripts/datos/arma.gd`, `pieza_equipo.gd`) y el catálogo que los lista en orden (`scripts/datos/catalogo.gd`). Se editan desde el inspector de Godot. | **Hecha (v0.5.28)** |
 | 4b | Puesto del Mercader (`datos/tienda`), consumibles de la bolsa (`datos/bolsa`) y botín de la Vigilia (`datos/botin`) en `.tres`, con sus scripts de recurso en `scripts/datos/`. | **Hecha (v0.5.29)** |
 | 4c-1 | Datos generales de cada piso (número, título, estado, desgaste, Eco, combustible de la antorcha, seguidores, espejo, regla invertida, final y la verdad que revela) en `datos/pisos/piso_NN.tres`, con su script de recurso `scripts/datos/piso.gd`. | **Hecha (v0.5.30)** |
