@@ -73,3 +73,51 @@ func siguiente_regla(enfurecido: bool) -> void:
             t = 3.5
             tick = 0.4
     regla.emit(r)
+
+
+# ------------------------------------------------------------ DIBUJO
+const Lienzo := preload("res://scripts/comun/lienzo.gd")
+
+
+## Dibuja al Hermano Mayor (más grande que un peregrino, con su corona).
+## «activo»: luchando; «figura»: la figura tranquila del X-1; «golpe_t»:
+## destello de daño. El rótulo AGOTADO lo pone la campaña (_label_center).
+func dibujar(c: CanvasItem, hoja: Texture2D, tiempo: float, activo: bool, figura: bool, golpe_t: float) -> void:
+    var e: String = estado()
+    var cuadro: int = int(tiempo * 2.0) % 2
+    match e:
+        "walk":
+            cuadro = 2 + int(tiempo * 8.0) % 4
+        "threads_aim", "roar", "swipe":
+            cuadro = 6
+        "threads", "gaze":
+            cuadro = 7
+        "tired":
+            cuadro = 0
+    if figura:
+        cuadro = int(tiempo * 2.0) % 2
+    var escala: float = 1.35
+    var celda: Vector2 = Lienzo.CELDA * escala
+    var pies := Vector2(roundf(position.x), roundf(position.y + 4.0))
+    Lienzo.sombra(c, position + Vector2(0, 3), 18.0)
+    if activo and e == "roar":
+        var k: float = 1.0 - clampf(t / 1.1, 0.0, 1.0)
+        Lienzo.elipse(c, position, RADIO_RUGIDO * k, RADIO_RUGIDO * 0.45 * k, Color(1.0, 0.2, 0.2, 0.1 + 0.15 * k))
+        c.draw_arc(position, RADIO_RUGIDO, 0, TAU, 64, Color(1.0, 0.3, 0.3, 0.35 + 0.4 * k), 2.0)
+    var tinte := Color(1.0, 0.86, 0.7)
+    if golpe_t > 0.0:
+        tinte = Color(1.0, 0.45, 0.4)
+    elif e == "tired":
+        tinte = Color(0.8, 0.85, 1.0)
+    c.draw_texture_rect_region(hoja, Rect2(pies.x - celda.x * 0.5, pies.y - Lienzo.PIES * escala, celda.x, celda.y), Rect2(float(cuadro) * Lienzo.CELDA.x, float(orientacion) * Lienzo.CELDA.y, Lienzo.CELDA.x, Lienzo.CELDA.y), tinte)
+    var cabeza: Vector2 = pies + Vector2(0, -Lienzo.PIES * escala + 12.0)
+    c.draw_rect(Rect2(cabeza.x - 10.0, cabeza.y, 20, 3), Color("#e3bd7b"))
+    c.draw_colored_polygon(PackedVector2Array([cabeza + Vector2(-3, 0), cabeza + Vector2(3, 0), cabeza + Vector2(0, -6)]), Color("#e3bd7b"))
+    if activo and e == "gaze":
+        var g: float = 0.6 + 0.4 * sin(tiempo * 10.0)
+        c.draw_circle(cabeza + Vector2(-4, 10), 2.5, Color(1.0, 0.3, 0.3, g))
+        c.draw_circle(cabeza + Vector2(4, 10), 2.5, Color(1.0, 0.3, 0.3, g))
+        for k in range(3, 0, -1):
+            c.draw_circle(cabeza + Vector2(0, 10), 8.0 + float(k) * 8.0, Color(1.0, 0.2, 0.2, 0.05))
+    if activo and e == "tired":
+        c.call("_label_center", "AGOTADO", pies + Vector2(0, -Lienzo.PIES * escala - 14.0), Color("#8fc7d7"))

@@ -205,3 +205,39 @@ func seguir_mirada(dt: float, jugador: Vector2) -> void:
         else:
             orientacion = 0 if mira.y > 0.0 else 1
     pos_anterior = position
+
+
+# ------------------------------------------------------------ DIBUJO
+const Lienzo := preload("res://scripts/comun/lienzo.gd")
+const CARGA_CONJURO := 1.0 # segundos de carga visibles (y vulnerables) del conjuro
+
+
+## Dibuja la entidad sobre el lienzo del mundo con su hoja y su cuadro de
+## animación (los elige la campaña). Sombra, aura de alerta o aturdimiento,
+## destello del golpe y la carga del conjuro del Hechicero.
+func dibujar(c: CanvasItem, hoja: Texture2D, cuadro: int, t: float) -> void:
+    var region := Rect2(float(cuadro) * Lienzo.CELDA.x, float(orientacion) * Lienzo.CELDA.y, Lienzo.CELDA.x, Lienzo.CELDA.y)
+    var alto: float = 0.0
+    if tipo == "testigo":
+        alto = 8.0 + sin(t * 2.6) * 2.0 # flota: la sombra se queda en el suelo
+    var pies := Vector2(roundf(position.x), roundf(position.y + 4.0 - alto))
+    var huella: float = 17.0 if tipo == "testigo" else 14.0
+    Lienzo.sombra(c, position + Vector2(0.0, 3.0), huella, 1.0 if alto == 0.0 else 0.7)
+    if alerta:
+        var pulso: float = 0.5 + 0.5 * sin(t * 8.0)
+        Lienzo.elipse(c, position + Vector2(0.0, 3.0), huella + 9.0, (huella + 9.0) * 0.34, Color(0.85, 0.22, 0.28, 0.18 + 0.12 * pulso))
+    if aturdido > 0.0:
+        Lienzo.elipse(c, position + Vector2(0.0, 3.0), huella + 9.0, (huella + 9.0) * 0.34, Color(0.56, 0.78, 0.84, 0.30))
+    if tipo == "ghoul":
+        c.draw_circle(position + Vector2(0.0, -30.0), 30.0, Color(1.0, 0.55, 0.2, 0.05 + 0.02 * sin(t * 9.0)))
+    var tinte := Color(0.75, 0.85, 1.0, 1.0) if aturdido > 0.0 else Color.WHITE
+    if golpe_t > 0.0 and int(golpe_t * 30.0) % 2 == 0:
+        tinte = Color(1.0, 0.42, 0.38, 1.0) # destello del golpe
+    var dest := Rect2(pies.x - Lienzo.CELDA.x * 0.5, pies.y - Lienzo.PIES, Lienzo.CELDA.x, Lienzo.CELDA.y)
+    Lienzo.contorno(c, hoja, dest, region, tinte)
+    if tipo == "hechicero" and alerta and conjuro_cd < CARGA_CONJURO:
+        var k: float = 1.0 - conjuro_cd / CARGA_CONJURO
+        var mano: Vector2 = [Vector2(0, -57), Vector2(0, -57), Vector2(19, -49), Vector2(-19, -49)][orientacion]
+        var orbe := pies + mano
+        c.draw_circle(orbe, 5.0 + 9.0 * k, Color(1.0, 0.6, 0.25, 0.15 + 0.2 * k))
+        c.draw_circle(orbe, 1.5 + 3.0 * k, Color(1.0, 0.88, 0.6, 0.9))

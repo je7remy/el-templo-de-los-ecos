@@ -2,7 +2,7 @@
 
 El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo con `_draw()`. Funciona y va fluido, pero es difícil de mantener: cualquier cambio toca el mismo archivo y nada se puede editar en el editor de Godot. Este documento explica cómo se está separando en escenas y qué reglas sigue el código nuevo.
 
-## Cómo está organizado hoy (v0.5.22)
+## Cómo está organizado hoy (v0.5.23)
 
 ```text
 Autoloads (project.godot → Globales)
@@ -108,11 +108,15 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 3c-3 | Alimañas, mastines y arietes como **manadas** (`scenes/entidades/criaturas.tscn`): una máquina de estados compartida por tipo; cada criatura es un diccionario de datos que guarda su estado, y los estados son nodos. Señales `mordisco`, `aplastada`, `grunido`, `apunta`, `embiste`, `choca` y `alcanza`. | **Hecha (v0.5.20)** |
 | 3c-4 | Jefes en `scenes/entidades/jefes.tscn`: Coloso (Camina, Alza, Pisa, Aturdido) y Hermano Mayor (Habla, Camina, Zarpazo, ApuntaHilos, Hilos, Ruge, Cansado, Mira). Señales `hiere`, `alza`, `pisoton`, `regla`, `hilos_activos` y `rugido`. Las columnas, los aliados, las piedras de los traidores y las derrotas siguen en la campaña. | **Hecha (v0.5.21)** |
 | 3c-5 | La Vigía (Mira, Aviso, Golpe, Caza, Vencida) en `jefes.tscn` y el Peregrino (Ausente, Espera, Sigue, Desenvaina, Hostil, Amigo, Muerto) en `peregrino.tscn`. Señales `provocada`, `amago`, `ruido_hecho`, `mirando`, `ataca`, `alcanza`, `presa_alcanzada`, `toma_alma`, `prepara_tajo` y `tajo`. El pánico de los aliados, la traición, lo que dice el Peregrino y su muerte siguen en la campaña. Con esto, **todas las entidades tienen su máquina de estados**. | **Hecha (v0.5.22)** |
-| 3d | El mundo como nodos con orden por profundidad (`y_sort_enabled`): cada escena (jugador, entidades, objetos) se dibuja sola con `AnimatedSprite2D`, y `main.gd` solo las instancia en la sala. | Pendiente |
+| 3d-1 | Cada entidad dibuja su parte con `dibujar(lienzo, …)` en su script (entidad de la sala, alimañas, mastines, arietes, Coloso, Hermano Mayor, Vigía y Peregrino), con ayudas comunes en `scripts/comun/lienzo.gd` (sombra, elipse, contorno). `main.gd` solo decide el orden por profundidad y les pide que se dibujen sobre el lienzo del mundo en su turno; así se tapan igual que antes. | **Hecha (v0.5.23)** |
+| 3d-2 | El dibujo del jugador (cuerpo, equipo, arma, antorcha y siluetas del esquive) a su escena. | Pendiente |
+| 3d-3 | Objetos de la sala (almas, cofres, altares, braseros, puertas…) con su dibujo propio. | Pendiente |
 | 4 | Datos en recursos `.tres`: pisos, precios de la tienda, botín, armas y equipo. | Pendiente |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
 
 La fase 2 está terminada: `main.gd` ya no dibuja menús ni el HUD. Al terminar la 3, no tendrá código del jugador ni de enemigos.
+
+Sobre el dibujo (3d): se eligió que cada escena dibuje su parte sobre el lienzo del mundo en vez de rehacerlo todo con nodos `AnimatedSprite2D` y `y_sort_enabled`: se ve idéntico, mantiene el orden por profundidad, la luz y las sombras, y deja `main.gd` sin el dibujo de cada entidad.
 
 Por qué la fase 3 va en partes: el jugador, los enemigos y los objetos se dibujan juntos, ordenados por su altura en la sala (lo de abajo tapa a lo de arriba). Mientras el mundo no sea de nodos con orden por profundidad (3d), sus dibujos siguen en `main.gd`; primero se mueven la lógica y los estados, que es lo que más se toca al ajustar el juego.
 

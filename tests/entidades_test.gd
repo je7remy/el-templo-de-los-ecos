@@ -519,6 +519,20 @@ func _run() -> void:
         _fail("Sin vida el Peregrino no muere.")
         return
     print("OK: la Vigía y el Peregrino con su máquina de estados.")
+
+    # --- Fase 3d-1: cada entidad dibuja su parte -------------------------------------
+    for ruta in ["Entidad", "Criaturas/Alimanas", "Criaturas/Mastines", "Criaturas/Arietes", "Jefes/Coloso", "Jefes/HermanoMayor", "Jefes/Vigia", "Peregrino"]:
+        if not game.get_node(ruta).has_method("dibujar"):
+            _fail("%s no sabe dibujarse (falta dibujar())." % ruta)
+            return
+    # El dibujo se pide desde el lienzo del mundo, en su turno de profundidad:
+    # fuera de él, el lienzo no cambia (no dibujan por su cuenta).
+    for ruta in ["Entidad", "Peregrino", "Jefes/Coloso", "Jefes/Vigia", "Jefes/HermanoMayor"]:
+        var n: Node = game.get_node(ruta)
+        if n is CanvasItem and n.has_method("_draw"):
+            _fail("%s no debe dibujarse fuera del orden por profundidad." % ruta)
+            return
+    print("OK: cada entidad dibuja su parte en el orden por profundidad del mundo.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

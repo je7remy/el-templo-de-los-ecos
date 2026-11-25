@@ -61,3 +61,25 @@ func actualizar(dt: float, ctx: Dictionary) -> void:
         ruido["t"] = float(ruido["t"]) - dt
         if float(ruido["t"]) <= 0.0:
             ruido = {}
+
+
+# ------------------------------------------------------------ DIBUJO
+const Lienzo := preload("res://scripts/comun/lienzo.gd")
+const HOJA := preload("res://assets/visual/enemies/vigia.png")
+const CELDA := Vector2(64, 96)
+const BASE := 92.0
+
+
+## Dibuja a la Vigía (flota y se transparenta al ser vencida).
+func dibujar(c: CanvasItem, t: float) -> void:
+    var e: String = estado()
+    var cuadro: int = int(t * 1.5) % 2
+    if e == "aviso" or e == "caza":
+        cuadro = 2
+    elif e == "golpe" or amago_k > 0.0:
+        cuadro = 3
+    var tinte := Color(1, 1, 1, 0.45) if e == "vencida" else Color.WHITE
+    var vaiven: float = sin(t * 2.0) * 2.0
+    Lienzo.sombra(c, position + Vector2(0, 4), 18.0, 0.6)
+    c.draw_texture_rect_region(HOJA, Rect2(position.x - CELDA.x * 0.5, position.y + 2.0 + vaiven - BASE, CELDA.x, CELDA.y),
+        Rect2(float(cuadro) * CELDA.x, 0, CELDA.x, CELDA.y), tinte)

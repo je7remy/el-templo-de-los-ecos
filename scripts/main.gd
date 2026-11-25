@@ -39,6 +39,7 @@ const Entidad := preload("res://scripts/entidades/entidad.gd")
 const Coloso := preload("res://scripts/entidades/jefes/coloso.gd")
 const Hermano := preload("res://scripts/entidades/jefes/hermano.gd")
 const Vigia := preload("res://scripts/entidades/jefes/vigia.gd")
+const Lienzo := preload("res://scripts/comun/lienzo.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -54,8 +55,8 @@ const EYE_POS := Vector2(690, 143) # ojo tallado en el muro del fondo
 const DOOR_POS := Vector2(867, 355)
 ## Enemigos: hojas originales de 48x64 por celda, pies en y=61.
 ## Filas: 0 abajo, 1 arriba, 2 derecha, 3 izquierda.
-const ENEMY_CELL := Vector2(48.0, 64.0)
-const ENEMY_FEET_Y := 61.0
+const ENEMY_CELL := Lienzo.CELDA
+const ENEMY_FEET_Y := Lienzo.PIES
 ## Salas editables: TileMapLayer + objetos + marcadores + colisiones.
 ## Se generaron con herramientas/construir_salas.*; desde entonces se editan en Godot.
 ## Inventario y habilidades: iconos originales (herramientas/generar_iconos.py).
@@ -3315,16 +3316,13 @@ func _draw_visual_atmosphere() -> void:
 
 
 func _draw_ellipse(center: Vector2, radius_x: float, radius_y: float, color: Color) -> void:
-    _xf(center, 0.0, Vector2(1.0, radius_y / radius_x))
-    draw_circle(Vector2.ZERO, radius_x, color)
-    _xf(Vector2.ZERO, 0.0, Vector2.ONE)
+    Lienzo.elipse(self, center, radius_x, radius_y, color)
 
 
 ## Sombra de contacto suave, con la misma luz que las sombras del fondo.
 func _draw_soft_shadow(at: Vector2, radius_x: float, strength: float = 1.0) -> void:
-    for i in range(3):
-        var k: float = 1.0 - float(i) * 0.28
-        _draw_ellipse(at, radius_x * k, radius_x * k * 0.32, Color(0.0, 0.0, 0.0, 0.13 * strength))
+    Lienzo.sombra(self, at, radius_x, strength)
+
 
 ## [VISUAL UPGRADE] Sombra leve de contacto, anclada a los pies del protagonista.
 func draw_ellipse_fake_shadow(at: Vector2) -> void:
@@ -3512,37 +3510,10 @@ func _enemy_frame(kind: String) -> int:
 
 
 func _draw_enemy() -> void:
+    # Se dibuja en su escena (scripts/entidades/), sobre este lienzo y en su
+    # turno del orden por profundidad.
     var kind: String = _enemy_kind()
-    var sheet: Texture2D = art["enemy_" + kind]
-    var frame: int = _enemy_frame(kind)
-    var region := Rect2(float(frame) * ENEMY_CELL.x, float(enemy_facing) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
-    var lift: float = 0.0
-    if kind == "testigo":
-        lift = 8.0 + sin(elapsed * 2.6) * 2.0 # flota: la sombra se queda en el suelo
-    var feet := Vector2(roundf(enemy_pos.x), roundf(enemy_pos.y + 4.0 - lift))
-    var footprint: float = 17.0 if kind == "testigo" else 14.0
-    _draw_soft_shadow(enemy_pos + Vector2(0.0, 3.0), footprint, 1.0 if lift == 0.0 else 0.7)
-    if enemy_alert:
-        var pulse: float = 0.5 + 0.5 * sin(elapsed * 8.0)
-        _draw_ellipse(enemy_pos + Vector2(0.0, 3.0), footprint + 9.0, (footprint + 9.0) * 0.34, Color(0.85, 0.22, 0.28, 0.18 + 0.12 * pulse))
-    if enemy_stun > 0.0:
-        _draw_ellipse(enemy_pos + Vector2(0.0, 3.0), footprint + 9.0, (footprint + 9.0) * 0.34, Color(0.56, 0.78, 0.84, 0.30))
-    if kind == "ghoul":
-        # Las brasas iluminan el suelo a su alrededor.
-        draw_circle(enemy_pos + Vector2(0.0, -30.0), 30.0, Color(1.0, 0.55, 0.2, 0.05 + 0.02 * sin(elapsed * 9.0)))
-    var tint := Color(0.75, 0.85, 1.0, 1.0) if enemy_stun > 0.0 else Color.WHITE
-    if enemy_hit_t > 0.0 and int(enemy_hit_t * 30.0) % 2 == 0:
-        tint = Color(1.0, 0.42, 0.38, 1.0) # destello del golpe
-    var dest := Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y)
-    _draw_outlined(sheet, dest, region, tint)
-    if kind == "hechicero" and enemy_alert and wizard_cast_cd < WIZARD_CHARGE:
-        # Aviso justo: el orbe crece antes de lanzar el conjuro (y es vulnerable).
-        var k: float = 1.0 - wizard_cast_cd / WIZARD_CHARGE
-        # Donde el sprite sostiene el orbe: sobre la cabeza de frente, en la mano de lado.
-        var hand: Vector2 = [Vector2(0, -57), Vector2(0, -57), Vector2(19, -49), Vector2(-19, -49)][enemy_facing]
-        var orb := feet + hand
-        draw_circle(orb, 5.0 + 9.0 * k, Color(1.0, 0.6, 0.25, 0.15 + 0.2 * k))
-        draw_circle(orb, 1.5 + 3.0 * k, Color(1.0, 0.88, 0.6, 0.9))
+    entidad.dibujar(self, art["enemy_" + kind], _enemy_frame(kind), elapsed)
 
 
 ## Barra de vida y estado de la entidad: siempre sobre la escena.
@@ -3714,11 +3685,7 @@ func _draw_corpse(at: Vector2, seed_index: int) -> void:
 ## Personaje con contorno oscuro de un píxel de su arte (estilo Soul Knight):
 ## se separa del suelo y se lee de un vistazo.
 func _draw_outlined(tex: Texture2D, dest: Rect2, region: Rect2, tint: Color) -> void:
-    var px: float = maxf(1.0, roundf(dest.size.x / maxf(1.0, region.size.x)))
-    var oc := Color(0.03, 0.02, 0.05, 0.9 * tint.a)
-    for o in [Vector2(px, 0), Vector2(-px, 0), Vector2(0, px), Vector2(0, -px)]:
-        draw_texture_rect_region(tex, Rect2(dest.position + o, dest.size), region, oc)
-    draw_texture_rect_region(tex, dest, region, tint)
+    Lienzo.contorno(self, tex, dest, region, tint)
 
 
 func _draw_texture_flipped(tex: Texture2D, dest: Rect2, flip: bool) -> void:
@@ -4284,29 +4251,9 @@ func _pilgrim_mission_text() -> String:
 
 
 func _draw_pilgrim() -> void:
-    var sheet: Texture2D = art["enemy_peregrino"]
-    var frame: int = int(elapsed * 2.0) % 2
-    if pilgrim_state == "tell" or (pilgrim_state == "hostile" and pilgrim_timer > 0.0):
-        frame = 6
-    elif pilgrim_lunge > 0.0:
-        frame = 7
-    elif pilgrim_moving:
-        frame = 2 + int(elapsed * 8.0) % 4
-    var region := Rect2(float(frame) * ENEMY_CELL.x, float(pilgrim_facing) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
-    var feet := Vector2(roundf(pilgrim_pos.x), roundf(pilgrim_pos.y + 4.0))
-    _draw_soft_shadow(pilgrim_pos + Vector2(0.0, 3.0), 13.0)
-    if pilgrim_state in ["tell", "hostile"]:
-        var pulse: float = 0.5 + 0.5 * sin(elapsed * 8.0)
-        _draw_ellipse(pilgrim_pos + Vector2(0.0, 3.0), 22.0, 7.5, Color(0.85, 0.22, 0.28, 0.18 + 0.12 * pulse))
-    var tint := Color.WHITE
-    if pilgrim_hit_t > 0.0 and int(pilgrim_hit_t * 30.0) % 2 == 0:
-        tint = Color(1.0, 0.42, 0.38)
-    elif pilgrim_stun > 0.0:
-        tint = Color(0.75, 0.85, 1.0)
-    draw_texture_rect_region(sheet, Rect2(feet.x - ENEMY_CELL.x * 0.5, feet.y - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), region, tint)
-    if pilgrim_state == "hostile" and pilgrim_timer > 0.0:
-        # Destello del filo justo antes del tajo.
-        draw_circle(feet + Vector2(0.0, -58.0), 3.0 + 5.0 * (1.0 - pilgrim_timer / 0.42), Color(1.0, 1.0, 1.0, 0.8))
+    # Se dibuja en su escena (scripts/entidades/), sobre este lienzo y en su
+    # turno del orden por profundidad.
+    peregrino.dibujar(self, art["enemy_peregrino"], elapsed)
 
 
 ## Bocadillo de diálogo y vida del Peregrino, por encima de todo.
@@ -7251,13 +7198,6 @@ func _start_floor(i: int) -> void:
 ## alimañas que patrullan y mueren de un esquive, nidos que las reponen,
 ## el cuerpo que queda al morir, transiciones con máscara, resumen al
 ## terminar el piso, cursor propio y controles táctiles de Kenney.
-const ALIMANA_TEX := preload("res://assets/visual/enemies/alimana.png")
-## Más alimañas (herramientas/generar_bichos.py), misma hoja de 4 x 2 celdas.
-const CRITTER_TEX := {
-    "rata": ALIMANA_TEX,
-    "murcielago": preload("res://assets/visual/enemies/murcielago.png"),
-    "arana": preload("res://assets/visual/enemies/arana.png"),
-}
 ## Cómo es cada bicho: velocidad, persecución, olfato (px), mordisco y miedo.
 ##   murciélago: vuela (cruza columnas), rápido y de mordisco flojo.
 ##   araña: lenta al patrullar, pero salta lejos y su veneno da más miedo.
@@ -7381,35 +7321,13 @@ func _critter_die(cr: Dictionary) -> void:
 
 ## Altura de vuelo del murciélago (los demás van por el suelo).
 func _critter_lift(cr: Dictionary, i: int) -> float:
-    if str(cr.get("kind", "rata")) != "murcielago":
-        return 0.0
-    if not bool(cr["alive"]):
-        return maxf(0.0, 26.0 - float(cr["dead_t"]) * 90.0) # cae al morir
-    return 26.0 + 6.0 * sin(elapsed * 5.0 + float(i) * 1.7)
+    return alimanas.altura(cr, i, elapsed)
 
 
 func _draw_critter(i: int) -> void:
-    var cr: Dictionary = critters[i]
-    var kind: String = str(cr.get("kind", "rata"))
-    var tex: Texture2D = CRITTER_TEX.get(kind, ALIMANA_TEX)
-    var at: Vector2 = Vector2(cr["pos"]).round()
-    var region: Rect2
-    if bool(cr["alive"]):
-        var fps: float = 16.0 if kind == "murcielago" else (13.0 if kind == "arana" else 10.0)
-        var frame: int = int(elapsed * fps + float(i) * 1.3) % 4
-        region = Rect2(float(frame) * 24.0, 0, 24, 16)
-    else:
-        var df: int = mini(3, int(float(cr["dead_t"]) * 8.0))
-        region = Rect2(float(df) * 24.0, 16, 24, 16)
-    var lift: float = _critter_lift(cr, i)
-    _draw_soft_shadow(at + Vector2(0, 2), 10.0 - lift * 0.15, 1.0 - lift * 0.015)
-    var y: float = at.y - 28.0 - lift
-    if bool(cr["flip"]):
-        _xf(Vector2(at.x, 0), 0.0, Vector2(-1, 1))
-        draw_texture_rect_region(tex, Rect2(-24.0, y, 48, 32), region)
-        _xf(Vector2.ZERO, 0.0, Vector2.ONE)
-    else:
-        draw_texture_rect_region(tex, Rect2(at.x - 24.0, y, 48, 32), region)
+    # Se dibuja en su escena (scripts/entidades/), sobre este lienzo y en su
+    # turno del orden por profundidad.
+    alimanas.dibujar(self, i, critters[i], elapsed)
 
 
 # --- El cuerpo de tu vida anterior -------------------------------------------
@@ -7835,7 +7753,6 @@ func _draw_tejedora_fire() -> void:
 ## de antorcha o la Resonancia los espanta. Valores PROVISIONALES.
 ## (Velocidad, carga, distancia y vista: scripts/entidades/manadas/mastines.gd.)
 const HOUND_BITE := 20.0
-const HOUND_TEX := preload("res://assets/visual/enemies/mastin.png")
 var hounds: Array = [] # {pos, prev, home, wander, wander_t, flee, bite_cd, bite_t, facing, moving, growl_t, detour, detour_t}
 var maze_walls: Array = []
 var torch_fuel: float = 0.0
@@ -7951,20 +7868,9 @@ func _check_mask_pickup() -> void:
 
 
 func _draw_hound(i: int) -> void:
-    var h: Dictionary = hounds[i]
-    var frame: int
-    if float(h["bite_t"]) > 0.0:
-        frame = 7
-    elif torch_on and player_pos.distance_to(h["pos"]) < 180.0 and not bool(h["moving"]):
-        frame = 6 # gruñe ante el fuego
-    elif bool(h["moving"]):
-        frame = 2 + int(elapsed * 11.0 + float(i)) % 4
-    else:
-        frame = int(elapsed * 2.0 + float(i)) % 2
-    var pos: Vector2 = Vector2(h["pos"]).round()
-    _draw_soft_shadow(pos + Vector2(0, 3), 15.0)
-    var region := Rect2(float(frame) * ENEMY_CELL.x, float(h["facing"]) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y)
-    draw_texture_rect_region(HOUND_TEX, Rect2(pos.x - ENEMY_CELL.x * 0.5, pos.y + 4.0 - ENEMY_FEET_Y, ENEMY_CELL.x, ENEMY_CELL.y), region)
+    # Se dibuja en su escena (scripts/entidades/), sobre este lienzo y en su
+    # turno del orden por profundidad.
+    mastines.dibujar(self, i, hounds[i], elapsed, torch_on)
 
 
 ## Muro bajo del laberinto: cara superior clara, frente de sillares y musgo.
@@ -8505,9 +8411,6 @@ func _update_level_fx(dt: float) -> void:
 ## Te provoca con amagos y ruidos a tu espalda; los peregrinos que guías
 ## pueden entrar en pánico: si no los calmas a tiempo, echan a correr y ella
 ## se los lleva. No se la puede herir. Valores PROVISIONALES.
-const VIGIA_TEX := preload("res://assets/visual/enemies/vigia.png")
-const VIGIA_CELL := Vector2(64, 96)
-const VIGIA_BASE := 92.0
 const GAZE_CENTER := Vigia.CENTRO # (órbita y gracia: scripts/entidades/jefes/vigia.gd)
 const GAZE_RADIUS := Vigia.RADIO
 const GAZE_FACING := -0.2 # producto escalar mínimo para «mirarla»
@@ -8725,16 +8628,9 @@ func _calm_ally() -> bool:
 
 
 func _draw_vigia() -> void:
-    var frame: int = int(elapsed * 1.5) % 2
-    if gaze_state == "aviso" or gaze_state == "caza":
-        frame = 2
-    elif gaze_state == "golpe" or gaze_feint > 0.0:
-        frame = 3
-    var tint := Color(1, 1, 1, 0.45) if gaze_state == "vencida" else Color.WHITE
-    var bob: float = sin(elapsed * 2.0) * 2.0
-    _draw_soft_shadow(gaze_pos + Vector2(0, 4), 18.0, 0.6)
-    draw_texture_rect_region(VIGIA_TEX, Rect2(gaze_pos.x - VIGIA_CELL.x * 0.5, gaze_pos.y + 2.0 + bob - VIGIA_BASE, VIGIA_CELL.x, VIGIA_CELL.y),
-        Rect2(float(frame) * VIGIA_CELL.x, 0, VIGIA_CELL.x, VIGIA_CELL.y), tint)
+    # Se dibuja en su escena (scripts/entidades/), sobre este lienzo y en su
+    # turno del orden por profundidad.
+    vigia.dibujar(self, elapsed)
 
 
 ## Medidor de la mirada, aviso de espalda, flecha hacia ella y ruidos.
@@ -9168,8 +9064,6 @@ func _depth_mult() -> float:
 ## El Coloso: estatua viva inmune a golpes y a la Resonancia. Pisa fuerte
 ## (aviso con un círculo rojo). Hay que atraerlo junto a una columna agrietada
 ## y golpear la columna: cae sobre él. Tres columnas lo derriban.
-const RAM_TEX := preload("res://assets/visual/enemies/ariete.png")
-const COLOSSUS_TEX := preload("res://assets/visual/enemies/coloso.png")
 const RAM_HP := 70.0
 const RAM_WINDUP := 0.6 # (vista, alineación y velocidad: scripts/entidades/manadas/arietes.gd)
 const RAM_DAMAGE := 28.0
@@ -9350,25 +9244,9 @@ func _on_colossus_stomp(reach: bool) -> void:
         _hurt(COLOSSUS_DAMAGE, 18.0, 1.0)
 
 func _draw_ram(i: int) -> void:
-    var r: Dictionary = rams[i]
-    var frame: int
-    match str(r["state"]):
-        "aim":
-            frame = 6
-        "charge":
-            frame = 2 + int(elapsed * 14.0) % 4
-        "stun":
-            frame = 7
-        _:
-            frame = 2 + int(elapsed * 8.0) % 4 if bool(r.get("moving", false)) else int(elapsed * 2.0 + float(i)) % 2
-    var pos: Vector2 = Vector2(r["pos"]).round()
-    _draw_soft_shadow(pos + Vector2(0, 3), 16.0)
-    var tint := Color(1.0, 0.85, 0.6) if str(r["state"]) == "stun" else Color.WHITE
-    draw_texture_rect_region(RAM_TEX, Rect2(pos.x - 24.0, pos.y + 4.0 - ENEMY_FEET_Y, 48, 64), Rect2(float(frame) * 48.0, float(r["facing"]) * 64.0, 48, 64), tint)
-    if str(r["state"]) == "stun":
-        var bar := Rect2(pos.x - 20.0, pos.y - 62.0, 40, 4)
-        draw_rect(bar.grow(1.0), Color(0, 0, 0, 0.7))
-        draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(float(r["hp"]) / float(r["max"]), 0.0, 1.0), bar.size.y)), Color("#ffd36b"))
+    # Se dibuja en su escena (scripts/entidades/), sobre este lienzo y en su
+    # turno del orden por profundidad.
+    arietes.dibujar(self, i, rams[i], elapsed)
 
 
 ## Línea roja de aviso antes de embestir: siempre visible (juego limpio).
@@ -9407,23 +9285,9 @@ func _draw_pillar(i: int) -> void:
 
 
 func _draw_colossus() -> void:
-    var frame: int
-    match colossus_state:
-        "raise":
-            frame = 4
-        "stomp":
-            frame = 5
-        "stun":
-            frame = 6
-        _:
-            frame = 2 + int(elapsed * 3.0) % 2
-    var pos: Vector2 = colossus_pos.round()
-    _draw_soft_shadow(pos + Vector2(0, 4), 56.0, 1.2)
-    draw_texture_rect_region(COLOSSUS_TEX, Rect2(pos.x - 64.0, pos.y + 6.0 - 154.0, 128, 160), Rect2(float(frame) * 128.0, 0, 128, 160))
-    if colossus_state == "raise":
-        var k: float = 1.0 - clampf(colossus_t / COLOSSUS_WINDUP, 0.0, 1.0)
-        _draw_ellipse(pos, COLOSSUS_STOMP_RADIUS * k, COLOSSUS_STOMP_RADIUS * 0.45 * k, Color(1.0, 0.2, 0.2, 0.12 + 0.18 * k))
-        draw_arc(pos, COLOSSUS_STOMP_RADIUS, 0, TAU, 48, Color(1.0, 0.3, 0.3, 0.3 + 0.4 * k), 2.0)
+    # Se dibuja en su escena (scripts/entidades/), sobre este lienzo y en su
+    # turno del orden por profundidad.
+    coloso.dibujar(self, elapsed)
 
 
 func _draw_colossus_hud() -> void:
@@ -9731,45 +9595,9 @@ func _draw_brazier(i: int) -> void:
 
 
 func _draw_elder() -> void:
-    var sheet: Texture2D = art["enemy_peregrino"]
-    var frame: int = int(elapsed * 2.0) % 2
-    match elder_state:
-        "walk":
-            frame = 2 + int(elapsed * 8.0) % 4
-        "threads_aim", "roar", "swipe":
-            frame = 6
-        "threads", "gaze":
-            frame = 7
-        "tired":
-            frame = 0
-    if elder_npc:
-        frame = int(elapsed * 2.0) % 2
-    var scale: float = 1.35
-    var cell: Vector2 = ENEMY_CELL * scale
-    var feet := Vector2(roundf(elder_pos.x), roundf(elder_pos.y + 4.0))
-    _draw_soft_shadow(elder_pos + Vector2(0, 3), 18.0)
-    if elder_active and elder_state == "roar":
-        var k: float = 1.0 - clampf(elder_t / 1.1, 0.0, 1.0)
-        _draw_ellipse(elder_pos, ELDER_ROAR_RADIUS * k, ELDER_ROAR_RADIUS * 0.45 * k, Color(1.0, 0.2, 0.2, 0.1 + 0.15 * k))
-        draw_arc(elder_pos, ELDER_ROAR_RADIUS, 0, TAU, 64, Color(1.0, 0.3, 0.3, 0.35 + 0.4 * k), 2.0)
-    var tint := Color(1.0, 0.86, 0.7)
-    if elder_hit_t > 0.0:
-        tint = Color(1.0, 0.45, 0.4)
-    elif elder_state == "tired":
-        tint = Color(0.8, 0.85, 1.0)
-    draw_texture_rect_region(sheet, Rect2(feet.x - cell.x * 0.5, feet.y - ENEMY_FEET_Y * scale, cell.x, cell.y), Rect2(float(frame) * ENEMY_CELL.x, float(elder_facing) * ENEMY_CELL.y, ENEMY_CELL.x, ENEMY_CELL.y), tint)
-    # Diadema de la Cosecha: lo distingue del resto de peregrinos.
-    var head: Vector2 = feet + Vector2(0, -ENEMY_FEET_Y * scale + 12.0)
-    draw_rect(Rect2(head.x - 10.0, head.y, 20, 3), Color("#e3bd7b"))
-    draw_colored_polygon(PackedVector2Array([head + Vector2(-3, 0), head + Vector2(3, 0), head + Vector2(0, -6)]), Color("#e3bd7b"))
-    if elder_active and elder_state == "gaze":
-        var g: float = 0.6 + 0.4 * sin(elapsed * 10.0)
-        draw_circle(head + Vector2(-4, 10), 2.5, Color(1.0, 0.3, 0.3, g))
-        draw_circle(head + Vector2(4, 10), 2.5, Color(1.0, 0.3, 0.3, g))
-        for k in range(3, 0, -1):
-            draw_circle(head + Vector2(0, 10), 8.0 + float(k) * 8.0, Color(1.0, 0.2, 0.2, 0.05))
-    if elder_active and elder_state == "tired":
-        _label_center("AGOTADO", feet + Vector2(0, -ENEMY_FEET_Y * scale - 14.0), Color("#8fc7d7"))
+    # Se dibuja en su escena (scripts/entidades/), sobre este lienzo y en su
+    # turno del orden por profundidad.
+    hermano.dibujar(self, art["enemy_peregrino"], elapsed, elder_active, elder_npc, elder_hit_t)
 
 
 func _draw_elder_threads() -> void:
@@ -10237,7 +10065,7 @@ var draw_base_xf: Transform2D = Transform2D.IDENTITY
 
 ## draw_set_transform que respeta la cámara cuando se dibuja el mundo.
 func _xf(pos: Vector2, rot: float, scl: Vector2) -> void:
-    draw_set_transform_matrix(draw_base_xf * Transform2D(rot, scl, 0.0, pos))
+    Lienzo.xf(self, pos, rot, scl)
 
 
 func _begin_world() -> void:

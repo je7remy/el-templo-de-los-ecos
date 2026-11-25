@@ -53,3 +53,26 @@ func mover(h: Dictionary, dir: Vector2, velocidad: float, dt: float) -> void:
             h["detour"] = c
             h["detour_t"] = 0.6
             return
+
+
+# ------------------------------------------------------------ DIBUJO
+const Lienzo := preload("res://scripts/comun/lienzo.gd")
+const HOJA := preload("res://assets/visual/enemies/mastin.png")
+
+
+## Dibuja el mastín «i» («t»: tiempo de juego; «antorcha»: si la llevas
+## encendida, gruñe quieto ante el fuego).
+func dibujar(c: CanvasItem, i: int, h: Dictionary, t: float, antorcha: bool) -> void:
+    var cuadro: int
+    if float(h["bite_t"]) > 0.0:
+        cuadro = 7
+    elif antorcha and jugador.position.distance_to(h["pos"]) < 180.0 and not bool(h["moving"]):
+        cuadro = 6 # gruñe ante el fuego
+    elif bool(h["moving"]):
+        cuadro = 2 + int(t * 11.0 + float(i)) % 4
+    else:
+        cuadro = int(t * 2.0 + float(i)) % 2
+    var pos: Vector2 = Vector2(h["pos"]).round()
+    Lienzo.sombra(c, pos + Vector2(0, 3), 15.0)
+    var region := Rect2(float(cuadro) * Lienzo.CELDA.x, float(h["facing"]) * Lienzo.CELDA.y, Lienzo.CELDA.x, Lienzo.CELDA.y)
+    c.draw_texture_rect_region(HOJA, Rect2(pos.x - Lienzo.CELDA.x * 0.5, pos.y + 4.0 - Lienzo.PIES, Lienzo.CELDA.x, Lienzo.CELDA.y), region)
