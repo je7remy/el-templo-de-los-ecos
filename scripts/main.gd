@@ -35,6 +35,7 @@ const Actualizador := preload("res://scripts/actualizador.gd")
 const Estilo := preload("res://scripts/ui/estilo.gd")
 const EquipoRetrato := preload("res://scripts/ui/equipo_retrato.gd")
 const Jugador := preload("res://scripts/entidades/jugador.gd")
+const Entidad := preload("res://scripts/entidades/entidad.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -535,10 +536,15 @@ func _ready() -> void:
     jugador.paso.connect(_on_player_step)
     jugador.herido.connect(func(_amount: float) -> void: _on_hurt())
     jugador.muerto.connect(_lose_run)
-    entidad.preparar(_is_blocked)
+    entidad.preparar(_is_blocked, _thread_end)
     entidad.desterrada.connect(_banish_enemy)
     entidad.conjuro.connect(_on_wizard_cast)
     entidad.regla.connect(_on_witness_rule)
+    entidad.hilos_tensos.connect(_on_segador_tense)
+    entidad.hilos_disparados.connect(_segador_fire)
+    entidad.hilos_cortados.connect(func() -> void: _say("La onda corta sus hilos antes de que dispare.", 2.0))
+    entidad.zarpa_alzada.connect(func() -> void: _sfx("raices", -7.0))
+    entidad.zarpazo.connect(_on_tejedora_swipe)
     _load_progress()
     _load_art()
     _load_room_scene() # sala 1 como fondo del menú
@@ -2754,18 +2760,15 @@ func _on_hurt() -> void:
 
 
 func _update_enemy(dt: float) -> void:
-    # Ghoul, Testigo y Hechicero deciden en su escena (scenes/entidades/
-    # entidad.tscn, una máquina de estados por tipo); los demás, aquí.
-    if entidad.tiene_maquina(_enemy_kind()):
+    # Ghoul, Testigo, Hechicero, Segador y Tejedora deciden en su escena
+    # (scenes/entidades/entidad.tscn, una máquina de estados por tipo).
+    if _enemy_kind() == "tejedora":
+        _update_tejedora(dt) # su fuego lo lleva la campaña; sus estados, la escena
+    elif entidad.tiene_maquina(_enemy_kind()):
         entidad.tipo = _enemy_kind()
-        entidad.actualizar(dt, {"jugador": player_pos, "se_mueve": player_moving, "antorcha": torch_on,
-            "ojo_abierto": watcher_open, "invertido": bool(_floor().get("inverted", false))})
+        entidad.actualizar(dt, _entity_ctx())
     else:
         enemy_alert = false
-        if _enemy_kind() == "segador":
-            _update_segador(dt)
-        elif _enemy_kind() == "tejedora":
-            _update_tejedora(dt)
     if _enemy_kind() == "hechicero":
         _update_fireballs(dt)
     if (_enemy_kind() == "ghoul" or _enemy_kind() == "testigo") and enemy_alert and enemy_stun <= 0.0:
@@ -2778,6 +2781,12 @@ func _update_enemy(dt: float) -> void:
                 player_pos = escape
             _say("La criatura te ha herido.", 3.0)
             _hurt((33.0 if _enemy_kind() == "ghoul" else 42.0) * _depth_mult(), 21.0, 1.5)
+
+
+## Lo que la entidad puede percibir del jugador este cuadro.
+func _entity_ctx() -> Dictionary:
+    return {"jugador": player_pos, "se_mueve": player_moving, "antorcha": torch_on,
+        "ojo_abierto": watcher_open, "invertido": bool(_floor().get("inverted", false))}
 
 
 ## El Testigo te persigue por su regla: la primera vez se recuerda.
@@ -5791,24 +5800,53 @@ func _respawn() -> void:
 ## todo lo que esté sobre la línea recibe el golpe y él atraviesa el sitio
 ## donde estabas. Después queda ENGANCHADO a la pared o la columna donde se
 ## clavaron los hilos: solo entonces es vulnerable. Valores PROVISIONALES.
-const SEG_SPEED := 205.0
-const SEG_RANGE := 190.0 # distancia a la que le gusta acechar
-const SEG_TENSE := 0.9
-const SEG_HOOK := 1.6
+const SEG_TENSE := Entidad.SEG_TENSA # (velocidad, distancia y tiempos: scripts/entidades/entidad.gd)
 const SEG_BAND := 15.0 # medio ancho de la línea (lo que roza, recibe)
 const SEG_DAMAGE := 45.0
-const SEG_OVERSHOOT := 46.0 # cuánto atraviesa más allá de donde apuntó
 const ALLY_NAMES := ["ODÓN", "BRUNA", "CIRO"]
 const ALLY_TINTS := [Color(0.86, 1.0, 0.9), Color(1.0, 0.88, 0.84), Color(0.86, 0.92, 1.08)]
 const ALLY_SOULS := 6 # premio por cada aliado vivo al terminar el piso
-var seg_state: String = "acecho" # acecho, tensa, engancha
-var seg_t: float = 0.0
-var seg_cd: float = 2.0
-var seg_circle: float = 1.0
-var seg_from: Vector2 = Vector2.ZERO
-var seg_to: Vector2 = Vector2.ZERO # donde se clavan los hilos
-var seg_dash_to: Vector2 = Vector2.ZERO
-var seg_flash: float = 0.0
+## El Segador vive en la escena de la entidad (máquina «Segador»); atajos:
+var seg_state: String:
+    get:
+        return entidad.estado_de("segador")
+    set(v):
+        entidad.poner_estado("segador", v) # acecho, tensa, engancha
+var seg_t: float:
+    get:
+        return entidad.seg_t
+    set(v):
+        entidad.seg_t = v
+var seg_cd: float:
+    get:
+        return entidad.seg_cd
+    set(v):
+        entidad.seg_cd = v
+var seg_circle: float:
+    get:
+        return entidad.seg_giro
+    set(v):
+        entidad.seg_giro = v
+var seg_from: Vector2:
+    get:
+        return entidad.seg_desde
+    set(v):
+        entidad.seg_desde = v
+var seg_to: Vector2:
+    get:
+        return entidad.seg_hasta
+    set(v):
+        entidad.seg_hasta = v
+var seg_dash_to: Vector2:
+    get:
+        return entidad.seg_destino
+    set(v):
+        entidad.seg_destino = v
+var seg_flash: float:
+    get:
+        return entidad.seg_destello
+    set(v):
+        entidad.seg_destello = v
 var seg_hp_floor: float = -1.0 # vida que conserva al huir a la sala siguiente
 ## Aliados del Piso III: tres peregrinos que te acompañan en la Cacería.
 var allies: Array = [] # {name, pos, prev, facing, moving, alive, react, seed, dead_key, dead_pos}
@@ -5910,73 +5948,24 @@ func _on_thread(at: Vector2, extra: float = 0.0) -> bool:
     return at.distance_to(closest) < SEG_BAND + extra
 
 
+## Un cuadro del Segador: rondar, tensar, disparar y quedar enganchado los
+## decide su máquina en la escena de la entidad.
 func _update_segador(dt: float) -> void:
-    enemy_alert = true
-    seg_flash = maxf(0.0, seg_flash - dt)
-    var d: float = enemy_pos.distance_to(player_pos)
-    if enemy_stun > 0.0:
-        if seg_state == "tensa":
-            # Aturdirlo mientras tensa rompe el ataque.
-            seg_state = "acecho"
-            seg_cd = 1.4
-            _say("La onda corta sus hilos antes de que dispare.", 2.0)
-        return
-    match seg_state:
-        "acecho":
-            # Ronda a distancia, rápido; cambia de sentido si choca.
-            var to_p: Vector2 = (player_pos - enemy_pos).normalized()
-            if to_p == Vector2.ZERO:
-                to_p = Vector2.LEFT
-            var radial: float = clampf((d - SEG_RANGE) / 60.0, -1.0, 1.0)
-            var tangent := Vector2(-to_p.y, to_p.x) * seg_circle
-            var orbit: float = 0.9 if d < SEG_RANGE + 120.0 else 0.25 # lejos, primero se acerca
-            # Prueba la ruta ideal y, si choca, solo acercarse/alejarse o solo rodear.
-            var moved: bool = false
-            for v in [to_p * radial + tangent * orbit, to_p * signf(radial + 0.01), tangent, -tangent]:
-                var wanted: Vector2 = enemy_pos + (v as Vector2).normalized() * SEG_SPEED * dt
-                if (v as Vector2).length() > 0.01 and not _is_blocked(wanted):
-                    enemy_pos = wanted
-                    moved = true
-                    break
-            if not moved:
-                seg_circle = -seg_circle
-            seg_cd -= dt
-            if seg_cd <= 0.0 and d < 430.0:
-                var dir: Vector2 = (player_pos - enemy_pos).normalized()
-                if dir == Vector2.ZERO:
-                    dir = Vector2.LEFT
-                var end: Vector2 = _thread_end(enemy_pos, dir)
-                if end.distance_to(enemy_pos) < d + 10.0:
-                    # Una columna te cubre: sigue rondando hasta tener línea limpia.
-                    seg_cd = 0.25
-                    return
-                seg_state = "tensa"
-                seg_t = SEG_TENSE
-                seg_from = enemy_pos
-                seg_to = end
-                var reach: float = minf(seg_from.distance_to(player_pos) + SEG_OVERSHOOT, seg_from.distance_to(seg_to) - 26.0)
-                seg_dash_to = seg_from + dir * maxf(0.0, reach)
-                _sfx("hilo", -6.0)
-                for ally in allies:
-                    ally["react"] = randf_range(0.25, 1.15)
-        "tensa":
-            seg_t -= dt
-            if seg_t <= 0.0:
-                _segador_fire()
-        "engancha":
-            # Atraviesa la línea en un instante y queda clavado a sus hilos.
-            enemy_pos = enemy_pos.move_toward(seg_dash_to, 1600.0 * dt)
-            seg_t -= dt
-            if seg_t <= 0.0:
-                seg_state = "acecho"
-                seg_cd = randf_range(1.3, 2.2)
-                seg_circle = -1.0 if randf() < 0.5 else 1.0
+    entidad.tipo = "segador"
+    entidad.actualizar(dt, _entity_ctx())
 
 
+## El Segador tensa sus hilos: suenan y los aliados reaccionan (cada uno a su
+## tiempo) para apartarse de la línea.
+func _on_segador_tense() -> void:
+    _sfx("hilo", -6.0)
+    for ally in allies:
+        ally["react"] = randf_range(0.25, 1.15)
+
+
+## El Segador dispara (ya está Enganchado): todo lo que esté sobre la línea
+## recibe el golpe.
 func _segador_fire() -> void:
-    seg_state = "engancha"
-    seg_t = SEG_HOOK
-    seg_flash = 0.18
     shake = maxf(shake, 0.3)
     _sfx("latigo", -3.0)
     if _on_thread(player_pos):
@@ -7626,20 +7615,34 @@ const FIRE_SPREAD := 0.3 # segundos hasta prender a las vecinas
 const FIRE_BURN := 3.6 # segundos que arde una celda
 const FIRE_DAMAGE := 9.0 # por toque al jugador (cada 0,45 s)
 const VINE_REGROW := 14.0 # las secas vuelven a crecer (las raíces de la puerta, no)
-const TEJE_SPEED := 66.0
-const TEJE_REACH := 58.0
-const TEJE_WINDUP := 0.65
 const TEJE_DAMAGE := 22.0
 var vines: Dictionary = {} # Vector2i -> {state: intacta|fuego|ceniza, t, verde, seed}
 var fire_hit: bool = false
 var fire_hint_t: float = 0.0
-var teje_state: String = "anda" # anda | alza | zarpa
-var teje_t: float = 0.0
+## La Tejedora vive en la escena de la entidad (máquina «Tejedora»); atajos:
+var teje_state: String:
+    get:
+        return entidad.estado_de("tejedora")
+    set(v):
+        entidad.poner_estado("tejedora", v) # anda | alza | zarpa
+var teje_t: float:
+    get:
+        return entidad.teje_t
+    set(v):
+        entidad.teje_t = v
 var teje_burn: float = 0.0
 var teje_fire_acc: float = 0.0
 var teje_hint_t: float = 0.0
-var teje_detour: Vector2 = Vector2.ZERO
-var teje_detour_t: float = 0.0
+var teje_detour: Vector2:
+    get:
+        return entidad.teje_rodeo
+    set(v):
+        entidad.teje_rodeo = v
+var teje_detour_t: float:
+    get:
+        return entidad.teje_rodeo_t
+    set(v):
+        entidad.teje_rodeo_t = v
 
 
 func _cell_of(at: Vector2) -> Vector2i:
@@ -7834,47 +7837,17 @@ func _update_tejedora(dt: float) -> void:
             fire_hit = false
             if not _enemy_active():
                 return
-    if enemy_stun > 0.0:
-        teje_state = "anda"
-        return
-    var d: float = enemy_pos.distance_to(player_pos)
-    match teje_state:
-        "anda":
-            var to_p: Vector2 = (player_pos - enemy_pos).normalized()
-            var dir: Vector2 = to_p
-            if teje_detour_t > 0.0:
-                teje_detour_t -= dt
-                dir = teje_detour # rodea la columna un momento
-            var nxt: Vector2 = enemy_pos + dir * TEJE_SPEED * dt
-            if not _is_blocked(nxt):
-                enemy_pos = nxt
-            else:
-                # Choca: prueba a rodear por el lado que más la acerca a ti.
-                var perp := Vector2(-to_p.y, to_p.x)
-                var options: Array = [perp, -perp, -to_p] if perp.dot(player_pos - enemy_pos) >= 0.0 else [-perp, perp, -to_p]
-                for cand in options:
-                    var try_pos: Vector2 = enemy_pos + (cand as Vector2) * TEJE_SPEED * dt
-                    if not _is_blocked(try_pos):
-                        enemy_pos = try_pos
-                        teje_detour = cand
-                        teje_detour_t = 0.7
-                        break
-            if d < TEJE_REACH:
-                teje_state = "alza"
-                teje_t = TEJE_WINDUP
-                _sfx("raices", -7.0)
-        "alza":
-            teje_t -= dt
-            if teje_t <= 0.0:
-                teje_state = "zarpa"
-                teje_t = 0.35
-                shake = maxf(shake, 0.25)
-                if d < TEJE_REACH + 16.0 and dash_left <= 0.0 and damage_cd <= 0.0:
-                    _hurt(TEJE_DAMAGE * _depth_mult(), 12.0, 0.8)
-        "zarpa":
-            teje_t -= dt
-            if teje_t <= 0.0:
-                teje_state = "anda"
+    # Andar, alzar la zarpa y golpear: máquina «Tejedora» de la entidad.
+    entidad.tipo = "tejedora"
+    entidad.actualizar(dt, _entity_ctx())
+
+
+## La Tejedora descarga la zarpa: sacude y, si estás a su alcance y no
+## esquivas, te alcanza.
+func _on_tejedora_swipe(reach: bool) -> void:
+    shake = maxf(shake, 0.25)
+    if reach and dash_left <= 0.0 and damage_cd <= 0.0:
+        _hurt(TEJE_DAMAGE * _depth_mult(), 12.0, 0.8)
 
 
 func _draw_tejedora_fire() -> void:

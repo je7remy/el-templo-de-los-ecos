@@ -1,5 +1,17 @@
 # Historial de versiones
 
+## v0.5.19-alpha — 2026-11-24 · Arquitectura por escenas, fase 3c-2
+
+Sin cambios en las reglas del juego.
+
+- **El Segador y la Tejedora tienen su máquina de estados** en la escena de la entidad (`scenes/entidades/entidad.tscn`):
+  - Segador: Acecho (ronda y busca línea limpia), Tensa (hilos tensos, va a disparar) y Engancha (atraviesa la línea y queda clavado: solo entonces es vulnerable). Aturdirlo mientras tensa le corta los hilos.
+  - Tejedora: Anda (hacia ti, rodeando columnas), Alza (levanta la zarpa) y Zarpa (golpea). Aturdida vuelve a Anda.
+- Nuevas señales: `hilos_tensos` (los aliados reaccionan), `hilos_disparados` (golpe a quien esté en la línea), `hilos_cortados`, `zarpa_alzada` y `zarpazo`. El fuego de las enredaderas y las quemaduras siguen en la campaña.
+- El comportamiento es idéntico al de antes: una simulación con semilla fija de las salas del Segador y la Tejedora (15 segundos cada una, andando, parando, golpeando y aturdiendo) da exactamente las mismas posiciones, estados, vida y aliados vivos; y la de Ghoul, Testigo y Hechicero sigue igual.
+- `entidades_test.gd` prueba los estados de los dos, el corte de hilos y el zarpazo.
+- Versión Android 0.5.19-alpha (código 26).
+
 ## v0.5.18-alpha — 2026-11-24 · Arquitectura por escenas, fase 3c
 
 Sin cambios en las reglas del juego.

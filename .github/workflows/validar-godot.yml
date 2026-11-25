@@ -84,6 +84,7 @@ jobs:
           grep -Fq 'OK: jugador como escena con máquina de estados (quieto, camina, esquiva).' "$RUNNER_TEMP/entidades.log"
           grep -Fq 'OK: salud del jugador (vivo, herido, muerto) con las señales herido y muerto.' "$RUNNER_TEMP/entidades.log"
           grep -Fq 'OK: entidad de la sala como escena; Ghoul, Testigo y Hechicero con su máquina de estados.' "$RUNNER_TEMP/entidades.log"
+          grep -Fq 'OK: Segador y Tejedora con su máquina de estados en la escena de la entidad.' "$RUNNER_TEMP/entidades.log"
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:|ObjectDB instances leaked' "$RUNNER_TEMP/entidades.log"; then exit 1; fi
 
       - name: Verificar el actualizador
