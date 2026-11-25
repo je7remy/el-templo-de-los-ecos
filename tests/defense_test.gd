@@ -265,6 +265,33 @@ func _run() -> void:
         return
     mode.call("_start", 0)
     print("OK: defensa tactil, ingreso, mejoras, centinelas, reparacion, victoria y derrota.")
+    # Fase 5a: portada, fase superada, puerta cedida y pausa son escenas.
+    var pantallas: Node = mode.get("pantallas")
+    if pantallas == null or not pantallas.has_method("mostrar"):
+        _fail("La Vigilia no tiene sus escenas de pantalla.")
+        return
+    var esperadas := {"selection": &"Portada", "won": &"FaseSuperada", "lost": &"PuertaCedida", "play": &""}
+    for fase in esperadas:
+        mode.set("phase", fase)
+        mode.set("paused", false)
+        mode.call("_sync_pantallas")
+        if pantallas.call("activa") != esperadas[fase]:
+            _fail("La Vigilia en «%s» no muestra su pantalla." % fase)
+            return
+    mode.set("paused", true)
+    mode.call("_sync_pantallas")
+    if pantallas.call("activa") != &"Pausa":
+        _fail("La pausa de la Vigilia no se ve.")
+        return
+    mode.set("paused", false)
+    mode.set("phase", "won")
+    mode.set("rewards", ["reliquia"])
+    mode.call("_sync_pantallas")
+    var botin_visto: Array = pantallas.call("pantalla", &"FaseSuperada").get("datos")["botin"]
+    if botin_visto.size() != 1 or int(botin_visto[0][2]) != 4:
+        _fail("La pantalla de fase superada no recibe el botín.")
+        return
+    print("OK: las pantallas de la Vigilia son escenas (portada, fase superada, puerta cedida y pausa).")
     mode.free()
     mode = null
     packed = null
