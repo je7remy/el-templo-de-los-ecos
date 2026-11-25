@@ -1,0 +1,14 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_bwyuj"]
+
+[resource]
+script = ExtResource("1_bwyuj")
+escena = 0
+nombre = "II-1 · ATRIO DE LOS PEREGRINOS"
+enemigo = ""
+rasgos = Array[String](["almas", "peregrino"])
+susurro = "Alguien más respira en la oscuridad."
+objetos = []
+mision = {}
+extras = {}

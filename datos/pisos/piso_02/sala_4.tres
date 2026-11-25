@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_yrsjg"]
+
+[resource]
+script = ExtResource("1_yrsjg")
+escena = 3
+nombre = "II-4 · UMBRAL DEL TERCER PISO"
+enemigo = "hechicero"
+rasgos = Array[String]([])
+susurro = "Pocos llegan a esta puerta acompañados. Algo cuelga del techo y se mece."
+objetos = []
+mision = {}
+extras = {
+"pendulums": [[Vector2(480, 330), 170.0]]
+}

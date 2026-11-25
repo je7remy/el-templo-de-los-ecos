@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_st5ep"]
+
+[resource]
+script = ExtResource("1_st5ep")
+escena = 1
+nombre = "VII-3 · CORO DE LOS CIEGOS"
+enemigo = ""
+rasgos = Array[String](["almas"])
+susurro = "Hay almas en el suelo, justo por donde ella pasea."
+objetos = [["fosforos", "Fosforos", Vector2(250, 470)]]
+mision = {
+"goal": "mirada",
+"required": true,
+"reward": 14,
+"text": "Resiste 60 s en el coro"
+}
+extras = {
+"gaze": 60.0
+}

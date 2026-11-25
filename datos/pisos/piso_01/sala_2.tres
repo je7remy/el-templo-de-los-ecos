@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_gwei4"]
+
+[resource]
+script = ExtResource("1_gwei4")
+escena = 1
+nombre = "I-2 · CLAUSTRO DE LAS OFRENDAS"
+enemigo = "ghoul"
+rasgos = Array[String](["altar"])
+susurro = "Las piedras tienen marcas de quienes estuvieron antes que tú."
+objetos = []
+mision = {
+"goal": "desterrar",
+"required": true,
+"reward": 8,
+"text": "Destierra al Ghoul de brasas"
+}
+extras = {
+"chest": [Vector2(170, 470), "«Lo guardé para la próxima vez. Si lo estás leyendo, no hubo próxima vez.» —Elba"]
+}

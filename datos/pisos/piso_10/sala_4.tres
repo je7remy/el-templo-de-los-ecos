@@ -1,0 +1,22 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_dgaut"]
+
+[resource]
+script = ExtResource("1_dgaut")
+escena = 4
+nombre = "X-4 · PUERTA DE LA COSECHA"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "La Puerta, por fin. Los tres braseros la iluminan desde dentro."
+objetos = []
+mision = {
+"goal": "hermano",
+"required": true,
+"reward": 40,
+"text": "Sobrevive a la Cosecha"
+}
+extras = {
+"elder_boss": Vector2(700, 340),
+"inscription": [Vector2(480, 300), "En el marco de la Puerta hay marcas de alas. Doscientas. Esto no es una salida. Es una transición."]
+}

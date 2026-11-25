@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_ncugl"]
+
+[resource]
+script = ExtResource("1_ncugl")
+escena = 1
+nombre = "VI-2 · PUESTO DEL MERCADER"
+enemigo = ""
+rasgos = Array[String](["mercader"])
+susurro = "Una figura alta y quieta. Delante, un cuenco vacío."
+objetos = []
+mision = {}
+extras = {
+"inscription": [Vector2(250, 470), "Se paga primero. Lo que hay bajo su manto no es tuyo."],
+"merchant": Vector2(480, 360)
+}

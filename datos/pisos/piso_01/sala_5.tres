@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_2b11j"]
+
+[resource]
+script = ExtResource("1_2b11j")
+escena = 4
+nombre = "I-5 · PÓRTICO DEL SIGUIENTE PISO"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "Esto no es una salida. Es una transición."
+objetos = []
+mision = {}
+extras = {
+"inscription": [Vector2(480, 300), "Los que cruzaron antes dejaron sus nombres en la piedra. Ninguno dejó una salida."],
+"traps": [Vector2(350, 350), Vector2(610, 350), Vector2(290, 500), Vector2(670, 500)]
+}

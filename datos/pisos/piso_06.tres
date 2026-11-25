@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_06/sala_1.tres" id="1_wshok"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_06/sala_2.tres" id="2_05m2o"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_06/sala_3.tres" id="3_j2iw5"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_06/sala_4.tres" id="4_r5fgf"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,6 +13,12 @@ titulo = "LA OFRENDA"
 estado = "TODO CONTIENE EL ALIENTO"
 desgaste = 1.2
 eco = "huesos"
+combustible = 0.0
+seguidores = false
+espejo = false
+invertido = false
+final = false
 verdad = "El miedo y la desesperanza alimentan algo. Por eso te dejan descansar: para que vuelvas a esperar."
 inspiracion = "Inspiración: el vendedor ambulante y el protagonista que se vuelve líder.
 Piso de respiro: sin entidades. La regla es del Mercader."
+salas = Array[Resource]([ExtResource("1_wshok"), ExtResource("2_05m2o"), ExtResource("3_j2iw5"), ExtResource("4_r5fgf")])

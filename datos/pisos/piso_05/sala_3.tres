@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_tgfyu"]
+
+[resource]
+script = ExtResource("1_tgfyu")
+escena = 3
+nombre = "V-3 · PERRERA DE BRONCE"
+enemigo = ""
+rasgos = Array[String](["almas"])
+susurro = "Huesos roídos. Aquí comen los mastines."
+objetos = [["fosforos", "Fosforos", Vector2(250, 470)]]
+mision = {}
+extras = {
+"hounds": [Vector2(480, 470), Vector2(150, 300), Vector2(820, 250)],
+"walls": [Rect2(160, 460, 16, 92), Rect2(784, 460, 16, 92), Rect2(380, 180, 200, 16)]
+}

@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
+[ext_resource type="Resource" path="res://datos/pisos/piso_03/sala_1.tres" id="1_3eccd"]
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_03/sala_2.tres" id="2_e3wsi"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_03/sala_3.tres" id="3_gs8gp"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_03/sala_4.tres" id="4_4keqy"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,5 +13,11 @@ titulo = "LA CACERÍA"
 estado = "ALGO AQUÍ TIENE HAMBRE"
 desgaste = 1.5
 eco = "reflejos"
+combustible = 0.0
+seguidores = false
+espejo = false
+invertido = false
+final = false
 verdad = "La caza también es una ofrenda. Algo se alimenta de cada muerte."
 inspiracion = "Inspiración: la misión «matar al rápido», en grupo y con bajas."
+salas = Array[Resource]([ExtResource("1_3eccd"), ExtResource("2_e3wsi"), ExtResource("3_gs8gp"), ExtResource("4_4keqy")])

@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
+[ext_resource type="Resource" path="res://datos/pisos/piso_04/sala_1.tres" id="1_iyndo"]
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_04/sala_2.tres" id="2_4kjbx"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_04/sala_3.tres" id="3_i6iir"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_04/sala_4.tres" id="4_ktg30"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,5 +13,11 @@ titulo = "EL CLAUSTRO ENRAIZADO"
 estado = "LA PIEDRA SE AGRIETA"
 desgaste = 1.8
 eco = "piel"
+combustible = 0.0
+seguidores = false
+espejo = false
+invertido = false
+final = false
 verdad = "Otros también vuelven. Sus nombres están en el muro, y entre ellos, el tuyo."
 inspiracion = "Inspiración: las arañas de árbol, vencidas con fuego."
+salas = Array[Resource]([ExtResource("1_iyndo"), ExtResource("2_4kjbx"), ExtResource("3_i6iir"), ExtResource("4_ktg30")])

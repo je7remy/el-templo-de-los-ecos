@@ -1,0 +1,23 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_lxqwb"]
+
+[resource]
+script = ExtResource("1_lxqwb")
+escena = 3
+nombre = "VIII-3 · ARCHIVO QUE SE REESCRIBE"
+enemigo = "ghoul"
+rasgos = Array[String](["sello", "archivo"])
+susurro = "El sello está aquí, sobre los papeles. No donde decía la inscripción."
+objetos = [["fosforos", "Fosforos", Vector2(230, 460)]]
+mision = {
+"goal": "desterrar",
+"required": false,
+"reward": 10,
+"text": "Destierra al Ghoul del archivo"
+}
+extras = {
+"chest": [Vector2(790, 470), "«Esta caja ya la abrí. La letra de la nota es la mía.» —{yo}"],
+"letter": "Carta con tu letra: 'No confíes en las inscripciones. Las escribí yo... ¿o este lugar escribió con mi mano?'",
+"seal": Vector2(480, 440)
+}

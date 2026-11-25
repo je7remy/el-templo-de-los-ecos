@@ -5,10 +5,8 @@ extends RefCounted
 ## formato de diccionario que usa la campaña.
 ##
 ## Para añadir un arma, una pieza, un artículo o un objeto: crea su .tres
-## (duplica uno) y añádelo a su lista de abajo. Para un piso, además, añade
-## sus salas a SALAS en scripts/datos/pisos.gd, en la misma posición.
-
-const Pisos := preload("res://scripts/datos/pisos.gd")
+## (duplica uno) y añádelo a su lista de abajo. Las salas de un piso se añaden
+## en su lista «salas», desde el propio piso (datos/pisos/piso_NN.tres).
 
 const ARMAS := [
     preload("res://datos/armas/daga.tres"),
@@ -105,12 +103,9 @@ static func botin() -> Dictionary:
     return d
 
 
-## Los pisos de la campaña, en orden: cada uno con sus salas (Pisos.SALAS).
+## Los pisos de la campaña, en orden, cada uno con sus salas.
 static func pisos() -> Array:
-    var lista := []
-    for i in range(PISOS.size()):
-        lista.append(PISOS[i].como_dict(Pisos.SALAS[i]))
-    return lista
+    return PISOS.map(func(p): return p.como_dict())
 
 
 ## Verdad que revela cada piso, en orden.

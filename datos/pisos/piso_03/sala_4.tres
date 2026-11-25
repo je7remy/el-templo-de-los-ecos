@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_kcrhl"]
+
+[resource]
+script = ExtResource("1_kcrhl")
+escena = 4
+nombre = "III-4 · UMBRAL DEL CUARTO PISO"
+enemigo = ""
+rasgos = Array[String](["recuento"])
+susurro = "Los que siguen vivos cuentan los pasos de los que no. El suelo respira calor."
+objetos = []
+mision = {}
+extras = {
+"flames": [Vector2(330, 340), Vector2(630, 340), Vector2(380, 470), Vector2(580, 470)]
+}

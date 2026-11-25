@@ -117,8 +117,8 @@ Y lo que se mantiene de antes: no borrar ni alterar texturas o enemigos existent
 | 3d-5 (opcional) | Decorado a ras de suelo (puertas, trampas, enredaderas, cadáveres, desgaste, luz y niebla). Es escenografía que casi no se toca: queda en `main.gd` mientras no haga falta. | Opcional |
 | 4a | Armas (y el golpe base de la antorcha) y piezas de equipo en `datos/armas/*.tres` y `datos/equipo/*.tres`, con sus scripts de recurso (`scripts/datos/arma.gd`, `pieza_equipo.gd`) y el catálogo que los lista en orden (`scripts/datos/catalogo.gd`). Se editan desde el inspector de Godot. | **Hecha (v0.5.28)** |
 | 4b | Puesto del Mercader (`datos/tienda`), consumibles de la bolsa (`datos/bolsa`) y botín de la Vigilia (`datos/botin`) en `.tres`, con sus scripts de recurso en `scripts/datos/`. | **Hecha (v0.5.29)** |
-| 4c-1 | Datos generales de cada piso (número, título, estado, desgaste, Eco, combustible de la antorcha, seguidores, espejo, regla invertida, final y la verdad que revela) en `datos/pisos/piso_NN.tres`, con su script de recurso `scripts/datos/piso.gd`. Las salas siguen en `scripts/datos/pisos.gd` (`SALAS`, mismo orden). | **Hecha (v0.5.30)** |
-| 4c-2 | Salas de cada piso en `.tres`. | Pendiente |
+| 4c-1 | Datos generales de cada piso (número, título, estado, desgaste, Eco, combustible de la antorcha, seguidores, espejo, regla invertida, final y la verdad que revela) en `datos/pisos/piso_NN.tres`, con su script de recurso `scripts/datos/piso.gd`. | **Hecha (v0.5.30)** |
+| 4c-2 | Las 41 salas en `datos/pisos/piso_NN/sala_N.tres` (`scripts/datos/sala.gd`): escena, nombre, entidad, rasgos, susurro, objetos, misión y los elementos opcionales (cofre, trampas, muros, mastines, péndulos…) en «extras», con la misma clave que lee la campaña. Cada piso lista sus salas en orden. En `scripts/datos/pisos.gd` quedan solo las conversaciones. **Con esto, la campaña entera es de datos editables.** | **Hecha (v0.5.31)** |
 | 5 | La Vigilia con las mismas piezas (pantallas, avisos, `estilo.gd`). | Pendiente |
 
 La fase 2 está terminada: `main.gd` ya no dibuja menús ni el HUD. Al terminar la 3, no tendrá código del jugador ni de enemigos.

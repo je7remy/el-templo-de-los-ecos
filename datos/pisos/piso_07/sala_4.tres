@@ -1,0 +1,18 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_yv673"]
+
+[resource]
+script = ExtResource("1_yv673")
+escena = 4
+nombre = "VII-4 · UMBRAL DEL OCTAVO"
+enemigo = ""
+rasgos = Array[String](["recuento_guias"])
+susurro = "Detrás, los ojos se cierran. Delante, algo te resulta demasiado familiar."
+objetos = []
+mision = {}
+extras = {
+"chest": [Vector2(170, 470), "«No miré atrás. Ni una vez. Te lo dejo por si tú tampoco.» —Bruno"],
+"flames": [Vector2(400, 470), Vector2(560, 470)],
+"pendulums": [[Vector2(480, 345), 170.0]]
+}

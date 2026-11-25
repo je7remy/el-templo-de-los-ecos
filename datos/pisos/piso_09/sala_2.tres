@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_afdld"]
+
+[resource]
+script = ExtResource("1_afdld")
+escena = 2
+nombre = "IX-2 · GALERÍA AGRIETADA"
+enemigo = ""
+rasgos = Array[String](["almas"])
+susurro = "Las columnas de aquí están agrietadas. Algo enorme pasa por debajo cada noche."
+objetos = []
+mision = {}
+extras = {
+"flames": [Vector2(380, 330), Vector2(580, 330)],
+"rams": [Vector2(300, 470), Vector2(700, 470), Vector2(480, 200)]
+}

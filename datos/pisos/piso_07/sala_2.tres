@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_m47et"]
+
+[resource]
+script = ExtResource("1_m47et")
+escena = 2
+nombre = "VII-2 · SALA DE LA MIRADA"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "Un yelmo flota en la penumbra. Debajo, una hilera de ojos se abre."
+objetos = []
+mision = {
+"goal": "mirada",
+"required": true,
+"reward": 10,
+"text": "Resiste 45 s en la sala"
+}
+extras = {
+"gaze": 45.0
+}

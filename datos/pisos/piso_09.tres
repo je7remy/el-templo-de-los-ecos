@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_09/sala_1.tres" id="1_ylo03"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_09/sala_2.tres" id="2_vj5jr"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_09/sala_3.tres" id="3_lyr6g"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_09/sala_4.tres" id="4_mg85e"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,5 +13,11 @@ titulo = "EL COLOSO DEL PÓRTICO"
 estado = "EL SUELO TIEMBLA A INTERVALOS"
 desgaste = 2.0
 eco = "fuerza"
+combustible = 0.0
+seguidores = false
+espejo = false
+invertido = false
+final = false
 verdad = "Tras el vitral roto, un ala inmensa: el dueño de todo esto es un ángel caído."
 inspiracion = "Inspiración: las criaturas de nivel muy alto de los pisos profundos (el gigante de roca)."
+salas = Array[Resource]([ExtResource("1_ylo03"), ExtResource("2_vj5jr"), ExtResource("3_lyr6g"), ExtResource("4_mg85e")])

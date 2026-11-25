@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_02/sala_1.tres" id="1_ug6vi"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_02/sala_2.tres" id="2_nljb0"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_02/sala_3.tres" id="3_5jrjs"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_02/sala_4.tres" id="4_feaay"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,5 +13,11 @@ titulo = "LOS PEREGRINOS"
 estado = "PRIMERAS GRIETAS"
 desgaste = 1.0
 eco = "nuca"
+combustible = 0.0
+seguidores = false
+espejo = false
+invertido = false
+final = false
 verdad = "Las almas se pueden robar. Este lugar te enfrenta con los demás."
 inspiracion = "Inspiración: la traición durante la recolección de almas."
+salas = Array[Resource]([ExtResource("1_ug6vi"), ExtResource("2_nljb0"), ExtResource("3_5jrjs"), ExtResource("4_feaay")])

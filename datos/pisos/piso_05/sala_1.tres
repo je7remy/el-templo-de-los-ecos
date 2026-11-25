@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_hrecp"]
+
+[resource]
+script = ExtResource("1_hrecp")
+escena = 0
+nombre = "V-1 · CORREDOR DE LOS RELICARIOS"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "Uñas de bronce sobre la piedra. Algo olfatea en la oscuridad."
+objetos = [["fosforos", "Fosforos", Vector2(250, 470)]]
+mision = {}
+extras = {
+"hounds": [Vector2(480, 470), Vector2(720, 200)],
+"walls": [Rect2(250, 384, 180, 16), Rect2(552, 170, 16, 120), Rect2(612, 420, 16, 132)]
+}

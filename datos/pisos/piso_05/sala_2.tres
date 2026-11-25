@@ -1,0 +1,23 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_1dxq2"]
+
+[resource]
+script = ExtResource("1_1dxq2")
+escena = 1
+nombre = "V-2 · GALERÍA DEL MANTO"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "Alguien grita entre los muros. Los perros también lo oyen."
+objetos = []
+mision = {
+"goal": "rescatar",
+"required": false,
+"reward": 10,
+"text": "Libera al peregrino atrapado"
+}
+extras = {
+"hounds": [Vector2(300, 300), Vector2(800, 520)],
+"rescue": Vector2(700, 470),
+"walls": [Rect2(150, 420, 200, 16), Rect2(560, 420, 220, 16), Rect2(400, 170, 16, 90), Rect2(620, 480, 16, 72)]
+}

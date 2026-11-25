@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_4ff27"]
+
+[resource]
+script = ExtResource("1_4ff27")
+escena = 3
+nombre = "III-3 · CORO DESGARRADO"
+enemigo = "segador"
+rasgos = Array[String](["caza"])
+susurro = "Hilos rojos cuelgan de cada columna. Siguen tensos."
+objetos = [["fosforos", "Fosforos", Vector2(230, 460)]]
+mision = {
+"goal": "desterrar",
+"required": true,
+"reward": 15,
+"text": "Mata al Segador de Hilos"
+}
+extras = {
+"traps": [Vector2(330, 455), Vector2(630, 455), Vector2(250, 320), Vector2(710, 320)]
+}

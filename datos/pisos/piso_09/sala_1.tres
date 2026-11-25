@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/sala.gd" id="1_8iyts"]
+
+[resource]
+script = ExtResource("1_8iyts")
+escena = 0
+nombre = "IX-1 · NAVE DE LOS ARIETES"
+enemigo = ""
+rasgos = Array[String]([])
+susurro = "Bloques de piedra con cuernos. Miran al frente. Siempre al frente."
+objetos = [["fosforos", "Fosforos", Vector2(660, 470)]]
+mision = {
+"goal": "arietes",
+"required": false,
+"reward": 10,
+"text": "Rompe a los Arietes de Piedra"
+}
+extras = {
+"rams": [Vector2(480, 470), Vector2(760, 230)]
+}

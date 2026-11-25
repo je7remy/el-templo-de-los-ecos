@@ -1,6 +1,10 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=6 format=3]
 
+[ext_resource type="Resource" path="res://datos/pisos/piso_08/sala_1.tres" id="1_nny03"]
 [ext_resource type="Script" path="res://scripts/datos/piso.gd" id="1_piso"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_08/sala_2.tres" id="2_hjugd"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_08/sala_3.tres" id="3_x56dt"]
+[ext_resource type="Resource" path="res://datos/pisos/piso_08/sala_4.tres" id="4_jluo7"]
 
 [resource]
 script = ExtResource("1_piso")
@@ -9,9 +13,13 @@ titulo = "LAS SALAS QUE CAMBIAN"
 estado = "ESTO YA LO HAS VISTO. ¿O NO?"
 desgaste = 0.4
 eco = "memoria"
+combustible = 0.0
+seguidores = false
 espejo = true
 invertido = true
+final = false
 verdad = "El edificio es un sistema de producción: el miedo entra, las almas salen."
 inspiracion = "Inspiración: L.A.G. cambia y la memoria del protagonista falla.
 Las salas del Piso I, alteradas: estatuas del revés, el Testigo con
 la regla invertida, el sello en otra sala y pistas falsas «tuyas»."
+salas = Array[Resource]([ExtResource("1_nny03"), ExtResource("2_hjugd"), ExtResource("3_x56dt"), ExtResource("4_jluo7")])
