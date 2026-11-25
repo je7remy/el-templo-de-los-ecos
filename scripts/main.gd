@@ -40,6 +40,7 @@ const Coloso := preload("res://scripts/entidades/jefes/coloso.gd")
 const Hermano := preload("res://scripts/entidades/jefes/hermano.gd")
 const Vigia := preload("res://scripts/entidades/jefes/vigia.gd")
 const Lienzo := preload("res://scripts/comun/lienzo.gd")
+const Objetos := preload("res://scripts/mundo/objetos.gd")
 const FLOORS = Pisos.FLOORS
 
 const RELICS := [
@@ -266,6 +267,7 @@ var game_mode: String = "title":
 @onready var coloso: Node2D = $Jefes/Coloso
 @onready var hermano: Node2D = $Jefes/HermanoMayor
 @onready var vigia: Node2D = $Jefes/Vigia
+@onready var objetos: Node = $Objetos
 @onready var peregrino: Node2D = $Peregrino
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
@@ -3414,42 +3416,14 @@ func _draw_door() -> void:
 
 ## Altar a proporción real (78x112 escalado de forma uniforme).
 func _draw_altar(at: Vector2) -> void:
-    var scale: float = 0.75
-    var tex: Texture2D = art["knowledge_altar"]
-    var size := Vector2(tex.get_width(), tex.get_height()) * scale
-    # La base visible del sprite está en y=99 de 112.
-    var origin := Vector2(at.x - size.x * 0.5, at.y + 22.0 - 99.0 * scale)
-    _draw_soft_shadow(Vector2(at.x, at.y + 20.0), 30.0)
-    # Luz cálida de ofrenda: el sprite original es muy oscuro sobre este suelo.
-    var flicker: float = 0.5 + 0.5 * sin(elapsed * 3.1) * sin(elapsed * 1.3)
-    _draw_ellipse(Vector2(at.x, at.y + 18.0), 48.0, 20.0, Color(0.95, 0.72, 0.38, 0.07 + 0.03 * flicker))
-    for r in range(3, 0, -1):
-        draw_circle(at + Vector2(0.0, -14.0), 10.0 + float(r) * 7.0, Color(0.95, 0.74, 0.42, 0.035 + 0.015 * flicker))
-    draw_texture_rect(tex, Rect2(origin, size), false, Color(1.55, 1.42, 1.22))
-    # Velas a los lados del altar.
-    for side in [-1.0, 1.0]:
-        var c := Vector2(at.x + side * 30.0, at.y + 14.0)
-        draw_rect(Rect2(c.x - 2.0, c.y - 9.0, 4.0, 9.0), Color("#d8cfb4"))
-        draw_circle(c + Vector2(0.0, -12.0), 2.2 + flicker * 0.6, Color(1.0, 0.78, 0.35, 0.95))
-        draw_circle(c + Vector2(0.0, -12.0), 6.0, Color(1.0, 0.7, 0.3, 0.12))
+    # Se dibuja en scripts/mundo/objetos.gd, en su turno de profundidad.
+    objetos.altar(self, at, art["knowledge_altar"], elapsed)
 
 
 ## Libro del archivo sobre la mesa: cerrado hasta leerlo; después hojea páginas.
 func _draw_letter(at: Vector2) -> void:
-    var sheet: Texture2D = art["knowledge_book_sheet"]
-    var frame: int = 0
-    if letter_found:
-        frame = 15 + int(elapsed * 10.0) % 86
-    else:
-        var glow: float = 0.08 + 0.05 * sin(elapsed * 2.4)
-        draw_circle(at + Vector2(0.0, -8.0), 22.0, Color(0.59, 0.79, 0.55, glow))
-    var scale: float = 1.5
-    # Celda de 64x64; la base del libro está en y=45.
-    # Desde y=26 de la celda: libro y páginas, sin los glifos que flotaban
-    # sobre la estatua de detrás.
-    var region := Rect2(float(frame * 64) + 4.0, 26.0, 56.0, 22.0)
-    var dest := Rect2(at.x - 28.0 * scale, at.y - 19.0 * scale, 56.0 * scale, 22.0 * scale)
-    draw_texture_rect_region(sheet, dest, region)
+    # Se dibuja en scripts/mundo/objetos.gd, en su turno de profundidad.
+    objetos.carta(self, at, art["knowledge_book_sheet"], letter_found, elapsed)
 
 
 ## Fragmento de alma: cristal flotante con halo y sombra fija en el suelo.
@@ -7656,29 +7630,8 @@ func _draw_hound(i: int) -> void:
 
 ## Muro bajo del laberinto: cara superior clara, frente de sillares y musgo.
 func _draw_maze_wall(i: int) -> void:
-    var r: Rect2 = maze_walls[i]
-    var lift: float = 22.0
-    var top := Rect2(r.position.x, r.position.y - lift, r.size.x, r.size.y)
-    var front := Rect2(r.position.x, r.position.y - lift + r.size.y, r.size.x, lift)
-    draw_rect(Rect2(r.position + Vector2(3, 4), r.size), Color(0, 0, 0, 0.35)) # sombra
-    draw_rect(front, Color("#2c2a2e"))
-    var row: int = 0
-    var y: float = front.position.y
-    while y < front.end.y - 1.0:
-        var off: float = 0.0 if row % 2 == 0 else 7.0
-        var x: float = front.position.x - off
-        while x < front.end.x:
-            var bx: float = maxf(x, front.position.x)
-            var bw: float = minf(x + 14.0, front.end.x) - bx
-            if bw > 1.0:
-                draw_rect(Rect2(bx + 0.5, y + 0.5, bw - 1.0, 6.0), Color("#3a373c") if (row + int(x)) % 3 else Color("#343136"))
-            x += 14.0
-        y += 7.0
-        row += 1
-    draw_rect(top, Color("#55505a"))
-    draw_rect(Rect2(top.position, Vector2(top.size.x, 2)), Color("#6d6772"))
-    draw_rect(Rect2(front.position.x, front.end.y - 3.0, front.size.x, 3), Color("#3f5236", 0.8)) # musgo
-    draw_rect(Rect2(top.position.x, top.position.y, top.size.x, top.size.y + lift), Color(0, 0, 0, 0.55), false, 1.0)
+    # Se dibuja en scripts/mundo/objetos.gd, en su turno de profundidad.
+    objetos.muro(self, maze_walls[i])
 
 
 func _draw_rescue() -> void:
@@ -8794,27 +8747,8 @@ func _use_fountain() -> bool:
 
 
 func _draw_fountain() -> void:
-    var p: Vector2 = FOUNTAIN_POS
-    var used: bool = fountains_used.has(_room_key())
-    _draw_soft_shadow(p + Vector2(0, 2), 18.0)
-    # Base de piedra y cuerpo de latón con engranajes.
-    draw_rect(Rect2(p.x - 16.0, p.y - 10.0, 32, 10), Color("#3a363c"))
-    draw_rect(Rect2(p.x - 12.0, p.y - 34.0, 24, 24), Color("#8a6a3a"))
-    draw_rect(Rect2(p.x - 12.0, p.y - 34.0, 24, 3), Color("#c9a25e"))
-    var spin: float = 0.0 if used else elapsed * 2.0
-    for side in [-1.0, 1.0]:
-        var g: Vector2 = p + Vector2(side * 14.0, -22.0)
-        draw_circle(g, 5.0, Color("#6a5030"))
-        draw_line(g + Vector2.from_angle(spin) * 5.0, g - Vector2.from_angle(spin) * 5.0, Color("#c9a25e"), 1.0)
-    # Vial con sangre que late; vacío si ya lo usaste.
-    var vial := Rect2(p.x - 6.0, p.y - 54.0, 12, 20)
-    draw_rect(vial, Color(0.6, 0.7, 0.75, 0.35))
-    if not used:
-        var pulse: float = 0.5 + 0.5 * sin(elapsed * 3.0)
-        draw_rect(Rect2(vial.position + Vector2(2, 6), Vector2(8, 13)), Color(0.75, 0.08, 0.14).lerp(Color(0.95, 0.2, 0.25), pulse))
-        draw_circle(vial.get_center(), 14.0, Color(0.9, 0.15, 0.2, 0.08 + 0.06 * pulse))
-    draw_rect(vial, Color(0.85, 0.85, 0.9, 0.6), false, 1.0)
-    draw_rect(Rect2(p.x - 8.0, p.y - 57.0, 16, 4), Color("#c9a25e"))
+    # Se dibuja en scripts/mundo/objetos.gd, en su turno de profundidad.
+    objetos.fuente(self, FOUNTAIN_POS, fountains_used.has(_room_key()), elapsed)
 
 
 func _draw_fountain_label() -> void:
@@ -8852,7 +8786,7 @@ const COLOSSUS_STOMP_RADIUS := Coloso.RADIO # (velocidad y aviso: scripts/entida
 const COLOSSUS_WINDUP := Coloso.ALZA
 const COLOSSUS_DAMAGE := 32.0
 const COLOSSUS_HITS := 3
-const PILLAR_REACH := 160.0 # distancia del Coloso a la columna para que le caiga encima
+const PILLAR_REACH := Objetos.PILLAR_REACH # distancia del Coloso a la columna para que le caiga encima
 var rams: Array = [] # {pos, prev, home, state, t, dir, hp, facing, cd}
 var pillars: Array = [] # {pos, fallen, fall_dir, fall_t}
 var colossus_active: bool = false
@@ -9041,28 +8975,8 @@ func _draw_ram_warnings() -> void:
 
 
 func _draw_pillar(i: int) -> void:
-    var p: Dictionary = pillars[i]
-    var at: Vector2 = p["pos"]
-    if bool(p["fallen"]):
-        # Columna caída: tambores de piedra en línea hacia donde estaba el Coloso.
-        var dir: Vector2 = p["fall_dir"]
-        var k: float = float(p["fall_t"])
-        for n in range(5):
-            var c: Vector2 = at + dir * (14.0 + float(n) * 22.0) * k
-            draw_rect(Rect2(c - Vector2(12, 8), Vector2(24, 16)), Color("#6a665e"))
-            draw_rect(Rect2(c - Vector2(12, 8), Vector2(24, 3)), Color("#8a857b"))
-        return
-    _draw_soft_shadow(at + Vector2(0, 2), 16.0)
-    var body := Rect2(at.x - 12.0, at.y - 92.0, 24, 92)
-    draw_rect(body, Color("#7d7a72"))
-    draw_rect(Rect2(body.position, Vector2(5, body.size.y)), Color("#a8a49a"))
-    draw_rect(Rect2(at.x - 16.0, at.y - 98.0, 32, 8), Color("#8a857b"))
-    draw_rect(Rect2(at.x - 16.0, at.y - 8.0, 32, 8), Color("#5f5b54"))
-    # Grieta que brilla: aquí se golpea.
-    var glow: float = 0.5 + 0.5 * sin(elapsed * 3.0 + at.x)
-    draw_polyline(PackedVector2Array([Vector2(at.x - 4, at.y - 70), Vector2(at.x + 4, at.y - 54), Vector2(at.x - 2, at.y - 36), Vector2(at.x + 3, at.y - 22)]), Color(1.0, 0.75, 0.35, 0.5 + 0.5 * glow), 2.0)
-    if colossus_active and colossus_pos.distance_to(at) < PILLAR_REACH:
-        draw_rect(body.grow(3.0), Color(1.0, 0.8, 0.4, 0.5 + 0.3 * glow), false, 2.0)
+    # Se dibuja en scripts/mundo/objetos.gd, en su turno de profundidad.
+    objetos.pilar(self, pillars[i], elapsed, colossus_active, colossus_pos)
 
 
 func _draw_colossus() -> void:
@@ -9359,20 +9273,8 @@ func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
 
 
 func _draw_brazier(i: int) -> void:
-    var b: Dictionary = braziers[i]
-    var at: Vector2 = b["pos"]
-    _draw_soft_shadow(at + Vector2(0, 2), 18.0)
-    draw_rect(Rect2(at.x - 6.0, at.y - 26.0, 12, 26), Color("#4a4352"))
-    draw_colored_polygon(PackedVector2Array([at + Vector2(-22, -34), at + Vector2(22, -34), at + Vector2(14, -22), at + Vector2(-14, -22)]), Color("#6a5030"))
-    draw_rect(Rect2(at.x - 22.0, at.y - 36.0, 44, 3), Color("#c9a25e"))
-    if bool(b["lit"]):
-        var f: float = 0.5 + 0.5 * sin(elapsed * 9.0 + at.x)
-        for k in range(4, 0, -1):
-            draw_circle(at + Vector2(0, -44), 10.0 + float(k) * 12.0, Color(1.0, 0.6, 0.25, 0.04))
-        draw_colored_polygon(PackedVector2Array([at + Vector2(-14, -36), at + Vector2(14, -36), at + Vector2(4, -62 - 6.0 * f), at + Vector2(-2, -54)]), Color("#f08a3a"))
-        draw_colored_polygon(PackedVector2Array([at + Vector2(-7, -36), at + Vector2(7, -36), at + Vector2(1, -52 - 4.0 * f)]), Color("#ffd36b"))
-    else:
-        draw_rect(Rect2(at.x - 12.0, at.y - 38.0, 24, 4), Color("#2a2420"))
+    # Se dibuja en scripts/mundo/objetos.gd, en su turno de profundidad.
+    objetos.brasero(self, braziers[i], elapsed)
 
 
 func _draw_elder() -> void:
@@ -9507,24 +9409,8 @@ func _grant_loot(key: String) -> String:
 
 
 func _draw_chest() -> void:
-    var at: Vector2 = _chest_pos()
-    var opened: bool = _chest_is_open()
-    _draw_soft_shadow(at + Vector2(0, 2), 22.0)
-    var body := Rect2(at.x - 20.0, at.y - 22.0, 40, 22)
-    draw_rect(body, Color("#5a3b22"))
-    draw_rect(Rect2(body.position.x, body.position.y + 8.0, body.size.x, 3), Color("#3a2414"))
-    draw_rect(Rect2(at.x - 3.0, body.position.y, 6, body.size.y), Color("#b8955a"))
-    draw_rect(body, Color("#1b120a"), false, 1.0)
-    if opened:
-        # Tapa abierta, hacia atrás.
-        draw_colored_polygon(PackedVector2Array([Vector2(body.position.x, body.position.y), Vector2(body.end.x, body.position.y), Vector2(body.end.x - 3.0, body.position.y - 14.0), Vector2(body.position.x + 3.0, body.position.y - 14.0)]), Color("#4a2f1a"))
-        draw_rect(Rect2(body.position.x + 3.0, body.position.y - 2.0, body.size.x - 6.0, 3), Color("#140c06"))
-    else:
-        draw_rect(Rect2(body.position.x - 1.0, body.position.y - 8.0, body.size.x + 2.0, 9), Color("#6b4528"))
-        draw_rect(Rect2(at.x - 3.0, body.position.y - 8.0, 6, 9), Color("#c9a25e"))
-        draw_rect(Rect2(at.x - 2.0, body.position.y - 1.0, 4, 4), Color("#2a2420"))
-        var g: float = 0.5 + 0.5 * sin(elapsed * 3.0 + at.x)
-        draw_circle(Vector2(at.x + 12.0, body.position.y - 6.0), 1.5 + g, Color(1.0, 0.9, 0.6, 0.35 + 0.4 * g))
+    # Se dibuja en scripts/mundo/objetos.gd, en su turno de profundidad.
+    objetos.cofre(self, _chest_pos(), _chest_is_open(), elapsed)
 
 
 func _draw_chest_label() -> void:

@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.25-alpha — 2026-11-25 · Arquitectura por escenas, fase 3d-3
+
+Sin cambios en las reglas del juego ni en cómo se ve.
+
+- **Los objetos de la sala que van en el orden por profundidad se dibujan desde `scripts/mundo/objetos.gd`** (nodo «Objetos»): columnas (y su caída), braseros, cofre, fuente, altar, carta y muros del laberinto. La campaña decide qué hay y en qué estado está.
+- Se ve idéntico: capturas de **las 41 salas del juego** salen iguales a las de la versión anterior, salvo motas de polvo del ambiente que también cambian entre dos capturas de la misma versión.
+- `main.gd` baja a unas 9 940 líneas.
+- Versión Android 0.5.25-alpha (código 32).
+
 ## v0.5.24-alpha — 2026-11-25 · Arquitectura por escenas, fase 3d-2
 
 Sin cambios en las reglas del juego ni en cómo se ve.
