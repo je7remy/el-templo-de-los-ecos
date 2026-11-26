@@ -176,6 +176,19 @@ Puedes descargar el [APK de la última versión](https://github.com/je7remy/el-t
 
 Desde v0.5.9 el CI firma el APK con una **llave fija** guardada en los secretos del repositorio (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`), así que cada APK nuevo se instala encima del anterior y conserva la partida. Si esos secretos no existen, el CI usa una llave temporal y avisa: en ese caso hay que desinstalar la versión anterior antes de instalar la nueva. El paso de la llave temporal a la fija también exige desinstalar una vez.
 
+Cómo crear la llave y guardarla en los secretos (una sola vez, en tu equipo; la llave **nunca** va al repositorio):
+
+```bash
+mkdir -p ~/llaves && cd ~/llaves
+keytool -genkeypair -storetype PKCS12 -keystore templo.keystore -alias templo \
+  -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=El Templo de los Ecos,C=DO"
+base64 -w0 templo.keystore | gh secret set ANDROID_KEYSTORE_BASE64 -R je7remy/el-templo-de-los-ecos
+gh secret set ANDROID_KEYSTORE_PASSWORD -R je7remy/el-templo-de-los-ecos   # pide la contraseña
+gh secret set ANDROID_KEY_ALIAS -R je7remy/el-templo-de-los-ecos --body templo
+```
+
+Guarda `templo.keystore` y su contraseña en un lugar seguro y con copia: si se pierden, ningún APK nuevo podrá instalarse encima de los anteriores.
+
 ## Actualizaciones automáticas
 
 Desde v0.5.9, las copias instaladas (Android, Windows y Linux) consultan al abrir la lista de [releases](https://github.com/je7remy/el-templo-de-los-ecos/releases). Si hay una versión más nueva con archivo para su plataforma, el menú principal muestra **NUEVA VERSIÓN … DISPONIBLE** con **ACTUALIZAR** y **AHORA NO**:
@@ -355,4 +368,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.37-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.38-alpha** (se publica al fusionar esta versión en `main`).
