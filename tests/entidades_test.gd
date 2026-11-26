@@ -650,6 +650,37 @@ func _run() -> void:
         _fail("En VII-4 el cofre sigue encima del Relicario de Vida.")
         return
     print("OK: revisión de la demo (género de los textos, cofre de VII-4).")
+
+    # --- Inglés: traducción completa al dibujar -------------------------------------
+    var Idioma = load("res://scripts/comun/idioma.gd")
+    var Ajustes_i = load("res://scripts/ajustes.gd")
+    Ajustes_i.poner("idioma", "es")
+    if str(Idioma.t("SALA DEL TESTIGO")) != "SALA DEL TESTIGO":
+        _fail("En español los textos deben quedar como están.")
+        return
+    Ajustes_i.poner("idioma", "en")
+    Idioma.nombre = "ANA"
+    var casos := {
+        "I-3 · SALA DEL TESTIGO": "I-3 · HALL OF THE WITNESS",
+        "SALA DEL TESTIGO": "HALL OF THE WITNESS",
+        "FASE 12": "PHASE 12",
+        "Necesitas 20 ecos para un CENTINELA.": "You need 20 echoes for a SENTINEL.",
+        "Por fin. Eres ANA, ¿verdad? Tu nombre está en el muro de los nombres, igual que el mío.": "At last. You're ANA, aren't you? Your name is on the wall of names, just like mine.",
+        "Destierra al Testigo · +8 almas": "Banish the Witness · +8 souls",
+        "PISO III · LA CACERÍA": "FLOOR III · THE HUNT",
+    }
+    for es in casos:
+        if str(Idioma.t(es)) != casos[es]:
+            _fail("Traducción: «%s» salió «%s»." % [es, Idioma.t(es)])
+            Ajustes_i.poner("idioma", "es")
+            return
+    game.set("player_gender", "femenino")
+    var frase: String = game.call("_personal", "¡{yo}! Sigues {vivo|viva}. Les dije que volverías a aparecer.")
+    Ajustes_i.poner("idioma", "es")
+    if not frase.begins_with("ANA! You're still alive"):
+        _fail("Los diálogos no se traducen en inglés: " + frase)
+        return
+    print("OK: el juego entero se traduce al inglés (salas, diálogos, avisos, Vigilia).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

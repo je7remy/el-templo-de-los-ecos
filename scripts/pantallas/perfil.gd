@@ -149,7 +149,7 @@ func _dibujar_ficha() -> void:
     for i in range(stats.size()):
         var y: float = 338.0 + float(i) * 29.0
         Estilo.texto(self, str(stats[i][0]), Vector2(112, y), 13, Estilo.GRIS)
-        draw_string(Estilo.fuente(), Vector2(112, y), str(stats[i][1]), HORIZONTAL_ALIGNMENT_RIGHT, 220.0, 15, Estilo.CREMA)
+        draw_string(Estilo.fuente(), Vector2(112, y), Estilo.t(str(stats[i][1])), HORIZONTAL_ALIGNMENT_RIGHT, 220.0, 15, Estilo.CREMA)
         if i < stats.size() - 1:
             draw_rect(Rect2(112, y + 11.0, 220, 1), Color(1, 1, 1, 0.06))
 
@@ -160,6 +160,7 @@ func _casilla(r: Rect2, sel: bool, borde: Color = Estilo.BORDE) -> void:
 
 ## Texto que se encoge (10 → 8) hasta caber en la casilla.
 func _nombre_ajustado(msg: String, r: Rect2, y: float, color: Color) -> void:
+    msg = Estilo.t(msg)
     var tam: int = 10
     while tam > 8 and Estilo.fuente().get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x > r.size.x - 8.0:
         tam -= 1
@@ -252,11 +253,11 @@ func _dibujar_descripcion() -> void:
             draw_string(fuente, Vector2(388, 496 + i * 15), lineas[i], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, d.get("color_texto", Estilo.ALMA))
     else:
         Estilo.texto(self, str(d.get("titulo", "")), Vector2(388, float(d.get("y_titulo", 478))), 15, d.get("color_titulo", Estilo.CREMA))
-        draw_string(fuente, Vector2(388, float(d.get("y_texto", 502))), str(d.get("texto", "")), HORIZONTAL_ALIGNMENT_LEFT, 470.0, int(d.get("tam_texto", 13)), d.get("color_texto", Estilo.ALMA))
+        draw_string(fuente, Vector2(388, float(d.get("y_texto", 502))), Estilo.t(str(d.get("texto", ""))), HORIZONTAL_ALIGNMENT_LEFT, 470.0, int(d.get("tam_texto", 13)), d.get("color_texto", Estilo.ALMA))
     var pie: String = str(d.get("pie", ""))
     if pie != "":
         var alinear: int = HORIZONTAL_ALIGNMENT_RIGHT if bool(d.get("pie_derecha", false)) else HORIZONTAL_ALIGNMENT_LEFT
-        draw_string(fuente, Vector2(388, 526), pie, alinear, 470.0, 11, d.get("color_pie", Color("#ffd36b")))
+        draw_string(fuente, Vector2(388, 526), Estilo.t(pie), alinear, 470.0, 11, d.get("color_pie", Color("#ffd36b")))
 
 
 # ------------------------------------------------------------ ENTRADA

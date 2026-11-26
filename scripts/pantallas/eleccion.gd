@@ -27,7 +27,7 @@ func _draw() -> void:
     oscurecer(Color(0, 0, 0, 0.62))
     Estilo.panel(self, PANEL, Color(0.04, 0.035, 0.05, 0.97), Estilo.ORO)
     Estilo.texto(self, str(datos.get("quien", "")), Vector2(PANEL.position.x, PANEL.position.y + 34.0), 16, Estilo.ORO, PANEL.size.x)
-    draw_multiline_string(Estilo.fuente(), Vector2(PANEL.position.x + 30.0, PANEL.position.y + 66.0), str(datos.get("texto", "")), HORIZONTAL_ALIGNMENT_CENTER, PANEL.size.x - 60.0, 15, 4, Estilo.CREMA)
+    draw_multiline_string(Estilo.fuente(), Vector2(PANEL.position.x + 30.0, PANEL.position.y + 66.0), Estilo.t(str(datos.get("texto", ""))), HORIZONTAL_ALIGNMENT_CENTER, PANEL.size.x - 60.0, 15, 4, Estilo.CREMA)
     var opciones: Array = datos.get("opciones", [])
     for i in range(opciones.size()):
         var r := rect_opcion(i)
@@ -35,7 +35,7 @@ func _draw() -> void:
         var buena: bool = i == 0
         Estilo.panel(self, r, (Color("#1f3326") if buena else Color("#3a1a20")) if sel else Color("#141018"), (Color("#7fd6a0") if buena else Estilo.CARMESI) if sel else Estilo.BORDE)
         Estilo.texto(self, "[%d] %s" % [i + 1, opciones[i][1]], Vector2(r.position.x, r.position.y + 36.0), 17, Estilo.CREMA, r.size.x)
-        draw_multiline_string(Estilo.fuente(), Vector2(r.position.x + 14.0, r.position.y + 62.0), str(opciones[i][2]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 28.0, 12, 3, Estilo.GRIS)
+        draw_multiline_string(Estilo.fuente(), Vector2(r.position.x + 14.0, r.position.y + 62.0), Estilo.t(str(opciones[i][2])), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 28.0, 12, 3, Estilo.GRIS)
     Estilo.texto(self, str(datos.get("ayuda", "")), Vector2(PANEL.position.x, PANEL.end.y - 14.0), 11, Color("#8a8574"), PANEL.size.x)
 
 

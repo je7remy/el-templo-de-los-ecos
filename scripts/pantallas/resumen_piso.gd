@@ -35,7 +35,7 @@ func _draw() -> void:
         Estilo.texto(self, str(datos.get("eco_detalle", "")), Vector2(272, 440), 11, Color("#9a957f"))
     if str(datos.get("verdad", "")) != "":
         Estilo.texto(self, "VERDAD REVELADA", Vector2(230, 476), 11, Estilo.ORO)
-        draw_multiline_string(Estilo.fuente(), Vector2(230, 496), "«%s»" % datos["verdad"], HORIZONTAL_ALIGNMENT_LEFT, 500.0, 15, 2, Estilo.CREMA)
+        draw_multiline_string(Estilo.fuente(), Vector2(230, 496), "«%s»" % Estilo.t(str(datos["verdad"])), HORIZONTAL_ALIGNMENT_LEFT, 500.0, 15, 2, Estilo.CREMA)
     var pulso: float = 0.5 + 0.5 * sin(_t * 4.0)
     Estilo.texto(self, str(datos.get("ayuda", "")), Vector2(170, 552), 13, Color(Estilo.ORO.r, Estilo.ORO.g, Estilo.ORO.b, 0.5 + 0.5 * pulso), panel.size.x)
 

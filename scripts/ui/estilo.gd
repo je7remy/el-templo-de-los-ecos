@@ -36,6 +36,15 @@ static var _fuente_titulo: Font
 
 
 ## Letra pixel (Jersey 15).
+const Idioma := preload("res://scripts/comun/idioma.gd")
+
+
+## El texto en el idioma elegido (scripts/comun/idioma.gd). Las piezas de
+## dibujo de aquí ya lo usan; úsalo antes de medir un texto propio.
+static func t(msg: String) -> String:
+    return Idioma.t(msg)
+
+
 static func fuente() -> Font:
     if _fuente == null:
         preparar_fuentes()
@@ -95,6 +104,7 @@ static func panel(ci: CanvasItem, r: Rect2, relleno: Color = PANEL, borde: Color
 
 ## Texto pixel con borde oscuro. Con ancho > 0 se centra en ese ancho.
 static func texto(ci: CanvasItem, msg: String, en: Vector2, tam: int, color: Color, ancho: float = -1.0) -> void:
+    msg = Idioma.t(msg)
     var alin: int = HORIZONTAL_ALIGNMENT_CENTER if ancho > 0.0 else HORIZONTAL_ALIGNMENT_LEFT
     var oscuro := Color(0, 0, 0, color.a * 0.9)
     for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(1, 1)]:
@@ -104,6 +114,7 @@ static func texto(ci: CanvasItem, msg: String, en: Vector2, tam: int, color: Col
 
 ## Rótulo gótico (Jacquard 24) con sombra rojiza.
 static func titulo(ci: CanvasItem, msg: String, en: Vector2, tam: int, color: Color, ancho: float = -1.0) -> void:
+    msg = Idioma.t(msg)
     var alin: int = HORIZONTAL_ALIGNMENT_CENTER if ancho > 0.0 else HORIZONTAL_ALIGNMENT_LEFT
     var sombra := Color(0.0, 0.0, 0.0, color.a * 0.85)
     ci.draw_string(fuente_titulo(), en + Vector2(0, maxf(2.0, float(tam) / 16.0)), msg, alin, ancho, tam, Color(0.12, 0.02, 0.05, color.a * 0.8))
@@ -163,6 +174,7 @@ static func barra(ci: CanvasItem, r: Rect2, fraccion: float, color: Color, etiqu
 ## Párrafo con saltos de línea automáticos dentro de «caja». Devuelve la
 ## línea base de la última línea escrita.
 static func parrafo(ci: CanvasItem, msg: String, caja: Rect2, tam: int, color: Color) -> float:
+    msg = Idioma.t(msg)
     var palabras: PackedStringArray = msg.split(" ")
     var linea: String = ""
     var y: float = caja.position.y + float(tam)
@@ -181,16 +193,17 @@ static func parrafo(ci: CanvasItem, msg: String, caja: Rect2, tam: int, color: C
 
 ## Texto sin borde (como _text de la campaña).
 static func plano(ci: CanvasItem, msg: String, en: Vector2, tam: int = 16, color: Color = CREMA) -> void:
-    ci.draw_string(fuente(), en, msg, HORIZONTAL_ALIGNMENT_LEFT, -1.0, tam, color)
+    ci.draw_string(fuente(), en, Idioma.t(msg), HORIZONTAL_ALIGNMENT_LEFT, -1.0, tam, color)
 
 
 ## Texto sin borde centrado en la pantalla base (x 40 → 920).
 static func centrado(ci: CanvasItem, msg: String, y: float, tam: int = 16, color: Color = CREMA) -> void:
-    ci.draw_string(fuente(), Vector2(40, y), msg, HORIZONTAL_ALIGNMENT_CENTER, 880.0, tam, color)
+    ci.draw_string(fuente(), Vector2(40, y), Idioma.t(msg), HORIZONTAL_ALIGNMENT_CENTER, 880.0, tam, color)
 
 
 ## Corta un texto en líneas que caben en «ancho».
 static func lineas(msg: String, ancho: float, tam: int) -> PackedStringArray:
+    msg = Idioma.t(msg)
     var out := PackedStringArray()
     var linea: String = ""
     for p in msg.split(" ", false):

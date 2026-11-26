@@ -14,6 +14,9 @@ signal respondida(salir: bool)
 @onready var _si: Button = $Fondo/Panel/Margen/Caja/Botones/Si
 @onready var _no: Button = $Fondo/Panel/Margen/Caja/Botones/No
 
+const Idioma := preload("res://scripts/comun/idioma.gd")
+const TEXTOS := {"Titulo": "¿Salir del templo?", "Texto": "Tu progreso ya está guardado."}
+
 var _pausa_previa: bool = false
 var _fuentes_puestas: bool = false
 
@@ -42,6 +45,11 @@ func preguntar() -> void:
     if _fondo.visible:
         return
     _poner_fuentes()
+    # Textos en el idioma elegido (pueden haberlo cambiado en Configuración).
+    for n in TEXTOS:
+        ($Fondo/Panel/Margen/Caja.get_node(n) as Label).text = Idioma.t(TEXTOS[n])
+    _si.text = Idioma.t("SÍ, SALIR")
+    _no.text = Idioma.t("NO, SEGUIR")
     _pausa_previa = get_tree().paused
     get_tree().paused = true
     _fondo.visible = true

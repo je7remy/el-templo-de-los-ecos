@@ -21,7 +21,7 @@ func _draw() -> void:
     oscurecer(Color(0, 0, 0, 0.75))
     Estilo.panel(self, Rect2(164, 155, 632, 357), Color(0.05, 0.06, 0.08, 0.97), Estilo.ORO)
     Estilo.centrado(self, "EL MERCADER SILENCIOSO", 200, 26, Estilo.CREMA)
-    Estilo.centrado(self, "'Todo préstamo tiene un dueño que no conoces.'", 232, 15, Estilo.ALMA)
+    Estilo.centrado(self, "«Todo préstamo tiene un dueño que no conoces.»", 232, 15, Estilo.ALMA)
     var ofertas: Array = datos.get("ofertas", [])
     for i in range(ofertas.size()):
         var fila := rect_fila(i)
@@ -32,7 +32,7 @@ func _draw() -> void:
             draw_texture_rect(o["icono"], Rect2(fila.position + Vector2(12, 11), Vector2(64, 64)), false)
         Estilo.plano(self, str(o.get("titulo", "")), fila.position + Vector2(92, 32), 18, Estilo.CREMA)
         Estilo.plano(self, str(o.get("detalle", "")), fila.position + Vector2(92, 60), 13, Estilo.GRIS)
-        draw_string(Estilo.fuente(), fila.position + Vector2(0, 32), str(o.get("derecha", "")), HORIZONTAL_ALIGNMENT_RIGHT, fila.size.x - 14.0, 15, o.get("color_derecha", Estilo.CREMA))
+        draw_string(Estilo.fuente(), fila.position + Vector2(0, 32), Estilo.t(str(o.get("derecha", ""))), HORIZONTAL_ALIGNMENT_RIGHT, fila.size.x - 14.0, 15, o.get("color_derecha", Estilo.CREMA))
     if datos.get("icono_alma") != null:
         draw_texture_rect(datos["icono_alma"], Rect2(196, 464, 26, 26), false)
     Estilo.plano(self, "ALMAS: %d" % int(datos.get("almas", 0)), Vector2(228, 484), 16, Estilo.ALMA)

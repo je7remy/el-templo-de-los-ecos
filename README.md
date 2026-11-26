@@ -70,7 +70,7 @@ Las notas de cada versión están en la [página de la última versión](https:/
   - **Ghoul de brasas**: le atrae la luz de la antorcha. Siempre vulnerable.
   - **Hechicero del archivo**: lanza conjuros hacia la luz. Solo recibe daño mientras carga el conjuro.
 - **Inicio, intro y tutorial**: pantalla «haz clic para continuar» con el engranaje de configuración abajo a la izquierda; acuerdo de usuario la primera vez; intro breve (saltable) y una sala de práctica con 8 pasos guiados (mover, esquivar, recoger un alma, encender la antorcha, golpear un muñeco, abrir el perfil, pausar y cruzar la puerta). Se puede repetir desde Configuración.
-- **Pausa y configuración**: ESC pausa la partida (continuar, configuración, perfil, saltar tutorial, volver al inicio). Configuración con Sonido (general, música, efectos, silencio), Controles (todas las teclas reasignables y modo táctil), Idioma (español / inglés en los menús) y Privacidad (acuerdo, política y borrar mis datos).
+- **Pausa y configuración**: ESC pausa la partida (continuar, configuración, perfil, saltar tutorial, volver al inicio). Configuración con Sonido (general, música, efectos, silencio), Controles (todas las teclas reasignables y modo táctil), Idioma (español / inglés: todo el juego, incluidas salas, diálogos y la Vigilia) y Privacidad (acuerdo, política y borrar mis datos).
 - **Estilo roguelike de acción**: HUD de paneles biselados con el retrato de Mark (con sangre cuando está herido), barras de vida, vigor y miedo con icono y números, minimapa del piso, contador de almas, panel de arma con su munición (fósforos) y habilidades redondas con su recuperación. Tipografía pixel (Pixelify Sans, OFL) y salas con restos, sangre, velas, estandartes y cadenas.
 - **Perfil del jugador (I)**: retrato, estadísticas de la partida y de tus vidas, equipo y mochila, y los Ecos despertados.
 - **Antorcha y mochila**: despiertas a oscuras; en la primera sala encuentras madera y fósforos y se construye la antorcha. Encenderla gasta un fósforo (apagarla no); hay más cajas en las salas 3 y 4, y el altar vende la **Llama interior**, que la enciende sin gastar.
@@ -368,4 +368,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.39-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.40-alpha** (se publica al fusionar esta versión en `main`).

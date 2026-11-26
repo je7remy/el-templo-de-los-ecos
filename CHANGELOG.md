@@ -1,5 +1,13 @@
 # Historial de versiones
 
+## v0.5.40-alpha — 2026-11-26 · Todo el juego en inglés
+
+- **English, everywhere.** Con el idioma en inglés (*Configuración > Idioma*) ya no queda nada en español: los nombres y susurros de las 41 salas, las misiones, las notas de los cofres, las inscripciones, las conversaciones, las verdades de cada piso, los avisos, el perfil, el mapa, la tienda, el altar, las pantallas de muerte y de fin, y toda la Vigilia (portada, tutorial, menús, barras y botín). Unos 1 080 textos.
+- La traducción se hace al dibujar cada texto (`scripts/comun/idioma.gd` con las tablas de `scripts/datos/en/`), así que el juego se sigue escribiendo en español y cada texto nuevo solo necesita su línea en la tabla.
+- La verdad del Piso I también se adapta si tu personaje es femenino («Estás atrapada…»), y dos frases más («sigues sola», «seguirás sola»).
+- Comillas uniformes en la carta de I-4 y en el puesto del Mercader.
+- Versión Android 0.5.40-alpha (código 47).
+
 ## v0.5.39-alpha — 2026-11-26 · Revisión de la demo
 
 - **VII-4 · Umbral del Octavo:** el cofre de Bruno ya no está encima del Relicario de Vida (sus rótulos se tapaban); ahora está arriba a la izquierda.

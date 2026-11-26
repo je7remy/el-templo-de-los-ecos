@@ -65,7 +65,8 @@ Piezas de interfaz reutilizables (`scenes/ui/` y `scripts/ui/`):
 | `estilo.gd` | Colores, tipografías y el dibujo común (panel, texto con borde, rótulo gótico, botones). `main.gd` y las escenas dibujan con lo mismo, así todo se ve igual. |
 | `boton_templo.tscn` | Botón de verdad (`TextureButton` sin texturas): ratón, toque, foco de teclado y mando, señal `pressed`. Variantes `menu`, `grande`, `chico` e `icono`. |
 | `texto_templo.gd`, `parrafo_templo.gd`, `panel_templo.gd`, `adorno_templo.gd` | Texto pixel o gótico, párrafo con saltos de línea, panel ornamentado y filete dorado como nodos colocables en el editor. |
-| `scripts/datos/textos.gd` | Todos los textos en español e inglés y los textos legales. Las escenas los piden con `Textos.t("clave")`. |
+| `scripts/datos/textos.gd` | Textos de los menús en español e inglés y los textos legales. Las escenas los piden con `Textos.t("clave")`. |
+| `scripts/comun/idioma.gd` + `scripts/datos/en/*.gd` | Inglés del resto del juego. El juego se escribe en español; las piezas de dibujo (`estilo.gd`, `estilo_vigilia.gd`, los rótulos de `main.gd`) pasan cada texto por `Idioma.t()` al pintarlo. Las tablas van de «español» a «inglés», admiten plantillas con `%d`, `%s` y `%.1f`, `{yo}` para el nombre del personaje y traducen por partes los rótulos con « · ». Para un texto nuevo: escribirlo en español y añadir su línea en la tabla de su parte. |
 | `equipo_retrato.gd` | Casco, peto, amuleto y máscara dibujados sobre el retrato; lo comparten el panel del jugador y el perfil. |
 | `hud.tscn` | HUD de la partida: cada pieza (`scripts/ui/hud/`) es un nodo que se dibuja solo con sus datos. La campaña le pasa `{pieza: datos}` cada cuadro; sin datos, la pieza no se ve. Los toques sobre el HUD los sigue atendiendo `main.gd`. |
 | `avisos.tscn` | Mensaje breve, «Nivel N» y objeto conseguido, siempre por encima de cualquier pantalla. |

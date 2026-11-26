@@ -1533,7 +1533,7 @@ func _map_screen_data(d: Dictionary) -> void:
     d["pisos"] = floors_rows
     # Lo descubierto en el último piso superado, como recuerdo del descenso.
     if last_cleared >= 0 and last_cleared < FLOOR_TRUTHS.size():
-        d["verdad"] = str(FLOOR_TRUTHS[last_cleared])
+        d["verdad"] = _personal(str(FLOOR_TRUTHS[last_cleared]))
 
 
 ## Ofertas del altar: Resonancia (o su mejora) y Llama Interior.
@@ -2380,7 +2380,7 @@ func _interact() -> void:
         return
     if _has("archivo") and player_pos.distance_to(archive_pos) < 72.0:
         letter_found = true
-        _say(str(_room().get("letter", "Carta: 'He regresado. El cuerpo cambia, pero recuerdo sus ojos.'")), 5.0)
+        _say(str(_room().get("letter", "Carta: «He regresado. El cuerpo cambia, pero recuerdo sus ojos.»")), 5.0)
         _sfx("libro", -5.0)
         return
     if player_pos.distance_to(door_pos) < 74.0:
@@ -2569,7 +2569,7 @@ func _lose_run() -> void:
 
 
 func _say(message: String, duration: float = 2.8) -> void:
-    avisos.decir(message, duration)
+    avisos.decir(_personal(message), duration) # traducido y según el género del personaje
 
 
 func _controls_axis() -> Vector2:
@@ -3105,7 +3105,7 @@ func _draw_pickup_fx() -> void:
             draw_circle(p + Vector2(cos(ang), sin(ang) * 0.6) * (8.0 + t * 30.0) + Vector2(0, -10 - t * 14.0), 2.0 * a, Color(0.85, 0.97, 1.0, a))
         var label: String = fx.get("text", "+7")
         var tone: Color = fx.get("color", Color(0.75, 0.93, 1.0))
-        draw_string(font, p + Vector2(-60, -30 - t * 26.0), label, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, Color(tone.r, tone.g, tone.b, a))
+        draw_string(font, p + Vector2(-60, -30 - t * 26.0), Estilo.t(label), HORIZONTAL_ALIGNMENT_CENTER, 120, 16, Color(tone.r, tone.g, tone.b, a))
 
 
 ## Sombras de contacto de los objetos de la sala (antes horneadas en el PNG)
@@ -3240,6 +3240,7 @@ func _draw_object_labels() -> void:
 
 
 func _label_center(msg: String, at: Vector2, color: Color) -> void:
+    msg = Estilo.t(msg)
     var size: int = 14 if touch_enabled else 12
     var width: float = font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
     var box := Rect2(at.x - width * 0.5 - 6.0, at.y - 12.0, width + 12.0, 17.0)
@@ -3518,8 +3519,9 @@ func _draw_float_fx() -> void:
         var a: float = clampf(1.0 - t / 0.9, 0.0, 1.0)
         var col: Color = fx["color"]
         var p: Vector2 = fx["pos"] + Vector2(0.0, -t * 24.0)
-        draw_string(font, p + Vector2(-110, 1), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color(0, 0, 0, a * 0.8))
-        draw_string(font, p + Vector2(-111, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color(col.r, col.g, col.b, a))
+        var txt: String = Estilo.t(str(fx["text"]))
+        draw_string(font, p + Vector2(-110, 1), txt, HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color(0, 0, 0, a * 0.8))
+        draw_string(font, p + Vector2(-111, 0), txt, HORIZONTAL_ALIGNMENT_CENTER, 220, 16, Color(col.r, col.g, col.b, a))
 
 
 ## Cadáver del antiguo dueño del alma: tendido en el suelo, bajo la luz de la sala.
@@ -3895,11 +3897,11 @@ func _overlay() -> void:
 
 
 func _text(msg: String, at: Vector2, size: int = 16, color: Color = CREAM) -> void:
-    draw_string(font, at, msg, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, color)
+    draw_string(font, at, Estilo.t(msg), HORIZONTAL_ALIGNMENT_LEFT, -1.0, size, color)
 
 
 func _center(msg: String, y: float, size: int = 16, color: Color = CREAM) -> void:
-    draw_string(font, Vector2(40, y), msg, HORIZONTAL_ALIGNMENT_CENTER, 880.0, size, color)
+    draw_string(font, Vector2(40, y), Estilo.t(msg), HORIZONTAL_ALIGNMENT_CENTER, 880.0, size, color)
 
 
 # ============================================================ PISO II: PEREGRINO
@@ -4080,11 +4082,12 @@ func _draw_pilgrim_overlay() -> void:
         return
     var a: float = clampf(pilgrim_line_t * 2.0, 0.0, 1.0)
     var size: int = 12
-    var width: float = minf(font.get_string_size(pilgrim_line, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 18.0, 420.0)
+    var line_txt: String = Estilo.t(pilgrim_line)
+    var width: float = minf(font.get_string_size(line_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 18.0, 420.0)
     var box := Rect2(clampf(pilgrim_pos.x - width * 0.5, 46.0, W - width - 46.0), head.y - 34.0, width, 22.0)
     draw_rect(box, Color(0.93, 0.89, 0.80, 0.92 * a))
     draw_colored_polygon(PackedVector2Array([Vector2(pilgrim_pos.x - 5, box.end.y), Vector2(pilgrim_pos.x + 5, box.end.y), Vector2(pilgrim_pos.x, box.end.y + 7)]), Color(0.93, 0.89, 0.80, 0.92 * a))
-    draw_string(font, box.position + Vector2(9, 16), pilgrim_line, HORIZONTAL_ALIGNMENT_LEFT, width - 12.0, size, Color(0.10, 0.09, 0.08, a))
+    draw_string(font, box.position + Vector2(9, 16), line_txt, HORIZONTAL_ALIGNMENT_LEFT, width - 12.0, size, Color(0.10, 0.09, 0.08, a))
 
 
 ## Eco «Nuca fría»: escarcha en el borde de la pantalla del lado de la amenaza.
@@ -5184,7 +5187,8 @@ var create_then: String = "explore" # explore | title
 ## elige la forma según su género («Sigues {vivo|viva}»).
 var _gender_re: RegEx = RegEx.create_from_string("\\{([^{}|]*)\\|([^{}|]*)\\}")
 func _personal(text: String) -> String:
-    var t: String = text.replace("{yo}", _hero_name())
+    Estilo.Idioma.nombre = _hero_name()
+    var t: String = Estilo.t(text).replace("{yo}", _hero_name())
     var fem: bool = player_gender == "femenino"
     for m in _gender_re.search_all(t):
         t = t.replace(m.get_string(0), m.get_string(2) if fem else m.get_string(1))
@@ -5648,7 +5652,7 @@ func _allies_enter_room() -> void:
             _say("Sobrevivieron %d de 3. Te dan +%d almas y 3 fósforos: «Sin ti no lo contábamos»." % [alive, alive * ALLY_SOULS], 5.0)
             _ally_say_random(["Seguiremos bajando. Quizá volvamos a vernos.", "Hasta el próximo piso. Si es que hay suelo."])
             _escort_blessing(alive == allies.size())
-            _allies_part_ways("Los cazadores bajan por otra puerta. Desde aquí sigues solo.")
+            _allies_part_ways("Los cazadores bajan por otra puerta. Desde aquí sigues {solo|sola}.")
         else:
             _say("Nadie más llegó hasta aquí. Este lugar cobró su parte.", 4.5)
             fear = minf(100.0, fear + 15.0)
@@ -6102,7 +6106,7 @@ func _draw_inscription_text() -> void:
     var box := Rect2(200, 112, 560, 64)
     _panel(box, Color(0.07, 0.065, 0.055, 0.94), UI_GOLD)
     _text_outline("INSCRIPCIÓN", Vector2(box.position.x + 16.0, box.position.y + 20.0), 11, UI_GOLD)
-    draw_multiline_string(font, box.position + Vector2(16, 40), _personal(str(ins[1])), HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 32.0, 14, 2, CREAM)
+    draw_multiline_string(font, box.position + Vector2(16, 40), _personal(str(ins[1])), HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 32.0, 14, 2, CREAM) # _personal ya traduce
 
 
 # --- Misiones de sala --------------------------------------------------------------
@@ -6322,7 +6326,8 @@ var floors_sel: int = 0
 
 ## Pasa un rótulo en mayúsculas a «Título» (la gótica en mayúsculas no se lee).
 func _tc(msg: String) -> String:
-    var small := ["de", "del", "la", "las", "los", "el", "y", "a", "en"]
+    msg = Estilo.t(msg) # se traduce antes de cambiar las mayúsculas
+    var small := ["de", "del", "la", "las", "los", "el", "y", "a", "en", "of", "the", "to", "and", "in", "on"]
     var words: PackedStringArray = msg.to_lower().split(" ")
     var out: PackedStringArray = []
     for i in range(words.size()):
@@ -6772,7 +6777,7 @@ func _open_floor_summary(eco: String) -> void:
     summary = {"floor": _floor()["number"], "title": _floor()["title"], "time": "%d:%02d" % [secs / 60, secs % 60],
         "souls": souls - floor_souls0, "deaths": floor_deaths, "missions": "%d / %d" % [done, total] if total > 0 else "—",
         "critters": floor_critters, "allies": ("%d / 3" % _allies_alive()) if _floor_has_trait("aliados") else (("%d / %d" % [_allies_alive(), allies.size()]) if guiding and not allies.is_empty() else "—"),
-        "eco": eco, "truth": FLOOR_TRUTHS[current_floor] if current_floor < FLOOR_TRUTHS.size() else ""}
+        "eco": eco, "truth": _personal(str(FLOOR_TRUTHS[current_floor])) if current_floor < FLOOR_TRUTHS.size() else ""}
     game_mode = "floor_summary"
     _sfx("k_campana", -8.0, 0.9)
     _transition("barrido", false, 0.7)
@@ -7581,6 +7586,7 @@ const VIGIL_INFO := [
 
 ## Corta un texto en líneas que caben en «width» con la fuente del juego.
 func _wrap_lines(msg: String, width: float, size: int) -> PackedStringArray:
+    msg = Estilo.t(msg)
     var out := PackedStringArray()
     var line: String = ""
     for word in msg.split(" ", false):
@@ -8023,7 +8029,7 @@ func _touch_context() -> Array:
 func _prompt(text: String) -> String:
     if touch_enabled and not pad_active:
         return text
-    return "%s [%s]" % [text, _key_label("interactuar")]
+    return "%s [%s]" % [Estilo.t(text), _key_label("interactuar")]
 
 
 ## Ayuda al pie de los menús según cómo juegues.
@@ -9173,7 +9179,7 @@ func _ask_guides() -> void:
     _open_choice("IRENE, EN NOMBRE DEL GRUPO",
         "«Llevamos días aquí abajo. Tú tienes luz y sabes moverte. ¿Nos guías hasta el siguiente piso?»",
         [["guiar", "AYUDARLOS", "Te seguirán a tu paso. Si sobreviven, te lo agradecerán."],
-         ["rechazar", "NEGARSE", "Seguirás solo. Ellos se quedarán aquí."]])
+         ["rechazar", "NEGARSE", "Seguirás {solo|sola}. Ellos se quedarán aquí."]])
 
 
 func _refuse_guides() -> void:

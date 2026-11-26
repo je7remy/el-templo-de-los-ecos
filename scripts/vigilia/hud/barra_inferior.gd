@@ -30,8 +30,8 @@ func _draw() -> void:
         var brilla: bool = i == 0 and not durmiendo and en_partida
         EV.caja(self, r, Color("#2a1d36") if brilla else (Color("#241c2c") if encima else Color("#141018")), EV.ORO_CLARO if encima or brilla else (EV.ORO if puede else EV.BORDE))
         draw_texture_rect(EV.icono(it[0]), Rect2(r.position + Vector2(16, 24), Vector2(64, 64)), false, Color.WHITE if puede else Color(0.45, 0.45, 0.5, 0.8))
-        draw_string(fuente(), r.position + Vector2(92, 52), it[1], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 96.0, 15, EV.CREMA)
-        draw_string(fuente(), r.position + Vector2(92, 76), ("TOCA" if DisplayServer.is_touchscreen_available() else it[2]) if i == 0 else it[2], HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 96.0, 12, EV.ALMA if puede else Color("#6d6772"))
+        draw_string(fuente(), r.position + Vector2(92, 52), Estilo.t(it[1]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 96.0, 15, EV.CREMA)
+        draw_string(fuente(), r.position + Vector2(92, 76), Estilo.t(("TOCA" if DisplayServer.is_touchscreen_available() else it[2]) if i == 0 else it[2]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 96.0, 12, EV.ALMA if puede else Color("#6d6772"))
     if datos.has("pista"):
         var a: float = 0.6 + 0.4 * sin(float(datos.get("t", 0.0)) * 3.0)
         EV.pastilla(self, PISTA, datos["pista"], 12, Color(EV.ORO_CLARO.r, EV.ORO_CLARO.g, EV.ORO_CLARO.b, a))

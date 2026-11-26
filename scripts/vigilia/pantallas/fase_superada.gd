@@ -27,7 +27,7 @@ func _draw() -> void:
         if tex != null:
             draw_texture_rect(tex, Rect2(carta.position + Vector2(carta.size.x * 0.5 - 28.0, 22), Vector2(56, 56)), false)
         EV.en_caja(self, str(o[0]), Rect2(carta.position.x, carta.position.y + 88.0, carta.size.x, 18), 15, EV.CREMA)
-        draw_multiline_string(EV.Estilo.fuente(), carta.position + Vector2(14, 128), str(o[1]), HORIZONTAL_ALIGNMENT_CENTER, carta.size.x - 28.0, 12, 2, EV.ALMA)
+        draw_multiline_string(EV.Estilo.fuente(), carta.position + Vector2(14, 128), EV.Estilo.t(str(o[1])), HORIZONTAL_ALIGNMENT_CENTER, carta.size.x - 28.0, 12, 2, EV.ALMA)
         EV.en_caja(self, EV.NOMBRE_NIVEL[nivel], Rect2(carta.position.x, carta.end.y - 22.0, carta.size.x, 14), 11, color)
     var p: float = pulso()
     EV.centrado(self, "TOCA O PULSA ENTER: FASE %d%s" % [fase + 1, " (JEFE)" if (fase + 1) % 5 == 0 else ""], 418, 18, Color(EV.ORO_CLARO.r, EV.ORO_CLARO.g, EV.ORO_CLARO.b, p))

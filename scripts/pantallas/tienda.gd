@@ -47,14 +47,14 @@ func _draw() -> void:
             draw_texture_rect(f["icono"], Rect2(fila.position + Vector2(12, 5), Vector2(40, 40)), false, Color(1, 1, 1, 0.5) if bool(f.get("tenue", false)) else Color.WHITE)
         Estilo.plano(self, "[%d] %s" % [i + 1, f.get("nombre", "")], fila.position + Vector2(66, 22), 16, Estilo.CREMA)
         Estilo.plano(self, str(f.get("detalle", "")), fila.position + Vector2(66, 42), 11, Estilo.GRIS)
-        draw_string(Estilo.fuente(), fila.position + Vector2(0, 22), str(f.get("derecha", "")), HORIZONTAL_ALIGNMENT_RIGHT, fila.size.x - 14.0, 15, f.get("color_derecha", Estilo.CREMA))
+        draw_string(Estilo.fuente(), fila.position + Vector2(0, 22), Estilo.t(str(f.get("derecha", ""))), HORIZONTAL_ALIGNMENT_RIGHT, fila.size.x - 14.0, 15, f.get("color_derecha", Estilo.CREMA))
         # Lo que ya llevas: el número salta al comprar.
-        draw_string(Estilo.fuente(), fila.position + Vector2(0, 42), str(f.get("llevas", "")), HORIZONTAL_ALIGNMENT_RIGHT, fila.size.x - 14.0, int(13.0 * (1.0 + 0.5 * destello)), Color("#ffd36b").lerp(Estilo.ALMA, 1.0 - destello))
+        draw_string(Estilo.fuente(), fila.position + Vector2(0, 42), Estilo.t(str(f.get("llevas", ""))), HORIZONTAL_ALIGNMENT_RIGHT, fila.size.x - 14.0, int(13.0 * (1.0 + 0.5 * destello)), Color("#ffd36b").lerp(Estilo.ALMA, 1.0 - destello))
     if datos.get("icono_alma") != null:
         draw_texture_rect(datos["icono_alma"], Rect2(180, 520, 26, 26), false)
     Estilo.plano(self, "ALMAS: %d" % int(datos.get("almas", 0)), Vector2(212, 540), 16, Estilo.ALMA)
     Estilo.plano(self, str(datos.get("vida", "")), Vector2(360, 540), 14, datos.get("color_vida", Estilo.CREMA))
-    draw_string(Estilo.fuente(), Vector2(180, 566), str(datos.get("ayuda", "")), HORIZONTAL_ALIGNMENT_RIGHT, 600, 13, Estilo.CREMA)
+    draw_string(Estilo.fuente(), Vector2(180, 566), Estilo.t(str(datos.get("ayuda", ""))), HORIZONTAL_ALIGNMENT_RIGHT, 600, 13, Estilo.CREMA)
     if bool(datos.get("info", false)):
         _dibujar_ficha()
 
@@ -83,9 +83,9 @@ func _dibujar_ficha() -> void:
         var hot: bool = b.has_point(_raton)
         Estilo.panel(self, b, Color("#3a2a18") if i == 0 and puede else (Color("#241c2c") if hot else Color("#141018")), Estilo.ORO if hot or (i == 0 and puede) else Estilo.BORDE)
         var etiqueta: String = ("[1] COMPRAR · %d ALMAS" % precio) if i == 0 else "[2] AHORA NO"
-        draw_string(Estilo.fuente(), b.position + Vector2(0, 31), etiqueta, HORIZONTAL_ALIGNMENT_CENTER, b.size.x, 15, (Estilo.CREMA if puede else Estilo.ROJO) if i == 0 else Estilo.CREMA)
+        draw_string(Estilo.fuente(), b.position + Vector2(0, 31), Estilo.t(etiqueta), HORIZONTAL_ALIGNMENT_CENTER, b.size.x, 15, (Estilo.CREMA if puede else Estilo.ROJO) if i == 0 else Estilo.CREMA)
     if not puede:
-        draw_string(Estilo.fuente(), Vector2(r.position.x, r.end.y - 12.0), "Tienes %d almas: te faltan %d." % [int(f.get("almas", 0)), precio - int(f.get("almas", 0))], HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 12, Estilo.GRIS)
+        draw_string(Estilo.fuente(), Vector2(r.position.x, r.end.y - 12.0), Estilo.t("Tienes %d almas: te faltan %d." % [int(f.get("almas", 0)), precio - int(f.get("almas", 0))]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 12, Estilo.GRIS)
 
 
 func _gui_input(event: InputEvent) -> void:
