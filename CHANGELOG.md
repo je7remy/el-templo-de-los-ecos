@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.38-alpha — 2026-11-25 · APK con firma fija
+
+Sin cambios en el juego.
+
+- **Primer APK firmado con la llave fija del repositorio.** Desde esta versión, cada APK nuevo se instala encima del anterior y conserva la partida.
+- **Una sola vez:** para pasar de los APK anteriores (firmados con una llave temporal) a este hay que desinstalar el juego antes de instalarlo. Al desinstalar, Android borra la partida guardada en el teléfono.
+- README: cómo crear la llave y guardarla en los secretos del repositorio.
+- Versión Android 0.5.38-alpha (código 45).
+
 ## v0.5.37-alpha — 2026-11-25 · Pulido móvil
 
 Solo cambia en el móvil (Android, o con los controles táctiles en «Siempre»). En el ordenador se ve igual.
