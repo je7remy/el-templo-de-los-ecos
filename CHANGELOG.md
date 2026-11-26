@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v0.5.37-alpha — 2026-11-25 · Pulido móvil
+
+Solo cambia en el móvil (Android, o con los controles táctiles en «Siempre»). En el ordenador se ve igual.
+
+- **HUD más grande en el móvil** (un 20 %): retrato, vida, vigor y miedo, el cartel del piso, el minimapa con la pausa y el libro, las almas de la sala, los avisos, el tutorial y la misión. Las piezas de arriba crecen desde el borde superior y las de abajo desde el inferior; en pantallas menos anchas el aumento se reduce para que nada se salga.
+- **Botones táctiles más grandes** (un 20 %): ACCIÓN, LUZ, ESQUIVA y ONDA crecen desde la esquina de abajo a la derecha, con su texto dos puntos más grande. Siguen respondiendo en el mismo sitio en que se ven.
+- La **base del joystick** se ve más aunque no lo toques.
+- Tocar el retrato, la pausa, el minimapa y el libro de habilidades funciona igual con el HUD grande.
+- Versión Android 0.5.37-alpha (código 44).
+
 ## v0.5.36-alpha — 2026-11-25 · Mundo por escenas, fase 3d-5
 
 Sin cambios en las reglas ni en el aspecto del juego.

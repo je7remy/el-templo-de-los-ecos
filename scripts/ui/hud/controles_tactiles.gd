@@ -4,6 +4,7 @@ extends "res://scripts/ui/hud/pieza_hud.gd"
 ## paleta). Los toques los atiende main.gd; aquí solo se dibujan.
 ##
 ## Datos: «centro» (del joystick), «eje», «quieto» (ningún dedo en él),
+## «visible_quieto» (opacidad de la base sin dedo; más en el móvil),
 ## «botones» ({pos, radio, icono, etiqueta, tam, listo, espera, tinte,
 ## fosforos (-1 si no se muestran)}).
 
@@ -14,7 +15,7 @@ const BOTON := preload("res://assets/visual/controles/boton.png")
 func _draw() -> void:
     var centro: Vector2 = d.get("centro", Vector2.ZERO)
     var quieto: bool = bool(d.get("quieto", true))
-    draw_texture_rect(BASE, Rect2(centro - Vector2(76, 76), Vector2(152, 152)), false, Color(0.75, 0.68, 0.8, 0.35 if quieto else 0.7))
+    draw_texture_rect(BASE, Rect2(centro - Vector2(76, 76), Vector2(152, 152)), false, Color(0.75, 0.68, 0.8, float(d.get("visible_quieto", 0.35)) if quieto else 0.7))
     draw_texture_rect(BOTON, Rect2(centro + Vector2(d.get("eje", Vector2.ZERO)) * 48.0 - Vector2(30, 30), Vector2(60, 60)), false, Color(0.62, 0.81, 0.83, 0.5 if quieto else 0.85))
     for b in d.get("botones", []):
         var en: Vector2 = b["pos"]

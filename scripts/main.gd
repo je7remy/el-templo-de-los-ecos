@@ -1959,18 +1959,19 @@ func _mobile_tap(at: Vector2) -> void:
     ui_hover = at
     if game_mode != "play":
         return
-    if ABIL_BTN.has_point(at):
+    var h: Vector2 = _hud_point(at) # el HUD de arriba puede verse más grande
+    if ABIL_BTN.has_point(h):
         _open_abilities()
         return
-    if at.x > 890.0 and at.y < 64.0:
+    if h.x > 890.0 and h.y < 64.0:
         _open_pause() # botón de pausa del minimapa
         mobile_axis = Vector2.ZERO
         mobile_finger = -1
         return
-    if MINIMAP_RECT.has_point(at):
+    if MINIMAP_RECT.has_point(h):
         _open_map() # tocar el minimapa: mapa grande
         return
-    if at.y < 104.0 and at.x < 330.0:
+    if h.y < 104.0 and h.x < 330.0:
         # Tocar el retrato abre el perfil.
         _open_inventory()
         return
@@ -3607,10 +3608,46 @@ func _text_outline(msg: String, at: Vector2, size: int, color: Color, width: flo
 const HUD_HIDDEN_SCREENS := ["title", "create", "floors", "splash", "eula", "intro"]
 
 
+## En el móvil el HUD se ve más grande: las piezas de arriba crecen desde el
+## borde de arriba y las de abajo desde el de abajo, sin salirse de la
+## pantalla. Los toques sobre ellas se pasan a su tamaño normal con
+## _hud_point. Los controles táctiles tienen su propio tamaño (TOUCH_SCALE).
+const HUD_MOBILE_SCALE := 1.2
+const HUD_TOP := [&"FranjaSuperior", &"PanelJugador", &"CartelPiso", &"Minimapa", &"ContadorAlmas", &"AvisoMision", &"Tutorial"]
+const HUD_BOTTOM := [&"FranjaInferior", &"Mision", &"PanelArma"]
+var hud_scale: float = 1.0
+
+
+func _hud_scale() -> float:
+    if not _mobile_view():
+        return 1.0
+    # Lo más ancho del HUD va de x = 4 a x = 956: que quepa en la pantalla.
+    return clampf((W * 0.5 + screen_pad.x - 4.0) / (W * 0.5 - 4.0), 1.0, HUD_MOBILE_SCALE)
+
+
+func _apply_hud_scale() -> void:
+    var s: float = _hud_scale()
+    if is_equal_approx(s, hud_scale):
+        return
+    hud_scale = s
+    for n in HUD_TOP + HUD_BOTTOM:
+        var piece: Control = hud.pieza(n)
+        if piece != null:
+            piece.pivot_offset = Vector2(W * 0.5, 0.0 if n in HUD_TOP else H)
+            piece.scale = Vector2(s, s)
+
+
+## Un punto de la pantalla en las medidas normales del HUD de arriba (el
+## retrato, la pausa, el minimapa y el botón de habilidades se tocan allí).
+func _hud_point(at: Vector2) -> Vector2:
+    return Vector2(W * 0.5, 0.0) + (at - Vector2(W * 0.5, 0.0)) / hud_scale
+
+
 func _update_hud() -> void:
     if hud == null:
         return
     hud.offset = position # se sacude con la sala, como antes
+    _apply_hud_scale()
     var screen: String = settings_return if game_mode == "settings" else game_mode
     if screen in HUD_HIDDEN_SCREENS:
         hud.ocultar()
@@ -3709,13 +3746,13 @@ func _hud_minimap() -> Dictionary:
             "cosecha": "cosecha" in room["traits"] and i <= current_room,
         })
     return {
-        "resaltado": MINIMAP_RECT.has_point(ui_hover),
+        "resaltado": MINIMAP_RECT.has_point(_hud_point(ui_hover)),
         "ayuda": "M · ampliar" if not DisplayServer.is_touchscreen_available() else "toca: ampliar",
         "salas": rooms,
         "sala_texto": "SALA %d/%d" % [current_room + 1, count],
         "id": identity_number,
         "boton_habilidades": ABIL_BTN,
-        "habilidades_resaltado": ABIL_BTN.has_point(ui_hover),
+        "habilidades_resaltado": ABIL_BTN.has_point(_hud_point(ui_hover)),
         "icono_calavera": ICONS["calavera"],
         "icono_pausa": ICONS["pausa"],
         "icono_habilidades": ICONS["habilidades"],
@@ -3761,7 +3798,7 @@ func _hud_touch() -> Dictionary:
     for id in TOUCH_BUTTONS:
         if id == "resonancia" and not has_pulse:
             continue
-        var r: float = TOUCH_BUTTONS[id][1]
+        var r: float = _tb_radius(id)
         var wait: float = 0.0
         var icon: String = ""
         var label: String = ""
@@ -3787,9 +3824,10 @@ func _hud_touch() -> Dictionary:
         if id == "accion" and ctx[3]:
             tint = Color(1.0, 0.85, 0.5, 0.85 + 0.15 * sin(elapsed * 5.0)) # hay algo con qué interactuar
         buttons.append({"pos": _tb_pos(id), "radio": r, "icono": ICONS[icon] if icon != "" and ICONS.has(icon) else null,
-            "etiqueta": label, "tam": 13 if id == "accion" else 11, "listo": ready_b, "espera": wait, "tinte": tint,
+            "etiqueta": label, "tam": (13 if id == "accion" else 11) + (2 if _touch_scale() > 1.0 else 0), "listo": ready_b, "espera": wait, "tinte": tint,
             "fosforos": matches if id == "antorcha" and has_torch and not has_inner_flame else -1})
-    return {"centro": joy_center, "eje": mobile_axis, "quieto": mobile_finger < 0, "botones": buttons}
+    return {"centro": joy_center, "eje": mobile_axis, "quieto": mobile_finger < 0, "botones": buttons,
+        "visible_quieto": 0.55 if _mobile_view() else 0.35}
 
 
 ## Objetivo de la sala para el pie de pantalla.
@@ -7933,7 +7971,7 @@ func _touch_button_at(at: Vector2) -> String:
     var best_d: float = INF
     for id in TOUCH_BUTTONS:
         var d: float = at.distance_to(_tb_pos(id))
-        if d <= float(TOUCH_BUTTONS[id][1]) + 12.0 and d < best_d:
+        if d <= _tb_radius(id) + 12.0 and d < best_d:
             best = id
             best_d = d
     return best
@@ -9356,7 +9394,19 @@ func _extend_room_tiles() -> void:
 
 ## Botones táctiles: anclados a la esquina inferior derecha real de la pantalla.
 func _tb_pos(id: String) -> Vector2:
-    return Vector2(TOUCH_BUTTONS[id][0]) + screen_pad
+    # Crecen desde la esquina de abajo a la derecha (TOUCH_SCALE en el móvil).
+    var corner := Vector2(W, H)
+    return corner + (Vector2(TOUCH_BUTTONS[id][0]) - corner) * _touch_scale() + screen_pad
+
+
+func _tb_radius(id: String) -> float:
+    return float(TOUCH_BUTTONS[id][1]) * _touch_scale()
+
+
+## Botones táctiles más grandes en el móvil (pantallas pequeñas, dedos grandes).
+const TOUCH_SCALE := 1.2
+func _touch_scale() -> float:
+    return TOUCH_SCALE if _mobile_view() else 1.0
 
 
 ## Joystick: anclado a la esquina inferior izquierda real de la pantalla.
