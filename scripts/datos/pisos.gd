@@ -23,7 +23,7 @@ const ROOM_TALKS := {
         ["HERMANO MAYOR", "Y esta máscara de porcelana. También la reponen para mí."],
     ],
     "1:0": [
-        ["PEREGRINO", "¿Tú también despertaste aquí? Tranquilo, no muerdo."],
+        ["PEREGRINO", "¿Tú también despertaste aquí? {Tranquilo|Tranquila}, no muerdo."],
         ["{yo}", "¿Quién eres? ¿Cuánto llevas en este sitio?"],
         ["PEREGRINO", "Lo bastante para saber que las puertas de este piso solo se abren con almas."],
         ["PEREGRINO", "Busquemos juntos. Hay para los dos."],
@@ -53,7 +53,7 @@ const ROOM_TALKS := {
         ["IRENE", "Alto. No traemos armas, mira. Solo queremos bajar."],
         ["TEO", "Te vimos cruzar el laberinto con la antorcha. Los perros te respetaban."],
         ["BAS", "Nosotros no sabemos leer este sitio. Tú sí."],
-        ["SAÚL", "¡{yo}! Sigues vivo. Les dije que volverías a aparecer."],
+        ["SAÚL", "¡{yo}! Sigues {vivo|viva}. Les dije que volverías a aparecer."],
         ["IRENE", "Guíanos. Te seguiremos y no estorbaremos. Habla conmigo cuando lo decidas."],
     ],
     "5:1": [
@@ -61,7 +61,7 @@ const ROOM_TALKS := {
         ["TEO", "Algo brilla bajo su manto. Solo quiero mirar..."],
         ["IRENE", "¡Teo, no!"],
         ["TEO", "¡AAAH! ¡Mi mano! ¡¿Dónde está mi mano?!"],
-        ["IRENE", "Se paga primero. Y no se toca. Lo pone en la pared, Teo."],
+        ["IRENE", "Se paga primero. Y no se toca. Lo pone en la placa, Teo."],
         ["{yo}", "Nadie más acerca la mano a ese manto."],
     ],
     "5:3": [
@@ -82,7 +82,7 @@ const ROOM_TALKS := {
     ],
     "6:0": [
         ["{yo}", "Ojos arrancados en cada estatua... Lo que vive aquí no soporta que la ignoren.", "solo"],
-        ["IRENE", "Mira la inscripción. «Quien corrió, se quedó.»"],
+        ["IRENE", "Mira la inscripción. «Quien gritó, se quedó. Quien corrió, también.»"],
         ["BAS", "¿Y si nos mira a nosotros?"],
         ["{yo}", "Entonces nadie corre. Pase lo que pase.", "grupo"],
         ["SAÚL", "Contigo delante no correré. Lo prometo."],

@@ -21,7 +21,8 @@ const BRAND_ICON: Texture2D = preload("res://assets/branding/icon.svg")
 ##   mission (opcional): {goal: "desterrar" | "ahuyentar", required, reward, text}
 ##           Misión de la sala: si es obligatoria, la puerta no se abre sin ella.
 ##   traps (opcional): posiciones de trampas de pinchos (ciclo con aviso).
-##   inscription (opcional): [posición, texto] que se lee al acercarse ({yo} = tu nombre).
+##   inscription (opcional): [posición, texto] que se lee al acercarse ({yo} = tu nombre;
+##           {masculino|femenino} según el género del personaje).
 ##   walls (opcional): muros bajos (Rect2) que forman el laberinto; bloquean el paso.
 ##   hounds (opcional): dónde aparecen los Mastines de Relicario.
 ##   rescue / mask / channels (opcionales): peregrino atrapado, Máscara de
@@ -2451,7 +2452,7 @@ func _required_clue() -> String:
     if _has("almas") and collected.has(false):
         return "La puerta no se abre para manos vacías: faltan almas."
     if pilgrim_state in ["tell", "hostile"]:
-        return "No puedes darle la espalda a quien te quiere muerto."
+        return _personal("No puedes darle la espalda a quien te quiere {muerto|muerta}.")
     if _has("caza") and _enemy_active():
         return "La Cacería no ha terminado: la presa sigue viva."
     if _mission_pending(true):
@@ -5087,12 +5088,12 @@ func _tutorial_text(step: int) -> String:
     if touch_enabled:
         es[0] = "Muévete con el joystick de la izquierda"
         en[0] = "Move with the joystick on the left"
-        es[1] = "Esquiva con el botón DASH"
-        en[1] = "Dodge with the DASH button"
-        es[3] = "Toca el botón de la antorcha para encenderla"
-        en[3] = "Tap the torch button to light it"
-        es[4] = "Golpea al muñeco 3 veces con el botón E"
-        en[4] = "Hit the dummy 3 times with the E button"
+        es[1] = "Esquiva con el botón ESQUIVA"
+        en[1] = "Dodge with the ESQUIVA button"
+        es[3] = "Toca el botón LUZ para encender la antorcha"
+        en[3] = "Tap the LUZ button to light the torch"
+        es[4] = "Golpea al muñeco 3 veces con el botón grande (GOLPE)"
+        en[4] = "Hit the dummy 3 times with the big button (GOLPE)"
         es[5] = "Toca tu retrato para abrir el perfil y ciérralo"
         en[5] = "Tap your portrait to open the profile, then close it"
         es[6] = "Toca el botón de pausa y continúa"
@@ -5177,6 +5178,17 @@ var create_step: int = 0 # 0 nombre, 1 género
 var create_buf: String = ""
 var create_gender: int = 0 # 0 masculino, 1 femenino
 var create_then: String = "explore" # explore | title
+
+
+## Texto para el personaje: «{yo}» es su nombre y «{masculino|femenino}»
+## elige la forma según su género («Sigues {vivo|viva}»).
+var _gender_re: RegEx = RegEx.create_from_string("\\{([^{}|]*)\\|([^{}|]*)\\}")
+func _personal(text: String) -> String:
+    var t: String = text.replace("{yo}", _hero_name())
+    var fem: bool = player_gender == "femenino"
+    for m in _gender_re.search_all(t):
+        t = t.replace(m.get_string(0), m.get_string(2) if fem else m.get_string(1))
+    return t
 
 
 func _hero_name() -> String:
@@ -6090,7 +6102,7 @@ func _draw_inscription_text() -> void:
     var box := Rect2(200, 112, 560, 64)
     _panel(box, Color(0.07, 0.065, 0.055, 0.94), UI_GOLD)
     _text_outline("INSCRIPCIÓN", Vector2(box.position.x + 16.0, box.position.y + 20.0), 11, UI_GOLD)
-    draw_multiline_string(font, box.position + Vector2(16, 40), str(ins[1]).replace("{yo}", _hero_name()), HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 32.0, 14, 2, CREAM)
+    draw_multiline_string(font, box.position + Vector2(16, 40), _personal(str(ins[1])), HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 32.0, 14, 2, CREAM)
 
 
 # --- Misiones de sala --------------------------------------------------------------
@@ -6165,7 +6177,7 @@ func _read_time(text: String) -> float:
 
 func _dialog(lines: Array) -> void:
     for line in lines:
-        dialog_queue.append([str(line[0]).replace("{yo}", _hero_name()), str(line[1]).replace("{yo}", _hero_name())])
+        dialog_queue.append([_personal(str(line[0])), _personal(str(line[1]))])
     if game_mode == "play" and not dialog_queue.is_empty():
         dialog_return = "play"
         game_mode = "dialog"
@@ -7403,7 +7415,7 @@ func _accept_guides() -> void:
     if _ally_alive_named("SAÚL"):
         lines.append(["SAÚL", "Ya te lo dije: no lo olvido."])
     lines.append(["{yo}", "Detrás de mí, y sin tocar nada que no sea vuestro."])
-    _dialog(lines.map(func(l): return [_hero_name() if l[0] == "{yo}" else l[0], l[1]]))
+    _dialog(lines.map(func(l): return [_hero_name() if l[0] == "{yo}" else l[0], _personal(str(l[1]))]))
 
 
 func _merchant_hem() -> Vector2:
@@ -7929,7 +7941,7 @@ func _draw_gaze_hud() -> void:
         _label_center("¿...?", Vector2(gaze_noise["pos"]) + Vector2(0, -20), Color(CREAM.r, CREAM.g, CREAM.b, a))
     if gaze_state == "vencida":
         return
-    var box := Rect2(300, 116, 360, 34)
+    var box := Rect2(300, 146, 360, 34) # por debajo de los avisos de arriba
     _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_CRIMSON if gaze_away_t > 0.0 else UI_GOLD)
     var k: float = clampf(gaze_t / maxf(1.0, gaze_need), 0.0, 1.0)
     var bar := Rect2(box.position + Vector2(8, 20), Vector2(box.size.x - 16.0, 8))
@@ -8527,7 +8539,7 @@ func _draw_colossus() -> void:
 func _draw_colossus_hud() -> void:
     if not colossus_active:
         return
-    var box := Rect2(300, 116, 360, 34)
+    var box := Rect2(300, 146, 360, 34) # por debajo de los avisos de arriba
     _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_GOLD)
     _text_outline("EL COLOSO DEL PÓRTICO", Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
     for i in range(COLOSSUS_HITS):
@@ -8724,7 +8736,7 @@ func _elder_betray() -> void:
     var alive: Array = allies.filter(func(a): return bool(a["alive"]))
     if alive.is_empty():
         elder_side = ""
-        _say("«Nadie vendrá a ayudarte, {yo}.» Estás solo con él.".replace("{yo}", _hero_name()), 3.5)
+        _say(_personal("«Nadie vendrá a ayudarte, {yo}.» Estás {solo|sola} con él."), 3.5)
     elif mark == "bendicion":
         elder_side = "contigo"
         _say("«¡No! Nos guiaste hasta aquí.» Tus aliados se ponen de tu lado.", 4.0)
@@ -8915,7 +8927,7 @@ func _open_chest() -> bool:
     _sfx("sello", -6.0, 1.3)
     _sfx("alma", -8.0, 0.9)
     _emit(_chest_pos() + Vector2(0, -18), 22, Color(1.0, 0.85, 0.45), 20.0, 80.0, 0.9, 2.0, -40.0, Vector2.UP, 0.8, true)
-    var note: String = str((_room()["chest"] as Array)[1]).replace("{yo}", _hero_name())
+    var note: String = _personal(str((_room()["chest"] as Array)[1]))
     var info: Array = Botin.OBJETOS.get(key, [item_name, "", 1, "alma"])
     _dialog([["NOTA EN EL COFRE", note], ["OBJETO ENCONTRADO", "%s. %s" % [item_name, str(info[1])]]])
     loot_banner = {"key": key, "t": 5.0}

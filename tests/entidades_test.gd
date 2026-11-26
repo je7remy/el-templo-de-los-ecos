@@ -629,6 +629,27 @@ func _run() -> void:
         _fail("Los huecos de las puertas laterales cambiaron.")
         return
     print("OK: decorado a ras de suelo y trampas dibujados desde scripts/mundo/ (Decorado y Peligros).")
+
+    # --- Revisión de la demo -----------------------------------------------------------
+    game.set("player_name", "ANA")
+    game.set("player_gender", "femenino")
+    if str(game.call("_personal", "¡{yo}! Sigues {vivo|viva}.")) != "¡ANA! Sigues viva.":
+        _fail("Los textos no se adaptan al género del personaje.")
+        return
+    game.set("player_gender", "masculino")
+    if str(game.call("_personal", "{Tranquilo|Tranquila}, {yo}.")) != "Tranquilo, ANA.":
+        _fail("Los textos en masculino no se eligen bien.")
+        return
+    for k in Pisos_talks():
+        for l in Pisos_talks()[k]:
+            if " vivo." in str(l[1]) or "Tranquilo," in str(l[1]):
+                _fail("Queda una frase al personaje solo en masculino: " + str(l[1]))
+                return
+    _sala(game, 6, 3)
+    if not game.call("_fountain_here") or Vector2(game.call("_chest_pos")).distance_to(game.get("FOUNTAIN_POS")) < 80.0:
+        _fail("En VII-4 el cofre sigue encima del Relicario de Vida.")
+        return
+    print("OK: revisión de la demo (género de los textos, cofre de VII-4).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
@@ -641,6 +662,10 @@ func _despejar(game: Node) -> Array:
     for item in game.get("room_items"):
         l.append(item["pos"])
     return l
+
+
+func Pisos_talks() -> Dictionary:
+    return load("res://scripts/datos/pisos.gd").ROOM_TALKS
 
 
 func Catalogo_pisos() -> Array:

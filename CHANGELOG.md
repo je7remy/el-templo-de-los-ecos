@@ -1,9 +1,22 @@
 # Historial de versiones
 
+## v0.5.39-alpha — 2026-11-26 · Revisión de la demo
+
+- **VII-4 · Umbral del Octavo:** el cofre de Bruno ya no está encima del Relicario de Vida (sus rótulos se tapaban); ahora está arriba a la izquierda.
+- **Textos según el personaje:** con un personaje femenino, las frases que se le dicen salen en femenino («Tranquila, no muerdo», «Sigues viva», «quédate quieta», «Estás sola con él», «quien te quiere muerta»). Los textos de datos admiten `{masculino|femenino}`.
+- **Tutorial en el móvil:** nombra los botones que se ven (ESQUIVA, LUZ y el botón grande GOLPE) en vez de «DASH», «el botón E» y «el botón de la antorcha».
+- **Barras de la Vigía y del Coloso** más abajo: el susurro al entrar en la sala ya no las tapa.
+- **IV-4 · Muro de los Nombres:** la placa de la inscripción se aparta del alma que flotaba pegada a ella.
+- Irene cita bien la inscripción del Piso VII y dice «la placa» (no «la pared») en el puesto del Mercader.
+- Comillas uniformes («…») en el susurro de I-1 y la carta de VIII-3.
+- `docs/MOVIL_Y_VIGILIA.md` al día con la Vigilia actual (fases sin fin, construir en cualquier baldosa, controles).
+- Versión Android 0.5.39-alpha (código 46).
+
 ## v0.5.38-alpha — 2026-11-25 · APK con firma fija
 
 Sin cambios en el juego.
 
+- *Nota: al publicarse aún no estaban los secretos de la llave, así que este APK salió con la llave temporal. El primer APK con llave fija será el primero que se publique después de crearlos.*
 - **Primer APK firmado con la llave fija del repositorio.** Desde esta versión, cada APK nuevo se instala encima del anterior y conserva la partida.
 - **Una sola vez:** para pasar de los APK anteriores (firmados con una llave temporal) a este hay que desinstalar el juego antes de instalarlo. Al desinstalar, Android borra la partida guardada en el teléfono.
 - README: cómo crear la llave y guardarla en los secretos del repositorio.

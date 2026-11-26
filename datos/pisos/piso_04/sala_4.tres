@@ -13,6 +13,6 @@ objetos = []
 mision = {}
 extras = {
 "chest": [Vector2(170, 470), "«Grabé mi nombre ahí arriba. Por si acaso, dejo esto aquí abajo.» —Ruth"],
-"inscription": [Vector2(480, 350), "Cientos de nombres de quienes volvieron. Entre ellos, recién grabado, reconoces el tuyo: {yo}."],
+"inscription": [Vector2(480, 290), "Cientos de nombres de quienes volvieron. Entre ellos, recién grabado, reconoces el tuyo: {yo}."],
 "pendulums": [[Vector2(480, 525), 170.0]]
 }
