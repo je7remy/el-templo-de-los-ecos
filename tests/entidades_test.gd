@@ -681,6 +681,22 @@ func _run() -> void:
         _fail("Los diálogos no se traducen en inglés: " + frase)
         return
     print("OK: el juego entero se traduce al inglés (salas, diálogos, avisos, Vigilia).")
+
+    # --- Diez distribuciones de sala y ninguna seguida repetida ---------------------
+    var usadas := {}
+    for p in Catalogo_pisos():
+        var anterior := -1
+        for r in p["rooms"]:
+            var e: int = int(r["scene"])
+            usadas[e] = true
+            if e == anterior:
+                _fail("Dos salas seguidas con la misma distribución en el piso %s." % p["number"])
+                return
+            anterior = e
+    if usadas.size() != 10:
+        _fail("No se usan las diez distribuciones de sala (rooms/sala_0 … sala_9).")
+        return
+    print("OK: diez distribuciones de sala, sin repetir dos seguidas.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

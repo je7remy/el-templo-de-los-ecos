@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_g7l1l")
-escena = 4
+escena = 9
 nombre = "IV-4 · MURO DE LOS NOMBRES"
 enemigo = "ghoul"
 rasgos = Array[String]([])

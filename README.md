@@ -368,4 +368,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.40-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.41-alpha** (se publica al fusionar esta versión en `main`).

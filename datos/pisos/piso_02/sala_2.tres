@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_40pyg")
-escena = 2
+escena = 7
 nombre = "II-2 · NAVE DEL AGUA"
 enemigo = ""
 rasgos = Array[String](["almas"])

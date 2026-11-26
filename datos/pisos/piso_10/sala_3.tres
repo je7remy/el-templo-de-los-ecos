@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_setun")
-escena = 1
+escena = 6
 nombre = "X-3 · CORO DE LA COSECHA"
 enemigo = ""
 rasgos = Array[String]([])

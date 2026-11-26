@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_pvmg6")
-escena = 4
+escena = 9
 nombre = "II-3 · CRIPTA DEL REPARTO"
 enemigo = ""
 rasgos = Array[String](["almas", "cosecha"])

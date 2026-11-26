@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_dsa34")
-escena = 4
+escena = 9
 nombre = "IX-4 · VITRAL ROTO"
 enemigo = "hechicero"
 rasgos = Array[String]([])

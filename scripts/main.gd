@@ -180,6 +180,13 @@ const ROOM_SCENES := [
     preload("res://rooms/sala_2.tscn"),
     preload("res://rooms/sala_3.tscn"),
     preload("res://rooms/sala_4.tscn"),
+    # Distribuciones nuevas (herramientas/construir_salas_nuevas.gd): parten de
+    # la sala 0-4 con el mismo número menos 5, con otros objetos y otra luz.
+    preload("res://rooms/sala_5.tscn"),
+    preload("res://rooms/sala_6.tscn"),
+    preload("res://rooms/sala_7.tscn"),
+    preload("res://rooms/sala_8.tscn"),
+    preload("res://rooms/sala_9.tscn"),
 ]
 const WALL_COLOR := Color("#394052")
 const BG := Color("#090c17")

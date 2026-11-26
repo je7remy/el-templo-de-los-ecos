@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.41-alpha — 2026-11-26 · Salas más variadas
+
+- **Cinco distribuciones de sala nuevas** (`rooms/sala_5.tscn` … `sala_9.tscn`): una nave de columnas, una capilla de braseros y orantes, una galería de estatuas y sarcófagos, un refectorio con las mesas de los cirios y una cripta de sarcófagos y columnas rotas, cada una con su luz. Ahora hay diez distribuciones para las 41 salas y **ninguna se repite en dos salas seguidas**.
+- 16 salas cambian de distribución: II-1, II-2, II-3, III-3, IV-2, IV-3, IV-4, V-1, VI-3, VI-4, VII-3, IX-2, IX-4, X-1, X-2 y X-3. Las de los pisos espejo (VIII) siguen siendo las del Piso I a propósito.
+- Comprobado en las 41 salas: las almas, la puerta, los cofres, las inscripciones, el relicario y los objetos se pueden alcanzar, y ninguna trampa queda dentro de un objeto.
+- **I-5:** dos placas de pinchos estaban debajo de las columnas; ahora están a la vista.
+- `herramientas/construir_salas_nuevas.gd` genera las cinco escenas; `docs/EDITAR_SALAS.md` lo explica.
+- Versión Android 0.5.41-alpha (código 48).
+
 ## v0.5.40-alpha — 2026-11-26 · Todo el juego en inglés
 
 - **English, everywhere.** Con el idioma en inglés (*Configuración > Idioma*) ya no queda nada en español: los nombres y susurros de las 41 salas, las misiones, las notas de los cofres, las inscripciones, las conversaciones, las verdades de cada piso, los avisos, el perfil, el mapa, la tienda, el altar, las pantallas de muerte y de fin, y toda la Vigilia (portada, tutorial, menús, barras y botín). Unos 1 080 textos.

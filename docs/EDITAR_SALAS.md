@@ -1,6 +1,6 @@
 # Editar salas y entidades
 
-Las cinco salas del piso 1 son escenas normales de Godot en `rooms/sala_0.tscn` … `rooms/sala_4.tscn`. Ábrelas en el editor y modifícalas como cualquier escena. El juego (`scripts/main.gd`) lee de ellas la arquitectura, los objetos, las posiciones y las colisiones al entrar en cada sala.
+Las salas son escenas normales de Godot: `rooms/sala_0.tscn` … `rooms/sala_9.tscn` (diez distribuciones que comparten los 41 cuartos de la campaña; cada sala de `datos/pisos/` dice cuál usa en «escena»). Las cinco últimas (`sala_5` … `sala_9`) parten de la arquitectura y los marcadores de `sala_0` … `sala_4` con otros objetos y otra luz; se generan con `herramientas/construir_salas_nuevas.gd` (o se retocan a mano en el editor). Ábrelas en el editor y modifícalas como cualquier escena. El juego (`scripts/main.gd`) lee de ellas la arquitectura, los objetos, las posiciones y las colisiones al entrar en cada sala.
 
 ## Estructura de una sala
 
