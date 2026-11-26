@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_5po8c")
-escena = 4
+escena = 9
 nombre = "VI-4 · ESCALERA DEL SÉPTIMO"
 enemigo = ""
 rasgos = Array[String](["despedida"])

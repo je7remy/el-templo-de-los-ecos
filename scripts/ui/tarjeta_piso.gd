@@ -54,7 +54,7 @@ func _draw() -> void:
         draw_rect(r.grow(3.0), Color(Estilo.ORO.r, Estilo.ORO.g, Estilo.ORO.b, 0.25 + 0.15 * sin(_t * 4.0)), false, 2.0)
     var tono: Color = Estilo.CREMA if abierto else Color("#5d5865")
     Estilo.titulo(self, numero, Vector2(0, 52.0), 48, Estilo.ORO if abierto else Color("#4a4452"), r.size.x)
-    draw_multiline_string(Estilo.fuente(), Vector2(10.0, 82.0), nombre, HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 20.0, 13, 3, tono)
+    draw_multiline_string(Estilo.fuente(), Vector2(10.0, 82.0), Estilo.t(nombre), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 20.0, 13, 3, tono)
     Estilo.texto(self, estado, Vector2(0, r.size.y - 14.0), 10, color_estado, r.size.x)
     if icono != null:
         draw_texture_rect(icono, Rect2(r.get_center() + Vector2(-16, 26), Vector2(32, 32)), false, icono_tinte)

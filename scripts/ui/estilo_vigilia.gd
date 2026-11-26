@@ -48,6 +48,7 @@ static func modal(ci: CanvasItem, r: Rect2) -> void:
 
 ## Ficha de la barra de arriba: icono, valor y una línea pequeña.
 static func ficha(ci: CanvasItem, r: Rect2, icono_t: Texture2D, valor: String, sub: String, color: Color) -> void:
+    sub = Estilo.t(sub)
     caja(ci, r, Color("#141018"), BORDE)
     ci.draw_texture_rect(icono_t, Rect2(r.position + Vector2(6, 6), Vector2(28, 28)), false)
     ci.draw_string(Estilo.fuente(), r.position + Vector2(40, 22), valor, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, color)
@@ -61,6 +62,7 @@ static func boton_redondo(ci: CanvasItem, r: Rect2, icono_t: Texture2D, activo: 
 
 ## Pastilla de aviso centrada en «centro» (la línea base va 2 px más abajo).
 static func pastilla(ci: CanvasItem, msg: String, centro: Vector2, tam: int, color: Color) -> void:
+    msg = Estilo.t(msg)
     var ancho: float = Estilo.fuente().get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
     var r := Rect2(centro.x - ancho * 0.5 - 8, centro.y - tam + 1, ancho + 16, tam + 7)
     ci.draw_rect(r, Color(0.03, 0.025, 0.04, 0.85))
@@ -70,18 +72,18 @@ static func pastilla(ci: CanvasItem, msg: String, centro: Vector2, tam: int, col
 
 ## Rótulo gótico sin borde (centrado en «ancho» si es > 0).
 static func rotulo(ci: CanvasItem, msg: String, en: Vector2, tam: int, color: Color, ancho: float) -> void:
-    ci.draw_string(Estilo.fuente_titulo(), en, msg, HORIZONTAL_ALIGNMENT_CENTER if ancho > 0.0 else HORIZONTAL_ALIGNMENT_LEFT, ancho, tam, color)
+    ci.draw_string(Estilo.fuente_titulo(), en, Estilo.t(msg), HORIZONTAL_ALIGNMENT_CENTER if ancho > 0.0 else HORIZONTAL_ALIGNMENT_LEFT, ancho, tam, color)
 
 
 static func etiqueta(ci: CanvasItem, msg: String, en: Vector2, tam: int = 16, color: Color = CREMA) -> void:
-    ci.draw_string(Estilo.fuente(), en, msg, HORIZONTAL_ALIGNMENT_LEFT, -1.0, tam, color)
+    ci.draw_string(Estilo.fuente(), en, Estilo.t(msg), HORIZONTAL_ALIGNMENT_LEFT, -1.0, tam, color)
 
 
 ## Línea centrada en la celda (x de 40 a 920).
 static func centrado(ci: CanvasItem, msg: String, y: float, tam: int = 16, color: Color = CREMA) -> void:
-    ci.draw_string(Estilo.fuente(), Vector2(40, y), msg, HORIZONTAL_ALIGNMENT_CENTER, 880.0, tam, color)
+    ci.draw_string(Estilo.fuente(), Vector2(40, y), Estilo.t(msg), HORIZONTAL_ALIGNMENT_CENTER, 880.0, tam, color)
 
 
 ## Texto centrado en un rectángulo (la línea base, a «tam» del borde de arriba).
 static func en_caja(ci: CanvasItem, msg: String, r: Rect2, tam: int, color: Color) -> void:
-    ci.draw_string(Estilo.fuente(), Vector2(r.position.x, r.position.y + tam), msg, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, tam, color)
+    ci.draw_string(Estilo.fuente(), Vector2(r.position.x, r.position.y + tam), Estilo.t(msg), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, tam, color)

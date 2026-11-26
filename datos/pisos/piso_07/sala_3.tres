@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_st5ep")
-escena = 1
+escena = 6
 nombre = "VII-3 · CORO DE LOS CIEGOS"
 enemigo = ""
 rasgos = Array[String](["almas"])

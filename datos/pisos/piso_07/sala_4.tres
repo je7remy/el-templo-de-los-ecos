@@ -12,7 +12,7 @@ susurro = "Detrás, los ojos se cierran. Delante, algo te resulta demasiado fami
 objetos = []
 mision = {}
 extras = {
-"chest": [Vector2(170, 470), "«No miré atrás. Ni una vez. Te lo dejo por si tú tampoco.» —Bruno"],
+"chest": [Vector2(170, 250), "«No miré atrás. Ni una vez. Te lo dejo por si tú tampoco.» —Bruno"],
 "flames": [Vector2(400, 470), Vector2(560, 470)],
 "pendulums": [[Vector2(480, 345), 170.0]]
 }

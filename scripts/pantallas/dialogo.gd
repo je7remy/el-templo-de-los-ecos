@@ -25,7 +25,7 @@ func _draw() -> void:
     oscurecer(Color(0, 0, 0, 0.25))
     Estilo.panel(self, CAJA, Color(0.04, 0.045, 0.06, 0.95), Estilo.ORO)
     draw_rect(CAJA.grow(-6.0), Color(1, 1, 1, 0.04), false, 1.0)
-    var quien: String = str(datos.get("quien", ""))
+    var quien: String = Estilo.t(str(datos.get("quien", "")))
     var col: Color = datos.get("color_quien", Estilo.ALMA)
     var etiqueta := Rect2(CAJA.position + Vector2(18, -16), Vector2(maxf(120.0, Estilo.fuente().get_string_size(quien, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x + 30.0), 28))
     Estilo.panel(self, etiqueta, Color("#2a1d22"), col)

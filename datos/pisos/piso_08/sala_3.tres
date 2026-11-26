@@ -18,6 +18,6 @@ mision = {
 }
 extras = {
 "chest": [Vector2(790, 470), "«Esta caja ya la abrí. La letra de la nota es la mía.» —{yo}"],
-"letter": "Carta con tu letra: 'No confíes en las inscripciones. Las escribí yo... ¿o este lugar escribió con mi mano?'",
+"letter": "Carta con tu letra: «No confíes en las inscripciones. Las escribí yo... ¿o este lugar escribió con mi mano?»",
 "seal": Vector2(480, 440)
 }

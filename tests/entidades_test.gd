@@ -629,6 +629,74 @@ func _run() -> void:
         _fail("Los huecos de las puertas laterales cambiaron.")
         return
     print("OK: decorado a ras de suelo y trampas dibujados desde scripts/mundo/ (Decorado y Peligros).")
+
+    # --- Revisión de la demo -----------------------------------------------------------
+    game.set("player_name", "ANA")
+    game.set("player_gender", "femenino")
+    if str(game.call("_personal", "¡{yo}! Sigues {vivo|viva}.")) != "¡ANA! Sigues viva.":
+        _fail("Los textos no se adaptan al género del personaje.")
+        return
+    game.set("player_gender", "masculino")
+    if str(game.call("_personal", "{Tranquilo|Tranquila}, {yo}.")) != "Tranquilo, ANA.":
+        _fail("Los textos en masculino no se eligen bien.")
+        return
+    for k in Pisos_talks():
+        for l in Pisos_talks()[k]:
+            if " vivo." in str(l[1]) or "Tranquilo," in str(l[1]):
+                _fail("Queda una frase al personaje solo en masculino: " + str(l[1]))
+                return
+    _sala(game, 6, 3)
+    if not game.call("_fountain_here") or Vector2(game.call("_chest_pos")).distance_to(game.get("FOUNTAIN_POS")) < 80.0:
+        _fail("En VII-4 el cofre sigue encima del Relicario de Vida.")
+        return
+    print("OK: revisión de la demo (género de los textos, cofre de VII-4).")
+
+    # --- Inglés: traducción completa al dibujar -------------------------------------
+    var Idioma = load("res://scripts/comun/idioma.gd")
+    var Ajustes_i = load("res://scripts/ajustes.gd")
+    Ajustes_i.poner("idioma", "es")
+    if str(Idioma.t("SALA DEL TESTIGO")) != "SALA DEL TESTIGO":
+        _fail("En español los textos deben quedar como están.")
+        return
+    Ajustes_i.poner("idioma", "en")
+    Idioma.nombre = "ANA"
+    var casos := {
+        "I-3 · SALA DEL TESTIGO": "I-3 · HALL OF THE WITNESS",
+        "SALA DEL TESTIGO": "HALL OF THE WITNESS",
+        "FASE 12": "PHASE 12",
+        "Necesitas 20 ecos para un CENTINELA.": "You need 20 echoes for a SENTINEL.",
+        "Por fin. Eres ANA, ¿verdad? Tu nombre está en el muro de los nombres, igual que el mío.": "At last. You're ANA, aren't you? Your name is on the wall of names, just like mine.",
+        "Destierra al Testigo · +8 almas": "Banish the Witness · +8 souls",
+        "PISO III · LA CACERÍA": "FLOOR III · THE HUNT",
+    }
+    for es in casos:
+        if str(Idioma.t(es)) != casos[es]:
+            _fail("Traducción: «%s» salió «%s»." % [es, Idioma.t(es)])
+            Ajustes_i.poner("idioma", "es")
+            return
+    game.set("player_gender", "femenino")
+    var frase: String = game.call("_personal", "¡{yo}! Sigues {vivo|viva}. Les dije que volverías a aparecer.")
+    Ajustes_i.poner("idioma", "es")
+    if not frase.begins_with("ANA! You're still alive"):
+        _fail("Los diálogos no se traducen en inglés: " + frase)
+        return
+    print("OK: el juego entero se traduce al inglés (salas, diálogos, avisos, Vigilia).")
+
+    # --- Diez distribuciones de sala y ninguna seguida repetida ---------------------
+    var usadas := {}
+    for p in Catalogo_pisos():
+        var anterior := -1
+        for r in p["rooms"]:
+            var e: int = int(r["scene"])
+            usadas[e] = true
+            if e == anterior:
+                _fail("Dos salas seguidas con la misma distribución en el piso %s." % p["number"])
+                return
+            anterior = e
+    if usadas.size() != 10:
+        _fail("No se usan las diez distribuciones de sala (rooms/sala_0 … sala_9).")
+        return
+    print("OK: diez distribuciones de sala, sin repetir dos seguidas.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
@@ -641,6 +709,10 @@ func _despejar(game: Node) -> Array:
     for item in game.get("room_items"):
         l.append(item["pos"])
     return l
+
+
+func Pisos_talks() -> Dictionary:
+    return load("res://scripts/datos/pisos.gd").ROOM_TALKS
 
 
 func Catalogo_pisos() -> Array:

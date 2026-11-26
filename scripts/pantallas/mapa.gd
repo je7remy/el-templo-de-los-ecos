@@ -58,11 +58,11 @@ func _dibujar_piso() -> void:
             Estilo.texto(self, "???", Vector2(r.position.x, r.get_center().y + 8.0), 22, Color("#4a4e5a"), r.size.x)
             continue
         Estilo.texto(self, str(s.get("numero", "")), Vector2(r.position.x, r.position.y + 26.0), 15, Estilo.ORO, r.size.x)
-        draw_multiline_string(Estilo.fuente(), Vector2(r.position.x + 8.0, r.position.y + 50.0), str(s.get("nombre", "")), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 16.0, 12, 4, Estilo.CREMA)
+        draw_multiline_string(Estilo.fuente(), Vector2(r.position.x + 8.0, r.position.y + 50.0), Estilo.t(str(s.get("nombre", ""))), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 16.0, 12, 4, Estilo.CREMA)
         var y: float = r.position.y + 130.0
         if str(s.get("mision", "")) != "":
             var hecha: bool = bool(s.get("mision_hecha", false))
-            draw_multiline_string(Estilo.fuente(), Vector2(r.position.x + 8.0, y - 10.0), ("✓ " if hecha else "· ") + str(s["mision"]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 16.0, 10, 3, Color("#7fd6a0") if hecha else Color("#d9d2ba"))
+            draw_multiline_string(Estilo.fuente(), Vector2(r.position.x + 8.0, y - 10.0), ("✓ " if hecha else "· ") + Estilo.t(str(s["mision"])), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 16.0, 10, 3, Color("#7fd6a0") if hecha else Color("#d9d2ba"))
             y += 40.0
         if str(s.get("cofre", "")) != "":
             Estilo.texto(self, str(s["cofre"]), Vector2(r.position.x, y), 10, s.get("color_cofre", Color("#ffd36b")), r.size.x)
@@ -103,7 +103,7 @@ func _dibujar_descenso() -> void:
         if str(p.get("cofres", "")) != "":
             Estilo.texto(self, str(p["cofres"]), Vector2(760.0, y + 15.0), 11, p.get("color_cofres", Color("#ffd36b")))
     if str(datos.get("verdad", "")) != "":
-        draw_multiline_string(Estilo.fuente(), Vector2(PANEL.position.x + 60.0, 560.0), "«%s»" % str(datos["verdad"]), HORIZONTAL_ALIGNMENT_CENTER, PANEL.size.x - 120.0, 12, 2, Color("#9fb3b3"))
+        draw_multiline_string(Estilo.fuente(), Vector2(PANEL.position.x + 60.0, 560.0), "«%s»" % Estilo.t(str(datos["verdad"])), HORIZONTAL_ALIGNMENT_CENTER, PANEL.size.x - 120.0, 12, 2, Color("#9fb3b3"))
 
 
 func _gui_input(event: InputEvent) -> void:

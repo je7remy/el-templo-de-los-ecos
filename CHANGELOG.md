@@ -1,9 +1,39 @@
 # Historial de versiones
 
+## v0.5.41-alpha — 2026-11-26 · Salas más variadas
+
+- **Cinco distribuciones de sala nuevas** (`rooms/sala_5.tscn` … `sala_9.tscn`): una nave de columnas, una capilla de braseros y orantes, una galería de estatuas y sarcófagos, un refectorio con las mesas de los cirios y una cripta de sarcófagos y columnas rotas, cada una con su luz. Ahora hay diez distribuciones para las 41 salas y **ninguna se repite en dos salas seguidas**.
+- 16 salas cambian de distribución: II-1, II-2, II-3, III-3, IV-2, IV-3, IV-4, V-1, VI-3, VI-4, VII-3, IX-2, IX-4, X-1, X-2 y X-3. Las de los pisos espejo (VIII) siguen siendo las del Piso I a propósito.
+- Comprobado en las 41 salas: las almas, la puerta, los cofres, las inscripciones, el relicario y los objetos se pueden alcanzar, y ninguna trampa queda dentro de un objeto.
+- **I-5:** dos placas de pinchos estaban debajo de las columnas; ahora están a la vista.
+- `herramientas/construir_salas_nuevas.gd` genera las cinco escenas; `docs/EDITAR_SALAS.md` lo explica.
+- Versión Android 0.5.41-alpha (código 48).
+
+## v0.5.40-alpha — 2026-11-26 · Todo el juego en inglés
+
+- **English, everywhere.** Con el idioma en inglés (*Configuración > Idioma*) ya no queda nada en español: los nombres y susurros de las 41 salas, las misiones, las notas de los cofres, las inscripciones, las conversaciones, las verdades de cada piso, los avisos, el perfil, el mapa, la tienda, el altar, las pantallas de muerte y de fin, y toda la Vigilia (portada, tutorial, menús, barras y botín). Unos 1 080 textos.
+- La traducción se hace al dibujar cada texto (`scripts/comun/idioma.gd` con las tablas de `scripts/datos/en/`), así que el juego se sigue escribiendo en español y cada texto nuevo solo necesita su línea en la tabla.
+- La verdad del Piso I también se adapta si tu personaje es femenino («Estás atrapada…»), y dos frases más («sigues sola», «seguirás sola»).
+- Comillas uniformes en la carta de I-4 y en el puesto del Mercader.
+- Versión Android 0.5.40-alpha (código 47).
+
+## v0.5.39-alpha — 2026-11-26 · Revisión de la demo
+
+- **VII-4 · Umbral del Octavo:** el cofre de Bruno ya no está encima del Relicario de Vida (sus rótulos se tapaban); ahora está arriba a la izquierda.
+- **Textos según el personaje:** con un personaje femenino, las frases que se le dicen salen en femenino («Tranquila, no muerdo», «Sigues viva», «quédate quieta», «Estás sola con él», «quien te quiere muerta»). Los textos de datos admiten `{masculino|femenino}`.
+- **Tutorial en el móvil:** nombra los botones que se ven (ESQUIVA, LUZ y el botón grande GOLPE) en vez de «DASH», «el botón E» y «el botón de la antorcha».
+- **Barras de la Vigía y del Coloso** más abajo: el susurro al entrar en la sala ya no las tapa.
+- **IV-4 · Muro de los Nombres:** la placa de la inscripción se aparta del alma que flotaba pegada a ella.
+- Irene cita bien la inscripción del Piso VII y dice «la placa» (no «la pared») en el puesto del Mercader.
+- Comillas uniformes («…») en el susurro de I-1 y la carta de VIII-3.
+- `docs/MOVIL_Y_VIGILIA.md` al día con la Vigilia actual (fases sin fin, construir en cualquier baldosa, controles).
+- Versión Android 0.5.39-alpha (código 46).
+
 ## v0.5.38-alpha — 2026-11-25 · APK con firma fija
 
 Sin cambios en el juego.
 
+- *Nota: al publicarse aún no estaban los secretos de la llave, así que este APK salió con la llave temporal. El primer APK con llave fija será el primero que se publique después de crearlos.*
 - **Primer APK firmado con la llave fija del repositorio.** Desde esta versión, cada APK nuevo se instala encima del anterior y conserva la partida.
 - **Una sola vez:** para pasar de los APK anteriores (firmados con una llave temporal) a este hay que desinstalar el juego antes de instalarlo. Al desinstalar, Android borra la partida guardada en el teléfono.
 - README: cómo crear la llave y guardarla en los secretos del repositorio.

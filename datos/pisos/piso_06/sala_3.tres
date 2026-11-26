@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_sn411")
-escena = 3
+escena = 8
 nombre = "VI-3 · REFECTORIO VACÍO"
 enemigo = ""
 rasgos = Array[String]([])

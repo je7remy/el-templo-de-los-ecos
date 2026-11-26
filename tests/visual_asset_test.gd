@@ -51,7 +51,7 @@ func _check() -> void:
     # objetos como Sprite2D, marcadores de juego y colisiones.
     var required_markers := ["Jugador", "Salida", "Reliquia1", "Reliquia2", "Reliquia3"]
     var room_markers := [[], ["Enemigo", "Altar"], ["Enemigo", "Sello", "Ojo"], ["Enemigo", "Libro", "Lectura"], []]
-    for i in range(5):
+    for i in range(10): # sala_5 … sala_9: distribuciones nuevas sobre la base i - 5
         var scene: PackedScene = load("res://rooms/sala_%d.tscn" % i)
         if scene == null:
             _fail("No se puede cargar rooms/sala_%d.tscn." % i)
@@ -67,7 +67,7 @@ func _check() -> void:
             _fail("La sala %d perdió sus objetos (columnas, estatuas, braseros)." % i)
             room.free()
             return
-        for marker in required_markers + room_markers[i]:
+        for marker in required_markers + room_markers[i % 5]:
             if room.get_node_or_null("Marcadores/" + marker) == null:
                 _fail("Falta el marcador %s en la sala %d." % [marker, i])
                 room.free()
@@ -108,7 +108,7 @@ func _check() -> void:
         if sheet == null or sheet.get_height() != 256 or sheet.get_width() % 48 != 0:
             _fail("La hoja de la entidad %s debe tener 4 filas de 48x64." % kind)
             return
-    print("OK: cinco salas editables (TileMapLayer, objetos, marcadores, colisiones), entidades y libro.")
+    print("OK: diez salas editables (TileMapLayer, objetos, marcadores, colisiones), entidades y libro.")
     game.free()
     game = null
     packed = null

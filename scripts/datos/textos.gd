@@ -1,7 +1,8 @@
 extends RefCounted
 ## Textos de la interfaz en español e inglés ([es, en]) y los textos legales.
 ## Los usan la campaña (main.gd) y las escenas de pantalla.
-## (El resto del juego sigue en español: la traducción completa está pendiente.)
+## El resto de los textos del juego se traduce al dibujarlos con las tablas de
+## scripts/datos/en/ (ver scripts/comun/idioma.gd).
 ##
 ## Uso:  const Textos := preload("res://scripts/datos/textos.gd")
 ##       Textos.t("volver")        # según el idioma de Configuración

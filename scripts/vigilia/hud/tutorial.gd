@@ -26,7 +26,7 @@ func _draw() -> void:
     EV.caja(self, r, Color(0.05, 0.04, 0.07, 0.96), EV.ORO_CLARO.lerp(Color.WHITE, float(datos.get("destello", 0.0))))
     EV.etiqueta(self, str(datos.get("titulo", "")), r.position + Vector2(12, 22), 15, EV.ORO_CLARO)
     EV.etiqueta(self, "%d/%d" % [int(datos.get("paso", 0)) + 1, int(datos.get("total", 1))], r.position + Vector2(r.size.x - 44.0, 22), 11, EV.APAGADO)
-    draw_multiline_string(fuente(), r.position + Vector2(10, 44), str(datos.get("texto", "")), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 18.0, 13, 6, EV.CREMA)
+    draw_multiline_string(fuente(), r.position + Vector2(10, 44), Estilo.t(str(datos.get("texto", ""))), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 18.0, 13, 6, EV.CREMA)
     if bool(datos.get("de_leer", false)):
         EV.etiqueta(self, "▶ TOCA AQUÍ / ENTER", r.position + Vector2(12, r.size.y - 12.0), 11, Color(EV.ALMA.r, EV.ALMA.g, EV.ALMA.b, a))
     else:

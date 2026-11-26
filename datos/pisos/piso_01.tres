@@ -19,6 +19,6 @@ seguidores = false
 espejo = false
 invertido = false
 final = false
-verdad = "Estás atrapado. Y no eres el primero en despertar aquí."
+verdad = "Estás {atrapado|atrapada}. Y no eres {el primero|la primera} en despertar aquí."
 inspiracion = ""
 salas = Array[Resource]([ExtResource("1_nn3k6"), ExtResource("2_ueea0"), ExtResource("3_brv24"), ExtResource("4_odb80"), ExtResource("5_5vdk4")])

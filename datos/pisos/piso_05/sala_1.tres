@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_hrecp")
-escena = 0
+escena = 5
 nombre = "V-1 · CORREDOR DE LOS RELICARIOS"
 enemigo = ""
 rasgos = Array[String]([])

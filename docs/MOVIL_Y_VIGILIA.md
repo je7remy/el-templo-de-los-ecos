@@ -1,11 +1,11 @@
 # Móvil Android y modo Vigilia del Claustro
 
 ## Qué incluye
-- La campaña original de cinco habitaciones, almas y reencarnación se mantiene intacta.
+- La campaña (diez pisos, 41 salas, almas y reencarnación) no comparte nada con la Vigilia salvo el botín que esta te da.
 - El menú principal incorpora acceso al modo alternativo **Vigilia del Claustro** (tecla H o toque en la parte derecha).
 - En la campaña aparece un joystick flotante a la izquierda (la base va donde apoyes el pulgar) y cuatro botones en abanico a la derecha: **ACCIÓN** (grande), LUZ, ESQUIVA y ONDA. El botón de ACCIÓN cambia según lo que tengas cerca (COMPRAR, GUIAR, CALMAR, PUERTA, LEER, ALTAR, SELLO...) y brilla cuando hay algo con qué interactuar; si no, golpea con la antorcha. La LUZ muestra los fósforos que te quedan. Tocar el retrato abre el perfil y el botón de pausa del minimapa pausa la partida. Los controles táctiles se pueden forzar o desactivar en *Configuración > Controles* (Auto / Siempre / Nunca).
 - **Vista de móvil** (en Android, o con los controles táctiles en «Siempre»): la cámara se acerca a lo que exploras (*Configuración > Zoom en el móvil*: cerca, medio o lejos), el HUD se ve un 20 % más grande (las piezas de arriba crecen desde el borde superior y las de abajo desde el inferior, sin salirse en pantallas anchas) y los botones táctiles también, desde la esquina de abajo a la derecha, con letras más grandes. La base del joystick se ve más aunque no lo toques.
-- El nuevo modo cuenta con una sola cámara, cama productora de ecos, puerta reforzable, cuatro centinelas automáticos, reparación y oleadas crecientes hasta el amanecer (135 s). La derrota sucede cuando cae la puerta.
+- La Vigilia es una celda de 11 × 7 baldosas con un lecho que produce ecos mientras duermes y una puerta que hay que mantener en pie. Se construye en cualquier baldosa libre (centinelas que disparan, generadores de energía y campanas que frenan) y todo se mejora. Las fases duran 90 s y no terminan nunca: cada una es más dura, hay un jefe cada 5 y cada fase superada da botín para la campaña. Se pierde cuando cae la puerta. Los detalles, más abajo (*Vigilia v3*).
 - El nuevo modo tiene una economía **independiente** para no alterar el lore, las almas ni el personaje de la campaña.
 
 ## Controles
@@ -17,8 +17,9 @@
 | Interactuar o golpear / antorcha / esquivar / resonancia | Botones ACCIÓN / LUZ / ESQUIVA / ONDA | E o clic / F / Espacio / Q |
 | Perfil | Tocar el retrato | I o Tab |
 | Pausa | Botón de pausa (arriba a la derecha) | Esc |
-| Descansar | Tocar lecho o botón DESCANSAR | Espacio |
-| Mejorar lecho/puerta/centinela/reparar | Botones inferiores | 2/3/4/5 |
+| Dormir / levantarse (Vigilia) | Tocar el lecho o el botón DORMIR | Espacio |
+| Construir, mejorar o vender (Vigilia) | Tocar una baldosa, el lecho, la puerta o lo construido | Flechas + Enter, o 1-3 en el menú |
+| Reparar, potenciar, escudo (Vigilia) | Botones de abajo | 5 / 7 / 8 |
 | Ver qué hace un botón | Tocarlo (la descripción se ve un momento) | Pasar el cursor por encima |
 | Salir del modo defensa | Icono de salida (arriba a la derecha) | Esc |
 

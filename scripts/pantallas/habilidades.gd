@@ -33,11 +33,11 @@ func _draw() -> void:
         if f.get("icono") != null:
             draw_texture_rect(f["icono"], Rect2(r.position + Vector2(10, 14), Vector2(48, 48)), false, Color.WHITE if tiene else Color(0.12, 0.12, 0.14, 0.9))
         Estilo.texto(self, str(f.get("nombre", "")) if tiene else "???", Vector2(r.position.x + 70.0, r.position.y + 22.0), 14, Estilo.CREMA if tiene else apagado)
-        var tecla: String = str(f.get("tecla", ""))
+        var tecla: String = Estilo.t(str(f.get("tecla", "")))
         var kw: float = Estilo.fuente().get_string_size(tecla, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 14.0
         Estilo.panel(self, Rect2(r.end.x - kw - 10.0, r.position.y + 8.0, kw, 18), Color("#1d2230"), Estilo.ORO if tiene else Estilo.BORDE)
         Estilo.texto(self, tecla, Vector2(r.end.x - kw - 10.0, r.position.y + 22.0), 11, Estilo.ORO if tiene else apagado, kw)
-        draw_multiline_string(Estilo.fuente(), r.position + Vector2(70, 42), str(f.get("detalle", "")) if tiene else "Aún no la tienes.", HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 84.0, 11, 2, Estilo.GRIS if tiene else apagado)
+        draw_multiline_string(Estilo.fuente(), r.position + Vector2(70, 42), Estilo.t(str(f.get("detalle", "")) if tiene else "Aún no la tienes."), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 84.0, 11, 2, Estilo.GRIS if tiene else apagado)
         if tiene:
             Estilo.texto(self, str(f.get("coste", "")), Vector2(r.position.x + 70.0, r.end.y - 6.0), 10, Estilo.ALMA)
     Estilo.texto(self, "ECOS · PASIVAS DE CADA PISO", Vector2(540, 92), 13, Estilo.ORO)
@@ -50,7 +50,7 @@ func _draw() -> void:
         if e.get("icono") != null:
             draw_texture_rect(e["icono"], Rect2(r.position + Vector2(10, 15), Vector2(32, 32)), false, Color.WHITE if tiene else Color(0.15, 0.15, 0.18, 0.9))
         Estilo.texto(self, str(e.get("nombre", "")) if tiene else "ECO SIN DESPERTAR", Vector2(r.position.x + 52.0, r.position.y + 22.0), 12, Estilo.ALMA if tiene else apagado)
-        draw_multiline_string(Estilo.fuente(), r.position + Vector2(52, 40), str(e.get("detalle", "")) if tiene else "???", HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 60.0, 10, 2, Color("#9a957f"))
+        draw_multiline_string(Estilo.fuente(), r.position + Vector2(52, 40), Estilo.t(str(e.get("detalle", ""))) if tiene else "???", HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 60.0, 10, 2, Color("#9a957f"))
     if bool(datos.get("vacia", false)):
         Estilo.texto(self, "Tus habilidades están en la página 1.", Vector2(96, arriba + 20.0), 12, Color("#8a8574"))
     Estilo.texto(self, str(datos.get("resumen_ecos", "")), Vector2(540, arriba + float(ecos.size()) * alto_eco + 14.0), 11, Color("#8a8574"))

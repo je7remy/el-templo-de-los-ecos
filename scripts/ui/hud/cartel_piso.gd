@@ -9,8 +9,8 @@ const CARTEL := Rect2(336, 6, 288, 58)
 
 func _draw() -> void:
     Estilo.panel(self, CARTEL)
-    var titulo: String = str(d.get("titulo", ""))
-    var estado: String = str(d.get("estado", ""))
+    var titulo: String = Estilo.t(str(d.get("titulo", "")))
+    var estado: String = Estilo.t(str(d.get("estado", "")))
     if Estilo.fuente_titulo().get_string_size(titulo, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x > CARTEL.size.x - 12.0:
         # Título largo: el número en gótica y el nombre del piso abajo, en pequeño.
         titulo = str(d.get("titulo_corto", titulo))

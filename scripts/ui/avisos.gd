@@ -94,10 +94,11 @@ func _draw() -> void:
 func _dibujar_mensaje() -> void:
     var a: float = clampf(texto_t * 3.0, 0.0, 1.0)
     var tam: int = 16 if tactil else 14
-    var ancho: float = minf(Estilo.fuente().get_string_size(texto, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x + 40.0, Estilo.ANCHO - 40.0)
+    var msg: String = Estilo.t(texto)
+    var ancho: float = minf(Estilo.fuente().get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x + 40.0, Estilo.ANCHO - 40.0)
     var caja := Rect2(roundf((Estilo.ANCHO - ancho) * 0.5), 110.0, ancho, 28.0)
     Estilo.panel(self, caja, Color(0.035, 0.045, 0.06, 0.94 * a), Color(Estilo.ORO.r, Estilo.ORO.g, Estilo.ORO.b, 0.8 * a))
-    Estilo.texto(self, texto, Vector2(caja.position.x, caja.position.y + 19.0), tam, Color(Estilo.CREMA.r, Estilo.CREMA.g, Estilo.CREMA.b, a), caja.size.x)
+    Estilo.texto(self, msg, Vector2(caja.position.x, caja.position.y + 19.0), tam, Color(Estilo.CREMA.r, Estilo.CREMA.g, Estilo.CREMA.b, a), caja.size.x)
 
 
 ## Dónde poner un rótulo de tamaño «tam»: sobre el personaje (o debajo si no
