@@ -1,5 +1,14 @@
 # Historial de versiones
 
+## v0.5.42-alpha — 2026-11-26 · Pantallas anchas y material de tienda
+
+- **Pantallas anchas (16:9):** las barras de La Que No Aparta la Vista, del Coloso y del Hermano Mayor quedaban tapadas por el panel de arriba, porque la cámara ampliaba la sala y las arrastraba hacia arriba. Ahora se dibujan fijas en la pantalla, justo bajo el panel, con cualquier tamaño de ventana.
+- **Inglés:** la barra del Hermano Mayor salía en español («EL HERMANO MAYOR · AGOTADO»). Ya se traduce.
+- Créditos: GothicVania se usa para los proyectiles de fuego, no para las criaturas (son arte propio desde hace varias versiones).
+- README: el prototipo tiene diez pisos jugables, no nueve.
+- `herramientas/tienda/`: capturas 1920×1080 en español o inglés, fondo limpio y cápsulas de Steam e itch.io, para regenerar el material de la página de tienda.
+- Versión Android 0.5.42-alpha (código 49).
+
 ## v0.5.41-alpha — 2026-11-26 · Salas más variadas
 
 - **Cinco distribuciones de sala nuevas** (`rooms/sala_5.tscn` … `sala_9.tscn`): una nave de columnas, una capilla de braseros y orantes, una galería de estatuas y sarcófagos, un refectorio con las mesas de los cirios y una cripta de sarcófagos y columnas rotas, cada una con su luz. Ahora hay diez distribuciones para las 41 salas y **ninguna se repite en dos salas seguidas**.

@@ -105,7 +105,7 @@ const T := {
 const LEGAL := {
     "creditos": [
         ["EL TEMPLO DE LOS ECOS · creado por je7remy. Diseño, historia y desarrollo.", "THE TEMPLE OF ECHOES · created by je7remy. Design, story and development."],
-        ["Escenario: Knowledge Temple, por pingupollas (pingupollas.itch.io/knowledge-temple). Criaturas: GothicVania Church Pack, por Luis Zuno (Ansimuz).", "Environment: Knowledge Temple by pingupollas (pingupollas.itch.io/knowledge-temple). Creatures: GothicVania Church Pack by Luis Zuno (Ansimuz)."],
+        ["Escenario: Knowledge Temple, por pingupollas (pingupollas.itch.io/knowledge-temple). Proyectiles de fuego: GothicVania Church Pack, por Luis Zuno (Ansimuz).", "Environment: Knowledge Temple by pingupollas (pingupollas.itch.io/knowledge-temple). Fire projectiles: GothicVania Church Pack by Luis Zuno (Ansimuz)."],
         ["Protagonistas, entidades, iconos, efectos, música y la mayoría de sonidos: originales del proyecto. Sonidos de impacto y pasos, y controles táctiles: Kenney (kenney.nl), CC0.", "Protagonists, entities, icons, effects, music and most sounds: original to the project. Impact and footstep sounds and touch controls: Kenney (kenney.nl), CC0."],
         ["Tipografías: Jersey 15 y Jacquard 24 (SIL Open Font License 1.1).", "Fonts: Jersey 15 and Jacquard 24 (SIL Open Font License 1.1)."],
         ["Nacido de un primer juego: Craving Candy. En memoria de Leudy Antonio Mendez.", "Born from a first game: Craving Candy. In memory of Leudy Antonio Mendez."],

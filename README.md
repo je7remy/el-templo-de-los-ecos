@@ -11,7 +11,7 @@
 
 **El Templo de los Ecos** es un juego independiente de terror psicológico y cósmico, supervivencia y elementos roguelite, desarrollado en **Godot Engine 4** con **GDScript**. El jugador explora un templo cuyo funcionamiento desconoce. Cada entidad obedece reglas propias, y entenderlas vale tanto como cualquier habilidad.
 
-> **Estado:** prototipo con nueve pisos jugables. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
+> **Estado:** prototipo con diez pisos jugables. Las misiones, entidades y estadísticas del prototipo no son canon definitivo del universo. No es un juego terminado.
 
 ## Descargar la última versión
 
@@ -33,7 +33,7 @@ Las notas de cada versión están en la [página de la última versión](https:/
 ## ¿Qué incluye el prototipo?
 
 - **Tu personaje**: antes de la primera exploración eliges nombre (teclado o letras en pantalla) y género (masculino o femenino, cada uno con su sprite y su retrato). El nombre aparece en el HUD, el perfil y el menú; se puede cambiar desde el menú (C).
-- **Nueve pisos jugables** (de los diez diseñados, inspirados en la estructura de L.A.G.):
+- **Diez pisos jugables** (el primer arco completo, inspirado en la estructura de L.A.G.):
   - **Piso I · El Despertar**, cinco salas: Umbral del despertar, Claustro de las ofrendas, Sala del Testigo, Archivo de los ausentes y Pórtico del siguiente piso.
   - **Piso II · Los Peregrinos**, cuatro salas con las primeras grietas del templo. Un Peregrino se ofrece a reunir almas contigo… y en la mayoría de las vidas te traiciona al llegar a la Cripta del Reparto. Tiene indicios: se queda a tu espalda y miente sobre cuántas almas lleva. Mientras te acompaña no se le puede herir: la traición llega por sorpresa.
   - **Piso III · La Cacería**, cuatro salas. El templo ordena cazar al **Segador de Hilos** con tres peregrinos aliados. Antes de atacar tensa una línea roja: lo que esté sobre ella (tú o tus aliados, también los que van detrás de ti) recibe el hilo. Después queda enganchado y solo entonces se le puede herir. A media vida huye a la sala siguiente; la puerta no se abre mientras viva.
@@ -368,4 +368,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.41-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.42-alpha** (se publica al fusionar esta versión en `main`).
