@@ -18,6 +18,9 @@ signal aviso_pedido(texto: String, segundos: float)
 ## Un sonido de interfaz (lo toca la campaña con su banco de efectos).
 signal sonido_pedido(nombre: String, volumen_db: float, tono: float)
 
+## Se consiguió un logro nuevo (lo anuncia la capa de avisos).
+signal logro_conseguido(id: String)
+
 ## El progreso del personaje se escribió en disco / se borró.
 signal progreso_guardado
 signal progreso_borrado

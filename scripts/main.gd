@@ -118,6 +118,8 @@ const PORTRAIT_HURT := preload("res://assets/visual/retratos/mark_herido.png")
 const PORTRAIT_F := preload("res://assets/visual/retratos/femenina.png")
 const PORTRAIT_F_HURT := preload("res://assets/visual/retratos/femenina_herida.png")
 const HERO_SHEET_F := preload("res://assets/visual/protagonist_sheet_f.png")
+const HERO_BOOTS := preload("res://assets/visual/protagonist_botas.png")
+const HERO_BOOTS_F := preload("res://assets/visual/protagonist_botas_f.png")
 ## PROVISIONAL (petición del autor): mientras se prueban los pisos, morir no
 ## cuesta progreso. Reapareces en la entrada de la sala donde caíste con todo
 ## lo que llevabas: almas, objetos, habilidades, ecos y las almas ya recogidas
@@ -802,8 +804,35 @@ func _load_progress() -> void:
         chests_opened = saved_chests if saved_chests is Dictionary else {}
         var saved_trinkets = data.get("trinkets", [])
         trinkets = (saved_trinkets as Array).filter(func(e): return str(e) in ["brazalete", "amuleto"]) if saved_trinkets is Array else []
+        _check_achievements(false) # lo ya hecho antes de que hubiera logros
+
+## Logros que dependen del estado guardado (los de momentos concretos se
+## consiguen en su sitio: desterrar, derribar al Coloso, la mirada…).
+func _check_achievements(avisar: bool = true) -> void:
+    var por_estado := {
+        "primer_paso": max_floor >= 1 or cleared >= 1,
+        "mitad": max_floor >= 5 or cleared >= 1,
+        "cosecha": cleared >= 1,
+        "insomne": vigil_unlocked,
+        "eco": deaths >= 1,
+        "costumbre": deaths >= 10,
+        "el_regreso": reincarnations >= 1,
+        "otra_persona": new_humans >= 1,
+        "guia": guided.size() >= 3,
+        "bendecido": karma >= KARMA_MARK,
+        "maldito": karma <= -KARMA_MARK,
+        "bien_equipado": gear.get("casco", "") != "" and gear.get("peto", "") != "" and gear.get("botas", "") != "",
+        "veterano": player_level >= 10,
+        "coleccionista": ecos.size() >= 5,
+    }
+    for id in por_estado:
+        if bool(por_estado[id]):
+            Logros.conseguir(id, avisar)
+
 
 func _save_progress() -> void:
+    if not in_tutorial:
+        _check_achievements()
     Progreso.guardar({
         "identity_number": identity_number,
         "new_humans": new_humans,
@@ -1729,6 +1758,9 @@ func _on_screen_action(screen: StringName, choice: StringName, value: Variant = 
                     _create_back()
                 &"foco_nativo":
                     _name_edit_focus() # tocar el recuadro del nombre abre el teclado del móvil
+        &"Logros":
+            game_mode = "pause"
+            _sfx("interfaz", -12.0, 0.9)
         &"Habilidades":
             if choice == &"pagina":
                 _abil_turn(int(value))
@@ -2292,6 +2324,11 @@ func _banish_enemy() -> void:
     if kind == "segador":
         seg_state = "acecho"
         seg_hp_floor = 0.0
+    if not in_tutorial:
+        if kind == "testigo":
+            Logros.conseguir("sin_pestanear")
+        elif kind == "tejedora" and teje_burn > 0.0:
+            Logros.conseguir("pira")
     dissolve_fx.append({"pos": enemy_pos, "kind": kind, "facing": enemy_facing, "frame": _enemy_frame(kind), "t": 0.0})
     drops.append({"pos": enemy_pos})
     _gain_xp(XP_BANISH)
@@ -2482,6 +2519,8 @@ func _finish_floor() -> void:
     if in_tutorial:
         _end_tutorial()
         return
+    if floor_hits == 0:
+        Logros.conseguir("intocable")
     var eco: String = str(_floor().get("eco", ""))
     floor_intro_eco = ""
     if eco != "" and not ecos.has(eco):
@@ -2511,6 +2550,7 @@ func _after_floor_summary() -> void:
 
 ## Preparación propia de cada piso (p. ej., el Peregrino del Piso II).
 func _on_floor_start() -> void:
+    floor_hits = 0
     _pilgrim_reset()
     _allies_reset()
     bones_used = false
@@ -2858,6 +2898,7 @@ func _hurt(amount: float, fear_add: float = 0.0, invulnerable: float = -1.0) -> 
 
 ## Golpe recibido: sacudida, destello y sonido. No cambia el daño.
 func _on_hurt() -> void:
+    floor_hits += 1
     shake = 0.45
     _sfx("dano", -4.0)
     _sfx("k_cuerpo", -9.0)
@@ -3578,6 +3619,7 @@ func _player_look() -> Dictionary:
     worn["brazalete"] = _worn("brazalete")
     return {
         "hoja": _hero_sheet() if art.has("visual_hero") else null,
+        "hoja_botas": HERO_BOOTS_F if player_gender == "femenino" else HERO_BOOTS,
         "marca": art.get("mark"),
         "figura": art.get("player"),
         "t": elapsed,
@@ -4987,7 +5029,7 @@ func _open_pause() -> void:
 
 
 func _pause_options() -> Array:
-    var opts := ["reanudar", "ajustes", "perfil", "habilidades"]
+    var opts := ["reanudar", "ajustes", "perfil", "habilidades", "logros"]
     if in_tutorial:
         opts.append("saltar_tutorial")
     opts.append("volver_inicio")
@@ -5007,6 +5049,9 @@ func _pause_choose(i: int) -> void:
             _open_inventory() # al cerrarlo se vuelve a la pausa
         "habilidades":
             _open_abilities()
+        "logros":
+            game_mode = "achievements" # al cerrarlo se vuelve a la pausa
+            _sfx("interfaz", -9.0, 1.1)
         "saltar_tutorial":
             _end_tutorial()
         "volver_inicio":
@@ -6580,7 +6625,12 @@ func _choose_floor(i: int) -> void:
 
 ## Empieza una partida directamente en un piso ya alcanzado, con el equipo
 ## básico que se habría conseguido antes (antorcha y fósforos).
+## Golpes recibidos en este piso (logro «Intocable»).
+var floor_hits: int = 0
+
+
 func _start_floor(i: int) -> void:
+    floor_hits = 0
     if i <= 0:
         _start_explore()
         return
@@ -7882,6 +7932,7 @@ func _gaze_provoke(reason: String) -> void:
 
 
 func _gaze_defeat() -> void:
+    Logros.conseguir("no_apartes")
     gaze_state = "vencida"
     gaze_noise = {}
     for ally in allies:
@@ -8495,6 +8546,7 @@ func _pillar_fall(p: Dictionary) -> void:
 
 func _colossus_defeat() -> void:
     colossus_active = false
+    Logros.conseguir("portico")
     banished[_room_key()] = true
     drops.append({"pos": colossus_pos, "value": 30})
     _gain_xp(80)
@@ -9329,7 +9381,7 @@ func _end_world() -> void:
 
 
 func _cam_target() -> Vector2:
-    var want: Vector2 = player_pos if game_mode in ["play", "dialog", "dead", "choice", "shop", "altar", "inventory", "abilities", "map", "pause", "floor_summary", "victory"] else Vector2(480, 351)
+    var want: Vector2 = player_pos if game_mode in ["play", "dialog", "dead", "choice", "shop", "altar", "inventory", "abilities", "map", "pause", "achievements", "floor_summary", "victory"] else Vector2(480, 351)
     var vis := Vector2(W + screen_pad.x * 2.0, CAM_WINDOW_BOTTOM - CAM_WINDOW_TOP) / cam_zoom
     var lo := Vector2(30.0 + vis.x * 0.5, 112.0 + vis.y * 0.5)
     var hi := Vector2(930.0 - vis.x * 0.5, 592.0 - vis.y * 0.5)

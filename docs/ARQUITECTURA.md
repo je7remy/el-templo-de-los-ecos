@@ -8,6 +8,7 @@ El juego nació como un único script (`scripts/main.gd`) que lo dibujaba todo c
 Autoloads (project.godot → Globales)
 ├── Eventos           scripts/autoload/eventos.gd     bus de señales global
 ├── Progreso          scripts/autoload/progreso.gd    único que lee/escribe la partida
+├── Logros            scripts/autoload/logros.gd      logros de la cuenta (archivo propio)
 ├── Escenas           scenes/autoload/escenas.tscn    cambio de escena con pantalla de carga real
 └── ConfirmarSalida   scenes/confirmar_salida.tscn    «¿Salir del juego?»
 
