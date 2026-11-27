@@ -7954,13 +7954,15 @@ func _draw_gaze_hud() -> void:
         _label_center("¿...?", Vector2(gaze_noise["pos"]) + Vector2(0, -20), Color(CREAM.r, CREAM.g, CREAM.b, a))
     if gaze_state == "vencida":
         return
-    var box := Rect2(300, 146, 360, 34) # por debajo de los avisos de arriba
+    _boss_bar_begin()
+    var box := BOSS_BAR
     _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_CRIMSON if gaze_away_t > 0.0 else UI_GOLD)
     var k: float = clampf(gaze_t / maxf(1.0, gaze_need), 0.0, 1.0)
     var bar := Rect2(box.position + Vector2(8, 20), Vector2(box.size.x - 16.0, 8))
     draw_rect(bar, Color(0, 0, 0, 0.7))
     draw_rect(Rect2(bar.position, Vector2(bar.size.x * k, bar.size.y)), Color("#c9a25e"))
     _text_outline("RESISTE · %d / %d s" % [int(gaze_t), int(gaze_need)], Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
+    _boss_bar_end()
     if gaze_away_t > 0.0 and gaze_state == "mira":
         var blink: float = 0.6 + 0.4 * sin(elapsed * 14.0)
         # Sin instrucciones: solo una flecha roja que parpadea hacia ella.
@@ -8552,7 +8554,8 @@ func _draw_colossus() -> void:
 func _draw_colossus_hud() -> void:
     if not colossus_active:
         return
-    var box := Rect2(300, 146, 360, 34) # por debajo de los avisos de arriba
+    _boss_bar_begin()
+    var box := BOSS_BAR
     _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_GOLD)
     _text_outline("EL COLOSO DEL PÓRTICO", Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
     for i in range(COLOSSUS_HITS):
@@ -8560,6 +8563,7 @@ func _draw_colossus_hud() -> void:
         draw_rect(seg, Color(0, 0, 0, 0.7))
         if i >= colossus_hits:
             draw_rect(seg, Color("#b3263a"))
+    _boss_bar_end()
 
 
 # ------------------------------------------------------------ PISO X · LA COSECHA (final del arco)
@@ -8873,16 +8877,32 @@ func _draw_harvest_hud() -> void:
         _label_center("HERMANO MAYOR", elder_pos + Vector2(0, -100), CREAM)
     if not elder_active or elder_state == "talk":
         return
-    var box := Rect2(300, 146, 360, 34) # por debajo de los avisos de arriba
+    _boss_bar_begin()
+    var box := BOSS_BAR
     _panel(box, Color(0.06, 0.04, 0.06, 0.9), UI_GOLD)
     var rule: String = {"threads_aim": "HILOS", "threads": "HILOS", "roar": "RUGIDO", "tired": "AGOTADO", "gaze": "MIRADA"}.get(elder_state, "")
-    _text_outline("EL HERMANO MAYOR" + ("  ·  " + rule if rule != "" else ""), Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
+    _text_outline(Estilo.t("EL HERMANO MAYOR") + ("  ·  " + Estilo.t(rule) if rule != "" else ""), Vector2(box.position.x, box.position.y + 16.0), 12, CREAM, box.size.x)
     var bar := Rect2(box.position.x + 10.0, box.position.y + 21.0, box.size.x - 20.0, 7)
     draw_rect(bar, Color(0, 0, 0, 0.7))
     draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(elder_hp / elder_max, 0.0, 1.0), bar.size.y)), Color("#b3263a"))
     if elder_side != "":
         var side_txt: String = {"contigo": "TUS ALIADOS LUCHAN CONTIGO", "contra": "TUS ALIADOS SE UNIERON A ÉL", "apartados": "TUS ALIADOS SE APARTAN"}[elder_side]
         _text_outline(side_txt, Vector2(box.position.x, box.end.y + 14.0), 11, Color("#7fd6a0") if elder_side == "contigo" else (Color("#ff8a8a") if elder_side == "contra" else Color("#9a957f")), box.size.x)
+    _boss_bar_end()
+
+
+## Las barras de la Vigía, el Coloso y el Hermano Mayor van fijas en la
+## pantalla, justo bajo la franja de arriba: no se acercan con la cámara (en
+## pantallas anchas la cámara amplía la sala y las metía bajo el HUD).
+const BOSS_BAR := Rect2(300, 146, 360, 34) # por debajo de los avisos de arriba
+
+
+func _boss_bar_begin() -> void:
+    draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+func _boss_bar_end() -> void:
+    draw_set_transform_matrix(draw_base_xf)
 
 
 # ------------------------------------------------------------ COFRES
