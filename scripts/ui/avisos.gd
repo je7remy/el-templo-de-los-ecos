@@ -34,6 +34,10 @@ var nivel_detalle: String = ""
 var nivel_t: float = 0.0
 ## Objeto conseguido: {key, t, info?, header?}.
 var botin: Dictionary = {}
+## Logros que esperan su rótulo (uno detrás de otro) y el que se ve.
+const LOGRO_DURA := 4.2
+var logros_cola: Array = []
+var logro_t: float = 0.0
 
 var _siguiente_y: float = -1.0
 var _iconos: Dictionary = {}
@@ -44,11 +48,21 @@ func _ready() -> void:
     mouse_filter = Control.MOUSE_FILTER_IGNORE
     size = Vector2(Estilo.ANCHO, Estilo.ALTO)
     Eventos.aviso_pedido.connect(decir)
+    Eventos.logro_conseguido.connect(_al_logro)
 
 
 func _exit_tree() -> void:
     if Eventos.aviso_pedido.is_connected(decir):
         Eventos.aviso_pedido.disconnect(decir)
+    if Eventos.logro_conseguido.is_connected(_al_logro):
+        Eventos.logro_conseguido.disconnect(_al_logro)
+
+
+func _al_logro(id: String) -> void:
+    logros_cola.append(id)
+    if logros_cola.size() == 1:
+        logro_t = LOGRO_DURA
+        Eventos.sonido_pedido.emit("k_campana", -7.0, 1.35)
 
 
 func decir(mensaje: String, segundos: float = 2.8) -> void:
@@ -71,6 +85,13 @@ func mostrar_nivel(n: int, detalle: String) -> void:
 func _process(delta: float) -> void:
     texto_t = maxf(0.0, texto_t - delta)
     nivel_t = maxf(0.0, nivel_t - delta)
+    if not logros_cola.is_empty():
+        logro_t -= delta
+        if logro_t <= 0.0:
+            logros_cola.pop_front()
+            if not logros_cola.is_empty():
+                logro_t = LOGRO_DURA
+                Eventos.sonido_pedido.emit("k_campana", -7.0, 1.35)
     if not botin.is_empty():
         if en_juego:
             botin["t"] = float(botin.get("t", 0.0)) - delta
@@ -82,6 +103,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
     if texto_t > 0.0:
         _dibujar_mensaje()
+    if not logros_cola.is_empty():
+        _dibujar_logro()
     if ocultar_rotulos:
         return
     _siguiente_y = -1.0
@@ -146,3 +169,27 @@ func _dibujar_botin() -> void:
     Estilo.texto(self, str(botin.get("header", "OBJETO ENCONTRADO")) + " · " + ["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][rango - 1], Vector2(caja.position.x + 70.0, caja.position.y + 22.0), 11, Color(col.r, col.g, col.b, a))
     Estilo.texto(self, str(info[0]), Vector2(caja.position.x + 70.0, caja.position.y + 44.0), 17, Color(Estilo.CREMA.r, Estilo.CREMA.g, Estilo.CREMA.b, a))
     Estilo.texto(self, "Ya está en tu perfil.", Vector2(caja.position.x + 70.0, caja.position.y + 62.0), 10, Color(0.62, 0.6, 0.55, a))
+
+
+## Rótulo dorado del logro: arriba, bajo el marcador; entra, brilla y se va.
+func _dibujar_logro() -> void:
+    var info: Dictionary = Logros.info(str(logros_cola[0]))
+    if info.is_empty():
+        return
+    var pasado: float = LOGRO_DURA - logro_t
+    var a: float = clampf(pasado * 4.0, 0.0, 1.0) * clampf(logro_t * 2.5, 0.0, 1.0)
+    var baja: float = (1.0 - clampf(pasado * 4.0, 0.0, 1.0)) * -18.0
+    var caja := Rect2(roundf(Estilo.ANCHO * 0.5 - 200.0), 146.0 + baja, 400.0, 70.0)
+    var oro := Color(0.89, 0.74, 0.48, a)
+    Estilo.panel(self, caja, Color(0.09, 0.06, 0.03, 0.95 * a), oro)
+    # Destello que recorre el rótulo al aparecer.
+    var brillo: float = clampf(pasado / 0.9, 0.0, 1.0)
+    if brillo < 1.0:
+        var x: float = caja.position.x + caja.size.x * brillo
+        draw_rect(Rect2(x - 18.0, caja.position.y + 2.0, 36.0, caja.size.y - 4.0), Color(1.0, 0.92, 0.7, 0.22 * a))
+    var icono: Texture2D = _icono(str(info["icono"]))
+    if icono != null:
+        draw_texture_rect(icono, Rect2(caja.position + Vector2(14, 11), Vector2(48, 48)), false, Color(1, 1, 1, a))
+    Estilo.texto(self, "LOGRO CONSEGUIDO", Vector2(caja.position.x + 74.0, caja.position.y + 22.0), 11, oro)
+    Estilo.texto(self, str(info["nombre"]), Vector2(caja.position.x + 74.0, caja.position.y + 43.0), 17, Color(Estilo.CREMA.r, Estilo.CREMA.g, Estilo.CREMA.b, a))
+    Estilo.texto(self, str(info["descripcion"]), Vector2(caja.position.x + 74.0, caja.position.y + 61.0), 10, Color(0.75, 0.7, 0.6, a))

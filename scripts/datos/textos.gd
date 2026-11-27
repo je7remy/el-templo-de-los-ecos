@@ -95,6 +95,7 @@ const T := {
     "creditos": ["CRÉDITOS", "CREDITS"],
     "saltar_tutorial": ["SALTAR TUTORIAL", "SKIP TUTORIAL"],
     "volver_inicio": ["VOLVER AL INICIO", "BACK TO START SCREEN"],
+    "logros": ["LOGROS", "ACHIEVEMENTS"],
     "aviso_abandono": ["La partida se abandonará. No ganarás almas.", "The run will be abandoned. No souls are kept."],
     "saltar": ["ESC: saltar", "ESC: skip"],
     "siguiente": ["CLIC / ENTER: seguir", "CLICK / ENTER: next"],

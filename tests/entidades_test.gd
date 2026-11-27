@@ -697,6 +697,80 @@ func _run() -> void:
         _fail("No se usan las diez distribuciones de sala (rooms/sala_0 … sala_9).")
         return
     print("OK: diez distribuciones de sala, sin repetir dos seguidas.")
+
+    # --- Botas: capa con la misma rejilla que la hoja del héroe ---------------------
+    for par in [["protagonist_sheet", "protagonist_botas"], ["protagonist_sheet_f", "protagonist_botas_f"]]:
+        var hoja: Image = load("res://assets/visual/%s.png" % par[0]).get_image()
+        var botas: Image = load("res://assets/visual/%s.png" % par[1]).get_image()
+        if hoja.get_size() != botas.get_size():
+            _fail("La capa de botas %s no tiene el tamaño de la hoja del héroe." % par[1])
+            return
+        # En cada cuadro de caminar de lado, las botas quedan en los pies de ESE cuadro.
+        for f in range(2, 6):
+            var en_pie := false
+            for y in range(40, 56):
+                for x in range(40):
+                    if botas.get_pixel(f * 40 + x, 2 * 56 + y).a > 0.5:
+                        en_pie = hoja.get_pixel(f * 40 + x, 2 * 56 + y).a > 0.5
+                        if not en_pie:
+                            _fail("Las botas (%s, cuadro %d) salen fuera de los pies." % [par[1], f])
+                            return
+    var look: Dictionary = game.call("_player_look")
+    if look.get("hoja_botas") == null:
+        _fail("El jugador no recibe la capa de botas.")
+        return
+    print("OK: las botas siguen la animación de caminar en las cuatro direcciones.")
+
+    # --- Logros --------------------------------------------------------------------
+    var logros: Node = root.get_node("Logros")
+    logros.call("borrar_prueba")
+    var ids := {}
+    Ajustes_i.poner("idioma", "en")
+    for l in logros.call("todos"):
+        if ids.has(l["id"]):
+            _fail("Logro repetido: %s." % l["id"])
+            return
+        ids[l["id"]] = true
+        if not ResourceLoader.exists("res://assets/visual/iconos/%s.png" % l["icono"]):
+            _fail("El logro %s no tiene icono." % l["id"])
+            return
+        for txt in [l["nombre"], l["descripcion"]]:
+            if str(Idioma.t(str(txt))) == str(txt):
+                Ajustes_i.poner("idioma", "es")
+                _fail("Falta el inglés del logro: %s." % txt)
+                return
+    Ajustes_i.poner("idioma", "es")
+    if ids.size() != 20:
+        _fail("Debería haber 20 logros y hay %d." % ids.size())
+        return
+    var avisados: Array = []
+    var al_logro := func(id): avisados.append(id)
+    var bus: Node = root.get_node("Eventos")
+    bus.logro_conseguido.connect(al_logro)
+    if not logros.call("conseguir", "eco") or logros.call("conseguir", "eco") or avisados != ["eco"]:
+        _fail("Un logro se consigue una sola vez y avisa una sola vez.")
+        return
+    game.set("deaths", 10)
+    game.set("in_tutorial", false)
+    game.call("_save_progress")
+    if not logros.call("tiene", "costumbre"):
+        _fail("Al guardar no se comprueban los logros por estado (diez muertes).")
+        return
+    logros.call("cargar")
+    if not logros.call("tiene", "costumbre"):
+        _fail("Los logros no se guardan en disco.")
+        return
+    bus.logro_conseguido.disconnect(al_logro)
+    if not (game.call("_pause_options") as Array).has("logros"):
+        _fail("La pausa no tiene la opción LOGROS.")
+        return
+    game.set("game_mode", "pause")
+    game.call("_pause_choose", (game.call("_pause_options") as Array).find("logros"))
+    if game.get("game_mode") != "achievements":
+        _fail("LOGROS en la pausa no abre la pantalla de logros.")
+        return
+    logros.call("borrar_prueba")
+    print("OK: veinte logros, con su pantalla, su aviso y guardados aparte del personaje.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

@@ -968,6 +968,8 @@ func _advance(dt: float) -> void:
                 if hunters.is_empty():
                     spawn_t = maxf(spawn_t, 2.4)
                 _say("¡JEFE derrotado!" if bool(tg["boss"]) else "Entidad repelida. Ecos recuperados.")
+                if bool(tg["boss"]) and not tutorial and Logros.conseguir("noche_larga"):
+                    _say("LOGRO CONSEGUIDO · La noche más larga")
                 _sfx("alma", -7.0)
     if tutorial:
         gate_hp = maxf(gate_hp, 1.0) # en el tutorial la puerta no cae

@@ -50,6 +50,7 @@ Las notas de cada versión están en la [página de la última versión](https:/
 
     Tus aliados eligen bando según tu marca: con bendición luchan contigo, con maldición le ayudan tirándote piedras, y sin marca se apartan.
 - **Enemigos más fuertes cuanto más abajo**: las entidades tienen más vida y daño en los pisos profundos (+12 % por piso).
+- **Logros**: veinte logros de la cuenta (descenso, muerte, reglas de las entidades, peregrinos, personaje y Vigilia; cuatro ocultos). Se ven en Pausa > LOGROS y avisan con un rótulo dorado y una campana al conseguirlos. No se pierden al morir ni al cambiar de personaje.
 - **Armas y equipo**: por las salas hay cinco armas (daga, espada, lanza, hacha y maza, cada una con su daño, alcance, ritmo y ángulo) y tres piezas de equipo (yelmo: menos daño; peto: más vida; botas: más velocidad). Se equipan solas al recogerlas y se cambian en Perfil > EQUIPO; se guardan entre partidas. Todo lo equipado se ve en el personaje y en su retrato (yelmo, máscara de porcelana, amuleto, peto, botas, brazalete y el arma en la mano). El arma ocupa la mano de la antorcha: con ella no hay luz, y F alterna entre antorcha y arma. Cada arma tiene su propio trazo al golpear. Todo (también la máscara y los accesorios) se puede quitar en Perfil > EQUIPO: vuelve el aspecto normal y se pierde su bono.
 - **Arte y luz**: cada sala se amuebla con piezas de Knowledge Temple (sarcófagos, mesas de lectura con libros caídos, altares, estatuas, columnas rotas y braseros animados) según el estilo de su piso, siempre en espejo y sin tapar el paso. Encima va una capa de luz aditiva: el fuego, las almas y la antorcha brillan y sueltan chispas sobre la penumbra.
 - **Niveles**: ganas experiencia con almas, alimañas, entidades desterradas, misiones y pisos. Cada nivel sube la vida máxima (+6), el daño (+4 %) y la recarga del vigor (+3 %) y te cura. El nivel se ve en el retrato del HUD y en el perfil.
@@ -368,4 +369,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.42-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.43-alpha** (se publica al fusionar esta versión en `main`).

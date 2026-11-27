@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## v0.5.43-alpha — 2026-11-27 · Logros y botas que caminan
+
+- **Logros:** veinte logros de la cuenta, en seis grupos (descenso, muerte, reglas de las entidades, peregrinos, personaje y Vigilia), cuatro de ellos ocultos. Nueva opción LOGROS en la pausa con la lista y el progreso, y un rótulo dorado con campana al conseguir uno. Se guardan en su propio archivo (`templo_logros.json`): no se pierden al morir, al cambiar de personaje ni al borrar el perfil. Al cargar una partida se reconocen sin rótulo los que ya se habían ganado antes (pisos superados, muertes, Vigilia…).
+- **Botas:** se dibujaban como rectángulos fijos en los pies, así que al caminar no seguían las piernas. Ahora son una capa con la misma rejilla que la hoja del héroe (`assets/visual/protagonist_botas*.png`, generadas con `herramientas/generar_botas.py`): siguen cada cuadro de la animación en las cuatro direcciones, con caña y brillo de cuero.
+- Inglés: logros y pantalla traducidos.
+- Versión Android 0.5.43-alpha (código 50).
+
 ## v0.5.42-alpha — 2026-11-26 · Pantallas anchas y material de tienda
 
 - **Pantallas anchas (16:9):** las barras de La Que No Aparta la Vista, del Coloso y del Hermano Mayor quedaban tapadas por el panel de arriba, porque la cámara ampliaba la sala y las arrastraba hacia arriba. Ahora se dibujan fijas en la pantalla, justo bajo el panel, con cualquier tamaño de ventana.

@@ -179,7 +179,8 @@ func _desplazar(dt: float, eje: Vector2, paso_vel: float) -> void:
 ## profundidad. «ap» (apariencia) la prepara la campaña: hoja del héroe, t
 ## (tiempo de juego), muerto, interactua, arma, icono_arma, golpe (tiempo del
 ## tajo), antorcha (en la mano), antorcha_encendida, proteccion y puesto
-## (casco, peto, botas, amuleto, brazalete, mascara).
+## (casco, peto, botas, amuleto, brazalete, mascara) y hoja_botas (la capa
+## de botas que sigue a cada cuadro de la hoja).
 const Lienzo := preload("res://scripts/comun/lienzo.gd")
 const ALMA := Color("#8fc7d7")
 const ROJO := Color("#d06470")
@@ -233,6 +234,10 @@ func dibujar(c: CanvasItem, ap: Dictionary) -> void:
                 _dibujar_antorcha(c, hand, ap)
         Lienzo.contorno(c, hoja, Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
         if not muerto:
+            # Botas: una hoja con la misma rejilla que la del héroe, así siguen
+            # cada cuadro de la animación (herramientas/generar_botas.py).
+            if bool(ap["puesto"].get("botas", false)) and ap.get("hoja_botas") != null:
+                c.draw_texture_rect_region(ap["hoja_botas"], Rect2(location, Vector2(40.0, 56.0)), atlas, Color(1, 1, 1, 0.35 if blink else 1.0))
             _dibujar_equipo(c, location, direction_index, 0.35 if blink else 1.0, ap["puesto"])
         if direction_index != 1 and not muerto:
             if str(ap["arma"]) != "":
@@ -311,18 +316,7 @@ func _dibujar_equipo(c: CanvasItem, loc: Vector2, dir: int, a: float, puesto: Di
     var dark := Color(GEAR_STEEL_DARK, a)
     var light := Color(GEAR_STEEL_LIGHT, a)
     var ol := Color(GEAR_OUTLINE, a)
-    # Botas: cubren los pies.
-    if bool(puesto.get("botas", false)):
-        var lea := Color(GEAR_LEATHER, a)
-        var lead := Color(GEAR_LEATHER_DARK, a)
-        if side:
-            _px(c, loc, 15, 44, 13, 7, lead)
-            _px(c, loc, 16, 44, 11, 5, lea)
-        else:
-            _px(c, loc, 11, 44, 8, 7, lead)
-            _px(c, loc, 21, 44, 8, 7, lead)
-            _px(c, loc, 12, 44, 6, 5, lea)
-            _px(c, loc, 22, 44, 6, 5, lea)
+    # Las botas no van aquí: se dibujan con su hoja en dibujar().
     # Peto: placa sobre el torso, con hombreras.
     if bool(puesto.get("peto", false)):
         if side:
