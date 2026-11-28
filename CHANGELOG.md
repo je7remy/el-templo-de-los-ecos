@@ -1,5 +1,15 @@
 # Historial de versiones
 
+## v0.5.45-alpha — 2026-11-27 · Profundidad
+
+- **Sombras proyectadas** (`scripts/mundo/sombras.gd`): jugador, entidad, peregrino, aliados, la Vigía, el Coloso y el Hermano Mayor proyectan una sombra alargada en sentido contrario a las dos luces fuertes más cercanas (antorcha, braseros, enredaderas en llamas). Más lejos de la luz, más larga y más débil; tiembla con la llama. La antorcha no le hace sombra a quien la lleva. Con la antorcha encendida, las columnas y estatuas a menos de 260 px proyectan además una sombra que gira a tu alrededor.
+- **Sangre en el suelo:** los golpes que das y recibes dejan manchas en el suelo de la sala (hasta 40) que se limpian al salir de ella.
+- **Postproceso** (`shaders/postproceso.gdshader`):
+  - **Calor:** el aire tiembla sobre los braseros y las enredaderas que arden (hasta seis fuentes; no en el móvil).
+  - **Miedo:** por encima del 55 % los colores se separan hacia los bordes de la sala y la viñeta late; al 100 % es claramente visible.
+  - En pantallas anchas (16:9) el postproceso ya cubre toda la ventana y la viñeta queda centrada en la sala.
+- Versión Android 0.5.45-alpha (código 52).
+
 ## v0.5.44-alpha — 2026-11-27 · Sustos
 
 - **Sustos** (`scripts/mundo/sustos.gd`), repartidos con calma (el primero entre 25 y 40 s, luego cada 40–85 s), nunca durante la Vigía, el Coloso o el Hermano Mayor, ni en el tutorial ni en la primera sala del juego. Cada uno sube el miedo:

@@ -3,7 +3,9 @@ shader_type canvas_item;
 //  - bloom moderado: solo lo muy brillante (almas, fuego, velas) se expande;
 //  - gradación: sombras hacia violeta oscuro, luces hacia dorado envejecido;
 //  - viñeta suave centrada en la sala;
-//  - grano de película muy leve.
+//  - grano de película muy leve;
+//  - calor: el aire tiembla sobre los braseros y el fuego (uniform «calor»);
+//  - miedo: con mucho miedo los colores se separan en los bordes y la viñeta late.
 // Solo se aplica dentro de la sala (uniform «arena»): el HUD queda nítido.
 // Compatible con el renderizador Compatibility (OpenGL 3 / WebGL 2).
 
@@ -22,6 +24,10 @@ uniform vec3 light_tint = vec3(1.05, 0.98, 0.88);
 uniform float saturation : hint_range(0.0, 2.0) = 1.22;
 uniform float contrast : hint_range(0.5, 1.5) = 1.07;
 uniform float exposure : hint_range(0.5, 2.0) = 1.10;
+// Fuentes de calor en píxeles del lienzo: x, y (base de la llama), alto, fuerza (px).
+uniform vec4 calor[6];
+uniform int n_calor = 0;
+uniform float miedo : hint_range(0.0, 1.0) = 0.0;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -29,8 +35,30 @@ float hash(vec2 p) {
 
 void fragment() {
 	vec2 uv = SCREEN_UV;
-	vec3 base = texture(screen_tex, uv).rgb;
 	vec2 px = uv * canvas_size;
+	// Aire caliente: ondula en horizontal sobre cada llama y se apaga hacia arriba y a los lados.
+	float onda = 0.0;
+	for (int i = 0; i < 6; i++) {
+		if (i >= n_calor) { break; }
+		vec4 h = calor[i];
+		vec2 d = px - h.xy;
+		float ancho = h.z * 0.45;
+		if (d.y < 0.0 && d.y > -h.z && abs(d.x) < ancho) {
+			float k = (1.0 - abs(d.x) / ancho) * (1.0 + d.y / h.z);
+			onda += sin(px.y * 0.32 + time * 7.0 + h.x) * h.w * k;
+		}
+	}
+	uv.x += onda / canvas_size.x;
+	vec3 base = texture(screen_tex, uv).rgb;
+	float dentro = step(arena.x, px.x) * step(px.x, arena.z) * step(arena.y, px.y) * step(px.y, arena.w);
+	if (miedo > 0.0 && strength > 0.0 && dentro > 0.5) {
+		// Miedo: los canales se separan hacia los bordes de la sala.
+		vec2 centro = (arena.xy + arena.zw) * 0.5;
+		vec2 hacia = (px - centro) / max(arena.zw - arena.xy, vec2(1.0));
+		vec2 sep = hacia * miedo * 6.0 / canvas_size;
+		base.r = texture(screen_tex, uv + sep).r;
+		base.b = texture(screen_tex, uv - sep).b;
+	}
 	float inside = step(arena.x, px.x) * step(px.x, arena.z) * step(arena.y, px.y) * step(px.y, arena.w);
 	vec3 c = base;
 	if (inside > 0.5 && strength > 0.0) {
@@ -60,7 +88,7 @@ void fragment() {
 		vec2 half_size = (arena.zw - arena.xy) * 0.5;
 		vec2 q = (px - center) / half_size;
 		float v = smoothstep(0.45, 1.35, length(q * vec2(0.92, 1.05)));
-		c *= 1.0 - v * vignette;
+		c *= 1.0 - v * (vignette + miedo * 0.18 * (0.5 + 0.5 * sin(time * 5.0)));
 		// Grano.
 		c += (hash(px + vec2(time * 37.0, time * 11.0)) - 0.5) * grain;
 		c = mix(base, c, strength);

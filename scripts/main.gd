@@ -285,6 +285,7 @@ var game_mode: String = "title":
 @onready var personajes: Node = $Personajes
 @onready var peregrino: Node2D = $Peregrino
 @onready var sustos: Node = $Sustos # scripts/mundo/sustos.gd
+@onready var sombras: Node = $Sombras # scripts/mundo/sombras.gd
 @onready var capa_sustos: Control = $CapaSustos/Capa
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
@@ -943,6 +944,7 @@ func _new_run() -> void:
 func _enter_room() -> void:
     _set_checkpoint()
     sustos.sala_nueva()
+    sombras.limpiar()
     fade_t = FADE_TIME # fundido cinematográfico al cruzar
     _load_room_scene()
     player_pos = _marker("Jugador", Vector2(115.0, 359.0))
@@ -2309,6 +2311,7 @@ func _damage_enemy(amount: float) -> bool:
     _sfx("k_golpe", -11.0)
     _emit(enemy_pos + Vector2(0, -30), 14, Color(1.0, 0.72, 0.35), 60.0, 190.0, 0.5, 2.0, 260.0, (enemy_pos - player_pos).normalized(), 1.2, true)
     _emit(enemy_pos + Vector2(0, -28), 6, Color(0.55, 0.08, 0.12), 30.0, 110.0, 0.7, 3.0, 300.0, Vector2.UP, 1.4)
+    sombras.mancha(enemy_pos, 2)
     float_fx.append({"pos": head, "text": "-%d" % int(amount), "color": Color("#ffd36b"), "t": 0.0})
     _sfx("impacto", -6.0)
     if enemy_hp <= 0.0:
@@ -2904,6 +2907,7 @@ func _hurt(amount: float, fear_add: float = 0.0, invulnerable: float = -1.0) -> 
 ## Golpe recibido: sacudida, destello y sonido. No cambia el daño.
 func _on_hurt() -> void:
     floor_hits += 1
+    sombras.mancha(player_pos, 2)
     shake = 0.45
     _sfx("dano", -4.0)
     _sfx("k_cuerpo", -9.0)
@@ -3018,6 +3022,7 @@ func _draw_room() -> void:
     _draw_kprop_books()
     _draw_gear_pickup()
     _draw_prop_shadows()
+    sombras.dibujar_manchas(self) # la sangre de esta sala
     # Nuevos efectos ambientales; no forman parte de colisiones ni IA.
     _draw_visual_atmosphere()
     # Objetos a ras de suelo: siempre por debajo de personajes y estatuas.
@@ -3049,6 +3054,7 @@ func _draw_room() -> void:
         _draw_item(item)
     for i in range(drops.size()):
         _draw_relic(drops[i]["pos"], 7 + i)
+    sombras.proyectadas(self, _shadow_bodies(), _shadow_lights(), elapsed)
     _draw_depth_sorted()
     _draw_hazards_air()
     _draw_dissolve_fx()
@@ -3140,6 +3146,51 @@ func _lights() -> Array:
         list.append([door_pos + Vector2(20.0, 0.0), 95.0, 0.6])
     if _has("altar"):
         list.append([altar_pos, 85.0, 0.6])
+    return list
+
+
+## Cuerpos que proyectan sombra: [pies, alto, ancho, luz propia].
+func _shadow_bodies() -> Array:
+    var list: Array = [[player_pos, 56.0, 22.0, "antorcha"]]
+    if _enemy_active():
+        list.append([enemy_pos, 56.0, 24.0, ""])
+    if _pilgrim_present() and pilgrim_state != "dead":
+        list.append([pilgrim_pos, 52.0, 20.0, ""])
+    if allies_here:
+        for ally in allies:
+            if bool(ally["alive"]) and not bool(ally.get("gone", false)):
+                list.append([Vector2(ally["pos"]), 52.0, 20.0, ""])
+    if gaze_active:
+        list.append([gaze_pos, 96.0, 30.0, ""])
+    if colossus_active:
+        list.append([colossus_pos, 150.0, 64.0, ""])
+    if elder_active:
+        list.append([elder_pos, 72.0, 26.0, ""])
+    # Columnas y estatuas: su sombra fija ya está pintada; la antorcha, que se
+    # mueve contigo, les añade otra que gira a tu alrededor.
+    if torch_on:
+        for prop in room_props:
+            var rect: Rect2 = prop["rect"]
+            if not prop["light"] and rect.size.y >= 40.0 and rect.get_center().distance_to(player_pos) < 260.0:
+                list.append([Vector2(rect.get_center().x, rect.end.y - 4.0), rect.size.y * 0.8, rect.size.x * 0.55, "", "antorcha"])
+    return list
+
+
+## Luces que proyectan sombras: [suelo, radio, intensidad, id]. Solo las
+## fuertes (antorcha, braseros, fuego); las velas y las almas no.
+func _shadow_lights() -> Array:
+    var list: Array = []
+    if torch_on:
+        list.append([player_pos, 205.0, 1.0, "antorcha"])
+    for prop in room_props:
+        if prop["light"]:
+            var rect: Rect2 = prop["rect"]
+            list.append([Vector2(rect.get_center().x, rect.end.y - 4.0), 150.0, 0.85, ""])
+    var fires: int = 0
+    for cell in vines:
+        if str(vines[cell]["state"]) == "fuego" and fires < 3:
+            fires += 1
+            list.append([_cell_center(cell), 110.0, 0.8, ""])
     return list
 
 
@@ -6483,6 +6534,27 @@ func _update_fx(delta: float) -> void:
         mat.set_shader_parameter("bloom", 0.0 if touch_enabled else 0.65)
         mat.set_shader_parameter("time", fmod(elapsed, 100.0))
         mat.set_shader_parameter("vignette", 0.36 + fear / 100.0 * 0.3)
+        # Con mucho miedo (más del 55 %) los colores empiezan a separarse.
+        mat.set_shader_parameter("miedo", clampf((fear - 55.0) / 45.0, 0.0, 1.0) if in_room else 0.0)
+        # Que cubra toda la ventana también en pantallas anchas (16:9).
+        post_rect.size = get_viewport_rect().size
+        mat.set_shader_parameter("canvas_size", post_rect.size)
+        var heat: Array = []
+        if in_room and not touch_enabled:
+            for prop in room_props:
+                if prop["light"] and heat.size() < 6:
+                    var r: Rect2 = prop["rect"]
+                    var base: Vector2 = world_xf * Vector2(r.get_center().x, r.position.y + r.size.y * 0.35) + position
+                    heat.append(Vector4(base.x, base.y, 70.0 * world_xf.get_scale().y, 1.6))
+            for cell in vines:
+                if str(vines[cell]["state"]) == "fuego" and heat.size() < 6:
+                    var b2: Vector2 = world_xf * _cell_center(cell) + position
+                    heat.append(Vector4(b2.x, b2.y, 56.0 * world_xf.get_scale().y, 1.3))
+        var packed: Array = heat.duplicate()
+        while packed.size() < 6:
+            packed.append(Vector4.ZERO)
+        mat.set_shader_parameter("calor", packed)
+        mat.set_shader_parameter("n_calor", heat.size())
 
 
 func _draw_fx() -> void:

@@ -50,6 +50,7 @@ Las notas de cada versión están en la [página de la última versión](https:/
 
     Tus aliados eligen bando según tu marca: con bendición luchan contigo, con maldición le ayudan tirándote piedras, y sin marca se apartan.
 - **Enemigos más fuertes cuanto más abajo**: las entidades tienen más vida y daño en los pisos profundos (+12 % por piso).
+- **Profundidad**: cada personaje proyecta una sombra alargada contra las luces fuertes (tu antorcha, los braseros, el fuego), que gira y tiembla con la llama; las columnas y estatuas cercanas también la proyectan con tu antorcha. La sangre de los golpes se queda en el suelo de la sala, el aire tiembla sobre braseros y llamas, y con mucho miedo los colores se separan en los bordes y la viñeta late.
 - **Sustos**: cuando todo está tranquilo pasa algo: una silueta o unos ojos en la parte oscura que se desvanecen si la luz los alcanza; pasos, golpes o arrastres que suenan detrás de ti; la luz que se va, la pantalla que se descompone o tu nombre escrito en sangre en el muro; y, a partir del Piso II, alguna cara que salta a la pantalla (como mucho una por piso; se puede apagar en Ajustes). Nunca durante un jefe ni en el tutorial, y cada susto sube el miedo.
 - **Logros**: veinte logros de la cuenta (descenso, muerte, reglas de las entidades, peregrinos, personaje y Vigilia; cuatro ocultos). Se ven en Pausa > LOGROS y avisan con un rótulo dorado y una campana al conseguirlos. No se pierden al morir ni al cambiar de personaje.
 - **Armas y equipo**: por las salas hay cinco armas (daga, espada, lanza, hacha y maza, cada una con su daño, alcance, ritmo y ángulo) y tres piezas de equipo (yelmo: menos daño; peto: más vida; botas: más velocidad). Se equipan solas al recogerlas y se cambian en Perfil > EQUIPO; se guardan entre partidas. Todo lo equipado se ve en el personaje y en su retrato (yelmo, máscara de porcelana, amuleto, peto, botas, brazalete y el arma en la mano). El arma ocupa la mano de la antorcha: con ella no hay luz, y F alterna entre antorcha y arma. Cada arma tiene su propio trazo al golpear. Todo (también la máscara y los accesorios) se puede quitar en Perfil > EQUIPO: vuelve el aspecto normal y se pierde su bono.
@@ -370,4 +371,4 @@ El juego muestra un acuerdo de usuario la primera vez y no recoge datos personal
 
 ---
 
-Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.44-alpha** (se publica al fusionar esta versión en `main`).
+Desarrollado por [@je7remy](https://github.com/je7remy). **Último release: v0.5.45-alpha** (se publica al fusionar esta versión en `main`).
