@@ -45,6 +45,7 @@ static func valores_por_defecto() -> Dictionary:
         "buscar_actualizaciones": true, # mira en GitHub si hay versión nueva al abrir
         "teclas": teclas, "tactil": "auto", # auto, siempre, nunca
         "zoom_movil": "cerca", # en el móvil: cerca, medio o lejos (toda la sala)
+        "sustos_repentinos": true, # caras que saltan a la pantalla (scripts/mundo/sustos.gd)
         "idioma": "es",
         "acuerdo_aceptado": false, "acuerdo_version": 0,
         "intro_vista": false, "tutorial_hecho": false,
