@@ -55,6 +55,7 @@ var vida_max: float = 100.0
 var vigor: float = 100.0
 var miedo: float = 0.0 # 0..100
 var invulnerable_t: float = 0.0 # tras un golpe no se recibe otro
+var _golpe_t: float = 99.0 # tiempo desde el último golpe recibido (retroceso del dibujo)
 
 ## ¿Se puede estar en ese punto? / ¿Ese punto toca un objeto (no un muro)?
 var _bloqueado: Callable = func(_en: Vector2) -> bool: return false
@@ -82,6 +83,7 @@ func herir(cantidad: float, miedo_extra: float = 0.0, invulnerable: float = -1.0
         miedo = minf(100.0, miedo + miedo_extra)
     if invulnerable >= 0.0:
         invulnerable_t = invulnerable
+    _golpe_t = 0.0
     if estado_salud() != &"Muerto":
         salud.cambiar_a(&"Herido" if invulnerable_t > 0.0 else &"Vivo")
     herido.emit(cantidad)
@@ -95,6 +97,7 @@ func morir() -> void:
 
 func _actualizar_salud(dt: float) -> void:
     invulnerable_t = maxf(0.0, invulnerable_t - dt)
+    _golpe_t += dt
     var quiere: StringName = &"Vivo"
     if estado_salud() == &"Muerto" and vida <= 0.0:
         quiere = &"Muerto"
@@ -196,6 +199,26 @@ const MASK_RED := Color("#b0242f")
 const GEAR_OUTLINE := Color("#140f12")
 
 
+## Pequeños desplazamientos del dibujo (no de la posición real) que dan
+## peso a las acciones: al golpear se adelanta y vuelve; al recibir un golpe
+## retrocede y tiembla; al esquivar se agacha y se inclina hacia donde va.
+const GOLPE_DURA := 0.25 # lo que dura strike_fx en main.gd
+
+
+func _desvio(ap: Dictionary) -> Vector2:
+    var d := Vector2.ZERO
+    var golpe: float = float(ap.get("golpe", 0.0))
+    if golpe > 0.0:
+        var k: float = 1.0 - golpe / GOLPE_DURA # 0 → 1
+        d += direccion.normalized() * 3.0 * sin(k * PI) - direccion.normalized() * 1.0 * clampf(1.0 - k * 4.0, 0.0, 1.0)
+    if invulnerable_t > 0.0 and _golpe_t < 0.18:
+        var k2: float = 1.0 - _golpe_t / 0.18
+        d += -direccion.normalized() * 2.0 * k2 + Vector2(randf_range(-1.0, 1.0), 0.0) * k2
+    if esquiva_t > 0.0:
+        d += Vector2(0.0, 1.0) + esquiva_dir.normalized() * 1.5
+    return d
+
+
 func dibujar(c: CanvasItem, ap: Dictionary) -> void:
     var t: float = float(ap["t"])
     var muerto: bool = bool(ap["muerto"])
@@ -215,9 +238,13 @@ func dibujar(c: CanvasItem, ap: Dictionary) -> void:
         elif bool(ap["interactua"]):
             frame_index = 6
         elif moviendose:
-            frame_index = 2 + (int(t * 8.0) % 4)
+            # De frente y de espaldas, los cuadros 9–12 levantan cada pie
+            # (herramientas/generar_pasos.py); de lado, los originales 2–5.
+            var base_paso: int = 9 if direction_index <= 1 else 2
+            frame_index = base_paso + (int(t * 8.0) % 4)
         var atlas := Rect2(float(frame_index * 40), float(direction_index * 56), 40.0, 56.0)
-        var location := Vector2(roundf(position.x) - 20.0, roundf(position.y) - 50.0)
+        var desvio: Vector2 = _desvio(ap)
+        var location := Vector2(roundf(position.x + desvio.x) - 20.0, roundf(position.y + desvio.y) - 50.0)
         Lienzo.sombra(c, position + Vector2(0.0, 1.0), 15.0)
         for gh in siluetas:
             var gk: float = 1.0 - float(gh["t"]) / 0.22
@@ -225,7 +252,7 @@ func dibujar(c: CanvasItem, ap: Dictionary) -> void:
             c.draw_texture_rect_region(hoja, Rect2(gloc, Vector2(40.0, 56.0)), Rect2(float(2 * 40), float(direction_index * 56), 40.0, 56.0), Color(0.55, 0.85, 1.0, 0.35 * gk))
         var blink: bool = invulnerable_t > 0.0 and int(t * 14.0) % 2 == 0
         # La antorcha va en la mano; de espaldas queda detrás del cuerpo.
-        var hand: Vector2 = position + [Vector2(12, -18), Vector2(-12, -20), Vector2(9, -19), Vector2(-9, -19)][direction_index]
+        var hand: Vector2 = position + desvio.round() + [Vector2(12, -18), Vector2(-12, -20), Vector2(9, -19), Vector2(-9, -19)][direction_index]
         var in_hand_torch: bool = bool(ap["antorcha"]) and str(ap["arma"]) == ""
         if direction_index == 1 and not muerto:
             if str(ap["arma"]) != "":

@@ -37,8 +37,8 @@ func _check() -> void:
             return
 
     var hero: Texture2D = assets.get("visual_hero")
-    if hero.get_width() != 360 or hero.get_height() != 224:
-        _fail("El spritesheet requiere 9 fotogramas x 4 direcciones (360x224).")
+    if hero.get_width() != 520 or hero.get_height() != 224:
+        _fail("El spritesheet requiere 13 fotogramas x 4 direcciones (520x224): los 9 originales y 4 de caminar de frente y de espaldas.")
         return
 
     for i in range(5):
@@ -102,7 +102,7 @@ func _check() -> void:
         return
 
     print("OK: recursos visuales nuevos, originales y enemigos cargados correctamente.")
-    print("OK: protagonista 360x224, cinco salas 960x640, Angel, Ghoul y Wizard.")
+    print("OK: protagonista 520x224, cinco salas 960x640, Angel, Ghoul y Wizard.")
     for kind in ["testigo", "ghoul", "hechicero"]:
         var sheet: Texture2D = assets.get("enemy_" + kind)
         if sheet == null or sheet.get_height() != 256 or sheet.get_width() % 48 != 0:

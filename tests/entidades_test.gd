@@ -715,6 +715,17 @@ func _run() -> void:
                         if not en_pie:
                             _fail("Las botas (%s, cuadro %d) salen fuera de los pies." % [par[1], f])
                             return
+        # Caminar de frente: los cuadros 9 y 11 levantan pies distintos.
+        var pie := func(col: int, lado: int) -> int:
+            var y_max := 0
+            for y in range(40, 56):
+                for x in range(lado * 20, lado * 20 + 20):
+                    if hoja.get_pixel(col * 40 + x, y).a > 0.5:
+                        y_max = maxi(y_max, y)
+            return y_max
+        if pie.call(9, 0) >= pie.call(9, 1) or pie.call(11, 1) >= pie.call(11, 0):
+            _fail("Los cuadros de caminar de frente (%s) no levantan los pies." % par[0])
+            return
     var look: Dictionary = game.call("_player_look")
     if look.get("hoja_botas") == null:
         _fail("El jugador no recibe la capa de botas.")
