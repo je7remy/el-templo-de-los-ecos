@@ -14,6 +14,10 @@ const ARMAS := [
     preload("res://datos/armas/lanza.tres"),
     preload("res://datos/armas/hacha.tres"),
     preload("res://datos/armas/maza.tres"),
+    # Trofeos de jefe: los sueltan el Segador, la Tejedora y el Coloso.
+    preload("res://datos/armas/hoz.tres"),
+    preload("res://datos/armas/garrote.tres"),
+    preload("res://datos/armas/martillo.tres"),
 ]
 const ANTORCHA := preload("res://datos/armas/antorcha.tres")
 const EQUIPO := [

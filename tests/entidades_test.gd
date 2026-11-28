@@ -546,7 +546,7 @@ func _run() -> void:
 
     # --- Fase 4a: armas y equipo en archivos de datos (.tres) ------------------------
     var armas: Dictionary = game.get("WEAPONS")
-    if armas.keys() != ["daga", "espada", "lanza", "hacha", "maza"]:
+    if armas.keys() != ["daga", "espada", "lanza", "hacha", "maza", "hoz", "garrote", "martillo"]:
         _fail("Las armas no salen de datos/armas en su orden: %s." % [armas.keys()])
         return
     for k in armas:
@@ -914,6 +914,82 @@ func _run() -> void:
             _fail("El Piso I no debe llevar decorado de otro piso.")
             return
     print("OK: decorado propio de cada piso (peregrinos, cacería, raíces, mastines, ofrendas, mirada, tiza, pórtico y cosecha).")
+
+    # --- Trofeos de jefe: hoz, garrote y martillo ---------------------------------
+    var armas_t: Dictionary = game.get("WEAPONS")
+    for t in [["hoz", "siega"], ["garrote", "brasa"], ["martillo", "onda"]]:
+        if not armas_t.has(t[0]) or str(armas_t[t[0]].get("effect", "")) != t[1]:
+            _fail("Falta el trofeo «%s» o su efecto «%s»." % t)
+            return
+    _sala(game, 0, 1)
+    game.set("gear_owned", {})
+    game.call("_drop_trophy", "segador", Vector2(600, 360))
+    var suelo_t: Dictionary = game.get("gear_pickup")
+    if str(suelo_t.get("key", "")) != "hoz" or not bool(suelo_t.get("trofeo", false)):
+        _fail("El Segador no deja la Hoz en el suelo.")
+        return
+    game.call("_enter_room") # sales sin recogerla: te la llevas igual
+    if not (game.get("gear_owned") as Dictionary).has("hoz") or str(game.get("weapon")) != "hoz":
+        _fail("El trofeo que no recoges se pierde al salir de la sala.")
+        return
+    game.call("_drop_trophy", "segador", Vector2(600, 360))
+    if not (game.get("gear_pickup") as Dictionary).is_empty():
+        _fail("El trofeo no debe volver a caer si ya lo tienes.")
+        return
+    # Siega: el golpe que hiere cura.
+    game.call("_dialog_skip")
+    game.set("game_mode", "play")
+    var foe_t: Vector2 = game.get("enemy_pos")
+    game.set("player_pos", foe_t + Vector2(-40, 0))
+    game.set("player_dir", Vector2.RIGHT)
+    game.set("hp", 50.0)
+    game.set("strike_cd", 0.0)
+    game.set("stamina", 100.0)
+    game.call("_torch_strike")
+    if float(game.get("hp")) <= 50.0:
+        _fail("La Hoz del Segador no cura al herir.")
+        return
+    # Onda: el martillo alcanza lo que está cerca del impacto aunque quede fuera del tajo.
+    game.set("weapon", "martillo")
+    game.set("enemy_hp", float(game.get("enemy_max")))
+    game.set("enemy_stun", 0.0)
+    var golpe_t: Vector2 = foe_t + Vector2(-110, -60)
+    game.set("player_pos", golpe_t)
+    game.set("player_dir", Vector2.RIGHT)
+    var impacto_t: Vector2 = golpe_t + Vector2.RIGHT * float(game.call("_strike_range")) * 0.7
+    game.set("enemy_pos", impacto_t + Vector2(0, 55))
+    game.set("strike_cd", 0.0)
+    game.set("stamina", 100.0)
+    game.call("_torch_strike")
+    if float(game.get("enemy_hp")) >= float(game.get("enemy_max")):
+        _fail("El Martillo del Coloso no alcanza lo que está junto al impacto.")
+        return
+    # Brasa: el garrote quema a la Tejedora sin antorcha.
+    var con_tejedora: bool = false
+    for sala_t in range(5):
+        _sala(game, 3, sala_t)
+        if str(game.call("_enemy_kind")) == "tejedora" and bool(game.call("_enemy_active")):
+            con_tejedora = true
+            break
+    if not con_tejedora:
+        _fail("No hay Tejedora en el Piso IV para probar el Garrote.")
+        return
+    game.set("gear_owned", {"hoz": true, "garrote": true, "martillo": true})
+    game.set("weapon", "garrote")
+    game.set("torch_on", false)
+    game.set("teje_burn", 0.0)
+    var teje_t: Vector2 = game.get("enemy_pos")
+    game.set("player_pos", teje_t + Vector2(-40, 0))
+    game.set("player_dir", Vector2.RIGHT)
+    game.set("strike_cd", 0.0)
+    game.set("stamina", 100.0)
+    game.call("_torch_strike")
+    if float(game.get("teje_burn")) <= 0.0:
+        _fail("El Garrote de Raíz no prende a la Tejedora.")
+        return
+    game.set("weapon", "")
+    game.set("gear_owned", {})
+    print("OK: trofeos de jefe (Hoz del Segador, Garrote de Raíz y Martillo del Coloso, con sus efectos).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

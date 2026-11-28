@@ -1,5 +1,21 @@
 # Historial de versiones
 
+## v0.5.49-alpha — 2026-11-27 · Trofeos de jefe
+
+- **Tres armas nuevas** que suelta cada jefe la primera vez que cae (`TROFEOS` en `main.gd`; datos en `datos/armas/`, con los campos nuevos `efecto` y `efecto_valor`). Valores provisionales:
+
+  | Arma | Jefe | Daño | Alcance | Ritmo | Vigor | Efecto |
+  |---|---|---|---|---|---|---|
+  | Hoz del Segador | Segador (III) | ×1,15 | 76 | 0,55 s | 12 | **Siega:** barre casi a tu alrededor; cada golpe que hiere cura 3 de vida |
+  | Garrote de Raíz | Tejedora (IV) | ×1,3 | 62 | 0,7 s | 13 | **Brasa:** el golpe prende raíces y a la Tejedora aunque no lleves la antorcha |
+  | Martillo del Coloso | Coloso (IX) | ×2,3 | 62 | 1,15 s | 22 | **Onda:** alcanza todo lo que esté a 70 px del impacto; aturde 1,2 s |
+
+- El trofeo queda en el suelo donde cayó el jefe, brillando y en 3D. Si sales de la sala sin recogerlo, te lo llevas igual.
+- Iconos nuevos (`herramientas/generar_equipo.py`, sin tocar los existentes), modelos 3D en las Vitrinas y un tajo propio para cada una: media luna con el hilo rojo, brasas que saltan y un anillo de piedra del tamaño de la onda.
+- Las armas tiradas por las salas (también las de siempre) ahora se ven en 3D girando.
+- Perfil > EQUIPO: lo ENCONTRADO pasa a dos filas de 8 para que quepan las 11 piezas.
+- Versión Android 0.5.49-alpha (código 56).
+
 ## v0.5.48-alpha — 2026-11-27 · Decorado por piso
 
 - **35 decorados nuevos** (`herramientas/generar_decorados_pisos.py` → `assets/visual/decorados/pisos/`), pixel art original con los mismos colores y contorno que los restos comunes:

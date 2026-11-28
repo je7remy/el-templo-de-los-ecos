@@ -79,6 +79,9 @@ const ICONS := {
     "lanza": preload("res://assets/visual/iconos/lanza.png"),
     "hacha": preload("res://assets/visual/iconos/hacha.png"),
     "maza": preload("res://assets/visual/iconos/maza.png"),
+    "hoz": preload("res://assets/visual/iconos/hoz.png"),
+    "garrote": preload("res://assets/visual/iconos/garrote.png"),
+    "martillo": preload("res://assets/visual/iconos/martillo.png"),
     "yelmo": preload("res://assets/visual/iconos/yelmo.png"),
     "peto": preload("res://assets/visual/iconos/peto.png"),
     "botas": preload("res://assets/visual/iconos/botas.png"),
@@ -942,6 +945,8 @@ func _new_run() -> void:
 
 
 func _enter_room() -> void:
+    if bool(gear_pickup.get("trofeo", false)):
+        _take_gear() # el trofeo que se quedó en el suelo de la sala anterior
     _set_checkpoint()
     sustos.sala_nueva()
     sombras.limpiar()
@@ -2338,6 +2343,7 @@ func _banish_enemy() -> void:
             Logros.conseguir("pira")
     dissolve_fx.append({"pos": enemy_pos, "kind": kind, "facing": enemy_facing, "frame": _enemy_frame(kind), "t": 0.0})
     drops.append({"pos": enemy_pos})
+    _drop_trophy(kind, enemy_pos)
     _gain_xp(XP_BANISH)
     fireballs.clear()
     enemy_stun = 0.0
@@ -2361,7 +2367,7 @@ func _torch_strike() -> bool:
     strike_dir = player_dir.normalized() if player_dir.length() > 0.1 else Vector2.RIGHT
     visual_interaction_left = 0.24
     if weapon != "":
-        _sfx("k_metal", -6.0, 1.3 if weapon == "daga" else (0.75 if weapon in ["hacha", "maza"] else 1.0))
+        _sfx("k_metal", -6.0, 1.3 if weapon == "daga" else (0.6 if weapon == "martillo" else (0.75 if weapon in ["hacha", "maza", "garrote"] else 1.0)))
         _sfx("toque", -12.0, 0.7) # silbido del tajo, sin chisporroteo de fuego
     else:
         _sfx("golpe", -7.0)
@@ -2379,20 +2385,39 @@ func _torch_strike() -> bool:
             var shove := pilgrim_pos + to_p.normalized() * 16.0
             if not _is_blocked(shove):
                 pilgrim_pos = shove
-    if has_torch and torch_on:
+    var efecto: String = _weapon_effect()
+    if (has_torch and torch_on) or efecto == "brasa":
         _try_ignite(player_pos + strike_dir * 28.0)
+    # Martillo: el impacto alcanza todo lo que haya cerca del punto de golpe.
+    var impacto: Vector2 = player_pos + strike_dir * _strike_range() * 0.7
+    var onda: float = _weapon_effect_value() if efecto == "onda" else 0.0
+    if onda > 0.0:
+        shake = maxf(shake, 0.3)
+        _sfx("k_piedra", -8.0, 0.6)
     _strike_hounds_and_rescue()
     _strike_rams_and_pillars()
     _harvest_strike()
     for cr in critters:
         if bool(cr["alive"]):
             var to_c: Vector2 = Vector2(cr["pos"]) - player_pos
-            if to_c.length() < _strike_range() + 12.0 and (to_c.length() < 24.0 or to_c.normalized().dot(strike_dir) > 0.2):
+            if (to_c.length() < _strike_range() + 12.0 and (to_c.length() < 24.0 or to_c.normalized().dot(strike_dir) > 0.2)) \
+                    or Vector2(cr["pos"]).distance_to(impacto) < onda:
                 _critter_die(cr)
     if _enemy_active():
         var to := enemy_pos - player_pos
-        if to.length() < _strike_range() + 10.0 and (to.length() < 24.0 or to.normalized().dot(strike_dir) > _weapon_stat("arc")):
-            if _damage_enemy(_strike_damage()):
+        var alcanza: bool = to.length() < _strike_range() + 10.0 and (to.length() < 24.0 or to.normalized().dot(strike_dir) > _weapon_stat("arc"))
+        if alcanza or enemy_pos.distance_to(impacto) < onda:
+            # Garrote: sus brasas queman a la Tejedora como el fuego de verdad.
+            var quema: bool = efecto == "brasa" and _enemy_kind() == "tejedora"
+            if quema:
+                teje_burn = maxf(teje_burn, 1.3)
+            fire_hit = quema
+            var herido: bool = _damage_enemy(_strike_damage())
+            fire_hit = false
+            if herido and efecto == "siega":
+                _heal(_weapon_effect_value(), false)
+                float_fx.append({"pos": player_pos + Vector2(0, -64), "text": "+%d" % int(_weapon_effect_value()), "color": Color("#7fd08a"), "t": 0.0})
+            if herido:
                 enemy_stun = maxf(enemy_stun, _weapon_stat("stun"))
                 var pushed := enemy_pos + to.normalized() * 18.0
                 if not _is_blocked(pushed):
@@ -3602,6 +3627,38 @@ func _draw_weapon_strike_fx() -> void:
                     draw_rect(Rect2(sp - Vector2(1.5, 1.5), Vector2(3, 3)), Color(1.0, 0.85, 0.5, 1.0 - kk))
                 if kk < 0.3:
                     draw_circle(hit, 9.0, Color(1, 1, 1, 0.6 * (1.0 - kk / 0.3)))
+        "hoz":
+            # Media luna que barre casi todo alrededor, con el hilo rojo detrás.
+            var a0: float = mid - 2.2
+            var a1: float = a0 + 4.4 * minf(1.0, k * 1.7)
+            draw_arc(c, reach * 0.7, a0, a1, 28, Color(0.55, 0.1, 0.14, 0.55 * fade), 8.0)
+            draw_arc(c, reach * 0.78, a0, a1, 28, steel, 3.0)
+            draw_arc(c, reach * 0.83, a0, a1, 28, edge, 1.0)
+            draw_circle(c + Vector2.from_angle(a1) * reach * 0.8, 4.0 * fade, Color(0.9, 0.95, 1.0, fade))
+        "garrote":
+            # Golpe corto y sordo que suelta brasas.
+            var a0: float = mid - 1.0
+            var a1: float = a0 + 2.0 * minf(1.0, k * 1.9)
+            draw_arc(c, reach * 0.62, a0, a1, 16, Color(0.4, 0.25, 0.15, 0.6 * fade), 10.0)
+            draw_arc(c, reach * 0.7, a0, a1, 16, Color(1.0, 0.55, 0.15, 0.85 * fade), 3.0)
+            for j in range(7):
+                var ang: float = a0 + (a1 - a0) * float(j) / 6.0
+                var p: Vector2 = c + Vector2.from_angle(ang) * (reach * 0.7 + sin(float(j) * 3.1 + k * 9.0) * 6.0) + Vector2(0, -k * 14.0)
+                draw_rect(Rect2(p.round(), Vector2(2, 2)), Color(1.0, 0.8, 0.35, fade))
+        "martillo":
+            # Cae como una losa: anillo de piedra del tamaño de la onda y polvo.
+            var hit2: Vector2 = player_pos + Vector2.from_angle(mid) * reach * 0.7
+            var a0: float = mid - 0.7
+            var a1: float = a0 + 1.4 * minf(1.0, k * 2.0)
+            draw_arc(c, reach * 0.6, a0, a1, 12, shade, 10.0)
+            if k > 0.45:
+                var kk: float = (k - 0.45) / 0.55
+                var rad: float = _weapon_effect_value() * kk
+                _draw_ellipse(hit2, rad, rad * 0.4, Color(0.75, 0.7, 0.6, 0.35 * (1.0 - kk)))
+                draw_arc(hit2, rad, 0.0, TAU, 32, Color(0.95, 0.9, 0.8, 0.7 * (1.0 - kk)), 3.0)
+                for j in range(8):
+                    var sp: Vector2 = hit2 + Vector2.from_angle(float(j) * TAU / 8.0) * rad * 0.8 + Vector2(0, -kk * 18.0)
+                    draw_rect(Rect2(sp.round(), Vector2(3, 3)), Color(0.6, 0.58, 0.52, 1.0 - kk))
 
 
 ## Onda de Resonancia: anillo que se expande hasta su alcance de daño.
@@ -4432,6 +4489,35 @@ func _strike_range() -> float:
     return _weapon_stat("range")
 
 
+## Efecto propio del arma en la mano ("" si no tiene): siega, brasa u onda.
+func _weapon_effect() -> String:
+    return str(WEAPONS[weapon].get("effect", "")) if WEAPONS.has(weapon) else ""
+
+
+func _weapon_effect_value() -> float:
+    return float(WEAPONS[weapon].get("effect_value", 0.0)) if WEAPONS.has(weapon) else 0.0
+
+
+## Trofeos de jefe: el arma que suelta cada uno la primera vez que cae.
+const TROFEOS := {"segador": "hoz", "tejedora": "garrote", "coloso": "martillo"}
+
+
+## Deja el trofeo en el suelo donde cayó el jefe. Si sales sin recogerlo, te
+## lo llevas igual (al entrar en la siguiente sala).
+func _drop_trophy(kind: String, at: Vector2) -> void:
+    var key: String = str(TROFEOS.get(kind, ""))
+    if key == "" or in_tutorial or gear_owned.has(key):
+        return
+    if not gear_pickup.is_empty():
+        _take_gear() # lo que hubiera en la sala no se pierde
+    var spot: Vector2 = at
+    if _is_blocked(spot):
+        spot = player_pos
+    gear_pickup = {"key": key, "pos": spot, "trofeo": true}
+    _emit(spot + Vector2(0, -20), 24, Color(1.0, 0.82, 0.45), 20.0, 120.0, 1.0, 2.0, -40.0, Vector2.UP, 1.2, true)
+    _say("Algo ha quedado entre los restos. Recógelo.", 3.5)
+
+
 func _gear_speed_mult() -> float:
     return 1.08 if gear.get("botas", "") != "" else 1.0
 
@@ -4507,7 +4593,11 @@ func _draw_gear_pickup() -> void:
     var bob: float = sin(elapsed * 3.0) * 3.0
     _draw_ellipse(at + Vector2(0, 4), 18.0, 6.0, Color(0, 0, 0, 0.35))
     draw_circle(at + Vector2(0, -14 + bob), 22.0, Color(1.0, 0.85, 0.45, 0.10 + 0.05 * sin(elapsed * 4.0)))
-    draw_texture_rect(ICONS[gear_pickup["key"]], Rect2(at + Vector2(-16, -30 + bob), Vector2(32, 32)), false)
+    if bool(gear_pickup.get("trofeo", false)): # el trofeo de un jefe brilla más
+        draw_circle(at + Vector2(0, -20 + bob), 34.0, Color(1.0, 0.6, 0.3, 0.08 + 0.05 * sin(elapsed * 5.0)))
+    # En 3D girando (scripts/autoload/vitrinas.gd); si no hay modelo, el icono.
+    if not Vitrinas.dibujar(self, str(gear_pickup["key"]), Rect2(at + Vector2(-26, -50 + bob), Vector2(52, 52))):
+        draw_texture_rect(ICONS[gear_pickup["key"]], Rect2(at + Vector2(-16, -30 + bob), Vector2(32, 32)), false)
     var name_g: String = WEAPONS[gear_pickup["key"]]["name"] if WEAPONS.has(gear_pickup["key"]) else GEAR[gear_pickup["key"]]["name"]
     if player_pos.distance_to(at) < 140.0:
         _label_center(name_g, at + Vector2(0, -44), Color("#ffd36b"))
@@ -8635,6 +8725,7 @@ func _colossus_defeat() -> void:
     Logros.conseguir("portico")
     banished[_room_key()] = true
     drops.append({"pos": colossus_pos, "value": 30})
+    _drop_trophy("coloso", colossus_pos)
     _gain_xp(80)
     _complete_mission()
     dissolve_fx.append({"pos": colossus_pos, "kind": "coloso", "facing": 0, "frame": 6, "t": 0.0})

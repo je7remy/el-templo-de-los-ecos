@@ -21,6 +21,12 @@ extends Resource
 ## Segundos que deja aturdida a la entidad.
 @export var aturdir: float = 0.3
 @export_multiline var descripcion: String = ""
+## Efecto propio de los trofeos de jefe ("" = ninguno):
+##   siega: cada golpe que hiere te cura «efecto_valor» de vida.
+##   brasa: el golpe quema (prende raíces y a la Tejedora) aunque no lleves la antorcha.
+##   onda:  el impacto alcanza a todo lo que esté cerca del punto de golpe.
+@export var efecto: String = ""
+@export var efecto_valor: float = 0.0
 
 
 ## El formato de diccionario que usa la campaña.
@@ -29,4 +35,7 @@ func como_dict() -> Dictionary:
     if id != "":
         d["name"] = nombre
         d["desc"] = descripcion
+    if efecto != "":
+        d["effect"] = efecto
+        d["effect_value"] = efecto_valor
     return d

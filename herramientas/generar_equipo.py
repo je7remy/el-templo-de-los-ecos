@@ -6,6 +6,7 @@ herramientas/generar_iconos.py (colores planos, luz arriba, contorno de 1 px).
 No toca los iconos existentes: solo escribe los de esta lista.
 
   Armas:  daga, espada, lanza, hacha, maza
+  Trofeos de jefe: hoz (Segador), garrote (Tejedora), martillo (Coloso)
   Equipo: yelmo, peto, botas
 
 Uso:  python3 herramientas/generar_equipo.py
@@ -149,9 +150,51 @@ def botas():
         d.point((9 + dx, 15), fill=ORO)  # hebilla
     return contorno(im)
 
+# ------------------------------------------------- TROFEOS DE JEFE
+def hoz():
+    """Hoz del Segador: hoja curva con un hilo todavía enganchado."""
+    im, d = lienzo()
+    diagonal(d, 5, 28, 11, 13, MADERA, 3)
+    diagonal(d, 6, 28, 12, 14, MADERA_OSC)
+    d.rectangle([10, 10, 13, 13], fill=HIERRO)  # virola
+    d.arc([10, 2, 30, 22], 190, 330, fill=ACERO, width=3)
+    d.arc([11, 3, 29, 21], 200, 320, fill=ACERO_LUZ, width=1)
+    d.point((28, 10), fill=ACERO_LUZ)
+    d.line([(16, 6), (26, 15)], fill=c("#d8e4ec"))  # hilo
+    d.point((11, 14), fill=ROJO)
+    return contorno(im)
+
+
+def garrote():
+    """Garrote de raíz: rama nudosa con brasas vivas en la cabeza."""
+    im, d = lienzo()
+    diagonal(d, 5, 28, 18, 13, MADERA, 4)
+    diagonal(d, 6, 28, 18, 14, MADERA_OSC)
+    d.ellipse([14, 4, 28, 18], fill=MADERA)
+    d.ellipse([16, 5, 23, 11], fill=c("#a0703f"))
+    for x, y in ((18, 13), (24, 8), (21, 15), (26, 13)):
+        d.point((x, y), fill=c("#ff8a3a"))
+        d.point((x + 1, y), fill=c("#ffd36b"))
+    d.line([(11, 21), (8, 17)], fill=MADERA)  # raicilla
+    return contorno(im)
+
+
+def martillo():
+    """Martillo del Coloso: un trozo de su propia piedra en un mango de hierro."""
+    im, d = lienzo()
+    diagonal(d, 5, 28, 17, 15, HIERRO, 3)
+    diagonal(d, 6, 28, 17, 16, HIERRO_LUZ)
+    d.polygon([(11, 9), (17, 3), (29, 15), (23, 21)], fill=c("#6a6e66"))
+    d.polygon([(11, 9), (17, 3), (19, 5), (13, 11)], fill=c("#8e938a"))
+    d.polygon([(27, 17), (29, 15), (23, 21), (21, 19)], fill=c("#45483f"))
+    d.line([(18, 9), (21, 15)], fill=c("#45483f"))
+    d.point((24, 11), fill=c("#7fe3ff"))  # alma atrapada en la piedra
+    return contorno(im)
+
 
 ICONOS = {"daga": daga, "espada": espada, "lanza": lanza, "hacha": hacha, "maza": maza,
-          "yelmo": yelmo, "peto": peto, "botas": botas}
+          "yelmo": yelmo, "peto": peto, "botas": botas,
+          "hoz": hoz, "garrote": garrote, "martillo": martillo}
 
 if __name__ == "__main__":
     SALIDA.mkdir(parents=True, exist_ok=True)

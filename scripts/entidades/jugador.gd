@@ -449,7 +449,7 @@ func _dibujar_arma(c: CanvasItem, hand: Vector2, dir: int, ap: Dictionary) -> vo
     if strike_fx > 0.0:
         var k: float = 1.0 - strike_fx / 0.25
         swing = lerpf(-1.3, 1.1, k) * (-1.0 if flip else 1.0)
-    var sz: float = 26.0 if weapon in ["daga"] else (34.0 if weapon in ["lanza", "hacha"] else 30.0)
+    var sz: float = 26.0 if weapon in ["daga"] else (36.0 if weapon == "martillo" else (34.0 if weapon in ["lanza", "hacha", "hoz", "garrote"] else 30.0))
     # El icono tiene la empuñadura abajo a la izquierda: se gira desde ahí.
     Lienzo.xf(c, hand, base_angle + swing, Vector2(-1.0 if flip else 1.0, 1.0))
     c.draw_texture_rect(tex, Rect2(Vector2(-sz * 0.2, -sz * 0.8), Vector2(sz, sz)), false)
