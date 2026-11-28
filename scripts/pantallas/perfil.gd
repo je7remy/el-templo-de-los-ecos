@@ -27,6 +27,8 @@ const HOJA := Rect2(70, 46, 820, 548)
 const BOTON_HABILIDADES := Rect2(706, 538, 162, 42)
 const OBJETOS_COLUMNAS := 4
 const OBJETOS_MAX := 12
+## Hueco del objeto en 3D dentro del panel de descripción.
+const MODELO := Rect2(794, 455, 72, 72)
 const ENCONTRADO_MAX := 8
 const APAGADO := Color("#5d5a52")
 const FONDO_CASILLA := Color("#141922")
@@ -245,19 +247,29 @@ func _dibujar_descripcion() -> void:
     var d: Dictionary = datos.get("descripcion", {})
     if d.is_empty():
         return
+    # El objeto elegido en 3D, girando a la derecha del texto.
+    var ancho: float = 470.0
+    if Vitrinas.dibujar(self, str(d.get("modelo", "")), MODELO):
+        ancho = MODELO.position.x - 392.0
     var fuente: Font = Estilo.fuente()
     if bool(d.get("envuelto", false)):
         Estilo.texto(self, str(d.get("titulo", "")), Vector2(388, 476), 15, d.get("color_titulo", Estilo.CREMA))
-        var lineas: PackedStringArray = Estilo.lineas(str(d.get("texto", "")), 470.0, 12)
+        var lineas: PackedStringArray = Estilo.lineas(str(d.get("texto", "")), ancho, 12)
         for i in range(mini(2, lineas.size())):
-            draw_string(fuente, Vector2(388, 496 + i * 15), lineas[i], HORIZONTAL_ALIGNMENT_LEFT, 470.0, 12, d.get("color_texto", Estilo.ALMA))
+            draw_string(fuente, Vector2(388, 496 + i * 15), lineas[i], HORIZONTAL_ALIGNMENT_LEFT, ancho, 12, d.get("color_texto", Estilo.ALMA))
     else:
         Estilo.texto(self, str(d.get("titulo", "")), Vector2(388, float(d.get("y_titulo", 478))), 15, d.get("color_titulo", Estilo.CREMA))
-        draw_string(fuente, Vector2(388, float(d.get("y_texto", 502))), Estilo.t(str(d.get("texto", ""))), HORIZONTAL_ALIGNMENT_LEFT, 470.0, int(d.get("tam_texto", 13)), d.get("color_texto", Estilo.ALMA))
+        draw_string(fuente, Vector2(388, float(d.get("y_texto", 502))), Estilo.t(str(d.get("texto", ""))), HORIZONTAL_ALIGNMENT_LEFT, ancho, int(d.get("tam_texto", 13)), d.get("color_texto", Estilo.ALMA))
     var pie: String = str(d.get("pie", ""))
     if pie != "":
         var alinear: int = HORIZONTAL_ALIGNMENT_RIGHT if bool(d.get("pie_derecha", false)) else HORIZONTAL_ALIGNMENT_LEFT
-        draw_string(fuente, Vector2(388, 526), Estilo.t(pie), alinear, 470.0, 11, d.get("color_pie", Color("#ffd36b")))
+        draw_string(fuente, Vector2(388, 526), Estilo.t(pie), alinear, ancho, 11, d.get("color_pie", Color("#ffd36b")))
+
+
+## Mientras se ve un objeto en 3D hay que volver a pedirlo (si no, se para).
+func _process(_delta: float) -> void:
+    if is_visible_in_tree() and Vitrinas.tiene(str((datos.get("descripcion", {}) as Dictionary).get("modelo", ""))):
+        queue_redraw()
 
 
 # ------------------------------------------------------------ ENTRADA

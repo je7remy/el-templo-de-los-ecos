@@ -10,10 +10,19 @@ extends "res://scripts/pantallas/pantalla.gd"
 @onready var _jugar: Control = $Jugar
 @onready var _vigilia: Control = $Vigilia
 @onready var _aviso: Control = $AvisoActualizacion
+## Capa de las reliquias: encima del panel (el _draw propio queda debajo de
+## los hijos) y debajo de los textos y botones.
+var _reliquias := Control.new()
 
 
 func _ready() -> void:
     Estilo.preparar_fuentes()
+    _reliquias.name = "Reliquias"
+    _reliquias.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _reliquias.size = size
+    _reliquias.draw.connect(_dibujar_reliquias)
+    add_child(_reliquias)
+    move_child(_reliquias, $Panel.get_index() + 1)
     _jugar.pressed.connect(elegir.bind(&"jugar"))
     _vigilia.pressed.connect(elegir.bind(&"vigilia"))
     $Salir.pressed.connect(elegir.bind(&"salir"))
@@ -57,13 +66,35 @@ func _algo_con_foco() -> bool:
     return foco != null and is_ancestor_of(foco) and foco.is_visible_in_tree()
 
 
+## Reliquias en 3D que flotan a los lados del título: [modelo, hueco].
+const RELIQUIAS := [["reliquia", Rect2(170, 206, 88, 88)], ["calavera", Rect2(702, 206, 88, 88)]]
+
+
 func actualizar(_delta: float) -> void:
     pass
+
+
+func _process(_delta: float) -> void:
+    if is_visible_in_tree():
+        _reliquias.queue_redraw() # las vitrinas solo giran mientras se piden
 
 
 func _draw() -> void:
     var margen: Vector2 = datos.get("margen", Vector2.ZERO)
     draw_rect(Rect2(-margen, size + margen * 2.0), Color(0.018, 0.027, 0.032, 0.62))
+
+
+func _dibujar_reliquias() -> void:
+    for r in RELIQUIAS:
+        var hueco: Rect2 = r[1]
+        var pie := Vector2(hueco.get_center().x, hueco.get_center().y + 38.0)
+        # Halo en el suelo: la luz que suelta la reliquia.
+        for i in range(4):
+            var k: float = float(4 - i) / 4.0
+            _reliquias.draw_set_transform(pie, 0.0, Vector2(1.0, 0.3))
+            _reliquias.draw_circle(Vector2.ZERO, 30.0 * k, Color(0.5, 0.85, 1.0, 0.05) if r[0] == "reliquia" else Color(0.9, 0.7, 0.4, 0.04))
+        _reliquias.draw_set_transform(Vector2.ZERO)
+        Vitrinas.dibujar(_reliquias, str(r[0]), hueco)
 
 
 func _unhandled_input(event: InputEvent) -> void:
