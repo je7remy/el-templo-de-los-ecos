@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## v0.5.47-alpha — 2026-11-27 · Objetos en 3D
+
+- **Vitrinas** (`scripts/autoload/vitrinas.gd`, autoload «Vitrinas»): 24 objetos en 3D armados con piezas sencillas (reliquia, alma, resonancia, calavera, corazón, máscara, espada, daga, lanza, hacha, maza, antorcha, escudo, yelmo, peto, botas, amuleto, brazalete, vial, pan, fósforos, incienso, bolsa de almas y campana). Cada uno se renderiza en un SubViewport de 48×48 con su propio mundo, luz cálida, contraluz fría y sombreado «toon», y se dibuja ampliado sin suavizar, con contorno oscuro: se ve como pixel art que gira. Los objetos planos (armas, escudo, amuleto, máscara) se mecen de cara en vez de dar la vuelta.
+- **Dónde se ven:** en el rótulo de «OBJETO ENCONTRADO» (cofres, regalos de los PNJ y armas o piezas recogidas), en el panel de descripción del perfil (pestañas OBJETOS y EQUIPO) y en el menú principal, donde flotan una reliquia y una calavera a los lados del título. Lo que no tiene modelo sigue con su icono plano.
+- Solo se renderizan mientras se ven: una vitrina que nadie pide en 0,6 s se para.
+- Versión Android 0.5.47-alpha (código 54).
+
 ## v0.5.46-alpha — 2026-11-27 · Animaciones del personaje
 
 - **Caminar de frente y de espaldas:** en la hoja original los pies apenas se movían en esas dos direcciones y el personaje parecía deslizarse. Las hojas del héroe (masculina y femenina) tienen cuatro cuadros nuevos (columnas 9–12, generados con `herramientas/generar_pasos.py` sin tocar los originales): pie izquierdo levantado, paso, pie derecho levantado, paso, con el cuerpo subiendo y bajando 1 px. La capa de botas se regeneró para seguirlos.

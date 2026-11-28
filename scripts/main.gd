@@ -1465,7 +1465,7 @@ func _profile_desc() -> Dictionary:
         if inventory_sel < 0 or inventory_sel >= list.size():
             return {"titulo": "SIN OBJETOS", "color_titulo": Color("#6d6a60"), "texto": "Cómpralos al Mercader del Piso VI o gánalos en la Vigilia.", "color_texto": dim}
         var o: Array = list[inventory_sel]
-        return {"envuelto": true, "titulo": o[1], "texto": o[3], "color_texto": SOUL,
+        return {"envuelto": true, "titulo": o[1], "texto": o[3], "color_texto": SOUL, "modelo": str(o[5]),
             "pie": _hint("ENTER: usar", "Toca otra vez: usar", "A: usar") if bool(o[4]) else "", "pie_derecha": true}
     if profile_tab == 2:
         var key: String = ""
@@ -1483,7 +1483,7 @@ func _profile_desc() -> Dictionary:
                 "color_texto": dim, "tam_texto": 12, "y_titulo": 476, "y_texto": 498}
         var worn_now: bool = weapon == key or gear.values().has(key) or (key == "mascara" and _mask_worn()) or (key in ["amuleto", "brazalete"] and _worn(key))
         var desc := {"envuelto": true, "titulo": _equip_name(key) + ("" if worn_now else " · QUITADO"), "color_titulo": CREAM if worn_now else dim,
-            "texto": _equip_desc(key), "color_texto": SOUL if worn_now else Color("#6d6a60")}
+            "texto": _equip_desc(key), "color_texto": SOUL if worn_now else Color("#6d6a60"), "modelo": key}
         if WEAPONS.has(key):
             var w: Dictionary = WEAPONS[key]
             desc["pie"] = "DAÑO ×%.2f · ALCANCE %d · RITMO %.2f s · VIGOR %d" % [float(w["dmg"]), int(w["range"]), float(w["cd"]), int(w["cost"])]

@@ -163,12 +163,13 @@ func _dibujar_botin() -> void:
     var rango: int = clampi(int(info[2]), 1, 4)
     var col: Color = [Color("#9a957f"), Estilo.ALMA, Color("#a988d0"), Color("#e3bd7b")][rango - 1]
     Estilo.panel(self, caja, Color(0.04, 0.035, 0.05, 0.94 * a), Color(col.r, col.g, col.b, a))
+    # El objeto en 3D, girando (si no tiene modelo, su icono plano).
     var icono: Texture2D = _icono(str(info[3]))
-    if icono != null:
+    if not Vitrinas.dibujar(self, str(info[3]), Rect2(caja.position + Vector2(4, 1), Vector2(72, 72)), a) and icono != null:
         draw_texture_rect(icono, Rect2(caja.position + Vector2(12, 13), Vector2(48, 48)), false, Color(1, 1, 1, a))
-    Estilo.texto(self, str(botin.get("header", "OBJETO ENCONTRADO")) + " · " + ["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][rango - 1], Vector2(caja.position.x + 70.0, caja.position.y + 22.0), 11, Color(col.r, col.g, col.b, a))
-    Estilo.texto(self, str(info[0]), Vector2(caja.position.x + 70.0, caja.position.y + 44.0), 17, Color(Estilo.CREMA.r, Estilo.CREMA.g, Estilo.CREMA.b, a))
-    Estilo.texto(self, "Ya está en tu perfil.", Vector2(caja.position.x + 70.0, caja.position.y + 62.0), 10, Color(0.62, 0.6, 0.55, a))
+    Estilo.texto(self, str(botin.get("header", "OBJETO ENCONTRADO")) + " · " + ["COMÚN", "POCO COMÚN", "RARO", "ÉPICO"][rango - 1], Vector2(caja.position.x + 80.0, caja.position.y + 22.0), 11, Color(col.r, col.g, col.b, a))
+    Estilo.texto(self, str(info[0]), Vector2(caja.position.x + 80.0, caja.position.y + 44.0), 17, Color(Estilo.CREMA.r, Estilo.CREMA.g, Estilo.CREMA.b, a))
+    Estilo.texto(self, "Ya está en tu perfil.", Vector2(caja.position.x + 80.0, caja.position.y + 62.0), 10, Color(0.62, 0.6, 0.55, a))
 
 
 ## Rótulo dorado del logro: arriba, bajo el marcador; entra, brilla y se va.

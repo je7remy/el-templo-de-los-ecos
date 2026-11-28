@@ -852,6 +852,43 @@ func _run() -> void:
             _fail("Al postproceso le falta «%s»." % nombre)
             return
     print("OK: profundidad (sombras que giran con la luz, sangre en el suelo, calor y miedo en pantalla).")
+
+    # --- Vitrinas: objetos en 3D pixelado (cofre, perfil y menú) ------------------
+    var vitrinas: Node = root.get_node("Vitrinas")
+    for m in vitrinas.call("modelos"):
+        if int(vitrinas.call("piezas", m)) < 3:
+            _fail("El modelo 3D «%s» tiene muy pocas piezas." % m)
+            return
+    var hace_falta: Array = []
+    for info in load("res://scripts/botin.gd").OBJETOS.values():
+        hace_falta.append(str(info[3]))
+    hace_falta.append_array((game.get("WEAPONS") as Dictionary).keys())
+    hace_falta.append_array((game.get("GEAR") as Dictionary).keys())
+    hace_falta.append_array(["fosforos_caja", "mascara", "amuleto", "brazalete"])
+    for id in hace_falta:
+        if not bool(vitrinas.call("tiene", str(id))) or vitrinas.call("textura", str(id)) == null:
+            _fail("Falta el modelo 3D de «%s» (cofres, armas o equipo)." % id)
+            return
+    if vitrinas.call("textura", "no_existe") != null:
+        _fail("Un objeto sin modelo debe dar null (y dibujarse plano).")
+        return
+    if int(vitrinas.call("activas")) == 0:
+        _fail("Las vitrinas pedidas no se renderizan.")
+        return
+    for k in range(3):
+        vitrinas.call("_process", 0.5)
+    if int(vitrinas.call("activas")) != 0:
+        _fail("Las vitrinas que nadie mira deben dejar de renderizarse.")
+        return
+    game.set("profile_tab", 2)
+    game.set("gear_owned", {"espada": true})
+    game.set("weapon", "espada")
+    game.set("inventory_sel", 0)
+    if str((game.call("_profile_desc") as Dictionary).get("modelo", "")) != "espada":
+        _fail("El perfil no muestra en 3D el arma elegida.")
+        return
+    game.set("profile_tab", 0)
+    print("OK: vitrinas (objetos en 3D pixelado en cofres, perfil y menú; se paran si no se ven).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

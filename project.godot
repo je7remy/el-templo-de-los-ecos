@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="El Templo de los Ecos"
-config/version="0.5.46-alpha"
+config/version="0.5.47-alpha"
 run/main_scene="res://scenes/main.tscn"
 config/icon="res://assets/branding/icon.svg"
 config/features=PackedStringArray("4.3", "GL Compatibility")
@@ -25,6 +25,7 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 Eventos="*res://scripts/autoload/eventos.gd"
 Progreso="*res://scripts/autoload/progreso.gd"
 Logros="*res://scripts/autoload/logros.gd"
+Vitrinas="*res://scripts/autoload/vitrinas.gd"
 Escenas="*res://scenes/autoload/escenas.tscn"
 ConfirmarSalida="*res://scenes/confirmar_salida.tscn"
 
