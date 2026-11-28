@@ -771,6 +771,45 @@ func _run() -> void:
         return
     logros.call("borrar_prueba")
     print("OK: veinte logros, con su pantalla, su aviso y guardados aparte del personaje.")
+
+    # --- Sustos --------------------------------------------------------------------
+    var sustos: Node = game.get_node("Sustos")
+    var capa_s: Control = game.get_node("CapaSustos/Capa")
+    _sala(game, 1, 1)
+    game.set("game_mode", "play")
+    game.set("in_tutorial", false)
+    if not sustos.call("_tranquilo"):
+        _fail("En una sala normal debería poder haber sustos.")
+        return
+    game.set("gaze_active", true)
+    if sustos.call("_tranquilo"):
+        game.set("gaze_active", false)
+        _fail("No debe haber sustos durante un jefe.")
+        return
+    game.set("gaze_active", false)
+    for tipo in ["aparicion", "espalda", "apagon", "distorsion", "muro", "salto"]:
+        game.set("fear", 0.0)
+        sustos.call("lanzar", tipo)
+        for k in range(8):
+            sustos.call("actualizar", 0.1)
+            capa_s.call("_process", 0.1)
+            await process_frame
+        if float(game.get("fear")) <= 0.0:
+            _fail("El susto «%s» no asusta (no sube el miedo)." % tipo)
+            return
+    if (sustos.get("escrito") as Dictionary).is_empty():
+        _fail("El escrito del muro no aparece.")
+        return
+    var ajustes_s: Object = load("res://scripts/ajustes.gd")
+    ajustes_s.call("poner", "sustos_repentinos", false)
+    sustos.set("_desde_salto", 999.0)
+    sustos.set("_saltos_piso", 0)
+    if sustos.call("_salto_permitido"):
+        _fail("Con «Sustos repentinos» apagado no debe haber saltos.")
+        return
+    ajustes_s.call("poner", "sustos_repentinos", true)
+    sustos.call("sala_nueva")
+    print("OK: sustos (apariciones, a tu espalda, interfaz y repentinos), nunca con un jefe.")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

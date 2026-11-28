@@ -251,4 +251,10 @@ const T := {
     "Reúne cinco Ecos.": "Gather five Echoes.",
     "La noche más larga": "The longest night",
     "Derrota a un jefe de la Vigilia.": "Defeat a Vigil boss.",
+    # Sustos: escritos en el muro
+    "TE VEO, {yo}": "I SEE YOU, {yo}",
+    "NO {ERES EL PRIMERO|ERES LA PRIMERA}": "YOU'RE NOT THE FIRST",
+    "VUELVE": "COME BACK",
+    "SIGUES AQUÍ": "YOU'RE STILL HERE",
+    "DETRÁS": "BEHIND YOU",
 }

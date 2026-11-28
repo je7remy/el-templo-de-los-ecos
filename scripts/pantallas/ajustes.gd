@@ -62,9 +62,9 @@ func widgets() -> Array:
         0:
             var filas := [["slider", "volumen_general", "vol_general"], ["slider", "volumen_musica", "vol_musica"], ["slider", "volumen_efectos", "vol_efectos"],
                 ["toggle", "silencio", "silencio"], ["toggle", "pantalla_completa", "pantalla_completa"], ["toggle", "buscar_actualizaciones", "buscar_actualizaciones"],
-                ["choice", "zoom_movil", "zoom_movil"]]
+                ["toggle", "sustos_repentinos", "sustos_repentinos"], ["choice", "zoom_movil", "zoom_movil"]]
             for i in range(filas.size()):
-                lista.append({"kind": filas[i][0], "id": filas[i][1], "label": _t(filas[i][2]), "rect": Rect2(140, 166.0 + float(i) * 51.0, 680, 45)})
+                lista.append({"kind": filas[i][0], "id": filas[i][1], "label": _t(filas[i][2]), "rect": Rect2(140, 164.0 + float(i) * 44.0, 680, 40)})
         1:
             for i in range(Ajustes.ORDEN.size()):
                 var accion_id: String = Ajustes.ORDEN[i]
@@ -92,7 +92,7 @@ func enfocables() -> Array:
 
 
 func _pista_deslizador(r: Rect2) -> Rect2:
-    return Rect2(r.position.x + 300.0, r.position.y + 15.0, r.size.x - 320.0, 24.0)
+    return Rect2(r.position.x + 300.0, r.position.y + r.size.y * 0.5 - 11.0, r.size.x - 320.0, 22.0)
 
 
 ## Ajustes de varias opciones: clave → valores posibles (el texto de cada
@@ -127,16 +127,16 @@ func _draw() -> void:
                 Estilo.texto(self, w["label"], Vector2(r.position.x, r.position.y + 26.0), 15, Estilo.CREMA if on else Color("#9a957f"), r.size.x)
             "slider":
                 Estilo.panel(self, r, Color("#1a1f2a") if hot else Color("#11151c"), Estilo.ORO if hot else Estilo.BORDE)
-                Estilo.texto(self, w["label"], Vector2(r.position.x + 18.0, r.position.y + 33.0), 15, Estilo.CREMA)
+                Estilo.texto(self, w["label"], Vector2(r.position.x + 18.0, r.position.y + r.size.y * 0.5 + 6.0), 15, Estilo.CREMA)
                 var v: float = float(Ajustes.obtener(w["id"]))
                 Estilo.barra(self, _pista_deslizador(r), v, Estilo.ALMA, "%d%%" % int(round(v * 100.0)))
             "toggle":
                 Estilo.panel(self, r, Color("#1a1f2a") if hot else Color("#11151c"), Estilo.ORO if hot else Estilo.BORDE)
-                Estilo.texto(self, w["label"], Vector2(r.position.x + 18.0, r.position.y + 33.0), 15, Estilo.CREMA)
+                Estilo.texto(self, w["label"], Vector2(r.position.x + 18.0, r.position.y + r.size.y * 0.5 + 6.0), 15, Estilo.CREMA)
                 var on2: bool = bool(Ajustes.obtener(w["id"]))
-                var pastilla := Rect2(r.end.x - 110.0, r.position.y + 10.0, 92, 34)
+                var pastilla := Rect2(r.end.x - 110.0, r.position.y + r.size.y * 0.5 - 15.0, 92, 30)
                 Estilo.panel(self, pastilla, Color("#5a1f26") if on2 else Color("#1d3a2c"), Estilo.CLARO)
-                Estilo.texto(self, _t("si") if on2 else _t("no"), Vector2(pastilla.position.x, pastilla.position.y + 23.0), 14, Estilo.CREMA, pastilla.size.x)
+                Estilo.texto(self, _t("si") if on2 else _t("no"), Vector2(pastilla.position.x, pastilla.position.y + 21.0), 14, Estilo.CREMA, pastilla.size.x)
             "key":
                 var esperando: bool = reasignando == str(w["id"])
                 Estilo.panel(self, r, Color("#2a1d22") if esperando else (Color("#1a1f2a") if hot else Color("#11151c")), Estilo.ORO if hot or esperando else Estilo.BORDE)

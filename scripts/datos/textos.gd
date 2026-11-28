@@ -91,6 +91,7 @@ const T := {
     "perfil": ["PERFIL", "PROFILE"],
     "habilidades": ["HABILIDADES", "ABILITIES"],
     "pantalla_completa": ["Pantalla completa", "Fullscreen"],
+    "sustos_repentinos": ["Sustos repentinos (caras que saltan)", "Jump scares"],
     "buscar_actualizaciones": ["Buscar actualizaciones al abrir", "Check for updates on launch"],
     "creditos": ["CRÉDITOS", "CREDITS"],
     "saltar_tutorial": ["SALTAR TUTORIAL", "SKIP TUTORIAL"],

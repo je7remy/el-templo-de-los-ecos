@@ -284,6 +284,8 @@ var game_mode: String = "title":
 @onready var peligros: Node = $Peligros
 @onready var personajes: Node = $Personajes
 @onready var peregrino: Node2D = $Peregrino
+@onready var sustos: Node = $Sustos # scripts/mundo/sustos.gd
+@onready var capa_sustos: Control = $CapaSustos/Capa
 ## Busca versiones nuevas en GitHub (solo en copias exportadas).
 var actualizador: Node = null
 var current_floor: int = 0 # índice en FLOORS (0 = Piso I)
@@ -582,6 +584,7 @@ var watcher_warned: bool = false
 
 func _ready() -> void:
     texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    sustos.iniciar(self, capa_sustos)
     # Tipografía pixel (Jersey 15, OFL), sin suavizado para que encaje con el pixel art.
     font = PIXEL_FONT
     _pixel_font_setup(font)
@@ -939,6 +942,7 @@ func _new_run() -> void:
 
 func _enter_room() -> void:
     _set_checkpoint()
+    sustos.sala_nueva()
     fade_t = FADE_TIME # fundido cinematográfico al cruzar
     _load_room_scene()
     player_pos = _marker("Jugador", Vector2(115.0, 359.0))
@@ -2780,6 +2784,7 @@ func _process(delta: float) -> void:
     if game_mode == "play":
         _update_play(delta)
         _track_enemy_visual(delta)
+        sustos.actualizar(delta)
     elif game_mode == "dialog":
         _update_dialog(delta)
     mission_banner_t = maxf(0.0, mission_banner_t - delta)
@@ -3050,6 +3055,7 @@ func _draw_room() -> void:
     if not fireballs.is_empty():
         _draw_fireballs()
     _draw_lighting()
+    sustos.dibujar_mundo(self) # apariciones y escritos en la penumbra
     _draw_flames()
     _draw_tejedora_fire()
     _draw_labyrinth_glow()

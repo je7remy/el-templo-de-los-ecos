@@ -109,21 +109,21 @@ func _run() -> void:
         return
     # Deslizador arrastrado con el ratón y un interruptor con un clic.
     var antes: float = float(Ajustes.obtener("volumen_musica"))
-    _clic(Vector2(440 + 10, 166 + 51 + 22)) # al principio de la barra de Música
+    _clic(Vector2(440 + 10, 164 + 44 + 20)) # al principio de la barra de Música
     if float(Ajustes.obtener("volumen_musica")) >= antes or float(Ajustes.obtener("volumen_musica")) > 0.1:
         _fail("El deslizador de la música no responde al clic.")
         return
     var silencio: bool = bool(Ajustes.obtener("silencio"))
-    _clic(Vector2(480, 166 + 3 * 51 + 22))
+    _clic(Vector2(480, 164 + 3 * 44 + 20))
     if bool(Ajustes.obtener("silencio")) == silencio:
         _fail("El interruptor de silencio no responde al clic.")
         return
     # Cámara en el móvil: tres opciones (CERCA, MEDIA, SALA) a la derecha de la fila.
-    _clic(Vector2(820 - 360 + 2 * 120 + 56, 166 + 6 * 51 + 5 + 15))
+    _clic(Vector2(820 - 360 + 2 * 120 + 56, 164 + 7 * 44 + 5 + 15))
     if str(Ajustes.obtener("zoom_movil")) != "lejos":
         _fail("La opción SALA de «Cámara en el móvil» no responde al clic.")
         return
-    _clic(Vector2(820 - 360 + 56, 166 + 6 * 51 + 5 + 15))
+    _clic(Vector2(820 - 360 + 56, 164 + 7 * 44 + 5 + 15))
     if str(Ajustes.obtener("zoom_movil")) != "cerca":
         _fail("La opción CERCA de «Cámara en el móvil» no responde al clic.")
         return

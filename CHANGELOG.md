@@ -1,5 +1,16 @@
 # Historial de versiones
 
+## v0.5.44-alpha — 2026-11-27 · Sustos
+
+- **Sustos** (`scripts/mundo/sustos.gd`), repartidos con calma (el primero entre 25 y 40 s, luego cada 40–85 s), nunca durante la Vigía, el Coloso o el Hermano Mayor, ni en el tutorial ni en la primera sala del juego. Cada uno sube el miedo:
+  - **Apariciones:** una silueta negra con ojos rojos, o solo unos ojos que parpadean, en la parte oscura de la sala. Si la luz de la antorcha la alcanza, se desvanece con un chasquido.
+  - **A tu espalda:** pasos que se acercan y paran, un golpe contra la piedra o algo que se arrastra, por el lado contrario al que miras (bus de audio «Sustos» con panorámica).
+  - **Interfaz:** dos cortes de luz seguidos, la pantalla que se descompone en franjas con los colores separados (`shaders/sustos.gdshader`) o tu nombre escrito en sangre en el muro del fondo («TE VEO, SELENE», «VUELVE»…).
+  - **Repentinos:** la cara de La Que No Aparta la Vista salta a la pantalla con un golpe de sonido. Desde el Piso II, como mucho uno por piso y con cinco minutos entre uno y otro. Se apagan en **Ajustes → Sustos repentinos**.
+- Lo que va encima de todo (apagón, distorsión, la cara) lo dibuja la nueva capa `CapaSustos` (`scripts/ui/capa_sustos.gd`).
+- Ajustes: las filas de la pestaña Sonido son algo más bajas para que quepa la nueva opción.
+- Versión Android 0.5.44-alpha (código 51).
+
 ## v0.5.43-alpha — 2026-11-27 · Logros y botas que caminan
 
 - **Logros:** veinte logros de la cuenta, en seis grupos (descenso, muerte, reglas de las entidades, peregrinos, personaje y Vigilia), cuatro de ellos ocultos. Nueva opción LOGROS en la pausa con la lista y el progreso, y un rótulo dorado con campana al conseguir uno. Se guardan en su propio archivo (`templo_logros.json`): no se pierden al morir, al cambiar de personaje ni al borrar el perfil. Al cargar una partida se reconocen sin rótulo los que ya se habían ganado antes (pisos superados, muertes, Vigilia…).
