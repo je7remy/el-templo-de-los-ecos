@@ -810,6 +810,37 @@ func _run() -> void:
     ajustes_s.call("poner", "sustos_repentinos", true)
     sustos.call("sala_nueva")
     print("OK: sustos (apariciones, a tu espalda, interfaz y repentinos), nunca con un jefe.")
+
+    # --- Profundidad: sombras proyectadas, sangre en el suelo y calor ---------------
+    var sombras_n: Node = game.get_node("Sombras")
+    game.set("torch_on", true)
+    var cuerpos: Array = game.call("_shadow_bodies")
+    var luces: Array = game.call("_shadow_lights")
+    if cuerpos.is_empty() or luces.is_empty() or str(luces[0][3]) != "antorcha":
+        _fail("Sin cuerpos o sin luces para las sombras proyectadas.")
+        return
+    game.set("torch_on", false)
+    for l in game.call("_shadow_lights"):
+        if str(l[3]) == "antorcha":
+            _fail("Con la antorcha apagada no debe proyectar sombras.")
+            return
+    game.set("torch_on", true)
+    sombras_n.call("limpiar")
+    game.call("_on_hurt")
+    if (sombras_n.get("manchas") as Array).is_empty():
+        _fail("Un golpe no deja sangre en el suelo.")
+        return
+    game.call("_enter_room")
+    if not (sombras_n.get("manchas") as Array).is_empty():
+        _fail("La sangre de una sala no debe seguir en la siguiente.")
+        return
+    var shader_post: Shader = load("res://shaders/postproceso.gdshader")
+    var params: Array = shader_post.get_shader_uniform_list().map(func(u): return str(u["name"]))
+    for nombre in ["calor", "n_calor", "miedo"]:
+        if not params.has(nombre):
+            _fail("Al postproceso le falta «%s»." % nombre)
+            return
+    print("OK: profundidad (sombras que giran con la luz, sangre en el suelo, calor y miedo en pantalla).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)
