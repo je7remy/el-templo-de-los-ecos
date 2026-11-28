@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/arma.gd" id="1_arma"]
+
+[resource]
+script = ExtResource("1_arma")
+id = "hoz"
+nombre = "HOZ DEL SEGADOR"
+dano = 1.15
+alcance = 76.0
+ritmo = 0.55
+vigor = 12.0
+arco = -0.35
+aturdir = 0.25
+descripcion = "Trofeo del Segador. Siega casi a tu alrededor y cada golpe que hiere te cura 3 de vida."
+efecto = "siega"
+efecto_valor = 3.0

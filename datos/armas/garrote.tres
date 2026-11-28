@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/datos/arma.gd" id="1_arma"]
+
+[resource]
+script = ExtResource("1_arma")
+id = "garrote"
+nombre = "GARROTE DE RAÍZ"
+dano = 1.3
+alcance = 62.0
+ritmo = 0.7
+vigor = 13.0
+arco = 0.2
+aturdir = 0.6
+descripcion = "Trofeo de la Tejedora. Sus brasas no se apagan: el golpe quema aunque no lleves la antorcha."
+efecto = "brasa"
+efecto_valor = 0.0

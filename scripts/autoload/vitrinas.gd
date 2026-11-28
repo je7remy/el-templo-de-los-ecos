@@ -22,7 +22,7 @@ const GIRO := 1.1
 
 ## Objetos planos: se mecen de cara a la cámara en vez de dar la vuelta entera
 ## (de canto casi no se ven).
-const PLANOS := ["espada", "daga", "lanza", "hacha", "maza", "escudo", "amuleto", "mascara", "fosforos"]
+const PLANOS := ["espada", "daga", "lanza", "hacha", "maza", "escudo", "amuleto", "mascara", "fosforos", "hoz", "garrote", "martillo"]
 
 ## Nombres que llegan desde otras partes del juego → modelo.
 const ALIAS := {
@@ -113,7 +113,7 @@ func activas() -> int:
 ## Todos los modelos que hay.
 func modelos() -> PackedStringArray:
     return PackedStringArray(["reliquia", "alma", "resonancia", "calavera", "corazon", "mascara",
-        "espada", "daga", "lanza", "hacha", "maza", "antorcha", "escudo",
+        "espada", "daga", "lanza", "hacha", "maza", "antorcha", "escudo", "hoz", "garrote", "martillo",
         "yelmo", "peto", "botas", "amuleto", "brazalete",
         "vial", "pan", "fosforos", "incienso", "bolsa_almas", "campana"])
 
@@ -373,6 +373,38 @@ func _m_maza(c: Node3D) -> void:
     for d in [[Vector3(1, 0, 0), Vector3(0, 0, -90)], [Vector3(-1, 0, 0), Vector3(0, 0, 90)],
             [Vector3(0, 0, 1), Vector3(90, 0, 0)], [Vector3(0, 0, -1), Vector3(-90, 0, 0)], [Vector3(0, 1, 0), Vector3.ZERO]]:
         _pieza(a, _cil(0.0, 0.07, 0.16, 4), _mat(ACERO, 0.9), Vector3(0, 0.45, 0) + d[0] * 0.27, d[1])
+
+
+func _m_hoz(c: Node3D) -> void:
+    var a := _arma(c)
+    _mango(a, 1.2, -0.25)
+    _pieza(a, _cil(0.07, 0.07, 0.1, 6), _mat(HIERRO, 0.9), Vector3(0, 0.37, 0))
+    var hoja := _mat(ACERO, 0.9)
+    for i in range(10): # la hoja curva, en tramos: un arco sobre el mango
+        var ang: float = deg_to_rad(180.0 - i * 17.0)
+        var ancho: float = 0.09 if i < 7 else 0.06
+        _pieza(a, _caja(0.16, ancho, 0.035), hoja, Vector3(0.36 + cos(ang) * 0.36, 0.42 + sin(ang) * 0.36, 0), Vector3(0, 0, rad_to_deg(ang) + 90.0))
+    _pieza(a, _caja(0.015, 0.45, 0.015), _mat(Color("#d8e4ec"), 0.0, 1.0), Vector3(0.32, 0.5, 0.03), Vector3(0, 0, 55))
+
+
+func _m_garrote(c: Node3D) -> void:
+    var a := _arma(c)
+    _pieza(a, _cil(0.08, 0.05, 1.0, 6), _mat(MADERA), Vector3(0, -0.2, 0))
+    _pieza(a, _esfera(0.24), _mat(MADERA), Vector3(0, 0.42, 0), Vector3.ZERO, Vector3(1, 1.2, 1))
+    _pieza(a, _cil(0.02, 0.04, 0.3, 4), _mat(MADERA), Vector3(0.12, 0.05, 0), Vector3(0, 0, -50))
+    for p in [Vector3(0.15, 0.48, 0.15), Vector3(-0.12, 0.35, 0.17), Vector3(0.05, 0.6, -0.15), Vector3(-0.17, 0.52, -0.05)]:
+        var brasa := _pieza(a, _esfera(0.06), _mat(Color("#ff8a3a"), 0.0, 2.4), p)
+        _late(brasa, 7.0 + p.x * 10.0)
+
+
+func _m_martillo(c: Node3D) -> void:
+    var a := _arma(c)
+    _pieza(a, _cil(0.05, 0.05, 1.2, 6), _mat(HIERRO, 0.85), Vector3(0, -0.2, 0))
+    _pieza(a, _caja(0.72, 0.36, 0.36), _mat(Color("#6a6e66")), Vector3(0, 0.5, 0))
+    _pieza(a, _caja(0.74, 0.06, 0.38), _mat(Color("#8e938a")), Vector3(0, 0.66, 0))
+    _pieza(a, _caja(0.03, 0.3, 0.37), _mat(Color("#45483f")), Vector3(0.12, 0.5, 0))
+    var alma := _pieza(a, _esfera(0.05), _mat(ALMA, 0.0, 2.4), Vector3(0.2, 0.5, 0.18))
+    _late(alma, 3.0)
 
 
 func _m_antorcha(c: Node3D) -> void:

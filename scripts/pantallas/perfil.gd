@@ -29,7 +29,7 @@ const OBJETOS_COLUMNAS := 4
 const OBJETOS_MAX := 12
 ## Hueco del objeto en 3D dentro del panel de descripción.
 const MODELO := Rect2(794, 455, 72, 72)
-const ENCONTRADO_MAX := 8
+const ENCONTRADO_MAX := 16 # dos filas de 8 (armas, trofeos de jefe y piezas)
 const APAGADO := Color("#5d5a52")
 const FONDO_CASILLA := Color("#141922")
 const FONDO_SELECCION := Color("#222c39")
@@ -60,7 +60,7 @@ static func rect_hueco(i: int) -> Rect2:
 
 
 static func rect_encontrado(i: int) -> Rect2:
-    return Rect2(372.0 + float(i % 8) * 62.0, 360.0, 56.0, 56.0)
+    return Rect2(372.0 + float(i % 8) * 62.0, 358.0 + float(i / 8) * 48.0, 56.0, 44.0)
 
 
 static func rect_eco(i: int) -> Rect2:
@@ -225,7 +225,7 @@ func _dibujar_equipo() -> void:
         var puesto: bool = bool(e.get("puesto", false))
         _casilla(r, seleccion() == 10 + i, Estilo.ALMA if puesto else Estilo.BORDE)
         if e.get("icono") != null:
-            draw_texture_rect(e["icono"], Rect2(r.position + Vector2(8, 8), Vector2(40, 40)), false, Color.WHITE if puesto else Color(1, 1, 1, 0.45))
+            draw_texture_rect(e["icono"], Rect2(r.position + Vector2(12, 6), Vector2(32, 32)), false, Color.WHITE if puesto else Color(1, 1, 1, 0.45))
 
 
 ## Ecos: iconos compactos (el detalle está en HABILIDADES).
