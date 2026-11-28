@@ -1,5 +1,12 @@
 # Historial de versiones
 
+## v0.5.46-alpha — 2026-11-27 · Animaciones del personaje
+
+- **Caminar de frente y de espaldas:** en la hoja original los pies apenas se movían en esas dos direcciones y el personaje parecía deslizarse. Las hojas del héroe (masculina y femenina) tienen cuatro cuadros nuevos (columnas 9–12, generados con `herramientas/generar_pasos.py` sin tocar los originales): pie izquierdo levantado, paso, pie derecho levantado, paso, con el cuerpo subiendo y bajando 1 px. La capa de botas se regeneró para seguirlos.
+- **Peso en las acciones** (solo dibujo, no cambia la posición ni las colisiones): al golpear, el personaje se adelanta y vuelve; al recibir un golpe, retrocede y tiembla un instante; al esquivar, se agacha y se inclina hacia donde va. La antorcha y el arma siguen a la mano.
+- Las hojas del héroe pasan de 360×224 a 520×224 (13 cuadros × 4 direcciones).
+- Versión Android 0.5.46-alpha (código 53).
+
 ## v0.5.45-alpha — 2026-11-27 · Profundidad
 
 - **Sombras proyectadas** (`scripts/mundo/sombras.gd`): jugador, entidad, peregrino, aliados, la Vigía, el Coloso y el Hermano Mayor proyectan una sombra alargada en sentido contrario a las dos luces fuertes más cercanas (antorcha, braseros, enredaderas en llamas). Más lejos de la luz, más larga y más débil; tiembla con la llama. La antorcha no le hace sombra a quien la lleva. Con la antorcha encendida, las columnas y estatuas a menos de 260 px proyectan además una sombra que gira a tu alrededor.
