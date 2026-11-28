@@ -3115,8 +3115,8 @@ func _lights() -> Array:
     for drop in drops:
         list.append([drop["pos"], 80.0, 0.6])
     for d in decor_cache:
-        if d[0] == "velas" and decor_cache_key == _room_key():
-            list.append([Vector2(d[1]) + Vector2(11, 8), 58.0, 0.45])
+        if Decorado.LUCES.has(d[0]) and decor_cache_key == _room_key():
+            list.append([_decor_light_pos(d) + Vector2(0, 2), 58.0, 0.45])
     if _pilgrim_present() and pilgrim_state != "dead":
         list.append([pilgrim_pos + Vector2(0.0, -20.0), 60.0, 0.5]) # se le distingue siempre
     if allies_here:
@@ -4234,9 +4234,17 @@ func _decor_layout() -> Array:
     keep_clear.append_array([door_pos, Vector2(115, 359), seal_pos, altar_pos, archive_pos, book_pos])
     for item in room_items:
         keep_clear.append(item["pos"])
-    decor_cache = decorado.restos(_room_key(), float(_floor().get("wear", 0.0)), keep_clear, _is_blocked)
+    decor_cache = decorado.restos(_room_key(), float(_floor().get("wear", 0.0)), keep_clear, _is_blocked, current_floor)
     decor_cache_key = _room_key()
     return decor_cache
+
+
+## Dónde brilla un resto con luz propia (en espejo, la luz también se refleja).
+func _decor_light_pos(d: Array) -> Vector2:
+    var off: Vector2 = Decorado.LUCES[d[0]][0]
+    if bool(d[2]):
+        off.x = float(Decorado.textura(d[0]).get_width()) - off.x
+    return Vector2(d[1]) + off
 
 
 func _draw_decor() -> void:
@@ -4348,8 +4356,8 @@ func _draw_glow() -> void:
         if bool(b.get("lit", false)):
             _glow(Vector2(b["pos"]) + Vector2(0, -28), 90.0 * flick, Color(0.6, 0.3, 0.1, 0.55))
     for d in decor_cache:
-        if d[0] == "velas" and decor_cache_key == _room_key():
-            _glow(Vector2(d[1]) + Vector2(11, 6), 30.0 * flick, Color(0.6, 0.4, 0.15, 0.45))
+        if Decorado.LUCES.has(d[0]) and decor_cache_key == _room_key():
+            _glow(_decor_light_pos(d), 30.0 * flick, Decorado.LUCES[d[0]][1])
     for i in range(relics.size()):
         if not collected[i]:
             var pulse: float = 0.8 + 0.2 * sin(elapsed * 2.4 + float(i))

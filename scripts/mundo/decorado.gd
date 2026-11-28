@@ -34,6 +34,71 @@ const RESTOS := {
 }
 const RESTOS_SUELO := ["craneo", "huesos", "costillar", "vasija_rota", "velas", "charco_pequeno", "charco_grande", "reguero"]
 
+## Decorado propio de cada piso (herramientas/generar_decorados_pisos.py): se
+## mezcla con los restos comunes para que cada piso cuente su historia.
+const DEL_PISO := {
+    "baculo": preload("res://assets/visual/decorados/pisos/baculo.png"),
+    "manto": preload("res://assets/visual/decorados/pisos/manto.png"),
+    "cuenco": preload("res://assets/visual/decorados/pisos/cuenco.png"),
+    "sandalia": preload("res://assets/visual/decorados/pisos/sandalia.png"),
+    "marcas_peregrino": preload("res://assets/visual/decorados/pisos/marcas_peregrino.png"),
+    "flechas": preload("res://assets/visual/decorados/pisos/flechas.png"),
+    "cepo": preload("res://assets/visual/decorados/pisos/cepo.png"),
+    "hilos": preload("res://assets/visual/decorados/pisos/hilos.png"),
+    "zarpazos": preload("res://assets/visual/decorados/pisos/zarpazos.png"),
+    "raices": preload("res://assets/visual/decorados/pisos/raices.png"),
+    "hongos": preload("res://assets/visual/decorados/pisos/hongos.png"),
+    "hojas": preload("res://assets/visual/decorados/pisos/hojas.png"),
+    "raiz_muro": preload("res://assets/visual/decorados/pisos/raiz_muro.png"),
+    "collar": preload("res://assets/visual/decorados/pisos/collar.png"),
+    "hueso_roido": preload("res://assets/visual/decorados/pisos/hueso_roido.png"),
+    "huellas": preload("res://assets/visual/decorados/pisos/huellas.png"),
+    "jaula": preload("res://assets/visual/decorados/pisos/jaula.png"),
+    "ofrenda": preload("res://assets/visual/decorados/pisos/ofrenda.png"),
+    "monedas": preload("res://assets/visual/decorados/pisos/monedas.png"),
+    "flores_secas": preload("res://assets/visual/decorados/pisos/flores_secas.png"),
+    "guirnalda": preload("res://assets/visual/decorados/pisos/guirnalda.png"),
+    "venda": preload("res://assets/visual/decorados/pisos/venda.png"),
+    "espejo_roto": preload("res://assets/visual/decorados/pisos/espejo_roto.png"),
+    "ojo_pintado": preload("res://assets/visual/decorados/pisos/ojo_pintado.png"),
+    "tiza": preload("res://assets/visual/decorados/pisos/tiza.png"),
+    "mosaico": preload("res://assets/visual/decorados/pisos/mosaico.png"),
+    "runa_muro": preload("res://assets/visual/decorados/pisos/runa_muro.png"),
+    "cascotes": preload("res://assets/visual/decorados/pisos/cascotes.png"),
+    "capitel": preload("res://assets/visual/decorados/pisos/capitel.png"),
+    "mano_piedra": preload("res://assets/visual/decorados/pisos/mano_piedra.png"),
+    "grieta_grande": preload("res://assets/visual/decorados/pisos/grieta_grande.png"),
+    "hoz": preload("res://assets/visual/decorados/pisos/hoz.png"),
+    "gavilla": preload("res://assets/visual/decorados/pisos/gavilla.png"),
+    "huesos_atados": preload("res://assets/visual/decorados/pisos/huesos_atados.png"),
+    "marcas_alas": preload("res://assets/visual/decorados/pisos/marcas_alas.png"),
+}
+## Índice del piso (0 = Piso I) → lo que hay en su suelo y en su muro.
+const TEMAS := {
+    1: {"suelo": ["baculo", "manto", "cuenco", "sandalia"], "muro": ["marcas_peregrino"]},
+    2: {"suelo": ["flechas", "cepo", "hilos"], "muro": ["zarpazos"]},
+    3: {"suelo": ["raices", "hongos", "hojas"], "muro": ["raiz_muro"]},
+    4: {"suelo": ["collar", "hueso_roido", "huellas"], "muro": ["jaula"]},
+    5: {"suelo": ["ofrenda", "monedas", "flores_secas"], "muro": ["guirnalda"]},
+    6: {"suelo": ["venda", "espejo_roto"], "muro": ["ojo_pintado"]},
+    7: {"suelo": ["tiza", "mosaico"], "muro": ["runa_muro"]},
+    8: {"suelo": ["cascotes", "capitel", "mano_piedra"], "muro": ["grieta_grande"]},
+    9: {"suelo": ["hoz", "gavilla", "huesos_atados"], "muro": ["marcas_alas"]},
+}
+## Lo que da luz propia: [desde la esquina, color]. La campaña lo suma a la
+## penumbra y a la luz aditiva.
+const LUCES := {
+    "velas": [Vector2(11, 6), Color(0.6, 0.4, 0.15, 0.45)],
+    "ofrenda": [Vector2(21, 3), Color(0.6, 0.4, 0.15, 0.35)],
+    "hongos": [Vector2(11, 6), Color(0.15, 0.45, 0.6, 0.4)],
+    "runa_muro": [Vector2(11, 12), Color(0.15, 0.45, 0.6, 0.45)],
+}
+
+
+## Textura de un resto (común o del piso).
+static func textura(clave: String) -> Texture2D:
+    return RESTOS.get(clave, DEL_PISO.get(clave, null))
+
 static func degradado_v(c: CanvasItem, r: Rect2, arriba: Color, abajo: Color) -> void:
     c.draw_polygon(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]),
         PackedColorArray([arriba, arriba, abajo, abajo]))
@@ -97,17 +162,24 @@ func desgaste(c: CanvasItem, wear: float, semilla: int) -> void:
 
 ## Dónde van los restos de la sala «clave» ([clave, posición arriba-izquierda,
 ## espejo]; la campaña lo guarda por sala). «despejar»: puntos que no se
-## tapan; «bloqueado»: Callable(Vector2) -> bool.
-func restos(clave: String, wear: float, despejar: Array, bloqueado: Callable) -> Array:
+## tapan; «bloqueado»: Callable(Vector2) -> bool; «piso»: índice del piso
+## (0 = Piso I), que añade su decorado propio (TEMAS).
+func restos(clave: String, wear: float, despejar: Array, bloqueado: Callable, piso: int = 0) -> Array:
     var _restos: Array = []
     var rng := RandomNumberGenerator.new()
     rng.seed = hash("decor:" + clave)
+    var tema: Dictionary = TEMAS.get(piso, {})
+    var rng_tema := RandomNumberGenerator.new() # aparte: el Piso I sale igual que antes
+    rng_tema.seed = hash("tema:" + clave)
     # Muro del fondo: estandartes y cadenas en parejas; sangre según el piso.
     for x in [150.0, 262.0, 372.0]:
         var roll: float = rng.randf()
         var key: String = "estandarte" if roll < 0.4 else ("cadena" if roll < 0.7 else ("manos" if roll < 0.7 + 0.15 * (1.0 + wear) else "goteo"))
-        var tex: Texture2D = RESTOS[key]
-        var y: float = 121.0 if key in ["estandarte", "cadena"] else 126.0
+        if not tema.is_empty() and rng_tema.randf() < 0.5:
+            var muro: Array = tema["muro"]
+            key = muro[rng_tema.randi() % muro.size()]
+        var tex: Texture2D = textura(key)
+        var y: float = 126.0 if key in ["manos", "goteo"] else 121.0
         _restos.append([key, Vector2(x - tex.get_width() * 0.5, y), false])
         _restos.append([key, Vector2(960.0 - x - tex.get_width() * 0.5, y), true])
     # Telarañas en las esquinas del fondo.
@@ -115,6 +187,7 @@ func restos(clave: String, wear: float, despejar: Array, bloqueado: Callable) ->
     _restos.append(["telarana", Vector2(893 - 26, 158), true])
     # Suelo: restos en la mitad izquierda y su reflejo.
     var count: int = 6 + int(3.0 * wear)
+    var usados: Dictionary = {} # parejas de cada resto del piso
     var tries: int = 0
     var placed: int = 0
     while placed < count and tries < 80:
@@ -122,7 +195,12 @@ func restos(clave: String, wear: float, despejar: Array, bloqueado: Callable) ->
         var key2: String = RESTOS_SUELO[rng.randi() % RESTOS_SUELO.size()]
         if key2 in ["charco_grande", "reguero"] and rng.randf() > 0.5 + 0.4 * wear:
             continue
-        var tex2: Texture2D = RESTOS[key2]
+        if not tema.is_empty() and rng_tema.randf() < 0.5:
+            var suelo: Array = tema["suelo"]
+            var propio: String = suelo[rng_tema.randi() % suelo.size()]
+            if int(usados.get(propio, 0)) < 2: # dos parejas como mucho: que no se repita
+                key2 = propio
+        var tex2: Texture2D = textura(key2)
         var size := Vector2(tex2.get_width(), tex2.get_height())
         var center := Vector2(rng.randf_range(90.0, 450.0), rng.randf_range(185.0, 535.0))
         var ok: bool = true
@@ -137,6 +215,7 @@ func restos(clave: String, wear: float, despejar: Array, bloqueado: Callable) ->
                 ok = false
         if not ok:
             continue
+        usados[key2] = int(usados.get(key2, 0)) + 1
         var top_left := (center - size * 0.5).round()
         _restos.append([key2, top_left, false])
         _restos.append([key2, Vector2(960.0 - top_left.x - size.x, top_left.y), true])
@@ -147,7 +226,7 @@ func restos(clave: String, wear: float, despejar: Array, bloqueado: Callable) ->
 ## Dibuja los restos ya colocados; las velas encendidas titilan.
 func dibujar_restos(c: CanvasItem, lista: Array, t: float) -> void:
     for d in lista:
-        var tex: Texture2D = RESTOS[d[0]]
+        var tex: Texture2D = textura(d[0])
         textura_espejo(c, tex, Rect2(d[1], Vector2(tex.get_width(), tex.get_height())), d[2])
     for d in lista:
         if d[0] == "velas":

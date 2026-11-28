@@ -622,7 +622,7 @@ func _run() -> void:
         return
     _sala(game, 3, 1)
     var restos: Array = game.call("_decor_layout")
-    if restos.is_empty() or restos != decorado.call("restos", game.call("_room_key"), float(game.call("_floor").get("wear", 0.0)), _despejar(game), Callable(game, "_is_blocked")):
+    if restos.is_empty() or restos != decorado.call("restos", game.call("_room_key"), float(game.call("_floor").get("wear", 0.0)), _despejar(game), Callable(game, "_is_blocked"), int(game.get("current_floor"))):
         _fail("Los restos de la sala no salen igual de scripts/mundo/decorado.gd.")
         return
     if game.call("_side_door_gap", 1, 485.0) != Rect2(960.0 - 46.0 - 19.0, 449.0, 19.0, 72.0):
@@ -889,6 +889,31 @@ func _run() -> void:
         return
     game.set("profile_tab", 0)
     print("OK: vitrinas (objetos en 3D pixelado en cofres, perfil y menú; se paran si no se ven).")
+
+    # --- Decorado propio de cada piso ---------------------------------------------
+    var deco_n: Node = game.get_node("Decorado")
+    var temas: Dictionary = deco_n.get("TEMAS")
+    for piso in range(1, 10):
+        if not temas.has(piso):
+            _fail("El Piso %d no tiene decorado propio." % (piso + 1))
+            return
+        var propios: Array = (temas[piso]["suelo"] as Array) + (temas[piso]["muro"] as Array)
+        var propios_vistos: int = 0
+        for sala in range(4):
+            for d in deco_n.call("restos", "%d-%d" % [piso, sala], 1.0, [], func(_p): return false, piso):
+                if deco_n.call("textura", str(d[0])) == null:
+                    _fail("El resto «%s» no tiene textura." % d[0])
+                    return
+                if propios.has(d[0]):
+                    propios_vistos += 1
+        if propios_vistos < 4:
+            _fail("En el Piso %d casi no se ve su decorado propio (%d)." % [piso + 1, propios_vistos])
+            return
+    for d in deco_n.call("restos", "0-0", 0.0, [], func(_p): return false, 0):
+        if deco_n.get("DEL_PISO").has(d[0]):
+            _fail("El Piso I no debe llevar decorado de otro piso.")
+            return
+    print("OK: decorado propio de cada piso (peregrinos, cacería, raíces, mastines, ofrendas, mirada, tiza, pórtico y cosecha).")
     game.queue_free()
     await process_frame
     call_deferred("quit", 0)

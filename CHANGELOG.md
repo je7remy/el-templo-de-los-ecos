@@ -1,5 +1,20 @@
 # Historial de versiones
 
+## v0.5.48-alpha — 2026-11-27 · Decorado por piso
+
+- **35 decorados nuevos** (`herramientas/generar_decorados_pisos.py` → `assets/visual/decorados/pisos/`), pixel art original con los mismos colores y contorno que los restos comunes:
+  - II · Peregrinos: báculo con calabaza, manto abandonado, cuenco de limosna, sandalia; en el muro, rayas de tiza contando días.
+  - III · Cacería: flechas clavadas, cepo abierto, hilos del Segador cortados; zarpazos en el muro.
+  - IV · Claustro: raíces que levantan las losas, hongos que brillan, hojas secas; raíces colgando del muro.
+  - V · Mastines: collar de púas roto, hueso roído, huellas con sangre; jaula colgada con la puerta abierta.
+  - VI · Ofrenda: bandeja de ofrendas con vela, monedas, flores secas; guirnalda marchita.
+  - VII · Mirada: venda manchada, espejo roto; un ojo enorme pintado con sangre.
+  - VIII · Salas que cambian: flechas de tiza contradictorias, teselas desplazadas; runa escrita al revés.
+  - IX · Pórtico: cascotes, capitel partido, mano de estatua; la grieta del golpe del Coloso.
+  - X · Cosecha: hoz, gavilla atada, haz de huesos; filas de marcas de alas.
+- `scripts/mundo/decorado.gd`: `TEMAS` mezcla el decorado del piso con los restos comunes (la mitad de los huecos, como mucho dos parejas de cada uno); el Piso I sale igual que antes. Los hongos, la runa y la vela de la ofrenda dan luz, también en espejo.
+- Versión Android 0.5.48-alpha (código 55).
+
 ## v0.5.47-alpha — 2026-11-27 · Objetos en 3D
 
 - **Vitrinas** (`scripts/autoload/vitrinas.gd`, autoload «Vitrinas»): 24 objetos en 3D armados con piezas sencillas (reliquia, alma, resonancia, calavera, corazón, máscara, espada, daga, lanza, hacha, maza, antorcha, escudo, yelmo, peto, botas, amuleto, brazalete, vial, pan, fósforos, incienso, bolsa de almas y campana). Cada uno se renderiza en un SubViewport de 48×48 con su propio mundo, luz cálida, contraluz fría y sombreado «toon», y se dibuja ampliado sin suavizar, con contorno oscuro: se ve como pixel art que gira. Los objetos planos (armas, escudo, amuleto, máscara) se mecen de cara en vez de dar la vuelta.
